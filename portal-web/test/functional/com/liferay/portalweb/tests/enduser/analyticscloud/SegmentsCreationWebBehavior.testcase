@@ -86,7 +86,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -168,7 +173,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -203,7 +213,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 	}
 
 	@description = "Create a segment with behavior of downloading a document"
@@ -257,7 +272,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -331,7 +351,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -411,7 +436,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -494,7 +524,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -576,7 +611,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -656,7 +696,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -727,7 +772,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -827,7 +877,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 	}
 
 	@description = "Feature ID: Legacy | Automation ID: LRAC-9219 | Test Summary: Add segment using a web behavior 'on' some time"
@@ -886,7 +941,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -959,7 +1019,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -1038,7 +1103,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
@@ -1114,7 +1184,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "${username}@liferay.com");
 
@@ -1191,7 +1266,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "${username}@liferay.com");
 
@@ -1267,7 +1347,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "${username}@liferay.com");
 
@@ -1339,7 +1424,12 @@ definition {
 
 		ACNavigation.switchTab(tabName = "Membership");
 
-		ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		if (IsElementPresent(key_textValue = "There are no members found on the selected time period.", locator1 = "ACUtils#GENERIC_TEXT")) {
+			ACUtils.viewGenericText(textValueList = "There are no members found on the selected time period.,Check back later to verify if data has been received from your data sources.,Learn more about individuals.");
+		}
+		else {
+			ACUtils.viewGenericText(textValueList = "There is no data for segment membership.,Check back later to verify if data has been received from your data sources.,Learn more about segment membership.");
+		}
 
 		ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
 
