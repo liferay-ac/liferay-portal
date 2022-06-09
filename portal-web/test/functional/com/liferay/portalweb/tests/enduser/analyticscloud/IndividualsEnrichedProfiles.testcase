@@ -112,15 +112,27 @@ definition {
 				count = "0 Profiles");
 		}
 
-		task ("Sync the new user and view the blog") {
+		task ("Sync the new user") {
 			ACUtils.launchDXP();
 
 			ACDXPSettings.syncNewContactData();
+		}
 
-			User.logoutAndLoginPG(
+		task ("Sign out") {
+			UserBar.signOut();
+		}
+
+		task ("Clear local storage") {
+			ACUtils.clearLocalStorage();
+		}
+
+		task ("Login as new user") {
+			User.loginPG(
 				userLoginEmailAddress = "ac@liferay.com",
 				userLoginFullName = "ac ac");
+		}
 
+		task ("View blog") {
 			ACUtils.navigateToSitePage(
 				actionType = "View Blog",
 				documentTitleList = "Blogs AC Title",
