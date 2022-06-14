@@ -122,4 +122,34 @@ definition {
 		}
 	}
 
+	@description = "Feature ID: LRAC-9516 | Automation ID: LRAC-11057 | Test Summary: Add a CSV file with special characters does not break the data display"
+	@priority = "3"
+	test AddCSVFileWithSpecialCharactersNotBreakDataDisplay {
+		task ("Go to AC") {
+			ACUtils.launchAC();
+		}
+
+		task ("Add a CSV Data Source") {
+			ACSettings.addCSVDataSource(
+				dataSourceName = "CSV Problématic Encodêd Nãme",
+				fieldName = "fullName",
+				fieldNameList = "fullName,email,fullName,email,description,jobTitle,department,department,city,state",
+				index = "1",
+				selectAnalyticsCloudField = "true",
+				sourceFileName = "problematic_encoded_name.csv");
+		}
+
+		task ("Check that the name with special characters appears in the list") {
+			ACUtils.viewGenericText(textValueList = "Groma, Géza László,geza.groma@liferay.com");
+		}
+
+		task ("Click to view a preview of the CSV file") {
+			ACUtils.clickAnyButton(button = "View File Preview");
+		}
+
+		task ("Check that the name with special characters appears in the preview list") {
+			ACUtils.viewGenericText(textValueList = "Groma, Géza László,geza.groma@liferay.com");
+		}
+	}
+
 }
