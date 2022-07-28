@@ -94,7 +94,7 @@ definition {
 		task ("Add a new breakdown") {
 			ACSegments.addBreakdownByAttribute(
 				attribute = "email",
-				breakdownName = "Breakdown by Job Title");
+				breakdownName = "Breakdown by Email");
 		}
 
 		task ("View the data in new breakdown") {

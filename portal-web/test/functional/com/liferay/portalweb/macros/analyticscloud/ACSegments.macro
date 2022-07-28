@@ -19,6 +19,12 @@ definition {
 	macro addBreakdownByAttribute {
 		Click(locator1 = "ACSegments#ADD_BREAKDOWN_BUTTON");
 
+		if (IsElementPresent(key_buttonName = "${breakdownName}", locator1 = "ACUtils#GENERIC_BUTTON")) {
+			Click(locator1 = "Button#CANCEL");
+
+			ACIndividualsDashboard.deleteBreakdown(breakdownName = "${breakdownName}");
+		}
+
 		Click(locator1 = "ACSegments#SEGMENT_OVERVIEW_ATTRIBUTE");
 
 		Type(
