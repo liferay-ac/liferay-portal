@@ -12,25 +12,20 @@
  * details.
  */
 
-import React from 'react';
+import {fetch} from 'frontend-js-web';
 
-const Sheet = ({children, description, title}) => (
-	<div className="sheet sheet-lg">
-		<div className="sheet-header">
-			<h2 className="sheet-title">{title}</h2>
+export function fetchConnection(token: string) {
+	return fetch('/o/analytics-settings-rest/v1.0/data-source', {
+		body: JSON.stringify({
+			token,
+		}),
+		headers: {'Content-Type': 'application/json'},
+		method: 'POST',
+	});
+}
 
-			<div className="sheet-text">{description}</div>
-		</div>
-
-		{children}
-	</div>
-);
-
-const Content = ({children}) => <div className="sheet-section">{children}</div>;
-
-const Footer = ({children}) => <div className="sheet-footer">{children}</div>;
-
-Sheet.Content = Content;
-Sheet.Footer = Footer;
-
-export default Sheet;
+export function deleteConnection() {
+	return fetch('/o/analytics-settings-rest/v1.0/data-source', {
+		method: 'DELETE',
+	});
+}
