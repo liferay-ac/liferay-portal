@@ -14,14 +14,18 @@
 
 import ClayButton from '@clayui/button';
 import ClayEmptyState from '@clayui/empty-state';
+import {useModal} from '@clayui/modal';
 import React from 'react';
 
+import AssignModal from '../../components/AssignModal';
 import BasePage from '../../components/BasePage';
 import {ESteps, TGenericComponent} from './WizardPage';
 
 interface IStepProps extends TGenericComponent {}
 
 const Step: React.FC<IStepProps> = ({onChangeStep}) => {
+	const {observer, onOpenChange, open} = useModal();
+
 	return (
 		<BasePage
 			description={Liferay.Language.get('property-description')}
@@ -79,6 +83,17 @@ const Step: React.FC<IStepProps> = ({onChangeStep}) => {
 					</ClayButton>
 				</ClayButton.Group>
 			</BasePage.Footer>
+
+			{open && (
+				<AssignModal
+					observer={observer}
+					onCloseModal={() => onOpenChange(false)}
+				/>
+			)}
+
+			<ClayButton onClick={() => onOpenChange(true)}>
+				Open modal
+			</ClayButton>
 		</BasePage>
 	);
 };
