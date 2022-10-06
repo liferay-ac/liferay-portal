@@ -91,6 +91,8 @@ const Step: React.FC<IStepProps> = ({onChangeStep}) => {
 				/>
 			)}
 
+			{/* TODO: Remove this button to implement on the right place */}
+
 			<ClayButton onClick={() => onOpenChange(true)}>
 				Open modal
 			</ClayButton>
