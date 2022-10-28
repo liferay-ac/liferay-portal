@@ -1,15 +1,15 @@
 definition {
 
-	macro logoutAndLogin {
-        ACUtils.clearLocalStorage();
-
-		User.logoutAndLoginPG(userLoginEmailAddress = "${userLoginEmailAddress}");
-	}
-
-    macro logout {
-        ACUtils.clearLocalStorage();
+	macro logout {
+		ACUtils.clearLocalStorage();
 
 		User.logoutPG();
+	}
+
+	macro logoutAndLogin {
+		ACUtils.clearLocalStorage();
+
+		User.logoutAndLoginPG(userLoginEmailAddress = "${userLoginEmailAddress}");
 	}
 
 }
