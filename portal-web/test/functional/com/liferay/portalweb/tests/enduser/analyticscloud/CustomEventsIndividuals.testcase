@@ -252,9 +252,7 @@ definition {
 		}
 
 		task ("Sign in as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac2@liferay.com",
-				userLoginFullName = "ac2 ac2");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac2@liferay.com");
 		}
 
 		task ("View the site page") {

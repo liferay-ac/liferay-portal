@@ -195,9 +195,7 @@ definition {
 		}
 
 		task ("Sign in as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "test@liferay.com",
-				userLoginFullName = "test test");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "test@liferay.com");
 		}
 
 		task ("Create new pages and place custom event fields") {
@@ -471,9 +469,7 @@ definition {
 		}
 
 		task ("Sign in as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "test@liferay.com",
-				userLoginFullName = "test test");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "test@liferay.com");
 		}
 
 		task ("Create new pages and place custom event fields") {
@@ -1160,9 +1156,7 @@ definition {
 		}
 
 		task ("Sign in as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "test@liferay.com",
-				userLoginFullName = "test test");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "test@liferay.com");
 		}
 
 		task ("Create new pages and place custom event fields") {

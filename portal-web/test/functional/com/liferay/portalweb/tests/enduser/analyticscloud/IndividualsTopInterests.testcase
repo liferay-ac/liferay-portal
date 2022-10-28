@@ -77,9 +77,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac@liferay.com",
-				userLoginFullName = "ac ac");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac@liferay.com");
 
 			for (var pageName : list "Movies,Music,Science") {
 				ACUtils.navigateToSitePage(
@@ -95,9 +93,7 @@ definition {
 		}
 
 		task ("View new pages in site as another new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "usera@liferay.com",
-				userLoginFullName = "usera usera");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "usera@liferay.com");
 
 			for (var pageName : list "Movies") {
 				ACUtils.navigateToSitePage(
@@ -166,9 +162,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac1@liferay.com",
-				userLoginFullName = "ac1 ac1");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac1@liferay.com");
 
 			for (var pageName : list "Movies,Music,Science,Sports,Technology,Arts") {
 				ACUtils.navigateToSitePage(
@@ -178,9 +172,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac2@liferay.com",
-				userLoginFullName = "ac2 ac2");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac2@liferay.com");
 
 			for (var pageName : list "Movies,Music,Science,Sports,Technology") {
 				ACUtils.navigateToSitePage(
@@ -190,9 +182,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac3@liferay.com",
-				userLoginFullName = "ac3 ac3");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac3@liferay.com");
 
 			for (var pageName : list "Movies,Music,Science,Sports") {
 				ACUtils.navigateToSitePage(
@@ -202,9 +192,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac4@liferay.com",
-				userLoginFullName = "ac4 ac4");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac4@liferay.com");
 
 			for (var pageName : list "Movies,Music,Science") {
 				ACUtils.navigateToSitePage(
@@ -214,9 +202,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac5@liferay.com",
-				userLoginFullName = "ac5 ac5");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac5@liferay.com");
 
 			for (var pageName : list "Movies,Music") {
 				ACUtils.navigateToSitePage(
@@ -226,9 +212,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac6@liferay.com",
-				userLoginFullName = "ac6 ac6");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac6@liferay.com");
 
 			for (var pageName : list "Movies") {
 				ACUtils.navigateToSitePage(

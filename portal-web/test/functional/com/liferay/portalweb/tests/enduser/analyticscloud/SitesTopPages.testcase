@@ -193,9 +193,7 @@ definition {
 		}
 
 		task ("Interation with ac user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac@liferay.com",
-				userLoginFullName = "ac ac");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac@liferay.com");
 
 			ACUtils.navigateToSitePage(
 				actionType = "View Blog",
@@ -209,9 +207,7 @@ definition {
 		}
 
 		task ("Interation with liferay user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "liferay@liferay.com",
-				userLoginFullName = "liferay liferay");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "liferay@liferay.com");
 
 			ACUtils.navigateToSitePage(
 				actionType = "View Blog",
@@ -451,9 +447,7 @@ definition {
 					siteName = "Site Name");
 			}
 
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "test1@liferay.com",
-				userLoginFullName = "test1 test1");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "test1@liferay.com");
 
 			for (var x : list "${u}") {
 				ACUtils.navigateToSitePage(

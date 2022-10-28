@@ -1009,9 +1009,7 @@ definition {
 		}
 
 		task ("Sign in as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "user1@liferay.com",
-				userLoginFullName = "user1 user1");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "user1@liferay.com");
 		}
 
 		task ("Visit the document") {
@@ -1038,14 +1036,8 @@ definition {
 				expected = "");
 		}
 
-		task ("Clear local storage") {
-			ACUtils.clearLocalStorage();
-		}
-
 		task ("Sign in as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "user2@liferay.com",
-				userLoginFullName = "user2 user2");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "user2@liferay.com");
 		}
 
 		task ("Download the document") {

@@ -1275,13 +1275,10 @@ definition {
 		}
 
 		task ("View the blogs page as different users") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "${username}@liferay.com",
-				userLoginFullName = "${fullName}");
-
-			ACUtils.navigateToSitePage(
+			ACUtils.navigateToSitePageWithUser(
 				actionType = "View Blog",
 				documentTitleList = "Blogs AC Title",
+				emailList = "ac@liferay.com",
 				pageName = "AC Page",
 				siteName = "Site Name");
 		}

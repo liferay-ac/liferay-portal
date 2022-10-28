@@ -78,9 +78,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac@liferay.com",
-				userLoginFullName = "ac ac");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac@liferay.com");
 
 			for (var pageName : list "Movies,Music,Science,Sports,Technology") {
 				ACUtils.navigateToSitePage(
@@ -90,9 +88,7 @@ definition {
 		}
 
 		task ("View new pages in site as another new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "usera@liferay.com",
-				userLoginFullName = "usera usera");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "usera@liferay.com");
 
 			for (var pageName : list "Movies,Music,Science,Sports,Technology") {
 				ACUtils.navigateToSitePage(
@@ -290,9 +286,7 @@ definition {
 		}
 
 		task ("View new pages in site as new user") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac@liferay.com",
-				userLoginFullName = "ac ac");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac@liferay.com");
 
 			for (var pageName : list "Movies,Sports,Technology") {
 				ACUtils.navigateToSitePage(

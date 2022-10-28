@@ -433,9 +433,7 @@ definition {
 		}
 
 		task ("Sign in with the new user to visit the site pages") {
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "ac@liferay.com",
-				userLoginFullName = "ac ac");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "ac@liferay.com");
 
 			ACUtils.navigateToSitePage(
 				pageName = "AC Page",
