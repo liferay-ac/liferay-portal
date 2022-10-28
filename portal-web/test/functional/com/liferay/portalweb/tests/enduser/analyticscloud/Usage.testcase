@@ -225,12 +225,8 @@ definition {
 			ACSettings.goToUsage();
 		}
 
-		task ("View the current number on Individuals card not equals 0") {
+		task ("Get the current number on Individuals card") {
 			var current = ACSettings.getCurrentNumber(metricName = "Individuals");
-
-			TestUtils.assertNotEquals(
-				actual = "${current}",
-				expected = "0");
 		}
 
 		task ("View the usage percentage on Individuals card") {
@@ -388,12 +384,8 @@ definition {
 			ACSettings.goToUsage();
 		}
 
-		task ("View the current number on Page Views card not equals 0") {
+		task ("Get the current number on Page Views card") {
 			var current = ACSettings.getCurrentNumber(metricName = "Page Views");
-
-			TestUtils.assertNotEquals(
-				actual = "${current}",
-				expected = "0");
 		}
 
 		task ("View the usage percentage on Page Views") {
