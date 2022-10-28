@@ -6,5 +6,10 @@ definition {
 		User.logoutAndLoginPG(userLoginEmailAddress = "${userLoginEmailAddress}");
 	}
 
+    macro logout {
+        ACUtils.clearLocalStorage();
+
+		User.logoutPG();
+	}
 
 }
