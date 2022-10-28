@@ -168,7 +168,7 @@ definition {
 		}
 
 		task ("Download the document with anonymous user") {
-			User.logoutPG();
+			ACDXPLogin.logout();
 
 			ACUtils.navigateToSitePage(
 				actionType = "Download DM",

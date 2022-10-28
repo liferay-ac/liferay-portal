@@ -166,9 +166,7 @@ definition {
 			pageName = "AC Page",
 			siteName = "Site Name");
 
-		User.logoutPG();
-
-		ACUtils.clearLocalStorage();
+		ACDXPLogin.logout();
 
 		ACUtils.navigateToSitePage(
 			pageName = "AC Page",
@@ -232,7 +230,7 @@ definition {
 		}
 
 		task ("View page with anonymous user") {
-			User.logoutPG();
+			ACDXPLogin.logout();
 
 			ACUtils.navigateToSitePage(
 				pageName = "AC Page",

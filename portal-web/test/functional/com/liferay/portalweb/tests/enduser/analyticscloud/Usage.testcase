@@ -56,7 +56,7 @@ definition {
 
 		ACUtils.launchDXP();
 
-		User.logoutPG();
+		ACDXPLogin.logout();
 
 		ACUtils.navigateToSitePage(
 			pageName = "AC Page",

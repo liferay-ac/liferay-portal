@@ -164,7 +164,7 @@ definition {
 			pageName = "AC Page",
 			siteName = "Site Name");
 
-		User.logoutPG();
+		ACDXPLogin.logout();
 
 		ACUtils.navigateToSitePage(
 			actionType = "View Blog",
@@ -222,7 +222,7 @@ definition {
 			pageName = "AC Page",
 			siteName = "Site Name");
 
-		User.logoutPG();
+		ACDXPLogin.logout();
 
 		ACUtils.navigateToSitePage(
 			actionType = "View Blog",

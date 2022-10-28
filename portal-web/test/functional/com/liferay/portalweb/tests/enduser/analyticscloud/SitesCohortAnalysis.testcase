@@ -55,7 +55,7 @@ definition {
 		property analytics.cloud.upstream = "false";
 
 		task ("Logout from DXP") {
-			User.logoutPG();
+			ACDXPLogin.logout();
 		}
 
 		task ("View the site page as anonymous visitor") {

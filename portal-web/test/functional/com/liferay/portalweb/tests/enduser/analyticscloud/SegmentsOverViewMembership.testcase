@@ -340,7 +340,7 @@ definition {
 		task ("Sign in DXP") {
 			ACUtils.launchDXP();
 
-			User.logoutPG();
+			ACDXPLogin.logout();
 
 			ACUtils.navigateToSitePage(
 				pageName = "AC Page",

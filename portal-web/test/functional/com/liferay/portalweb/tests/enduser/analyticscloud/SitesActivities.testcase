@@ -351,9 +351,7 @@ definition {
 		}
 
 		task ("Access the page as a anonymous user") {
-			User.logoutPG();
-
-			ACUtils.clearLocalStorage();
+			ACDXPLogin.logout();
 
 			ACUtils.navigateToSitePage(
 				actionType = "View Blog",
@@ -444,7 +442,7 @@ definition {
 		}
 
 		task ("Visits the site with anonymous user") {
-			User.logoutPG();
+			ACDXPLogin.logout();
 
 			ACUtils.navigateToSitePage(
 				pageName = "AC Page",

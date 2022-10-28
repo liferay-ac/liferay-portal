@@ -112,7 +112,7 @@ definition {
 		}
 
 		task ("Logout and interact with the page to get data from anonymous unsegmented user") {
-			User.logoutPG();
+			ACDXPLogin.logout();
 
 			ACUtils.navigateToSitePage(
 				pageName = "AC Page",
