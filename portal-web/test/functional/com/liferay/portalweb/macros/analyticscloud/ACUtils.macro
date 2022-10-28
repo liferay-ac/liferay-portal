@@ -843,7 +843,7 @@ definition {
 	@summary = "This macro access a page/document with different users. Pause is necessary because poshi logs in from one user to another very quickly. For more information about pause see LRAC-9514"
 	macro navigateToSitePageWithUser {
 		for (var email : list "${emailList}") {
-			User.logoutAndLoginPG(userLoginEmailAddress = "${email}");
+			ACDXPLogin.logoutAndLogin(userLoginEmailAddress = "${email}");
 
 			ACUtils.navigateToSitePage(
 				actionType = "${actionType}",
