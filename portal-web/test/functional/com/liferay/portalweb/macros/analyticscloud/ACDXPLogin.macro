@@ -1,0 +1,10 @@
+definition {
+
+	macro logoutAndLogin {
+        ACUtils.clearLocalStorage();
+
+		User.logoutAndLoginPG(userLoginEmailAddress = "${userLoginEmailAddress}");
+	}
+
+
+}
