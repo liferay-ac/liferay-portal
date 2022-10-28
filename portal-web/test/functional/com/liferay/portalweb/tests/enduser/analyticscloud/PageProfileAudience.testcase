@@ -43,7 +43,6 @@ definition {
 		property portal.upstream = "quarantine";
 
 		var usernameList = "ac,liferay";
-		var emailList = "ac@liferay.com,liferay@liferay.com";
 
 		task ("Add page and Blog for interaction with the AC") {
 			ACUtils.addSiteAndPage();
@@ -52,7 +51,7 @@ definition {
 		}
 
 		task ("Add users and interact with the page to get data from known and unsegmented users") {
-			var propertyName = ACDXPSettings.connectDXPtoAnalyticsCloud(siteName = "Site Name");
+			ACDXPSettings.connectDXPtoAnalyticsCloud(siteName = "Site Name");
 
 			for (var name : list "${usernameList}") {
 				JSONUser.addUser(
@@ -65,15 +64,9 @@ definition {
 			ACDXPSettings.syncNewContactData();
 
 			ACUtils.navigateToSitePageWithUser(
-				emailList = "${emailList}",
-				pageName = "AC Page",
-				siteName = "Site Name");
-		}
-
-		task ("Logout and interact whith the page to get data from anonymous user") {
-			User.logoutPG();
-
-			ACUtils.navigateToSitePage(
+				actionType = "View Blog",
+				documentTitleList = "Blogs AC Title",
+				emailList = "ac@liferay.com",
 				pageName = "AC Page",
 				siteName = "Site Name");
 		}
@@ -99,13 +92,11 @@ definition {
 		}
 
 		task ("Go to DXP and interact with the page to get data from segmented users") {
-			ACUtils.launchDXP(userEmailAddress = "ac@liferay.com");
-
-			ACUtils.navigateToSitePage(
-				pageName = "AC Page",
-				siteName = "Site Name");
+			ACUtils.launchDXP();
 
 			ACUtils.navigateToSitePageWithUser(
+				actionType = "View Blog",
+				documentTitleList = "Blogs AC Title",
 				emailList = "liferay@liferay.com",
 				pageName = "AC Page",
 				siteName = "Site Name");
@@ -115,12 +106,18 @@ definition {
 			ACDXPLogin.logout();
 
 			ACUtils.navigateToSitePage(
+				actionType = "View Blog",
+				documentTitleList = "Blogs AC Title",
 				pageName = "AC Page",
 				siteName = "Site Name");
 		}
 
 		task ("Close all sessions") {
 			ACUtils.closeAllSessionsAndWait();
+		}
+
+		task ("Get site assigned property name and get data source name") {
+			var dataSource = StringUtil.extractFirst("${assignedPropertyName}", " ");
 		}
 
 		task ("Go to pages and open the page created in DXP") {
@@ -132,13 +129,7 @@ definition {
 
 			ACTimeFilter.setLast24Hours();
 
-			var portalURL = PropsUtil.get("portal.url");
-
-			var portalURL = StringUtil.replace("${portalURL}", "http://", "");
-
-			var portalURL = StringUtil.replace("${portalURL}", ":8080", "");
-
-			ACNavigation.openItem(itemName = "AC Page - Site Name - ${portalURL}");
+			ACNavigation.openItem(itemName = "AC Page - Site Name - ${dataSource}");
 
 			// The page takes too long to appear in the Page Section in AC
 
