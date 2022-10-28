@@ -135,6 +135,8 @@ definition {
 
 		// AC Quarantine Reason: Not navigating DXP with the correct user line 162
 
+		var emailList = "ac@liferay.com,ac1@liferay.com";
+
 		task ("Add a new user") {
 			JSONUser.addUser(
 				userEmailAddress = "ac1@liferay.com",
@@ -248,11 +250,7 @@ definition {
 
 			ACSegments.addSegmentField(segmentField = "Site Membership");
 
-			ACSegments.selectOperator(operator = "is not");
-
-			ACSegments.selectDocument(
-				documentTitle = "Site Name",
-				indexField = "1");
+			ACSegments.selectOperator(operator = "is");
 
 			ACSegments.selectDocument(
 				documentTitle = "Site Name",
