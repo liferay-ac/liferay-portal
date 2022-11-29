@@ -30,4 +30,6 @@ public interface AnalyticsBatchExportImportManager {
 			Date resourceLastModifiedDate, String resourceName, long userId)
 		throws Exception;
 
+	public void validateConnection(long companyId) throws Exception;
+
 }
