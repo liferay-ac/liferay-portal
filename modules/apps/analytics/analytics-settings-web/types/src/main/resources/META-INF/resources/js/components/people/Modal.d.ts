@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import {TColumn, TTableRequestParams} from '../table/types';
+import {TColumns, TTableRequestParams} from '../table/types';
 import {EPeople} from './People';
 export interface ICommonModalProps {
 	observer: any;
@@ -25,7 +25,7 @@ export interface ICommonModalProps {
 	};
 }
 interface IModalProps {
-	columns: TColumn[];
+	columns: TColumns;
 	emptyStateTitle: string;
 	name: EPeople;
 	noResultsTitle: string;

@@ -12,21 +12,31 @@
  * details.
  */
 
+/// <reference types="react" />
+
 import {TFilter} from '../../utils/filter';
-export declare type TColumn = {
-	expanded: boolean;
-	label: string;
-	show?: boolean;
-	sortable?: boolean;
-	value: string;
-};
-export declare type TItem = {
-	checked: boolean;
-	columns: {
+export declare enum EColumnAlign {
+	Left = 'start',
+	Right = 'end',
+}
+export declare type TColumns = {
+	[key: string]: {
+		align?: EColumnAlign;
+		expanded?: boolean;
 		label: string;
 		show?: boolean;
-	}[];
-	disabled: boolean;
+		sortable?: boolean;
+	};
+};
+export declare type TColumnItem = {
+	cellRenderer?: (item: TItem) => JSX.Element;
+	id: string;
+	value: boolean | string | number;
+};
+export declare type TItem = {
+	checked?: boolean;
+	columns: TColumnItem[];
+	disabled?: boolean;
 	id: string;
 };
 export declare type TFormattedItems = {

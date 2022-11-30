@@ -13,10 +13,11 @@
  */
 
 import React from 'react';
-import {TColumn} from './types';
+import {TColumns} from './types';
 interface IContentProps {
-	columns: TColumn[];
+	columns: TColumns;
 	disabled: boolean;
+	showCheckbox: boolean;
 }
 declare const Content: React.FC<IContentProps>;
 export default Content;

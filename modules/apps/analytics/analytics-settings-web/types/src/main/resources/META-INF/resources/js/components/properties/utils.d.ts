@@ -12,12 +12,12 @@
  * details.
  */
 
-import React from 'react';
-import {TProperty} from './Properties';
-interface IPropertiesTable {
-	onAssign: (index: number) => void;
-	onCommerceSwitchChange: (index: number) => void;
-	properties: TProperty[];
-}
-declare const PropertiesTable: React.FC<IPropertiesTable>;
-export default PropertiesTable;
+import {TDataSource, TProperty} from './Properties';
+declare type TSafeProperty = {
+	channelId: string;
+	commerceSyncEnabled: boolean;
+	dataSources: TDataSource[];
+	name: string;
+};
+export declare function getSafeProperty(property: TProperty): TSafeProperty;
+export {};

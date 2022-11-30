@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import {TColumn, TTableRequestParams} from '../table/types';
+import {TColumns, TTableRequestParams} from '../table/types';
 import {TProperty} from './Properties';
 export declare type TRawItem = {
 	channelName?: string;
@@ -27,7 +27,7 @@ interface ITabProps {
 	description?: string;
 	emptyStateTitle: string;
 	enableCheckboxs?: boolean;
-	header: TColumn[];
+	header: TColumns;
 	initialIds: number[];
 	noResultsTitle: string;
 	onItemsChange: (ids: number[]) => void;

@@ -13,11 +13,13 @@
  */
 
 import React from 'react';
-import {TColumn} from './types';
+import {TColumns} from './types';
 interface IManagementToolbarProps {
-	columns: TColumn[];
+	columns: TColumns;
 	disabled: boolean;
 	makeRequest: () => void;
+	onAddItem?: () => void;
+	showCheckbox: boolean;
 }
 declare const ManagementToolbar: React.FC<IManagementToolbarProps>;
 export default ManagementToolbar;
