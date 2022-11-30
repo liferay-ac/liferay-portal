@@ -26,13 +26,12 @@ const ModalOrganizations: React.FC<ICommonModalProps> = ({
 	syncedIds,
 }) => (
 	<Modal
-		columns={[
-			{
+		columns={{
+			name: {
 				expanded: false,
 				label: Liferay.Language.get('organizations'),
-				value: 'name',
 			},
-		]}
+		}}
 		emptyStateTitle={Liferay.Language.get('there-are-no-organizations')}
 		name={EPeople.OrganizationIds}
 		noResultsTitle={Liferay.Language.get('no-organizations-were-found')}

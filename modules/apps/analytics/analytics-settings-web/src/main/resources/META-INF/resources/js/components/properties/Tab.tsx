@@ -16,7 +16,7 @@ import {Text} from '@clayui/core';
 import React from 'react';
 
 import Table from '../table/Table';
-import {TColumn, TTableRequestParams} from '../table/types';
+import {TColumns, TTableRequestParams} from '../table/types';
 import {getIds} from '../table/utils';
 import {TProperty} from './Properties';
 
@@ -33,7 +33,7 @@ interface ITabProps {
 	description?: string;
 	emptyStateTitle: string;
 	enableCheckboxs?: boolean;
-	header: TColumn[];
+	header: TColumns;
 	initialIds: number[];
 	noResultsTitle: string;
 	onItemsChange: (ids: number[]) => void;
@@ -69,9 +69,14 @@ const Tab: React.FC<ITabProps> = ({
 					checked: !!(
 						item.channelName && item.channelName === property.name
 					),
-					columns: columns.map((column) => ({
-						label: item?.[column] ?? '',
-					})),
+					columns: columns.map((column) => {
+						const value = item?.[column] ?? '';
+
+						return {
+							id: column,
+							value,
+						};
+					}),
 					disabled: !!(
 						item.channelName && item.channelName !== property.name
 					),

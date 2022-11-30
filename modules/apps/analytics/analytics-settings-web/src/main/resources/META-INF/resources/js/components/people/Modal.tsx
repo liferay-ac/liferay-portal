@@ -18,7 +18,7 @@ import React, {useState} from 'react';
 
 import {updateAttributesConfiguration} from '../../utils/api';
 import Table from '../table/Table';
-import {TColumn, TFormattedItems, TTableRequestParams} from '../table/types';
+import {TColumns, TFormattedItems, TTableRequestParams} from '../table/types';
 import {getIds} from '../table/utils';
 import {EPeople} from './People';
 
@@ -39,7 +39,7 @@ export interface ICommonModalProps {
 }
 
 interface IModalProps {
-	columns: TColumn[];
+	columns: TColumns;
 	emptyStateTitle: string;
 	name: EPeople;
 	noResultsTitle: string;
@@ -80,7 +80,12 @@ const Modal: React.FC<IModalProps> = ({
 					mapperItems={(items: TRawItem[]) => {
 						return items.map(({id, name, selected}) => ({
 							checked: selected,
-							columns: [{label: name}],
+							columns: [
+								{
+									id: 'name',
+									value: name,
+								},
+							],
 							disabled: false,
 							id: String(id),
 						}));

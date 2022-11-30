@@ -23,11 +23,18 @@ import Loading from '../Loading';
 import ChannelTab from './ChannelTab';
 import {TProperty} from './Properties';
 import SitesTab from './SitesTab';
+import {getSafeProperty} from './utils';
 
 interface IAssignModalProps {
 	observer: any;
 	onCancel: () => void;
-	onSubmit: () => void;
+	onSubmit: ({
+		commerceChannelIds,
+		siteIds,
+	}: {
+		commerceChannelIds: number[];
+		siteIds: number[];
+	}) => void;
 	property: TProperty;
 }
 
@@ -48,9 +55,9 @@ const AssignModal: React.FC<IAssignModalProps> = ({
 			{
 				commerceChannelIds: initialCommerceChannelIds,
 				siteIds: initialSiteIds,
-			} = {commerceChannelIds: [], siteIds: []},
+			},
 		],
-	} = property;
+	} = getSafeProperty(property);
 
 	const [activeTabKeyValue, setActiveTabKeyValue] = useState<ETabs>(
 		ETabs.Channel
@@ -60,6 +67,10 @@ const AssignModal: React.FC<IAssignModalProps> = ({
 		initialCommerceChannelIds
 	);
 	const [siteIds, setSiteIds] = useState<number[]>(initialSiteIds);
+
+	if (!property) {
+		return null;
+	}
 
 	return (
 		<ClayModal center observer={observer} size="lg">
@@ -139,7 +150,7 @@ const AssignModal: React.FC<IAssignModalProps> = ({
 
 								setSubmitting(false);
 
-								ok && onSubmit();
+								ok && onSubmit({commerceChannelIds, siteIds});
 							}}
 						>
 							{submitting && <Loading inline />}
@@ -153,4 +164,28 @@ const AssignModal: React.FC<IAssignModalProps> = ({
 	);
 };
 
-export default AssignModal;
+interface IAssignModalWrapperProps {
+	observer: any;
+	onCancel: () => void;
+	onSubmit: ({
+		commerceChannelIds,
+		siteIds,
+	}: {
+		commerceChannelIds: number[];
+		siteIds: number[];
+	}) => void;
+	property: TProperty | null;
+}
+
+const AssignModalWrapper: React.FC<IAssignModalWrapperProps> = ({
+	property,
+	...otherProps
+}) => {
+	if (!property) {
+		return null;
+	}
+
+	return <AssignModal {...otherProps} property={property} />;
+};
+
+export default AssignModalWrapper;

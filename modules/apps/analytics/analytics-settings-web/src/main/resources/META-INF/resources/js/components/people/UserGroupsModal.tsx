@@ -26,13 +26,12 @@ const ModalUserGroups: React.FC<ICommonModalProps> = ({
 	syncedIds,
 }) => (
 	<Modal
-		columns={[
-			{
+		columns={{
+			name: {
 				expanded: true,
 				label: Liferay.Language.get('user-groups'),
-				value: 'name',
 			},
-		]}
+		}}
 		emptyStateTitle={Liferay.Language.get('there-are-no-user-groups')}
 		name={EPeople.UserGroupIds}
 		noResultsTitle={Liferay.Language.get('no-user-groups-were-found')}

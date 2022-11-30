@@ -22,19 +22,23 @@ import ClayManagementToolbar, {
 import React, {useState} from 'react';
 
 import {Events, useData, useDispatch} from './Context';
-import {TColumn} from './types';
+import {TColumns} from './types';
 import {getOrderBy, getOrderBySymbol, getResultsLanguage} from './utils';
 
 interface IManagementToolbarProps {
-	columns: TColumn[];
+	columns: TColumns;
 	disabled: boolean;
 	makeRequest: () => void;
+	onAddItem?: () => void;
+	showCheckbox: boolean;
 }
 
 const ManagementToolbar: React.FC<IManagementToolbarProps> = ({
 	columns,
 	disabled,
 	makeRequest,
+	onAddItem,
+	showCheckbox,
 }) => {
 	const {filter, globalChecked, keywords: storedKeywords, rows} = useData();
 	const dispatch = useDispatch();
@@ -46,33 +50,37 @@ const ManagementToolbar: React.FC<IManagementToolbarProps> = ({
 		<>
 			<ClayManagementToolbar>
 				<ClayManagementToolbar.ItemList>
-					<ClayManagementToolbar.Item>
-						<ClayCheckbox
-							checked={globalChecked}
-							disabled={disabled}
-							onChange={makeRequest}
-						/>
-					</ClayManagementToolbar.Item>
+					{showCheckbox && (
+						<ClayManagementToolbar.Item>
+							<ClayCheckbox
+								checked={globalChecked}
+								disabled={disabled}
+								onChange={makeRequest}
+							/>
+						</ClayManagementToolbar.Item>
+					)}
 
 					<ClayDropDownWithItems
-						items={columns
-							.map(
-								({
+						items={Object.keys(columns)
+							.map((key) => {
+								const {
 									expanded: _expanded,
 									show: _show,
 									...column
-								}) => ({
+								} = columns[key];
+
+								return {
 									...column,
 									onClick: () => {
 										dispatch({
 											payload: {
-												value: column.value,
+												value: key,
 											},
 											type: Events.ChangeFilter,
 										});
 									},
-								})
-							)
+								};
+							})
 							.filter(({sortable = true}) => sortable)}
 						trigger={
 							<ClayButton
@@ -162,18 +170,17 @@ const ManagementToolbar: React.FC<IManagementToolbarProps> = ({
 					</ClayInput.Group>
 				</ClayManagementToolbar.Search>
 
-				<ClayManagementToolbar.ItemList>
-					<ClayManagementToolbar.Item className="navbar-breakpoint-d-none">
-						<ClayButton
-							className="nav-link nav-link-monospaced"
-							disabled={disabled}
-							displayType="unstyled"
-							onClick={() => setSearchMobile(true)}
-						>
-							<ClayIcon symbol="search" />
-						</ClayButton>
-					</ClayManagementToolbar.Item>
-				</ClayManagementToolbar.ItemList>
+				{onAddItem && (
+					<ClayManagementToolbar.ItemList>
+						<ClayManagementToolbar.Item>
+							<ClayButtonWithIcon
+								className="nav-btn nav-btn-monospaced"
+								onClick={onAddItem}
+								symbol="plus"
+							/>
+						</ClayManagementToolbar.Item>
+					</ClayManagementToolbar.ItemList>
+				)}
 			</ClayManagementToolbar>
 
 			{storedKeywords && (

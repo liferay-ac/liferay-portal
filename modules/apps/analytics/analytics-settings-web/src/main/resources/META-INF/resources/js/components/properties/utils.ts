@@ -12,18 +12,27 @@
  * details.
  */
 
-export const DELTAS = [5, 10, 20, 30, 50] as const;
+import {TDataSource, TProperty} from './Properties';
 
-export type TPagination = {
-	maxCount: number;
-	page: number;
-	pageSize: typeof DELTAS[number];
-	totalCount: number;
+type TSafeProperty = {
+	channelId: string;
+	commerceSyncEnabled: boolean;
+	dataSources: TDataSource[];
+	name: string;
 };
 
-export const DEFAULT_PAGINATION: TPagination = {
-	maxCount: 0,
-	page: 1,
-	pageSize: 20,
-	totalCount: 0,
-};
+export function getSafeProperty(property: TProperty): TSafeProperty {
+	if (property.dataSources.length) {
+		return property;
+	}
+
+	return {
+		...property,
+		dataSources: [
+			{
+				commerceChannelIds: [],
+				siteIds: [],
+			},
+		],
+	};
+}

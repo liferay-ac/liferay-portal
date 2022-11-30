@@ -15,27 +15,31 @@
 import React from 'react';
 
 import {fetchSites} from '../../utils/api';
+import {TColumns} from '../table/types';
 import {TProperty} from './Properties';
 import Tab, {TRawItem} from './Tab';
 
-const columns = [
-	{
+enum EColumn {
+	Name = 'name',
+	FriendlyURL = 'friendlyURL',
+	ChannelName = 'channelName',
+}
+
+const columns: TColumns = {
+	[EColumn.Name]: {
 		expanded: true,
 		label: Liferay.Language.get('site-name'),
-		value: 'name',
 	},
-	{
+	[EColumn.FriendlyURL]: {
 		expanded: true,
 		label: Liferay.Language.get('friendly-url'),
-		value: 'friendlyURL',
 	},
-	{
+	[EColumn.ChannelName]: {
 		expanded: true,
 		label: Liferay.Language.get('assigned-property'),
 		sortable: false,
-		value: 'channelName',
 	},
-];
+};
 
 interface ISiteTabProps {
 	initialIds: number[];
@@ -49,7 +53,7 @@ const SitesTab: React.FC<ISiteTabProps> = ({
 	property,
 }) => (
 	<Tab
-		columns={columns.map(({value}) => value) as Array<keyof TRawItem>}
+		columns={Object.keys(columns) as Array<keyof TRawItem>}
 		emptyStateTitle={Liferay.Language.get('there-are-no-sites')}
 		header={columns}
 		initialIds={initialIds}
