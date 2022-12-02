@@ -25,15 +25,3 @@ create table AnalyticsDeleteMessage (
 	classPK LONG,
 	primary key (analyticsDeleteMessageId, ctCollectionId)
 );
-
-create table AnalyticsMessage (
-	mvccVersion LONG default 0 not null,
-	ctCollectionId LONG default 0 not null,
-	analyticsMessageId LONG not null,
-	companyId LONG,
-	userId LONG,
-	userName VARCHAR(75) null,
-	createDate DATE null,
-	body BLOB,
-	primary key (analyticsMessageId, ctCollectionId)
-);
