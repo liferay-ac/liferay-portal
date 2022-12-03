@@ -16,6 +16,7 @@ package com.liferay.analytics.message.storage.internal.upgrade.registry;
 
 import com.liferay.analytics.message.storage.internal.upgrade.v1_1_0.util.AnalyticsDeleteMessageTable;
 import com.liferay.analytics.message.storage.internal.upgrade.v1_2_0.util.AnalyticsAssociationTable;
+import com.liferay.analytics.message.storage.internal.upgrade.v1_4_0.util.AnalyticsMessageTable;
 import com.liferay.portal.kernel.upgrade.CTModelUpgradeProcess;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 
@@ -38,8 +39,9 @@ public class AnalyticsMessageStorageServiceUpgradeStepRegistrator
 		registry.register(
 			"1.2.0", "1.3.0",
 			new CTModelUpgradeProcess(
-				"AnalyticsAssociation", "AnalyticsDeleteMessage",
-				"AnalyticsMessage"));
+				"AnalyticsAssociation", "AnalyticsDeleteMessage"));
+
+		registry.register("1.3.0", "1.4.0", AnalyticsMessageTable.drop());
 	}
 
 }
