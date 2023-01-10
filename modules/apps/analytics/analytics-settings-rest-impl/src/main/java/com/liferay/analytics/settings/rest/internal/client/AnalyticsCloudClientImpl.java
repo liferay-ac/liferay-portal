@@ -56,11 +56,22 @@ import com.liferay.portal.kernel.util.Validator;
 import java.net.HttpURLConnection;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -121,41 +132,50 @@ public class AnalyticsCloudClientImpl implements AnalyticsCloudClient {
 			long companyId, String connectionToken)
 		throws Exception {
 
-		JSONObject connectionTokenJSONObject = _decodeToken(connectionToken);
+		HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 
-		Company company = _companyLocalService.getCompany(companyId);
+		httpClientBuilder.useSystemProperties();
 
-		Http.Options options = new Http.Options();
+		try (CloseableHttpClient closeableHttpClient =
+				httpClientBuilder.build()) {
 
-		String url = HttpComponentsUtil.addParameter(
-			connectionTokenJSONObject.getString("url"), "name",
-			company.getName());
+			JSONObject connectionTokenJSONObject = _decodeToken(
+				connectionToken);
 
-		url = HttpComponentsUtil.addParameter(
-			url, "portalURL", company.getPortalURL(0));
-		url = HttpComponentsUtil.addParameter(
-			url, "token", connectionTokenJSONObject.getString("token"));
+			Company company = _companyLocalService.getCompany(companyId);
 
-		options.setLocation(url);
+			HttpPost httpPost = new HttpPost(
+				connectionTokenJSONObject.getString("url"));
 
-		options.setPost(true);
+			httpPost.setEntity(
+				new UrlEncodedFormEntity(
+					Arrays.asList(
+						new BasicNameValuePair("name", company.getName()),
+						new BasicNameValuePair(
+							"portalURL", company.getPortalURL(0)),
+						new BasicNameValuePair(
+							"token",
+							connectionTokenJSONObject.getString("token")))));
 
-		String content = _http.URLtoString(options);
+			CloseableHttpResponse closeableHttpResponse =
+				closeableHttpClient.execute(httpPost);
 
-		Http.Response response = options.getResponse();
+			StatusLine statusLine = closeableHttpResponse.getStatusLine();
 
-		if (response.getResponseCode() != HttpURLConnection.HTTP_OK) {
-			if (_log.isDebugEnabled()) {
-				_log.debug("Response code " + response.getResponseCode());
+			if (statusLine.getStatusCode() != HttpStatus.SC_OK) {
+				if (_log.isDebugEnabled()) {
+					_log.debug("Response code " + statusLine.getStatusCode());
+				}
+
+				throw new DataSourceConnectionException(
+					"Unable to connect analytics data source");
 			}
 
-			throw new DataSourceConnectionException(
-				"Unable to connect analytics data source");
+			JSONObject contentJSONObject = _jsonFactory.createJSONObject(
+				EntityUtils.toString(closeableHttpResponse.getEntity()));
+
+			return contentJSONObject.toMap();
 		}
-
-		JSONObject contentJSONObject = _jsonFactory.createJSONObject(content);
-
-		return contentJSONObject.toMap();
 	}
 
 	public AnalyticsDataSource disconnectAnalyticsDataSource(long companyId)

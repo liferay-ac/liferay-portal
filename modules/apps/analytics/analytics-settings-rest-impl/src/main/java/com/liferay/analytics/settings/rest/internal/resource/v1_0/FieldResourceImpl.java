@@ -22,9 +22,18 @@ import com.liferay.analytics.settings.rest.constants.FieldProductConstants;
 import com.liferay.analytics.settings.rest.dto.v1_0.Field;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
 import com.liferay.analytics.settings.rest.resource.v1_0.FieldResource;
+import com.liferay.expando.kernel.model.ExpandoColumn;
+import com.liferay.expando.kernel.model.ExpandoColumnConstants;
+import com.liferay.expando.kernel.model.ExpandoTable;
+import com.liferay.expando.kernel.model.ExpandoTableConstants;
+import com.liferay.expando.kernel.service.ExpandoColumnLocalService;
+import com.liferay.expando.kernel.service.ExpandoTableLocalService;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Sort;
+import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
@@ -141,6 +150,25 @@ public class FieldResourceImpl extends BaseFieldResourceImpl {
 				analyticsConfiguration.syncedUserFieldNames(),
 				FieldPeopleConstants.FIELD_USER_TYPES));
 
+		for (ExpandoColumn expandoColumn :
+				_getUserExpandoColumns(contextCompany.getCompanyId())) {
+
+			Field field = new Field();
+
+			field.setExample(StringPool.DASH);
+			field.setName(expandoColumn.getName());
+			field.setRequired(false);
+			field.setSelected(
+				ArrayUtil.contains(
+					analyticsConfiguration.syncedUserFieldNames(),
+					expandoColumn.getName()) ||
+				field.getRequired());
+			field.setSource("user");
+			field.setType(_getDataType(expandoColumn.getType()));
+
+			fields.add(field);
+		}
+
 		fields = _filter(fields, keyword);
 
 		fields = _sort(fields, sorts);
@@ -254,7 +282,7 @@ public class FieldResourceImpl extends BaseFieldResourceImpl {
 				_updateSelectedFields(
 					analyticsConfiguration.syncedUserFieldNames(), fields,
 					FieldPeopleConstants.FIELD_USER_REQUIRED_NAMES, "user",
-					FieldPeopleConstants.FIELD_USER_NAMES)
+					_getValidateFieldNames())
 			).build());
 	}
 
@@ -307,6 +335,45 @@ public class FieldResourceImpl extends BaseFieldResourceImpl {
 		);
 	}
 
+	private String _getDataType(int type) {
+		if ((type == ExpandoColumnConstants.BOOLEAN) ||
+			(type == ExpandoColumnConstants.BOOLEAN_ARRAY)) {
+
+			return "Boolean";
+		}
+		else if ((type == ExpandoColumnConstants.DATE) ||
+				 (type == ExpandoColumnConstants.DATE_ARRAY)) {
+
+			return "Date";
+		}
+		else if ((type == ExpandoColumnConstants.DOUBLE) ||
+				 (type == ExpandoColumnConstants.DOUBLE_ARRAY) ||
+				 (type == ExpandoColumnConstants.FLOAT) ||
+				 (type == ExpandoColumnConstants.FLOAT_ARRAY)) {
+
+			return "Decimal";
+		}
+		else if ((type == ExpandoColumnConstants.INTEGER) ||
+				 (type == ExpandoColumnConstants.INTEGER_ARRAY)) {
+
+			return "Integer";
+		}
+		else if ((type == ExpandoColumnConstants.LONG) ||
+				 (type == ExpandoColumnConstants.LONG_ARRAY)) {
+
+			return "Long";
+		}
+		else if ((type == ExpandoColumnConstants.NUMBER) ||
+				 (type == ExpandoColumnConstants.NUMBER_ARRAY) ||
+				 (type == ExpandoColumnConstants.SHORT) ||
+				 (type == ExpandoColumnConstants.SHORT_ARRAY)) {
+
+			return "Number";
+		}
+
+		return "String";
+	}
+
 	private List<Field> _getFields(
 		String[] examples, String[] names, String[] requiredNames,
 		String source, String[] syncedNames, String[] types) {
@@ -329,6 +396,43 @@ public class FieldResourceImpl extends BaseFieldResourceImpl {
 		}
 
 		return fields;
+	}
+
+	private List<ExpandoColumn> _getUserExpandoColumns(long companyId) {
+		ExpandoTable expandoTable = _expandoTableLocalService.fetchTable(
+			companyId,
+			_classNameLocalService.getClassNameId(User.class.getName()),
+			ExpandoTableConstants.DEFAULT_TABLE_NAME);
+
+		if (expandoTable != null) {
+			return _expandoColumnLocalService.getColumns(
+				expandoTable.getTableId());
+		}
+
+		return Collections.emptyList();
+	}
+
+	private String[] _getValidateFieldNames() {
+		List<ExpandoColumn> expandoColumns = _getUserExpandoColumns(
+			contextCompany.getCompanyId());
+
+		String[] validateFieldNames = new String
+			[expandoColumns.size() +
+				FieldPeopleConstants.FIELD_USER_NAMES.length];
+
+		String[] expandoColumnNames = new String[expandoColumns.size()];
+
+		for (int i = 0; i < expandoColumns.size(); i++) {
+			ExpandoColumn expandoColumn = expandoColumns.get(i);
+
+			expandoColumnNames[i] = expandoColumn.getName();
+		}
+
+		ArrayUtil.combine(
+			FieldPeopleConstants.FIELD_USER_NAMES, expandoColumnNames,
+			validateFieldNames);
+
+		return validateFieldNames;
 	}
 
 	private List<Field> _sort(List<Field> fields, Sort[] sorts) {
@@ -403,5 +507,14 @@ public class FieldResourceImpl extends BaseFieldResourceImpl {
 
 	@Reference
 	private AnalyticsSettingsManager _analyticsSettingsManager;
+
+	@Reference
+	private ClassNameLocalService _classNameLocalService;
+
+	@Reference
+	private ExpandoColumnLocalService _expandoColumnLocalService;
+
+	@Reference
+	private ExpandoTableLocalService _expandoTableLocalService;
 
 }
