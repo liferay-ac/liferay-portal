@@ -170,16 +170,22 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 	}
 
 	public boolean isAnalyticsEnabled(long companyId) throws Exception {
-		AnalyticsConfiguration analyticsConfiguration =
-			getAnalyticsConfiguration(companyId);
+		Configuration configuration = _getFactoryConfiguration(
+			_getConfigurationPid(), ExtendedObjectClassDefinition.Scope.COMPANY,
+			companyId);
 
-		if (Validator.isNull(
-				analyticsConfiguration.liferayAnalyticsDataSourceId()) ||
+		if (configuration == null) {
+			return false;
+		}
+
+		Dictionary<String, Object> properties = configuration.getProperties();
+
+		if (Validator.isNull(properties.get("liferayAnalyticsDataSourceId")) ||
 			Validator.isNull(
-				analyticsConfiguration.
-					liferayAnalyticsFaroBackendSecuritySignature()) ||
+				properties.get(
+					"liferayAnalyticsFaroBackendSecuritySignature")) ||
 			Validator.isNull(
-				analyticsConfiguration.liferayAnalyticsFaroBackendURL())) {
+				properties.get("liferayAnalyticsFaroBackendURL"))) {
 
 			return false;
 		}
