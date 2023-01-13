@@ -96,6 +96,21 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 			AnalyticsConfiguration.class, companyId);
 	}
 
+	public Dictionary<String, Object> fetchConfigurationProperties(
+			long companyId)
+		throws Exception {
+
+		Configuration configuration = _getFactoryConfiguration(
+			_getConfigurationPid(), ExtendedObjectClassDefinition.Scope.COMPANY,
+			companyId);
+
+		if (configuration != null) {
+			return configuration.getProperties();
+		}
+
+		return null;
+	}
+
 	public AnalyticsConfiguration getAnalyticsConfiguration(long companyId)
 		throws ConfigurationException {
 

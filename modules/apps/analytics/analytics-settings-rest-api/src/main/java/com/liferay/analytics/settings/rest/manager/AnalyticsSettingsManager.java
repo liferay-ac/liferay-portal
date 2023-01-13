@@ -17,6 +17,7 @@ package com.liferay.analytics.settings.rest.manager;
 import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
 import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 
+import java.util.Dictionary;
 import java.util.Map;
 
 import org.osgi.annotation.versioning.ProviderType;
@@ -29,6 +30,10 @@ public interface AnalyticsSettingsManager {
 
 	public void deleteCompanyConfiguration(long companyId)
 		throws ConfigurationException;
+
+	public Dictionary<String, Object> fetchConfigurationProperties(
+			long companyId)
+		throws Exception;
 
 	public AnalyticsConfiguration getAnalyticsConfiguration(long companyId)
 		throws ConfigurationException;
