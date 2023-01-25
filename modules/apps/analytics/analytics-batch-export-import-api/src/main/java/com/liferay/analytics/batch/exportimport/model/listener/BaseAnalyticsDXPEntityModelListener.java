@@ -76,7 +76,7 @@ public abstract class BaseAnalyticsDXPEntityModelListener
 
 	@Override
 	public void onBeforeRemove(T model) throws ModelListenerException {
-		if (!isTracked(model)) {
+		if (!analyticsConfigurationRegistry.isActive() || !isTracked(model)) {
 			return;
 		}
 
