@@ -14,10 +14,13 @@
 
 package com.liferay.analytics.settings.rest.internal.resource.v1_0;
 
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ServiceScope;
-
+import com.liferay.analytics.batch.exportimport.AnalyticsDXPEntityBatchExporter;
+import com.liferay.analytics.batch.exportimport.constants.AnalyticsDXPEntityBatchExporterConstants;
 import com.liferay.analytics.settings.rest.resource.v1_0.AnalyticsDXPEntityBatchExporterResource;
+
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ServiceScope;
 
 /**
  * @author Riccardo Ferrari
@@ -29,4 +32,24 @@ import com.liferay.analytics.settings.rest.resource.v1_0.AnalyticsDXPEntityBatch
 )
 public class AnalyticsDXPEntityBatchExporterResourceImpl
 	extends BaseAnalyticsDXPEntityBatchExporterResourceImpl {
+
+	@Override
+	public void postAnalyticsDXPEntityBatchExporter() throws Exception {
+		_analyticsDXPEntityBatchExporter.export(
+			contextCompany.getCompanyId(),
+			new String[] {
+				AnalyticsDXPEntityBatchExporterConstants.
+					ACCOUNT_ENTRY_DISPATCH_TRIGGER_NAME,
+				AnalyticsDXPEntityBatchExporterConstants.
+					ORDER_DISPATCH_TRIGGER_NAME,
+				AnalyticsDXPEntityBatchExporterConstants.
+					PRODUCT_DISPATCH_TRIGGER_NAME,
+				AnalyticsDXPEntityBatchExporterConstants.
+					USER_DISPATCH_TRIGGER_NAME
+			});
+	}
+
+	@Reference
+	private AnalyticsDXPEntityBatchExporter _analyticsDXPEntityBatchExporter;
+
 }
