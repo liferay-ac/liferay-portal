@@ -18,6 +18,7 @@ import fetch from 'jest-fetch-mock';
 import React, {useEffect} from 'react';
 
 import {AppContextProvider, TData, initialState, useData} from '../../../App';
+import {mockResponse} from '../../../utils/__tests__/helpers';
 import AttributesStep from '../AttributesStep';
 
 const response = {
@@ -26,6 +27,10 @@ const response = {
 	people: 43,
 	product: 0,
 };
+
+// const request = {
+
+// };
 
 const AttributesStepContent = ({
 	onDataChange,
@@ -48,7 +53,9 @@ describe('Attributes Step', () => {
 	});
 
 	it('render AttributesStep without crashing', async () => {
-		fetch.mockResponseOnce(JSON.stringify(response));
+		fetch
+			.mockReturnValueOnce(mockResponse(JSON.stringify(response)))
+			.mockReturnValueOnce(mockResponse(JSON.stringify({})));
 
 		let data: TData = initialState;
 
@@ -56,7 +63,7 @@ describe('Attributes Step', () => {
 			data = newData;
 		});
 
-		const {container, getByText} = render(
+		const {container, debug, getByText} = render(
 			<AppContextProvider
 				connected={false}
 				liferayAnalyticsURL=""
@@ -65,6 +72,8 @@ describe('Attributes Step', () => {
 				<AttributesStepContent onDataChange={onDataChange} />
 			</AppContextProvider>
 		);
+
+		debug();
 
 		expect(data.pageView).toEqual('VIEW_WIZARD_MODE');
 		expect(getByText(/finish/i)).toBeInTheDocument();
@@ -83,6 +92,7 @@ describe('Attributes Step', () => {
 
 		expect(data.pageView).toEqual('VIEW_DEFAULT_MODE');
 		expect(onDataChange).toBeCalledTimes(2);
+
 		expect(attributesStepTitle).toBeInTheDocument();
 		expect(attributesStepDescription).toBeInTheDocument();
 		expect(container.firstChild).toHaveClass('sheet');
