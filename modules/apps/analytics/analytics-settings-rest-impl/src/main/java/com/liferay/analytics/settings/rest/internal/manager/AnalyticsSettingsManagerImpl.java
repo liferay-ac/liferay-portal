@@ -552,6 +552,13 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 		}
 
 		for (String multiValuedKey : settingsDescriptor.getMultiValuedKeys()) {
+			String[] value = (String[])configurationProperties.get(
+				multiValuedKey);
+
+			if (value.length == 0) {
+				configurationProperties.remove(multiValuedKey);
+			}
+
 			configurationProperties.computeIfAbsent(
 				multiValuedKey,
 				key -> _defaults.getOrDefault(key, new String[0]));
