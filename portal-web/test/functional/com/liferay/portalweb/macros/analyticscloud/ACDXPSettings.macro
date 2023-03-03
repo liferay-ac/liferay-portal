@@ -138,8 +138,6 @@ definition {
 
 		if (IsElementNotPresent(locator1 = "ACDXPSettings#CONNECT_BUTTON_DISABLED")) {
 			ClickNoError(locator1 = "ACDXPSettings#CONNECT_DISCONNECT_BUTTON");
-
-			Click(locator1 = "ACSettings#DISCONNECT_CONFIRMATION_BUTTON");
 		}
 	}
 
