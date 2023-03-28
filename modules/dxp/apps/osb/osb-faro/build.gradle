@@ -41,7 +41,7 @@ task startDocker(type: DockerStartContainer)
 task stopDocker(type: DockerStopContainer)
 
 def dockerContainerId = "faro"
-def dockerImageId = "liferay/com-liferay-osb-faro"
+def dockerImageId = "modules.dxp.apps.osb/liferay/com-liferay-osb-faro"
 
 ext.faroEnvironmentName = System.getenv().get("FARO_ENVIRONMENT_NAME") ?: project.property("com.liferay.osb.faro.environment.name")
 ext.faroImageTag = project.hasProperty("docker.image.tag") ? project.getProperty("docker.image.tag") : "latest"
@@ -99,25 +99,25 @@ configure(project(":dxp:apps:osb:osb-faro:osb-faro-dependencies")) {
 	}
 }
 
-//configure(subprojects.findAll {!it.childProjects}) {
-//	task moveToDocker(type: Exec)
-//
-//	deploy {
-//		doFirst {
-//			delete file(liferay.deployDir)
-//		}
-//
-//		finalizedBy moveToDocker
-//
-//		liferay {
-//			deployDir = new File("${rootDir}/build/deploy")
-//		}
-//	}
-//
-//	moveToDocker {
-//		commandLine "docker", "cp", "-a", liferay.deployDir, dockerContainerId + ":/opt/liferay"
-//	}
-//}
+configure(subprojects.findAll {!it.childProjects}) {
+	task moveToDocker(type: Exec)
+
+	deploy {
+		doFirst {
+			delete file(liferay.deployDir)
+		}
+
+		finalizedBy moveToDocker
+
+		liferay {
+			deployDir = new File("${rootDir}/build/deploy")
+		}
+	}
+
+	moveToDocker {
+		commandLine "docker", "cp", "-a", liferay.deployDir, dockerContainerId + ":/opt/liferay"
+	}
+}
 
 createDocker {
 	dependsOn buildAppDockerImage, removeDocker
