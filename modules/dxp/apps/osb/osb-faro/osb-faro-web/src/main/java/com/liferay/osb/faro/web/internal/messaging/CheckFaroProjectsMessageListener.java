@@ -166,7 +166,7 @@ public class CheckFaroProjectsMessageListener extends BaseMessageListener {
 
 		List<User> users = _userLocalService.getRoleUsers(role.getRoleId());
 
-		List<InternetAddress> bcc = new ArrayList<>();
+		List<InternetAddress> bcc = new ArrayList<InternetAddress>();
 
 		for (User user : users) {
 			if (!StringUtil.equals(
@@ -185,7 +185,7 @@ public class CheckFaroProjectsMessageListener extends BaseMessageListener {
 
 		MailMessage mailMessage = new MailMessage(from, subject, body, false);
 
-		mailMessage.setBCC((InternetAddress[])bcc.toArray());
+		mailMessage.setBCC((InternetAddress[])bcc.toArray(new InternetAddress[0]));
 
 		_mailService.sendEmail(mailMessage);
 	}

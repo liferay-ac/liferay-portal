@@ -15,7 +15,6 @@
 package com.liferay.osb.faro.engine.client.internal;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import com.liferay.osb.faro.engine.client.BaseEngineClient;
 import com.liferay.osb.faro.engine.client.ContactsEngineClient;
 import com.liferay.osb.faro.engine.client.constants.ActivityConstants;
@@ -72,32 +71,15 @@ import com.liferay.portal.kernel.dao.search.SearchPaginationUtil;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
-
-import java.io.OutputStream;
-
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -107,6 +89,20 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.OutputStream;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * @author Shinn Lok
@@ -1627,8 +1623,6 @@ public class ContactsEngineClientImpl
 
 			ArrayList<Object> objects = new ArrayList<>(terms.values());
 
-			objects.get(0);
-
 			values.add(objects.get(0));
 		}
 
@@ -1889,11 +1883,9 @@ public class ContactsEngineClientImpl
 			getTemplatedURL(faroProject, Rels.INDIVIDUALS_COUNT),
 			HttpMethod.GET, HttpEntity.EMPTY, Long.class, uriVariables);
 
-		if (responseEntity.getBody() == null) {
-			return 0L;
-		}
 
-		return responseEntity.getBody();
+		return GetterUtil.getLong(responseEntity.getBody());
+
 	}
 
 	@Override

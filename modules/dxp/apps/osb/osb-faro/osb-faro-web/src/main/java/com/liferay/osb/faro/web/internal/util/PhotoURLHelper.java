@@ -29,22 +29,22 @@ import com.liferay.portal.kernel.repository.model.Folder;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.util.File;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Matthew Kong
@@ -85,11 +85,10 @@ public class PhotoURLHelper {
 		try (InputStream inputStream = new ByteArrayInputStream(bytes)) {
 			String mimeType = MimeTypesUtil.getContentType(inputStream, null);
 
+
 			FileEntry fileEntry = _dlAppLocalService.addFileEntry(
-				dlFileEntry.getExternalReferenceCode(), userId,
-				dlFileEntry.getRepositoryId(), folderId,
-				dlFileEntry.getFileName(), mimeType, bytes,
-				dlFileEntry.getExpirationDate(), dlFileEntry.getReviewDate(),
+				userId, 0L, folderId, url.concat(getExtension(mimeType)), mimeType, StringPool.BLANK,
+				StringPool.BLANK, StringPool.BLANK, _file.createTempFile(inputStream),
 				serviceContext);
 
 			if (bytes.length > _MINIMUM_IMAGE_SIZE) {
@@ -134,12 +133,14 @@ public class PhotoURLHelper {
 		}
 
 		Folder folder = _dlAppLocalService.addFolder(
-			dlFolder.getExternalReferenceCode(), userId,
-			dlFolder.getRepositoryId(),
+			StringPool.BLANK, userId,
+			0L,
 			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID, _FOLDER_NAME, null,
 			serviceContext);
 
-		return folder.getFolderId();
+
+		return 	GetterUtil.getLong(folder.getFolderId());
+
 	}
 
 	protected String getPhotoURL(DLFileEntry dlFileEntry) {
@@ -182,5 +183,8 @@ public class PhotoURLHelper {
 
 	@Reference
 	private UserLocalService _userLocalService;
+
+	@Reference
+	private File _file;
 
 }

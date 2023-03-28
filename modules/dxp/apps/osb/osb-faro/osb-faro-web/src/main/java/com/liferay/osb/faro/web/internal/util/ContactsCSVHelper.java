@@ -79,10 +79,6 @@ public class ContactsCSVHelper {
 
 		Charset charset = charsetDetector.detect(file);
 
-		if (charset == null) {
-			charset = StandardCharsets.UTF_8;
-		}
-
 		File tempFile = FileUtil.createTempFile();
 
 		tempFile.deleteOnExit();

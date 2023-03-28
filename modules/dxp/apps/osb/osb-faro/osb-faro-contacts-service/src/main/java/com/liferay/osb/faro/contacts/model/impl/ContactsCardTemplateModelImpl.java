@@ -909,5 +909,6 @@ public class ContactsCardTemplateModelImpl
 
 	private long _columnBitmask;
 	private ContactsCardTemplate _escapedModel;
+	private static final long serialVersionUID = 1L;
 
 }
