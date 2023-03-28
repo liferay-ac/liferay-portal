@@ -99,25 +99,25 @@ configure(project(":dxp:apps:osb:osb-faro:osb-faro-dependencies")) {
 	}
 }
 
-configure(subprojects.findAll {!it.childProjects}) {
-	task moveToDocker(type: Exec)
-
-	deploy {
-		doFirst {
-			delete file(liferay.deployDir)
-		}
-
-		finalizedBy moveToDocker
-
-		liferay {
-			deployDir = new File("${rootDir}/build/deploy")
-		}
-	}
-
-	moveToDocker {
-		commandLine "docker", "cp", "-a", liferay.deployDir, dockerContainerId + ":/opt/liferay"
-	}
-}
+//configure(subprojects.findAll {!it.childProjects}) {
+//	task moveToDocker(type: Exec)
+//
+//	deploy {
+//		doFirst {
+//			delete file(liferay.deployDir)
+//		}
+//
+//		finalizedBy moveToDocker
+//
+//		liferay {
+//			deployDir = new File("${rootDir}/build/deploy")
+//		}
+//	}
+//
+//	moveToDocker {
+//		commandLine "docker", "cp", "-a", liferay.deployDir, dockerContainerId + ":/opt/liferay"
+//	}
+//}
 
 createDocker {
 	dependsOn buildAppDockerImage, removeDocker
@@ -163,15 +163,15 @@ prepareAppDockerImageInputDir {
 	rename {
 		String fileName ->
 
-			if (fileName.endsWith(".jar")) {
-				int pos = fileName.indexOf('-')
+		if (fileName.endsWith(".jar")) {
+			int pos = fileName.indexOf('-')
 
-				if (pos != -1) {
-					fileName = fileName.substring(0, pos) + ".jar"
-				}
+			if (pos != -1) {
+				fileName = fileName.substring(0, pos) + ".jar"
 			}
+		}
 
-			fileName
+		fileName
 	}
 }
 
@@ -213,14 +213,14 @@ subprojects {
 	tasks.all {
 		Task task ->
 
-			if (task.name == "baseline") {
-				enabled = false
+		if (task.name == "baseline") {
+			enabled = false
+		}
+		else if (task.name == "deployDependencies") {
+			prepareAppDockerImageInputDir {
+				from task.inputs.files
 			}
-			else if (task.name == "deployDependencies") {
-				prepareAppDockerImageInputDir {
-					from task.inputs.files
-				}
-			}
+		}
 	}
 
 	tasks.withType(Test) {

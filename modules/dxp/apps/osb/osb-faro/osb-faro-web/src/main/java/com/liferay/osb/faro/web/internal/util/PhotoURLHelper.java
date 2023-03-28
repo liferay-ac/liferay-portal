@@ -37,14 +37,16 @@ import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Matthew Kong
@@ -85,11 +87,10 @@ public class PhotoURLHelper {
 		try (InputStream inputStream = new ByteArrayInputStream(bytes)) {
 			String mimeType = MimeTypesUtil.getContentType(inputStream, null);
 
-
 			FileEntry fileEntry = _dlAppLocalService.addFileEntry(
-				userId, 0L, folderId, url.concat(getExtension(mimeType)), mimeType, StringPool.BLANK,
-				StringPool.BLANK, StringPool.BLANK, _file.createTempFile(inputStream),
-				serviceContext);
+				userId, 0L, folderId, url.concat(getExtension(mimeType)),
+				mimeType, StringPool.BLANK, StringPool.BLANK, StringPool.BLANK,
+				_file.createTempFile(inputStream), serviceContext);
 
 			if (bytes.length > _MINIMUM_IMAGE_SIZE) {
 				dlFileEntry = _dlFileEntryLocalService.fetchDLFileEntry(
@@ -133,14 +134,11 @@ public class PhotoURLHelper {
 		}
 
 		Folder folder = _dlAppLocalService.addFolder(
-			StringPool.BLANK, userId,
-			0L,
+			StringPool.BLANK, userId, 0L,
 			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID, _FOLDER_NAME, null,
 			serviceContext);
 
-
-		return 	GetterUtil.getLong(folder.getFolderId());
-
+		return GetterUtil.getLong(folder.getFolderId());
 	}
 
 	protected String getPhotoURL(DLFileEntry dlFileEntry) {
@@ -173,6 +171,9 @@ public class PhotoURLHelper {
 	private DLFolderLocalService _dlFolderLocalService;
 
 	@Reference
+	private File _file;
+
+	@Reference
 	private GroupLocalService _groupLocalService;
 
 	@Reference
@@ -183,8 +184,5 @@ public class PhotoURLHelper {
 
 	@Reference
 	private UserLocalService _userLocalService;
-
-	@Reference
-	private File _file;
 
 }

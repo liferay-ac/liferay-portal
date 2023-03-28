@@ -21,7 +21,6 @@ dependencies {
 	compileOnly project(":dxp:apps:saml:saml-opensaml-integration")
 	compileOnly project(":dxp:apps:saml:saml-persistence-api")
 	compileOnly project(":dxp:apps:saml:saml-persistence-service")
-	compileOnly project(":dxp:apps:saml:saml-web")
 }
 
 deployDependencies {

@@ -21,6 +21,7 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.TreeMapBuilder;
 
 import java.io.Serializable;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -79,8 +80,8 @@ public class TimeZoneUtil {
 
 	private static final Map<String, String> _timeZoneIdCountryMap;
 
-	private static class TimeZoneIdComparator implements Comparator<Object>,
-		Serializable {
+	private static class TimeZoneIdComparator
+		implements Comparator<Object>, Serializable {
 
 		public TimeZoneIdComparator(Map<String, String> map) {
 			_map = map;

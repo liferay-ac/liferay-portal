@@ -24,7 +24,5 @@
 			<Class name="~.+\.model\..+Wrapper" />
 			<Class name="~.+\.model\.impl\..+ModelImpl" />
 		</Or>
-		<Method name="clone" />
-		<Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
 	</Match>
 </FindBugsFilter>

@@ -983,7 +983,5 @@ public class ContactsLayoutTemplateModelImpl
 
 	private long _columnBitmask;
 	private ContactsLayoutTemplate _escapedModel;
-	private static final long serialVersionUID = 1L;
-
 
 }

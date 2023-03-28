@@ -329,7 +329,7 @@ public class FaroUserFinderImpl
 		List<String> statusesString = new ArrayList<>();
 
 		for (Integer status : statuses) {
-			String.valueOf(status);
+			statusesString.add(String.valueOf(status));
 		}
 
 		return StringUtil.merge(statusesString, ", ");
