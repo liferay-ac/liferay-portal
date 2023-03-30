@@ -26,7 +26,6 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
 
 /**
@@ -42,9 +41,8 @@ import org.junit.runner.RunWith;
 		"pretty", "json:build/reports/json/cucumber-report.json",
 		"com.cucumber.listener.ExtentCucumberFormatter"
 	},
-	tags = {"~@blocked", "~@prototype", "~@skip"}
+	tags = {"~@blocked", "~@ignore", "~@prototype", "~@skip"}
 )
-@Ignore
 @RunWith(Cucumber.class)
 public class FaroTest {
 
