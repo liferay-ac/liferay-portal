@@ -18,8 +18,8 @@ import com.liferay.osb.faro.functional.test.driver.FaroSelenium;
 import com.liferay.osb.faro.functional.test.util.FaroSeleniumUtil;
 import com.liferay.osb.faro.functional.test.util.FaroTransformer;
 import com.liferay.petra.string.StringPool;
+import com.liferay.poshi.core.util.StringUtil;
 import com.liferay.poshi.runner.selenium.WebDriverUtil;
-import com.liferay.portal.kernel.util.StringUtil;
 
 import cucumber.api.Transform;
 import cucumber.api.java.en.And;

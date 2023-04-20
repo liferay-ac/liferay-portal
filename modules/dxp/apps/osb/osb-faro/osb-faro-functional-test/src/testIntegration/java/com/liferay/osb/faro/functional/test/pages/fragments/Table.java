@@ -19,6 +19,7 @@ import com.liferay.osb.faro.functional.test.steps.ClickSteps;
 import com.liferay.osb.faro.functional.test.util.FaroSeleniumUtil;
 import com.liferay.osb.faro.functional.test.util.FaroTestDataUtil;
 import com.liferay.osb.faro.functional.test.util.FaroTransformer;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -33,8 +34,6 @@ import cucumber.api.java.en.When;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.junit.Assert;
 
@@ -164,18 +163,11 @@ public class Table {
 		sb.append("')]//*[name()='g' and contains(@class,'yAxis')]//*");
 		sb.append("[name()='text']/*[name()='tspan']");
 
-		List<WebElement> rowWebElements = _faroSelenium.findElements(
-			sb.toString());
-
-		Stream<WebElement> stream = rowWebElements.stream();
-
 		Assert.assertEquals(
 			dataTable.asList(String.class),
-			stream.map(
-				WebElement::getText
-			).collect(
-				Collectors.toList()
-			));
+			TransformUtil.transform(
+				_faroSelenium.findElements(sb.toString()),
+				WebElement::getText));
 	}
 
 	@Then("^I should see \"(.*)\" in the card list \"(.*)\"$")
@@ -459,19 +451,12 @@ public class Table {
 			sb.append("]");
 		}
 
-		List<WebElement> rowWebElements = _faroSelenium.findElements(
-			sb.toString());
-
-		Stream<WebElement> stream = rowWebElements.stream();
-
-		List<String> rowNames = stream.map(
-			WebElement::getText
-		).collect(
-			Collectors.toList()
-		);
-
 		try {
-			Assert.assertEquals(dataTableNames, rowNames);
+			Assert.assertEquals(
+				dataTableNames,
+				TransformUtil.transform(
+					_faroSelenium.findElements(sb.toString()),
+					WebElement::getText));
 		}
 		catch (AssertionError ae) {
 			if (!colNum.equals("1")) {
@@ -521,17 +506,12 @@ public class Table {
 		List<WebElement> tableHeaders = _faroSelenium.findElements(
 			"//thead//th");
 
-		Stream<WebElement> stream = tableHeaders.stream();
-
-		List<String> rowNames = stream.map(
-			WebElement::getText
-		).collect(
-			Collectors.toList()
-		);
+		List<String> webElementText = TransformUtil.transform(
+			tableHeaders, tableHeader -> tableHeader.getText());
 
 		int rowTdOffset = 1;
 
-		int index = rowNames.indexOf(headerName) + rowTdOffset;
+		int index = webElementText.indexOf(headerName) + rowTdOffset;
 
 		StringBundler sb = new StringBundler(5);
 

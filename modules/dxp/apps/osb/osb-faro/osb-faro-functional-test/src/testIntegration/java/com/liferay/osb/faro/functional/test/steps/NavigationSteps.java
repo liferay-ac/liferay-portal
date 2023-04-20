@@ -22,8 +22,8 @@ import com.liferay.osb.faro.functional.test.util.FaroTransformer;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.poshi.core.util.PropsUtil;
 import com.liferay.poshi.runner.selenium.WebDriverUtil;
-import com.liferay.portal.util.PropsUtil;
 
 import cucumber.api.Transform;
 import cucumber.api.java.en.And;

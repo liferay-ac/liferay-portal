@@ -63,7 +63,7 @@ public class InputSteps {
 		sb.append(targetName);
 		sb.append("')]/");
 
-		fieldType = StringUtil.replace(fieldType, StringPool.SPACE, StringPool.BLANK);
+		fieldType = StringUtil.removeSubstring(fieldType, StringPool.SPACE);
 
 		sb.append(fieldType);
 

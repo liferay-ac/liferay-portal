@@ -19,9 +19,9 @@ import com.liferay.osb.faro.functional.test.pages.DashboardPage;
 import com.liferay.osb.faro.functional.test.pages.fragments.Table;
 import com.liferay.osb.faro.functional.test.util.FaroSeleniumUtil;
 import com.liferay.osb.faro.functional.test.util.FaroTestDataUtil;
-import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.util.GetterUtil;
-import com.liferay.portal.util.PropsUtil;
+import com.liferay.poshi.core.util.GetterUtil;
+import com.liferay.poshi.core.util.PropsUtil;
+import com.liferay.poshi.core.util.StringPool;
 
 import cucumber.api.Scenario;
 import cucumber.api.java.After;
@@ -37,6 +37,11 @@ import org.openqa.selenium.WebElement;
  * @author Cheryl Tang
  */
 public class FaroHooks {
+
+	@Before
+	public static void setUp() {
+		FaroSeleniumUtil.getFaroSelenium();
+	}
 
 	@After
 	public static void tearDown(Scenario scenario) throws Exception {

@@ -14,13 +14,12 @@
 
 package com.liferay.osb.faro.functional.test.driver;
 
+import com.liferay.poshi.core.selenium.LiferaySelenium;
 
 import java.util.List;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-
-import com.liferay.poshi.core.selenium.LiferaySelenium;
 
 /**
  * @author Cheryl Tang
