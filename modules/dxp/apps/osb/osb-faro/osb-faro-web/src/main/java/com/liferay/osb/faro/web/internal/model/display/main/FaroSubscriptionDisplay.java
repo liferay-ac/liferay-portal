@@ -146,8 +146,8 @@ public class FaroSubscriptionDisplay {
 
 		_pageViewsCount = GetterUtil.getInteger(
 			cerebroEngineClient.getPageViews(
-				faroProject, Optional.ofNullable(_startDate),
-				Optional.of(new Date())));
+				faroProject, _startDate,
+				new Date()));
 
 		_pageViewsStatus = getStatus(_pageViewsCount, _pageViewsLimit);
 	}
