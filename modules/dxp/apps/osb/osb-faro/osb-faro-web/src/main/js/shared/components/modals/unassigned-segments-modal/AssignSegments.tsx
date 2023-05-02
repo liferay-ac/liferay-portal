@@ -7,7 +7,7 @@ import {
 	ActionType,
 	useUnassignedSegmentsContext
 } from 'shared/context/unassignedSegments';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {createOrderIOMap, NAME} from 'shared/util/pagination';
 import {partition} from 'lodash';
 import {Segment} from 'shared/util/records';

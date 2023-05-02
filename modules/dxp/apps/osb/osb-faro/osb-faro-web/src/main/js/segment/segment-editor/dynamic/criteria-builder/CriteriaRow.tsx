@@ -27,7 +27,7 @@ import {
 	AddProperty,
 	withReferencedObjectsConsumer
 } from '../context/referencedObjects';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {compose} from 'redux';
 import {connect, ConnectedProps} from 'react-redux';
 import {

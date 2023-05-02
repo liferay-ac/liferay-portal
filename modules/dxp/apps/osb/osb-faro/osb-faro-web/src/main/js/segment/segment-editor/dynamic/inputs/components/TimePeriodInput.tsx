@@ -1,6 +1,6 @@
 import autobind from 'autobind-decorator';
 import React from 'react';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {ISegmentEditorInputBase} from '../../utils/types';
 import {TIME_PERIOD_OPTIONS} from '../../utils/constants';
 

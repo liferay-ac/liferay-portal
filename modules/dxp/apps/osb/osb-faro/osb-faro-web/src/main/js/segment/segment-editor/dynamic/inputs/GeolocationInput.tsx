@@ -7,7 +7,7 @@ import Form from 'shared/components/form';
 import getCN from 'classnames';
 import Promise from 'metal-promise';
 import React from 'react';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {CustomValue} from 'shared/util/records';
 import {fromJS, Map} from 'immutable';
 import {GEOLOCATION_OPTIONS} from '../utils/constants';

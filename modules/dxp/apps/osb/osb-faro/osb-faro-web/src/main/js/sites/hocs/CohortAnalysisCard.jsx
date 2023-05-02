@@ -6,7 +6,7 @@ import Form from 'shared/components/form';
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import React, {useContext, useState} from 'react';
 import URLConstants from 'shared/util/url-constants';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {compose} from 'shared/hoc';
 import {
 	DAY,

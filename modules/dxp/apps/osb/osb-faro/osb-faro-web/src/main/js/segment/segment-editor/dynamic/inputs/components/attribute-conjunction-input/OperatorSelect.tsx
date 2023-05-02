@@ -1,6 +1,6 @@
 import Form from 'shared/components/form';
 import React from 'react';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {Criterion} from '../../../utils/types';
 import {DataTypes} from 'event-analysis/utils/types';
 import {

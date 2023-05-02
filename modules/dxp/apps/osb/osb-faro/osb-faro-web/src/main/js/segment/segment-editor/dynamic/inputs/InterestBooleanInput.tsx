@@ -1,7 +1,7 @@
 import autobind from 'autobind-decorator';
 import Form from 'shared/components/form';
 import React from 'react';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {getPropertyValue, setPropertyValue} from '../utils/custom-inputs';
 import {INTEREST_BOOLEAN_OPTIONS} from '../utils/constants';
 import {ISegmentEditorCustomInputBase} from '../utils/types';

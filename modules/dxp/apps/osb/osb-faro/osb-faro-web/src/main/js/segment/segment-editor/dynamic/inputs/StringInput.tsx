@@ -4,7 +4,7 @@ import AutocompleteInput from 'shared/components/AutocompleteInput';
 import Form from 'shared/components/form';
 import getCN from 'classnames';
 import React from 'react';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {ISegmentEditorInputBase} from '../utils/types';
 import {isNull} from 'lodash';
 import {isValid} from '../utils/utils';

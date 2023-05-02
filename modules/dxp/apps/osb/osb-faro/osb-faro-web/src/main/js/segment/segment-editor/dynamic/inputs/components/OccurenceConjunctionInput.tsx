@@ -2,7 +2,7 @@ import Form from 'shared/components/form';
 import getCN from 'classnames';
 import Input from 'shared/components/Input';
 import React from 'react';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {Criterion} from '../../utils/types';
 import {isValid} from '../../utils/utils';
 import {OCCURENCE_OPTIONS} from '../../utils/constants';

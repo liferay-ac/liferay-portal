@@ -1,5 +1,5 @@
 import BaseModal from 'experiments/components/modals/BaseModal';
-import ClaySelect from '@clayui/select';
+import {ClaySelect} from '@clayui/form';
 import DXPLinkButton from './DXPLinkButton';
 import PublishVariant from './PublishVariant';
 import React, {useState} from 'react';

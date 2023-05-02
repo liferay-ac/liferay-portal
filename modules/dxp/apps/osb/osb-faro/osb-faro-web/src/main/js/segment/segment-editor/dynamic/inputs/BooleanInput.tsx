@@ -2,7 +2,7 @@ import autobind from 'autobind-decorator';
 import Form from 'shared/components/form';
 import React from 'react';
 import {BOOLEAN_OPTIONS} from '../utils/constants';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {Property} from 'shared/util/records';
 
 interface IBooleanInputProps {

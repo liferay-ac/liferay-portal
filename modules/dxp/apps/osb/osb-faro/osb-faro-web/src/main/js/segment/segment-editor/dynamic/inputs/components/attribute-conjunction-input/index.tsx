@@ -9,7 +9,7 @@ import {
 	withReferencedObjectsConsumer
 } from '../../../context/referencedObjects';
 import {Attribute} from 'event-analysis/utils/types';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {Criterion} from '../../../utils/types';
 import {
 	getDefaultAttributeOperator,

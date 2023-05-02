@@ -8,7 +8,7 @@ import NumberInput from '../NumberInput';
 import React from 'react';
 import {BetweenNumber} from '../BetweenNumberInput';
 import {BOOLEAN_OPTIONS} from 'event-analysis/utils/utils';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {createOption, validateAttributeValue} from './utils';
 import {Criterion} from '../../../utils/types';
 import {DataTypes} from 'event-analysis/utils/types';

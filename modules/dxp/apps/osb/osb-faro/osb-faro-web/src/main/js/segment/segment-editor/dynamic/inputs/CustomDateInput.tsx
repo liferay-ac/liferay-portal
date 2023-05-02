@@ -2,7 +2,7 @@ import autobind from 'autobind-decorator';
 import DateInput from './DateInput';
 import Form from 'shared/components/form';
 import React from 'react';
-import {ClaySelectWithOption} from '@clayui/select';
+import {ClaySelectWithOption} from '@clayui/form';
 import {
 	getCompleteDate,
 	getOperator,
