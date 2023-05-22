@@ -397,6 +397,11 @@ definition {
 	@description = "Feature ID: Legacy | Automation ID: LRAC-8385 | Test Summary: Blogs views by technology card shows views by the expected device"
 	@priority = 5
 	test BlogsTechnologyCardShowsViewsByExpectedDevice {
+		property portal.upstream = "quarantine";
+
+		// AC Quarantine reason: Flaky behavior asset not always appearing in time
+		// AC Quarantine ticket: LRAC-13736
+
 		var propertyName = ACDXPSettings.connectDXPtoAnalyticsCloud(siteName = "Site Name");
 
 		task ("View the blog") {
