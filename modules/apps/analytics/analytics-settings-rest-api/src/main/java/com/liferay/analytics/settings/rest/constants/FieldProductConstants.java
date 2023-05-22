@@ -59,36 +59,38 @@ public class FieldProductConstants {
 			"saw forever. Made of best steel",
 		"2017-07-21", "2017-08-21", "AB-34098-789-N", "30130",
 		"Meta description EN", "Meta keyword EN", "Meta title EN", "2017-08-21",
-		"Hand Saw", "12345, 12346, ...", "30000",
+		"Hand Saw", "12345, 12346, ...", "12345, 12346, ...", "30000",
 		"ProductOption, ProductOption, ...",
-		"ProductSpecification, ProductSpecification, ...", "simple",
-		"tt12345, tt34556", "0", "false", "tag1, tag2, ...",
-		"product-url-us, ..."
+		"ProductSpecification, ProductSpecification, ...", "simple", "tt12345",
+		"tt12345, tt34556", "quantity", "0", "false", "tag1, tag2, ...",
+		"product-url-us, ...", "10pz"
 	};
 
 	public static final String[] FIELD_PRODUCT_NAMES = {
 		"catalogId", "categoryIds", "createDate", "customFields", "description",
 		"displayDate", "expirationDate", "externalReferenceCode", "id",
 		"metaDescription", "metaKeyword", "metaTitle", "modifiedDate", "name",
-		"productChannelIds", "productId", "productOptions",
-		"productSpecifications", "productType", "skus", "status",
-		"subscriptionEnabled", "tags", "urls"
+		"optionCategoryId", "productChannelIds", "productId", "productOptions",
+		"productSpecifications", "productType", "sku", "skus",
+		"specificationKey", "status", "subscriptionEnabled", "tags", "urls",
+		"value"
 	};
 
 	public static final String[] FIELD_PRODUCT_REQUIRED_NAMES = {
 		"catalogId", "categoryIds", "createDate", "customFields", "description",
 		"displayDate", "expirationDate", "externalReferenceCode", "id",
 		"metaDescription", "metaKeyword", "metaTitle", "modifiedDate", "name",
-		"productChannelIds", "productId", "productOptions",
-		"productSpecifications", "productType", "skus", "status",
-		"subscriptionEnabled", "tags", "urls"
+		"optionCategoryId", "productChannelIds", "productId", "productOptions",
+		"productSpecifications", "productType", "sku", "skus",
+		"specificationKey", "status", "subscriptionEnabled", "tags", "urls",
+		"value"
 	};
 
 	public static final String[] FIELD_PRODUCT_TYPES = {
 		"Integer", "Array", "String", "Object", "Object", "String", "String",
 		"String", "Integer", "Object", "Object", "Object", "String", "Object",
-		"Array", "Integer", "Array", "Array", "String", "Array", "Integer",
-		"boolean", "Array", "Object"
+		"Integer", "Array", "Integer", "Array", "Array", "String", "String",
+		"Array", "String", "Integer", "boolean", "Array", "Object", "String"
 	};
 
 }
