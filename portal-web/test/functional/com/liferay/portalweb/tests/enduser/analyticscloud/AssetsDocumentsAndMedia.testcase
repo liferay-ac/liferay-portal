@@ -760,6 +760,11 @@ definition {
 	@description = "Feature ID: Legacy | Automation ID: LRAC-8414 | Test Summary: Documents downloads by technology card shows downloads by the expected device"
 	@priority = 5
 	test DocumentsTechnologyCardShowsViewsByExpectedDevice {
+		property portal.upstream = "quarantine";
+
+		// AC Quarantine reason: Flaky behavior asset not always appearing in time
+		// AC Quarantine ticket: LRAC-13737
+
 		var documentNameList = "DM AC Title,DM AC Title";
 		var propertyName = ACDXPSettings.connectDXPtoAnalyticsCloud(siteName = "Site Name");
 
