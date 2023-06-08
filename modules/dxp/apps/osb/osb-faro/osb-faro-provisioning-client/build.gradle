@@ -14,10 +14,10 @@ repositories {
 
 	maven {
 		credentials {
-			password System.properties["repository.private.password"]
-			username System.properties["repository.private.username"]
+			password project.property("repository.private.password")
+			username project.property("repository.private.username")
 		}
-		url "https://repository-cdn.liferay.com/nexus/service/local/repo_groups/private/content/"
+		url project.property("repository.private.url")
 
 	}
 }
