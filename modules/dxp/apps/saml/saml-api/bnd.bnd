@@ -39,4 +39,6 @@ Import-Package:\
 	\
 	!org.owasp.validator.html,\
 	\
+	com.liferay.portal.kernel.util;version="[59.0.0,9999.0.0)",\
+	\
 	*

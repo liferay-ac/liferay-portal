@@ -4,6 +4,13 @@ Bundle-Version: 5.0.64
 Import-Package:\
 	javax.net.ssl;resolution:=optional,\
 	\
+	com.liferay.portal.kernel.model;version="[29.0.0,9999.0.0)",\
+	com.liferay.portal.kernel.service;version="[22.0.0,9999.0.0)",\
+	com.liferay.portal.kernel.servlet;version="[11.0.0,9999.0.0)",\
+	com.liferay.portal.kernel.util;version="[59.0.0,9999.0.0)",\
+	\
+	javax.net.ssl;resolution:=optional,\
+	\
 	*
 Web-ContextPath: /saml-web
 -dsannotations-options: inherit
