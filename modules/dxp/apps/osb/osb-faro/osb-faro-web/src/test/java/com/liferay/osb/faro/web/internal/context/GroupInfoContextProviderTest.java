@@ -15,9 +15,12 @@
 package com.liferay.osb.faro.web.internal.context;
 
 import com.liferay.osb.faro.engine.client.exception.InvalidOAuthTokenException;
+import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import org.apache.cxf.message.Message;
 
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 import org.mockito.Mockito;
@@ -28,6 +31,11 @@ import org.springframework.mock.web.MockHttpServletRequest;
  * @author Thiago Buarque
  */
 public class GroupInfoContextProviderTest {
+
+	@ClassRule
+	@Rule
+	public static final LiferayUnitTestRule liferayUnitTestRule =
+		LiferayUnitTestRule.INSTANCE;
 
 	@Test(expected = InvalidOAuthTokenException.class)
 	public void testInvalidAccessToken() {
