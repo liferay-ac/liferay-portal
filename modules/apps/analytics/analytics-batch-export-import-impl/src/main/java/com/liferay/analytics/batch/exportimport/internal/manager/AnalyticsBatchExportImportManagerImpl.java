@@ -46,6 +46,7 @@ import com.liferay.portal.kernel.settings.CompanyServiceSettingsLocator;
 import com.liferay.portal.kernel.settings.Settings;
 import com.liferay.portal.kernel.settings.SettingsDescriptor;
 import com.liferay.portal.kernel.settings.SettingsFactory;
+import com.liferay.portal.kernel.settings.SettingsLocatorHelper;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -526,7 +527,7 @@ public class AnalyticsBatchExportImportManagerImpl
 			new CompanyServiceSettingsLocator(companyId, ocd.id()));
 
 		SettingsDescriptor settingsDescriptor =
-			_settingsFactory.getSettingsDescriptor(ocd.id());
+			_settingsLocatorHelper.getSettingsDescriptor(ocd.id());
 
 		if (settingsDescriptor == null) {
 			return configurationProperties;
@@ -778,5 +779,8 @@ public class AnalyticsBatchExportImportManagerImpl
 
 	@Reference
 	private SettingsFactory _settingsFactory;
+
+	@Reference
+	private SettingsLocatorHelper _settingsLocatorHelper;
 
 }
