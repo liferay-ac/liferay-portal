@@ -14,7 +14,7 @@
 
 package com.liferay.analytics.settings.internal.scheduler;
 
-import com.liferay.analytics.message.sender.client.AnalyticsMessageSenderClient;
+import com.liferay.analytics.batch.exportimport.manager.AnalyticsBatchExportImportManager;
 import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
 import com.liferay.analytics.settings.configuration.AnalyticsConfigurationRegistry;
 import com.liferay.petra.function.UnsafeRunnable;
@@ -51,7 +51,7 @@ public class CheckAnalyticsConnectionsSchedulerJobConfiguration
 						analyticsConfigurations.entrySet()) {
 
 				try {
-					_analyticsMessageSenderClient.validateConnection(
+					_analyticsBatchExportImportManager.validateConnection(
 						analyticsConfigurationEntry.getKey());
 				}
 				catch (Exception exception) {
@@ -76,9 +76,10 @@ public class CheckAnalyticsConnectionsSchedulerJobConfiguration
 		CheckAnalyticsConnectionsSchedulerJobConfiguration.class);
 
 	@Reference
-	private AnalyticsConfigurationRegistry _analyticsConfigurationRegistry;
+	private AnalyticsBatchExportImportManager
+		_analyticsBatchExportImportManager;
 
 	@Reference
-	private AnalyticsMessageSenderClient _analyticsMessageSenderClient;
+	private AnalyticsConfigurationRegistry _analyticsConfigurationRegistry;
 
 }
