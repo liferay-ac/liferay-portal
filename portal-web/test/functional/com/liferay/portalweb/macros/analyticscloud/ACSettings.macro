@@ -908,6 +908,8 @@ definition {
 
 	@summary = "Takes the token from Analytics Clouds to use on during the DXP connection process"
 	macro takeTokenFromAnalyticsCloud {
+		ACNavigation.goToSettings();
+
 		ACSettings.goToDataSources();
 
 		Click(locator1 = "ACDXPSettings#AC_GENERIC_ADD_OR_CONFIRMATION_BUTTON");
@@ -923,6 +925,8 @@ definition {
 
 	@summary = "Takes the token from an existing data source to make a reconnection"
 	macro takeTokenFromExistingDataSource {
+		ACNavigation.goToSettings();
+
 		ACSettings.goToDataSources();
 
 		ACUtils.searchBar(searchItem = ${dataSourceName});
