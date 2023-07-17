@@ -18,6 +18,7 @@ import aQute.bnd.annotation.metatype.Meta;
 
 import com.liferay.analytics.message.sender.client.AnalyticsMessageSenderClient;
 import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -147,12 +148,20 @@ public class AnalyticsMessageSenderClientImpl
 			AnalyticsConfiguration analyticsConfiguration, long companyId)
 		throws Exception {
 
-		HttpGet httpGet = new HttpGet(
-			analyticsConfiguration.liferayAnalyticsURL() + "/endpoints/" +
-				analyticsConfiguration.liferayAnalyticsProjectId());
+		String liferayAnalyticsURL =
+			analyticsConfiguration.liferayAnalyticsURL();
 
 		try (CloseableHttpClient closeableHttpClient =
 				getCloseableHttpClient()) {
+
+			String[] liferayAnalyticsURLParts = StringUtil.split(
+				liferayAnalyticsURL, "/workspace/");
+
+			HttpGet httpGet = new HttpGet(
+				StringBundler.concat(
+					liferayAnalyticsURLParts[0], "/o/faro/main/project/",
+					analyticsConfiguration.liferayAnalyticsProjectId(),
+					"/endpoints"));
 
 			CloseableHttpResponse closeableHttpResponse =
 				closeableHttpClient.execute(httpGet);
