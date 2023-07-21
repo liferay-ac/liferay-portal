@@ -401,6 +401,12 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 			return "[" + StringUtil.merge(ids, ",") + "]";
 		}
 		catch (Exception exception) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Unable to get group ids for user " + user.getUserId(),
+					exception);
+			}
+
 			return "[]";
 		}
 	}
@@ -410,6 +416,13 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 			return "[" + StringUtil.merge(user.getOrganizationIds(), ",") + "]";
 		}
 		catch (Exception exception) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Unable to get organization ids for user " +
+						user.getUserId(),
+					exception);
+			}
+
 			return "[]";
 		}
 	}
@@ -419,6 +432,12 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 			return "[" + StringUtil.merge(user.getRoleIds(), ",") + "]";
 		}
 		catch (Exception exception) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Unable to get role ids for user " + user.getUserId(),
+					exception);
+			}
+
 			return "[]";
 		}
 	}
@@ -428,6 +447,12 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 			return "[" + StringUtil.merge(user.getTeamIds(), ",") + "]";
 		}
 		catch (Exception exception) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Unable to get team ids for user " + user.getUserId(),
+					exception);
+			}
+
 			return "[]";
 		}
 	}
@@ -437,6 +462,12 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 			return "[" + StringUtil.merge(user.getUserGroupIds(), ",") + "]";
 		}
 		catch (Exception exception) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Unable to get user group ids for user " + user.getUserId(),
+					exception);
+			}
+
 			return "[]";
 		}
 	}
