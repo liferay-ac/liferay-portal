@@ -208,8 +208,6 @@ public abstract class BaseAnalyticsDXPEntityModelListener
 
 			long companyId = shardedModel.getCompanyId();
 
-			Class<?> modelClass = getModelClass();
-
 			if (StringUtil.equals(User.class.getName(), associationClassName)) {
 				User user = userLocalService.fetchUserByScreenName(
 					companyId,
@@ -221,6 +219,8 @@ public abstract class BaseAnalyticsDXPEntityModelListener
 					return;
 				}
 			}
+
+			Class<?> modelClass = getModelClass();
 
 			analyticsAssociationLocalService.addAnalyticsAssociation(
 				companyId, new Date(),

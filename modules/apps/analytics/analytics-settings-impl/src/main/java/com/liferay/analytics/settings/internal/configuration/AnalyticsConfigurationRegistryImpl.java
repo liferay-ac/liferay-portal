@@ -366,7 +366,7 @@ public class AnalyticsConfigurationRegistryImpl
 		return false;
 	}
 
-	private void _sync(long companyId, Dictionary<String, ?> dictionary) {
+	private void _sync(long companyId) {
 		try {
 			Set<String> refreshDispatchTriggerNames = new HashSet<>();
 			Set<String> unscheduleDispatchTriggerNames = new HashSet<>();
@@ -460,8 +460,7 @@ public class AnalyticsConfigurationRegistryImpl
 
 			if (_analyticsSettingsManager.syncedContactSettingsEnabled(
 					companyId) &&
-				_analyticsSettingsManager.syncedUserFieldsChanged(
-					companyId)) {
+				_analyticsSettingsManager.syncedUserFieldsChanged(companyId)) {
 
 				refreshDispatchTriggerNames.add(
 					AnalyticsDXPEntityBatchExporterConstants.
@@ -544,7 +543,7 @@ public class AnalyticsConfigurationRegistryImpl
 				_firstSync(companyId);
 			}
 			else {
-				_sync((Long)dictionary.get("companyId"), dictionary);
+				_sync((Long)dictionary.get("companyId"));
 			}
 		}
 	}
