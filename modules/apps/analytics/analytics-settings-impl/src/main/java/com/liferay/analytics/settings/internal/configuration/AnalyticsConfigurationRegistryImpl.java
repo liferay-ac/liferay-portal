@@ -359,127 +359,123 @@ public class AnalyticsConfigurationRegistryImpl
 
 	private void _sync(long companyId, Dictionary<String, ?> dictionary) {
 		try {
-			if (Validator.isNotNull(dictionary.get("token")) &&
-				Validator.isNull(dictionary.get("previousToken"))) {
+			Set<String> refreshDispatchTriggerNames = new HashSet<>();
+			Set<String> unscheduleDispatchTriggerNames = new HashSet<>();
 
-				Set<String> refreshDispatchTriggerNames = new HashSet<>();
-				Set<String> unscheduleDispatchTriggerNames = new HashSet<>();
-
-				if (_analyticsSettingsManager.syncedAccountSettingsChanged(
-						companyId)) {
-
-					if (_analyticsSettingsManager.syncedAccountSettingsEnabled(
-							companyId)) {
-
-						refreshDispatchTriggerNames.add(
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_ACCOUNT_ENTRY_DXP_ENTITIES);
-					}
-					else {
-						unscheduleDispatchTriggerNames.add(
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_ACCOUNT_ENTRY_DXP_ENTITIES);
-					}
-				}
+			if (_analyticsSettingsManager.syncedAccountSettingsChanged(
+					companyId)) {
 
 				if (_analyticsSettingsManager.syncedAccountSettingsEnabled(
-						companyId) &&
-					_analyticsSettingsManager.syncedAccountFieldsChanged(
 						companyId)) {
 
 					refreshDispatchTriggerNames.add(
 						AnalyticsDXPEntityBatchExporterConstants.
 							DISPATCH_TRIGGER_NAME_ACCOUNT_ENTRY_DXP_ENTITIES);
 				}
-
-				if (_analyticsSettingsManager.syncedCommerceSettingsChanged(
-						companyId)) {
-
-					if (_analyticsSettingsManager.syncedCommerceSettingsEnabled(
-							companyId)) {
-
-						Collections.addAll(
-							refreshDispatchTriggerNames,
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_ORDER,
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_PRODUCT);
-					}
-					else {
-						Collections.addAll(
-							unscheduleDispatchTriggerNames,
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_ORDER,
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_PRODUCT);
-					}
+				else {
+					unscheduleDispatchTriggerNames.add(
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_ACCOUNT_ENTRY_DXP_ENTITIES);
 				}
+			}
+
+			if (_analyticsSettingsManager.syncedAccountSettingsEnabled(
+					companyId) &&
+				_analyticsSettingsManager.syncedAccountFieldsChanged(
+					companyId)) {
+
+				refreshDispatchTriggerNames.add(
+					AnalyticsDXPEntityBatchExporterConstants.
+						DISPATCH_TRIGGER_NAME_ACCOUNT_ENTRY_DXP_ENTITIES);
+			}
+
+			if (_analyticsSettingsManager.syncedCommerceSettingsChanged(
+					companyId)) {
 
 				if (_analyticsSettingsManager.syncedCommerceSettingsEnabled(
 						companyId)) {
 
-					if (_analyticsSettingsManager.syncedOrderFieldsChanged(
-							companyId)) {
-
-						refreshDispatchTriggerNames.add(
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_ORDER);
-					}
-
-					if (_analyticsSettingsManager.syncedProductFieldsChanged(
-							companyId)) {
-
-						refreshDispatchTriggerNames.add(
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_PRODUCT);
-					}
+					Collections.addAll(
+						refreshDispatchTriggerNames,
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_ORDER,
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_PRODUCT);
 				}
+				else {
+					Collections.addAll(
+						unscheduleDispatchTriggerNames,
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_ORDER,
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_PRODUCT);
+				}
+			}
 
-				if (_analyticsSettingsManager.syncedContactSettingsChanged(
+			if (_analyticsSettingsManager.syncedCommerceSettingsEnabled(
+					companyId)) {
+
+				if (_analyticsSettingsManager.syncedOrderFieldsChanged(
 						companyId)) {
 
-					if (_analyticsSettingsManager.syncedContactSettingsEnabled(
-							companyId)) {
-
-						refreshDispatchTriggerNames.add(
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_USER_DXP_ENTITIES);
-					}
-					else {
-						unscheduleDispatchTriggerNames.add(
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_USER_DXP_ENTITIES);
-					}
+					refreshDispatchTriggerNames.add(
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_ORDER);
 				}
 
+				if (_analyticsSettingsManager.syncedProductFieldsChanged(
+						companyId)) {
+
+					refreshDispatchTriggerNames.add(
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_PRODUCT);
+				}
+			}
+
+			if (_analyticsSettingsManager.syncedContactSettingsChanged(
+					companyId)) {
+
 				if (_analyticsSettingsManager.syncedContactSettingsEnabled(
-						companyId) &&
-					_analyticsSettingsManager.syncedUserFieldsChanged(
 						companyId)) {
 
 					refreshDispatchTriggerNames.add(
 						AnalyticsDXPEntityBatchExporterConstants.
 							DISPATCH_TRIGGER_NAME_USER_DXP_ENTITIES);
 				}
-
-				if (!refreshDispatchTriggerNames.isEmpty()) {
-					_analyticsDXPEntityBatchExporter.refreshExportTriggers(
-						companyId,
-						refreshDispatchTriggerNames.toArray(new String[0]));
-
-					_analyticsDXPEntityBatchExporter.export(
-						companyId,
-						new String[] {
-							AnalyticsDXPEntityBatchExporterConstants.
-								DISPATCH_TRIGGER_NAME_USER_DXP_ENTITIES
-						});
+				else {
+					unscheduleDispatchTriggerNames.add(
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_USER_DXP_ENTITIES);
 				}
+			}
 
-				if (!unscheduleDispatchTriggerNames.isEmpty()) {
-					_analyticsDXPEntityBatchExporter.unscheduleExportTriggers(
-						companyId,
-						unscheduleDispatchTriggerNames.toArray(new String[0]));
-				}
+			if (_analyticsSettingsManager.syncedContactSettingsEnabled(
+					companyId) &&
+				_analyticsSettingsManager.syncedUserFieldsChanged(
+					companyId)) {
+
+				refreshDispatchTriggerNames.add(
+					AnalyticsDXPEntityBatchExporterConstants.
+						DISPATCH_TRIGGER_NAME_USER_DXP_ENTITIES);
+			}
+
+			if (!refreshDispatchTriggerNames.isEmpty()) {
+				_analyticsDXPEntityBatchExporter.refreshExportTriggers(
+					companyId,
+					refreshDispatchTriggerNames.toArray(new String[0]));
+
+				_analyticsDXPEntityBatchExporter.export(
+					companyId,
+					new String[] {
+						AnalyticsDXPEntityBatchExporterConstants.
+							DISPATCH_TRIGGER_NAME_USER_DXP_ENTITIES
+					});
+			}
+
+			if (!unscheduleDispatchTriggerNames.isEmpty()) {
+				_analyticsDXPEntityBatchExporter.unscheduleExportTriggers(
+					companyId,
+					unscheduleDispatchTriggerNames.toArray(new String[0]));
 			}
 		}
 		catch (Exception exception) {
