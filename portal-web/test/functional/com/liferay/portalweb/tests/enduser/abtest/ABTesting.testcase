@@ -1075,13 +1075,11 @@ definition {
 		}
 
 		task ("Delete AB Test") {
-			ABTest.deleteABTest();
+			ABTest.deleteABTest(deleteWay = "kebab");
 		}
 
 		task ("Assert that does not exist ab test") {
-			AssertElementPresent(
-				key_text = "Create Test",
-				locator1 = "Button#ANY");
+			ABTest.assertDXPABTestEmptyState();
 		}
 	}
 
@@ -1146,9 +1144,7 @@ definition {
 		task ("Assert that does not exist ab test") {
 			ABTest.openABTestPanel();
 
-			AssertElementPresent(
-				key_text = "Create Test",
-				locator1 = "Button#ANY");
+			ABTest.assertDXPABTestEmptyState();
 		}
 	}
 
@@ -1182,7 +1178,7 @@ definition {
 		task ("Delete the AB test") {
 			ABTest.openABTestPanel();
 
-			ABTest.deleteABTest();
+			ABTest.deleteABTest(deleteWay = "kebab");
 		}
 
 		task ("Go to AC page and assert the ERROR page is open") {
