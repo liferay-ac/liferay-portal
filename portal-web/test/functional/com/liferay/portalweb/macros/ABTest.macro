@@ -1,5 +1,19 @@
 definition {
 
+	macro assertDXPABTestEmptyState {
+		AssertVisible(
+			key_title = "No active tests were found for the selected experience.",
+			locator1 = "Header#H4_TITLE");
+
+		AssertVisible(
+			key_message = "Create a new A/B test to optimize your page or experience.",
+			locator1 = "ABTest#SIDEBAR_MESSAGE");
+
+		AssertElementPresent(
+			key_text = "Create Test",
+			locator1 = "Button#ANY");
+	}
+
 	macro checkAnalyticsCloudInfo {
 		if (IsElementPresent(key_text = "Review and Run Test", locator1 = "Button#ANY")) {
 			ABTest.runTest();
@@ -88,26 +102,12 @@ definition {
 		}
 
 		AssertTextEquals.assertPartialText(
-					locator1 = "Modal#MODAL_CONTENT",
-					value1 = "Are you sure you want to delete this? It will be deleted immediately. You will lose all data related to it. You will not be able to undo this operation.");
-		
+			locator1 = "Modal#MODAL_CONTENT",
+			value1 = "Are you sure you want to delete this? It will be deleted immediately. You will lose all data related to it. You will not be able to undo this operation.");
+
 		Click(locator1 = "ACSettings#DELETE_CONFIRMATION_BUTTON");
 
 		Alert.viewSuccessMessageText(successMessage = "Success:Your request completed successfully.");
-	}
-
-	macro assertDXPABTestEmptyState {
-		AssertVisible(
-				key_title = "No active tests were found for the selected experience.",
-				locator1 = "Header#H4_TITLE");
-
-			AssertVisible(
-				key_message = "Create a new A/B test to optimize your page or experience.",
-				locator1 = "ABTest#SIDEBAR_MESSAGE");
-
-			AssertElementPresent(
-				key_text = "Create Test",
-				locator1 = "Button#ANY");
 	}
 
 	macro deleteABTestInAC {
