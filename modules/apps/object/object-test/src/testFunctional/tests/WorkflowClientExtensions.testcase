@@ -1,0 +1,34 @@
+@component-name = "portal-workflow"
+definition {
+
+	property portal.release = "true";
+	property portal.upstream = "true";
+	property testray.main.component.name = "Workflow";
+
+	static var clientExtensionSamples = "";
+	static var companyWebId = "";
+
+	setUp {
+		TestCase.setUpPortalInstance();
+
+		User.firstLoginPG();
+
+		var companyWebId = JSONCompany.getWebId();
+	}
+
+	tearDown {
+		if (isSet(clientExtensionSamples)) {
+			for (var clientExtension : list ${clientExtensionSamples}) {
+				AntCommands.runCommand("build-test-liferay-sample-workspace.xml", "undeploy-workspace-client-extension -Dvirtual.instance.id=${companyWebId} -Dworkspace.client.extension.name=${clientExtension}");
+			}
+
+			var clientExtensionSamples = "";
+		}
+
+		var testLiferayVirtualInstance = PropsUtil.get("test.liferay.virtual.instance");
+
+		if (${testLiferayVirtualInstance} == "true") {
+			PortalInstances.tearDownCP();
+		}
+	}   
+}    
