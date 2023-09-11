@@ -989,6 +989,22 @@ definition {
 		ACDXPSettings.disconnectDXPFromAnalyticsCloud();
 	}
 
+	macro tearDownABTest {
+		ACUtils.launchDXP();
+
+		ACUtils.navigateToSitePage(
+			pageName = "AC Page",
+			siteName = "Site Name");
+
+		ABTest.openABTestPanel();
+
+		if (IsElementPresent(key_text = "Terminate Test", locator1 = "Button#ANY")) {
+			ABTest.terminateTest();
+		}
+
+		ABTest.deleteABTest();
+	}
+
 	macro viewActivePage {
 		AssertTextEquals(
 			locator1 = "ACUtils#ACTIVE_PAGE",
