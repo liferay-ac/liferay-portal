@@ -971,6 +971,22 @@ definition {
 	//	ACSettings.deleteAllDataSource();
 	//}
 
+	macro tearDownABTest {
+		ACUtils.launchDXP();
+
+		ACUtils.navigateToSitePage(
+			pageName = "AC Page",
+			siteName = "Site Name");
+
+		ABTest.openABTestPanel();
+
+		if (IsElementPresent(key_text = "Terminate Test", locator1 = "Button#ANY")) {
+			ABTest.terminateTest();
+		}
+
+		ABTest.deleteABTest();
+	}
+
 	macro tearDownCommerce {
 		JSONUser.tearDownNonAdminUsers();
 
@@ -987,22 +1003,6 @@ definition {
 		ACUtils.launchDXP();
 
 		ACDXPSettings.disconnectDXPFromAnalyticsCloud();
-	}
-
-	macro tearDownABTest {
-		ACUtils.launchDXP();
-
-		ACUtils.navigateToSitePage(
-			pageName = "AC Page",
-			siteName = "Site Name");
-
-		ABTest.openABTestPanel();
-
-		if (IsElementPresent(key_text = "Terminate Test", locator1 = "Button#ANY")) {
-			ABTest.terminateTest();
-		}
-
-		ABTest.deleteABTest();
 	}
 
 	macro viewActivePage {
