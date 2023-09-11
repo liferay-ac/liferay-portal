@@ -224,10 +224,10 @@ definition {
 			value1 = ${key_goal});
 	}
 
-	macro statusABTestInAC {
-		AssertTextEquals(
-			locator1 = "ACTests#SUMMARY_CARD_TEXT",
-			value1 = ${status});
+	macro statusABTestInDXP {
+		AssertElementPresent(
+			key_status = ${status},
+			locator1 = "ImportExport#IMPORT_EXPORT_STATUS");
 	}
 
 	macro switchVariant {
