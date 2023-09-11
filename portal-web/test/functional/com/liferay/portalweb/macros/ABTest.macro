@@ -269,7 +269,9 @@ definition {
 			Button.clickNoError(button = "Terminate Test");
 		}
 
-		AssertConfirm.assertConfirmationNoError(value1 = "Are you sure you want to terminate this test?");
+		WaitForElementPresent(locator1 = "Modal#MODAL_CONTENT");
+
+		Click(locator1 = "ACSettings#CONFIRMATION_BUTTON");
 
 		Alert.viewSuccessMessage();
 	}
