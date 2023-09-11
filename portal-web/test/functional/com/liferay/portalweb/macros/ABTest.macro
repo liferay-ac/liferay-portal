@@ -110,16 +110,6 @@ definition {
 		Alert.viewSuccessMessageText(successMessage = "Success:Your request completed successfully.");
 	}
 
-	macro deleteABTestInAC {
-		Click(
-			key_text = "ellipsis-v",
-			locator1 = "Icon#ANY");
-
-		MenuItem.clickNoError(menuItem = "Delete Test");
-
-		Button.clickDelete();
-	}
-
 	macro deleteVariant {
 		if (!(isSet(key_index))) {
 			var key_index = 1;
