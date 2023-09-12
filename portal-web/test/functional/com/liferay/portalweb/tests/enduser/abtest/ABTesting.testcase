@@ -777,9 +777,7 @@ definition {
 		task ("Check the info is correct in Analytics Cloud") {
 			ABTest.openABTestInAC();
 
-			AssertTextEquals(
-				locator1 = "ACTests#SUMMARY_CARD_TEXT",
-				value1 = "Test Is Running");
+			ACTests.viewABTestStatusSummary(abTestSummaryText = "Test Is Running");
 		}
 	}
 
@@ -1128,9 +1126,7 @@ definition {
 		task ("Check the info is correct in Analytics Cloud") {
 			ABTest.openABTestInAC();
 
-			AssertTextEquals(
-				locator1 = "ACTests#SUMMARY_CARD_TEXT",
-				value1 = "Test Is in Draft Mode");
+			ACTests.viewABTestStatusSummary(abTestSummaryText = "Test Is in Draft Mode");
 		}
 
 		task ("Click on the delete button on the top") {
@@ -1176,9 +1172,7 @@ definition {
 		task ("Check the info is correct in Analytics Cloud") {
 			ABTest.openABTestInAC();
 
-			AssertTextEquals(
-				locator1 = "ACTests#SUMMARY_CARD_TEXT",
-				value1 = "Test Is in Draft Mode");
+			ACTests.viewABTestStatusSummary(abTestSummaryText = "Test Is in Draft Mode");
 		}
 
 		task ("Go back to DXP") {
