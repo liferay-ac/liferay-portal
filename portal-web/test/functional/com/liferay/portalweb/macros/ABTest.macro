@@ -152,6 +152,13 @@ definition {
 			value1 = ${key_testTitle});
 	}
 
+	macro getVariantImprovementNumberInDXP {
+		var key_variantName = ${variantName};
+		var improvementNumber = selenium.getText("ABTest#IMPROVEMENT_NUMBER");
+
+		return ${improvementNumber};
+	}
+
 	macro openABTestInAC {
 		ABTest.viewDataInAnalyticsCloud();
 
@@ -302,14 +309,6 @@ definition {
 		}
 	}
 
-	macro writeId {
-		Click(locator1 = "ABTest#ELEMENT_ID_INPUT");
-
-		Type(
-			locator1 = "ABTest#ELEMENT_ID_INPUT",
-			value1 = ${elementId});
-	}
-
 	macro viewVariantImprovementNumberInDXP {
 		var key_variantName = ${variantName};
 
@@ -318,12 +317,12 @@ definition {
 			value1 = ${improvementNumber});
 	}
 
-	macro getVariantImprovementNumberInDXP {
-		var key_variantName = ${variantName};
+	macro writeId {
+		Click(locator1 = "ABTest#ELEMENT_ID_INPUT");
 
-		var improvementNumber = selenium.getText("ABTest#IMPROVEMENT_NUMBER");
-
-		return ${improvementNumber};
+		Type(
+			locator1 = "ABTest#ELEMENT_ID_INPUT",
+			value1 = ${elementId});
 	}
 
 }
