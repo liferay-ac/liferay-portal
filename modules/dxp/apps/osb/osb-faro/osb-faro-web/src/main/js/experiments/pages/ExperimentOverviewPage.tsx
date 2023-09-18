@@ -111,6 +111,29 @@ const ExperimentActions: React.FC<IExperimentActionsProps> = ({
 				}
 			]
 		);
+	} else if (status === 'FINISHED_WINNER') {
+		actions.push(
+			...[
+				{
+					displayType: 'primary',
+					label: Liferay.Language.get('publish'),
+					redirectURL: getExperimentLink({
+						action: 'publish',
+						id,
+						pageURL
+					})
+				},
+				{
+					displayType: 'secondary',
+					label: Liferay.Language.get('delete'),
+					redirectURL: getExperimentLink({
+						action: 'delete',
+						id,
+						pageURL
+					})
+				}
+			]
+		);
 	} else if (status === 'RUNNING') {
 		actions.push({
 			displayType: 'secondary',
