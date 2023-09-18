@@ -93,15 +93,40 @@ describe('ExperimentOverviewPage', () => {
 
 		await waitForLoadingToBeRemoved(container);
 
-		const reviewButton = getByRole('link', {
+		const publishButton = getByRole('link', {
 			name: /publish/i
 		}) as HTMLAnchorElement;
 		const deleteButton = getByRole('link', {
 			name: /delete/i
 		}) as HTMLAnchorElement;
 
-		expect(reviewButton).toBeInTheDocument();
-		expect(reviewButton.href).toEqual(
+		expect(publishButton).toBeInTheDocument();
+		expect(publishButton.href).toEqual(
+			'https://www.beryl.com/experiment-test?segmentsExperimentKey=123&segmentsExperimentAction=publish'
+		);
+
+		expect(deleteButton).toBeInTheDocument();
+		expect(deleteButton.href).toEqual(
+			'https://www.beryl.com/experiment-test?segmentsExperimentKey=123&segmentsExperimentAction=delete'
+		);
+	});
+
+	it('renders publish and delete button to experiment to status FINISHED_WINNER', async () => {
+		const {container, getByRole} = render(
+			<WrappedComponent status='FINISHED_WINNER' />
+		);
+
+		await waitForLoadingToBeRemoved(container);
+
+		const publishButton = getByRole('link', {
+			name: /publish/i
+		}) as HTMLAnchorElement;
+		const deleteButton = getByRole('link', {
+			name: /delete/i
+		}) as HTMLAnchorElement;
+
+		expect(publishButton).toBeInTheDocument();
+		expect(publishButton.href).toEqual(
 			'https://www.beryl.com/experiment-test?segmentsExperimentKey=123&segmentsExperimentAction=publish'
 		);
 
