@@ -20,7 +20,7 @@
 		}
 	},
 	"id": "liferay",
-	"image": "liferay/dxp:7.4.13-u90",
+	"image": "liferay/dxp:7.4.13-u99",
 	"kind": "Deployment",
 	"livenessProbe": {
 		"failureThreshold": 3,
