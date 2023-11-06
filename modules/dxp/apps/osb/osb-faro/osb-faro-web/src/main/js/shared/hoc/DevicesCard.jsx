@@ -5,6 +5,7 @@ import OperatingSystem from 'shared/components/OperatingSystem';
 import React, {useCallback, useState} from 'react';
 import WebBrowser from 'shared/components/WebBrowser';
 import {compose} from 'redux';
+import {Containers} from 'shared/components/download-report/DownloadPDFReport';
 import {HOC_CARD_PROPTYPES} from 'shared/util/proptypes';
 import {PropTypes} from 'prop-types';
 import {withEmpty, withError, withLoading} from 'shared/hoc';
@@ -90,7 +91,7 @@ Tabs.propTypes = propTypes;
  */
 const withDevicesCard = (
 	withDevices,
-	{documentationTitle, documentationUrl, id, title} = {}
+	{documentationTitle, documentationUrl, title} = {}
 ) => {
 	const TabsWithDevices = compose(
 		withDevices(),
@@ -145,7 +146,7 @@ const withDevicesCard = (
 		return (
 			<BaseCard
 				className={className}
-				id={id}
+				id={Containers.DownloadsByTechnologyCard}
 				label={label}
 				legacyDropdownRangeKey={legacyDropdownRangeKey}
 				minHeight={536}
