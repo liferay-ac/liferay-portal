@@ -28,7 +28,13 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author Geyson Silva
  */
-@Component(service = {ChannelController.class, FaroController.class})
+@Component(
+	property = {
+		"osgi.jaxrs.application.select=(osgi.jaxrs.name=Liferay.Osb.Faro.Web.Asah)",
+		"osgi.jaxrs.resource=true"
+	},
+	service = FaroController.class
+)
 @Path("/{lcpProjectId}/channel")
 @Produces(MediaType.APPLICATION_JSON)
 public class ChannelController extends BaseFaroController {
