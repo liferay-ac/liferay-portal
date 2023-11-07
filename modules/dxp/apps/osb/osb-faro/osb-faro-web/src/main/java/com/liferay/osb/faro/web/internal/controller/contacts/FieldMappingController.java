@@ -44,7 +44,13 @@ import org.osgi.service.component.annotations.Component;
 /**
  * @author Matthew Kong
  */
-@Component(service = {FaroController.class, FieldMappingController.class})
+@Component(
+	property = {
+		"osgi.jaxrs.application.select=(osgi.jaxrs.name=Liferay.Osb.Faro.Web.Contacts)",
+		"osgi.jaxrs.resource=true"
+	},
+	service = FaroController.class
+)
 @Path("/{groupId}/field_mapping")
 @Produces(MediaType.APPLICATION_JSON)
 public class FieldMappingController extends BaseFaroController {

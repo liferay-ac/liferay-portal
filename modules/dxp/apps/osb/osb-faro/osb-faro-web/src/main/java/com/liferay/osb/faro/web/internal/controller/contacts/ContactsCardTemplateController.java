@@ -43,7 +43,11 @@ import org.osgi.service.component.annotations.Reference;
  * @author Matthew Kong
  */
 @Component(
-	service = {ContactsCardTemplateController.class, FaroController.class}
+	property = {
+		"osgi.jaxrs.application.select=(osgi.jaxrs.name=Liferay.Osb.Faro.Web.Contacts)",
+		"osgi.jaxrs.resource=true"
+	},
+	service = FaroController.class
 )
 @Path("/{groupId}/contacts_card_template")
 @Produces(MediaType.APPLICATION_JSON)

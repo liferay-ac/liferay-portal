@@ -991,7 +991,10 @@ public class ProjectController extends BaseFaroController {
 
 			cerebroEngineClient.updateTimeZone(faroProject);
 
-			_fieldMappingController.addDefaultFieldMappings(groupId);
+			FieldMappingController fieldMappingController =
+				(FieldMappingController)_faroController;
+
+			fieldMappingController.addDefaultFieldMappings(groupId);
 
 			faroProject.setState(FaroProjectConstants.STATE_READY);
 
@@ -1151,6 +1154,11 @@ public class ProjectController extends BaseFaroController {
 	private ContactsLayoutTemplateLocalService
 		_contactsLayoutTemplateLocalService;
 
+	@Reference(
+		target = "(component.name=com.liferay.osb.faro.web.internal.controller.contacts.FieldMappingController)"
+	)
+	private FaroController _faroController;
+
 	@Reference
 	private FaroNotificationLocalService _faroNotificationLocalService;
 
@@ -1163,9 +1171,6 @@ public class ProjectController extends BaseFaroController {
 
 	@Reference
 	private FaroUserLocalService _faroUserLocalService;
-
-	@Reference
-	private FieldMappingController _fieldMappingController;
 
 	@Reference
 	private GroupLocalService _groupLocalService;
