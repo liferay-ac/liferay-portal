@@ -7,9 +7,6 @@ package com.liferay.osb.faro.web.internal.application;
 
 import com.liferay.osb.faro.web.internal.constants.FaroConstants;
 
-import java.util.Collections;
-import java.util.Set;
-
 import javax.ws.rs.core.Application;
 
 import org.osgi.service.component.annotations.Component;
@@ -26,10 +23,4 @@ import org.osgi.service.component.annotations.Component;
 	service = Application.class
 )
 public class ContactsApplication extends BaseApplication {
-
-	@Override
-	public Set<Object> getControllers() {
-		return Collections.emptySet();
-	}
-
 }

@@ -38,8 +38,6 @@ public abstract class BaseApplication extends Application {
 		return classes;
 	}
 
-	public abstract Set<Object> getControllers();
-
 	@Override
 	public Set<Object> getSingletons() {
 		Set<Object> singletons = new HashSet<>();
@@ -50,7 +48,6 @@ public abstract class BaseApplication extends Application {
 		singletons.add(new OAuthExceptionMapper());
 		singletons.add(new SecurityFilter());
 		singletons.add(new TokenAuthenticationFilter());
-		singletons.addAll(getControllers());
 
 		return singletons;
 	}
