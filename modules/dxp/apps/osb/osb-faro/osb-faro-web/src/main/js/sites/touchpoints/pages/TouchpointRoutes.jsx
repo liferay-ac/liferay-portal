@@ -6,13 +6,11 @@ import DownloadPDFReport, {
 	Containers
 } from 'shared/components/download-report/DownloadPDFReport';
 import DropdownRangeKey from 'shared/hoc/DropdownRangeKey';
-import Filter from '../hocs/Filter';
 import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
 import React, {lazy, Suspense, useEffect, useState} from 'react';
 import RouteNotFound from 'shared/components/RouteNotFound';
 import TextTruncate from 'shared/components/TextTruncate';
-import {ENABLE_GLOBAL_FILTER} from 'shared/util/constants';
 import {getMatchedRoute, Routes} from 'shared/util/router';
 import {getRangeSelectorsFromQuery} from 'shared/util/util';
 import {pickBy} from 'lodash';
@@ -32,7 +30,7 @@ const TouchpointOverviewPage = lazy(() =>
 	)
 );
 const TouchpointPathPage = lazy(() =>
-	import(/* webpackChunkName: "TouchpointPathPage" */ './TouchpointPathPage')
+	import(/* webpackChunkName: "TouchpointPathPage" */ './PagePath')
 );
 
 const NAV_ITEMS = [
@@ -57,7 +55,6 @@ function TouchpointRoutes({className, router}) {
 	const dataSourceStates = useDataSource();
 	const rangeSelectors = getRangeSelectorsFromQuery(router.query);
 	const {channelId, groupId, title, touchpoint} = router.params;
-	const [filters, setFilters] = useState({});
 	const [pathRangeSelectors, setPathRangeSelectors] = useState(
 		rangeSelectors
 	);
@@ -147,21 +144,19 @@ function TouchpointRoutes({className, router}) {
 
 			<BasePage.Context.Provider
 				value={{
-					filters,
+					filters: {},
 					router
 				}}
 			>
 				{matchedRoute === Routes.SITES_TOUCHPOINTS_PATH && (
 					<BasePage.SubHeader>
-						{ENABLE_GLOBAL_FILTER && (
-							<Filter onChange={setFilters} router={router} />
-						)}
-
-						<DropdownRangeKey
-							legacy={false}
-							onChange={setPathRangeSelectors}
-							rangeSelectors={pathRangeSelectors}
-						/>
+						<div className='d-flex justify-content-end w-100'>
+							<DropdownRangeKey
+								legacy={false}
+								onChange={setPathRangeSelectors}
+								rangeSelectors={pathRangeSelectors}
+							/>
+						</div>
 					</BasePage.SubHeader>
 				)}
 
