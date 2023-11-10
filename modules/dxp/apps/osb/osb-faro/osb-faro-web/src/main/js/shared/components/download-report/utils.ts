@@ -172,7 +172,7 @@ export function useDownloadCSV({
 
 			let url = `/o/faro/main/${groupId}/reports/export/csv/${type}?channelId=${channelId}&fromDate=${formatDate(
 				dateRange?.start
-			)}&rangeKey=${rangeKey}&toDate=${formatDate(dateRange?.end)}`;
+			)}&toDate=${formatDate(dateRange?.end)}`;
 
 			if (assetId) {
 				url += `&assetId=${encodeURIComponent(assetId)}`;
@@ -192,6 +192,12 @@ export function useDownloadCSV({
 
 			if (query) {
 				url += `&query=${query}`;
+			}
+
+			if (dateRange?.end && dateRange?.start) {
+				url += '&rangeKey=CUSTOM';
+			} else if (rangeKey) {
+				url += `&rangeKey=${rangeKey}`;
 			}
 
 			a.href = url;
