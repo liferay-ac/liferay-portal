@@ -12,6 +12,7 @@ import {throttle} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {getTarget} from '../../util/target.es';
 import {StateContext as GlobalStateContext} from './../../state/context.es';
 import {StateContext, getInitialState, reducer} from './reducer.es';
 import {
@@ -56,12 +57,10 @@ function ClickGoalPicker({allowEdit = true, onSelectClickGoalTarget, target}) {
 
 	const {isValidTarget, mode, selectedTarget} = state;
 
-	const isSelectedTargetInDOM = document.getElementById(selectedTarget);
-
 	// If the parent passes as a prop an empty target and the old selected target
 	// is not in the DOM anymore we must update it in the Context
 
-	if (!target && selectedTarget && !isSelectedTargetInDOM) {
+	if (!target && selectedTarget && !getTarget(selectedTarget)) {
 		dispatch({
 			selector: target,
 			type: 'selectTarget',
@@ -111,7 +110,7 @@ function ClickGoalPicker({allowEdit = true, onSelectClickGoalTarget, target}) {
 	}
 
 	const scrollIntoView = (event) => {
-		const target = document.getElementById(selectedTarget);
+		const target = getTarget(selectedTarget);
 
 		if (target) {
 			target.scrollIntoView();
@@ -127,7 +126,7 @@ function ClickGoalPicker({allowEdit = true, onSelectClickGoalTarget, target}) {
 	};
 
 	const isValidNewClickTargetElement = (value) => {
-		const target = value && document.getElementById(value);
+		const target = value && !!getTarget(value);
 
 		if (!target) {
 			dispatch({type: 'invalidTarget'});
@@ -480,6 +479,13 @@ function Overlay({allowEdit, root, targetableElements}) {
 		<div className="lfr-segments-experiment-click-goal-root">
 			{targetableElements
 				.filter((element) => {
+					const targetableCollection =
+						element.dataset?.analyticsTargetableCollection;
+
+					if (targetableCollection) {
+						element.id = JSON.parse(targetableCollection).key;
+					}
+
 					return allowEdit || element.id === selectedTarget;
 				})
 				.map((element) => {

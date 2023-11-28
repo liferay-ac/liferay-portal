@@ -23,6 +23,7 @@ import {
 	STATUS_TERMINATED,
 	statusToLabelDisplayType,
 } from '../util/statuses.es';
+import {getTarget} from '../util/target.es';
 import ClickGoalPicker from './ClickGoalPicker/ClickGoalPicker.es';
 import SegmentsExperimentsActions from './SegmentsExperimentsActions.es';
 import SegmentsExperimentsDetails from './SegmentsExperimentsDetails.es';
@@ -38,7 +39,7 @@ function SegmentsExperiments({
 	const dispatch = useContext(DispatchContext);
 
 	const goalTarget = experiment?.goal?.target?.replace('#', '');
-	const isGoalTargetInDOM = document.getElementById(goalTarget);
+	const isGoalTargetInDOM = !!getTarget(goalTarget);
 
 	// If the target has been removed from the page we must reset it
 

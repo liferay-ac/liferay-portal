@@ -13,14 +13,33 @@ SegmentsExperiment segmentsExperiment = (SegmentsExperiment)request.getAttribute
 
 <aui:script sandbox="<%= true %>">
 	<c:if test='<%= (segmentsExperiment != null) && Objects.equals(segmentsExperiment.getGoal(), "click") && Validator.isNotNull(segmentsExperiment.getGoalTarget()) %>'>
-		var element = document.querySelector(
-			'<%= segmentsExperiment.getGoalTarget() %>'
+		var targetableCollectionElement = document.querySelector(
+			'[data-analytics-targetable-collection]'
 		);
+		var element = null;
+
+		if (targetableCollectionElement) {
+			const id =
+				'#' +
+				JSON.parse(
+					targetableCollectionElement.dataset.analyticsTargetableCollection
+				).key;
+
+			if (id === '<%= segmentsExperiment.getGoalTarget() %>') {
+				element = targetableCollectionElement;
+				element.id = id;
+			}
+		}
+		else {
+			element = document.querySelector(
+				'<%= segmentsExperiment.getGoalTarget() %>'
+			);
+		}
 
 		if (element) {
-			element.addEventListener('click', (event) => {
+			element.addEventListener('click', () => {
 				if (window.Analytics) {
-					Analytics.send('ctaClicked', 'Page', {elementId: event.target.id});
+					Analytics.send('ctaClicked', 'Page', {elementId: element.id});
 				}
 			});
 		}
