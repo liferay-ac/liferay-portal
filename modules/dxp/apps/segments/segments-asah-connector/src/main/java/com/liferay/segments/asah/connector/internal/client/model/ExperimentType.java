@@ -12,6 +12,26 @@ package com.liferay.segments.asah.connector.internal.client.model;
  */
 public enum ExperimentType {
 
-	AB
+	AB("ab"), MAB("mab");
+
+	public static ExperimentType parse(String type) {
+		for (ExperimentType experimentType : values()) {
+			if (type.equals(experimentType.getLabel())) {
+				return experimentType;
+			}
+		}
+
+		return null;
+	}
+
+	public String getLabel() {
+		return _label;
+	}
+
+	private ExperimentType(String label) {
+		_label = label;
+	}
+
+	private final String _label;
 
 }
