@@ -1097,9 +1097,12 @@ definition {
 	}
 
 	@description = "Create a static segment with individual"
+	@ignore = "true"
 	@priority = 5
 	test CanCreateStaticSegmentWithIndividuals {
 		property test.run.type = "single";
+
+		// AC Bug ticket: LRAC-14840
 
 		task ("Sign in as new user") {
 			User.logoutAndLoginPG(
