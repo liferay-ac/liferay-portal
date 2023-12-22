@@ -5,14 +5,14 @@
 
 import {defineConfig} from '@playwright/test';
 
-import {config as analyticsCloud} from './tests/analytics-cloud/config';
+import {config as analytics} from './tests/analytics/config';
 import {config as setup} from './tests/global.setup.config';
 import {config as object} from './tests/object/config';
 import {config as portalWeb} from './tests/portal-web/config';
 
 export default defineConfig({
 	forbidOnly: !!process.env.CI,
-	projects: [analyticsCloud, object, portalWeb, setup],
+	projects: [analytics, object, portalWeb, setup],
 	reporter: [
 		[
 			'html',

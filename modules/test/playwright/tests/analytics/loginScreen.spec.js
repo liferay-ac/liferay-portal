@@ -5,10 +5,11 @@
 
 import {expect, test} from '@playwright/test';
 
-import {liferayConfig} from '../../liferay.config';
+import { analyticsConfig } from './analytics.config';
+
 
 test('renders login screen', async ({page}) => {
-	await page.goto(liferayConfig.environment.baseUrl);
+	await page.goto(analyticsConfig.environment.baseUrl);
 
 	await expect(
 		page.getByRole('textbox', {

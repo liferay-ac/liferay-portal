@@ -7,10 +7,10 @@ import {devices} from '@playwright/test';
 
 export const config = {
 	dependencies: ['setup'],
-	name: 'analytics-cloud',
-	testDir: 'tests/analytics-cloud',
+	name: 'analytics',
+	testDir: 'tests/analytics',
 	use: {
 		...devices['Desktop Chrome'],
-		storageState: 'tmp/.auth/user.json',
+		storageState: 'tmp/analytics/.auth/user.json',
 	},
 };

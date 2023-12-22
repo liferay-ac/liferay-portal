@@ -6,9 +6,11 @@
 import {expect, test as setup} from '@playwright/test';
 
 import {liferayConfig} from '../liferay.config';
+import { analyticsConfig } from './analytics/analytics.config';
+import { login } from './analytics/macros/login';
 
 setup('do login', async ({page}) => {
-	await page.goto('/');
+	await page.goto(liferayConfig.environment.baseUrl); 
 
 	await page.getByRole('button', {name: 'Sign In'}).click();
 
@@ -26,4 +28,8 @@ setup('do login', async ({page}) => {
 	});
 
 	await page.context().storageState({path: 'tmp/.auth/user.json'});
+
+	if (analyticsConfig.environment.enabled) {
+		await login({page});
+	}
 });

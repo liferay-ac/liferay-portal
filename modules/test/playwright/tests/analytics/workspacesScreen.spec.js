@@ -6,9 +6,12 @@
 import {expect, test} from '@playwright/test';
 
 import {login} from './macros/login';
+import { analyticsConfig } from './analytics.config';
 
 test('renders workspace list', async ({page}) => {
-	await login({page});
+	//await login({page});
+	await page.goto(analyticsConfig.environment.baseUrl);
+
 
 	await expect(page.getByText(/your workspaces/i)).toBeVisible();
 	await expect(page.getByText(/workspaces you have joined/i)).toBeVisible();
@@ -27,7 +30,8 @@ test('renders workspace list', async ({page}) => {
 });
 
 test('renders workspace buttons', async ({page}) => {
-	await login({page});
+	//await login({page});
+	await page.goto(analyticsConfig.environment.baseUrl);
 
 	const buildPayTierButton = page.getByRole('button', {
 		name: /buy paid tier/i,
