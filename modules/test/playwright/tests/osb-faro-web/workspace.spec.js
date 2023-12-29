@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {expect, test} from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-import {login} from './macros/login';
+import { faroConfig } from './faro.config';
 
-test('renders workspace list', async ({page}) => {
-	await login({page});
+test('renders workspace list', async ({ page }) => {
+	await page.goto(faroConfig.environment.baseUrl);
+
 
 	await expect(page.getByText(/your workspaces/i)).toBeVisible();
 	await expect(page.getByText(/workspaces you have joined/i)).toBeVisible();
@@ -26,8 +27,8 @@ test('renders workspace list', async ({page}) => {
 	).toBeVisible();
 });
 
-test('renders workspace buttons', async ({page}) => {
-	await login({page});
+test('renders workspace buttons', async ({ page }) => {
+	await page.goto(faroConfig.environment.baseUrl);
 
 	const buildPayTierButton = page.getByRole('button', {
 		name: /buy paid tier/i,
