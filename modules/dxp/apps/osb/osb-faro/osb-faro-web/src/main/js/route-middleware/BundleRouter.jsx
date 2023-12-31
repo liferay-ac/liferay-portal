@@ -1,6 +1,6 @@
+import queryString from 'query-string';
 import React from 'react';
 import {matchPath, Route} from 'react-router-dom';
-import {parse} from 'query-string';
 
 export default ({
 	componentProps = {},
@@ -11,7 +11,7 @@ export default ({
 	<Route
 		{...otherRouteProps}
 		render={({history, location: {search}, match: {params, path}}) => {
-			const query = parse(search);
+			const query = queryString.parse(search);
 
 			if (destructured) {
 				return (
