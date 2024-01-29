@@ -89,6 +89,18 @@ function start_app_server() {
 	ant -f build-test.xml wait-for-server-startup
 }
 
+function start_ac() {
+	cd ${PROJECT_DIR}
+
+	ant -f build-test-analytics-cloud.xml start-analytics-cloud
+}
+
+function stop_ac() {
+	cd ${PROJECT_DIR}
+
+	ant -f build-test-analytics-cloud.xml stop-analytics-cloud
+}
+
 function stop_app_server() {
 	cd ${PROJECT_DIR}
 
