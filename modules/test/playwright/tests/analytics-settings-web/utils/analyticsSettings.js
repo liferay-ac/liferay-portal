@@ -10,7 +10,7 @@ import {loginDXP} from '../../../utils/login';
 export async function acceptsCookiesBanner(page) {
 	const cookiesBannerButton = page.getByRole('button', {name: 'Accept All'});
 
-	if (cookiesBannerButton.isVisible()) {
+	if (await cookiesBannerButton.isVisible()) {
 		await cookiesBannerButton.click();
 	}
 }
