@@ -4,6 +4,7 @@
  */
 
 import {FrameLocator, Locator, Page} from '@playwright/test';
+import { liferayConfig } from '../../liferay.config';
 
 export class CommerceLayoutsPage {
 	readonly addPageButton: Locator;
@@ -119,7 +120,7 @@ export class CommerceLayoutsPage {
 	}
 
 	async goto() {
-		await this.page.goto('/');
+		await this.page.goto(liferayConfig.environment.baseUrl);
 	}
 
 	async goToPages(navigation: boolean = true) {
