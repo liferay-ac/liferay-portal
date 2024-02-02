@@ -5,6 +5,7 @@
 
 import {defineConfig} from '@playwright/test';
 
+import {config as analyticsSettingsWebConfig} from  './tests/analytics-settings-web/config';
 import {config as batchPlannerConfig} from './tests/batch-planner/config';
 import {config as clientExtensionWebConfig} from './tests/client-extension-web/config';
 import {config as commerceConfig} from './tests/commerce/config';
@@ -15,6 +16,7 @@ import {config as journalWebConfig} from './tests/journal-web/config';
 import {config as knowledgeBaseWebConfig} from './tests/knowledge-base-web/config';
 import {config as layoutContentPageEditorWebConfig} from './tests/layout-content-page-editor-web/config';
 import {config as objectWebConfig} from './tests/object-web/config';
+import {config as osbFaroWebConfig} from './tests/osb-faro-web/config';
 import {config as portalWebConfig} from './tests/portal-web/config';
 import {config as productNavigationUserPersonalBarWebConfig} from './tests/product-navigation-user-personal-bar-web/config';
 import {config as stableConfig} from './tests/stable/config';
@@ -26,6 +28,7 @@ export default defineConfig({
 	},
 	forbidOnly: !!process.env.CI,
 	projects: [
+		analyticsSettingsWebConfig,
 		batchPlannerConfig,
 		clientExtensionWebConfig,
 		commerceConfig,
@@ -36,6 +39,7 @@ export default defineConfig({
 		knowledgeBaseWebConfig,
 		layoutContentPageEditorWebConfig,
 		objectWebConfig,
+		osbFaroWebConfig,
 		portalWebConfig,
 		productNavigationUserPersonalBarWebConfig,
 		stableConfig,
