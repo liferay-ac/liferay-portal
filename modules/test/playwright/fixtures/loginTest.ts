@@ -27,7 +27,7 @@ const loginTest = test.extend<{
 			if (!loggedIn) {
 				const storageStatePath = createTempFile('storageState.json');
 
-				await page.goto('/');
+				await page.goto(liferayConfig.environment.baseUrl);
 
 				await page.getByRole('button', {name: 'Sign In'}).click();
 

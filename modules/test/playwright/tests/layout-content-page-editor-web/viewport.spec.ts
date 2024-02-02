@@ -13,6 +13,7 @@ import getRandomId from '../../utils/getRandomId';
 import {pageEditorPagesTest} from './fixtures/pageEditorPagesTest';
 import getFragmentDefinition from './utils/getFragmentDefinition';
 import getPageDefinition from './utils/getPageDefinition';
+import { liferayConfig } from '../../liferay.config';
 
 export const test = mergeTests(
 	apiHelpersTest,
@@ -61,7 +62,7 @@ test('shows correct sections on each configuration panel when viewport is not De
 	page,
 	pageEditorPage,
 }) => {
-	await page.goto('/');
+	await page.goto(liferayConfig.environment.baseUrl);
 
 	// Create a site
 
