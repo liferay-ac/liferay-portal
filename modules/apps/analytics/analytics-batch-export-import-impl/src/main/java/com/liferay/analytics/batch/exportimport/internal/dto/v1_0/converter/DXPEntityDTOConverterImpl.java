@@ -246,7 +246,7 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 			ExpandoColumn expandoColumn =
 				_expandoColumnLocalService.getDefaultTableColumn(
 					shardedModel.getCompanyId(), baseModel.getModelClassName(),
-					key.substring(0, key.indexOf("-")));
+					key.substring(0, key.lastIndexOf("-")));
 
 			if (expandoColumn == null) {
 				continue;
