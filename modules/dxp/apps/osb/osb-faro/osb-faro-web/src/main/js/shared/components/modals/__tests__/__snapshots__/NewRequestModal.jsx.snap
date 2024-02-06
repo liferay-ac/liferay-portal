@@ -189,7 +189,7 @@ exports[`NewRequestModal renders 1`] = `
                           class="form-control form-control-tag-group d-flex"
                         >
                           <div
-                            class="dropdown dropdown-root base-select-container search-input-list-container new-request-modal-container"
+                            class="dropdown dropdown-root base-select-container search-input-list-container new-request-modal-container w-100"
                           >
                             <div
                               aria-controls="clay-dropdown-menu-1"
