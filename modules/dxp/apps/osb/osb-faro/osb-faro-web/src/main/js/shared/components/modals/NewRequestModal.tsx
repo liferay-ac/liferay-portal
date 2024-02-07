@@ -56,25 +56,26 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 	useEffect(() => {
 		setNetworkStatus(NetworkStatus.Refetch);
 
-		API.individuals
-			.search({
+		async function fetchIndividuals() {
+			const {items} = await API.individuals.search({
 				delta: AUTOCOMPLETE_DELTA,
 				filter: email
 					? `contains(demographics/email/value, '${email}')`
 					: '',
 				groupId,
 				page
-			})
-			.then(response => {
-				setItems(
-					response.items.map(({properties: {email, id}}) => ({
-						label: email,
-						value: id
-					}))
-				);
-
-				setNetworkStatus(NetworkStatus.Unused);
 			});
+
+			setItems(
+				items.map(({properties: {email, id}}) => ({
+					label: email,
+					value: id
+				}))
+			);
+			setNetworkStatus(NetworkStatus.Unused);
+		}
+
+		fetchIndividuals();
 	}, [email]);
 
 	const _formRef = useRef<Formik>();
