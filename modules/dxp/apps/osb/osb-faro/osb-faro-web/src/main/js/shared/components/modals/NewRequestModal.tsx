@@ -67,7 +67,7 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 			});
 
 			setItems(
-				items.map(({properties: {email, id}}) => ({
+				items.map(({id, properties: {email}}) => ({
 					label: email,
 					value: id
 				}))
