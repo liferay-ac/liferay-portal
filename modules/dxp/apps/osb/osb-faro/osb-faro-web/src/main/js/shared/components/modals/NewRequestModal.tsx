@@ -1,14 +1,15 @@
 import * as API from 'shared/api';
 import ClayButton from '@clayui/button';
+import ClayMultiSelect from '@clayui/multi-select';
 import FileDropTarget from 'shared/components/FileDropTarget';
 import Form from 'shared/components/form';
 import getCN from 'classnames';
 import Input from 'shared/components/Input';
 import Loading, {Align} from 'shared/components/Loading';
 import Modal from 'shared/components/modal';
-import React, {useRef, useState} from 'react';
-import SearchInputList from 'shared/components/SearchInputList';
+import React, {useEffect, useRef, useState} from 'react';
 import {Formik, FormikValues} from 'formik';
+import {NetworkStatus} from '@clayui/data-provider';
 import {paginationDefaults} from 'shared/util/pagination';
 import {sub} from 'shared/util/lang';
 
@@ -46,22 +47,38 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 	onClose,
 	onSubmit
 }) => {
-	const [emails, setEmails] = useState([]);
+	const [items, setItems] = useState([]);
 	const [fileName, setFileName] = useState(null);
+	const [email, setEmail] = useState('');
+	const [networkStatus, setNetworkStatus] = useState(NetworkStatus.Unused);
+	const [emails, setEmails] = useState([]);
 
-	const _formRef = useRef<Formik>();
+	useEffect(() => {
+		setNetworkStatus(NetworkStatus.Refetch);
 
-	const fetchIndividuals = (inputValue: string): Promise<any> =>
-		API.individuals
-			.search({
+		async function fetchIndividuals() {
+			const {items} = await API.individuals.search({
 				delta: AUTOCOMPLETE_DELTA,
-				filter: inputValue
-					? `contains(demographics/email/value, '${inputValue}')`
+				filter: email
+					? `contains(demographics/email/value, '${email}')`
 					: '',
 				groupId,
 				page
-			})
-			.then(({items}) => items.map(({properties}) => properties.email));
+			});
+
+			setItems(
+				items.map(({properties: {email, id}}) => ({
+					label: email,
+					value: id
+				}))
+			);
+			setNetworkStatus(NetworkStatus.Unused);
+		}
+
+		fetchIndividuals();
+	}, [email]);
+
+	const _formRef = useRef<Formik>();
 
 	const handleAccessClick = event => {
 		const {checked} = event.target;
@@ -119,7 +136,7 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 
 		if (subjectIdType === SubjectIdType.ByEmail) {
 			onSubmit({
-				emailAddresses: emails,
+				emailAddresses: emails.map(({label}) => label),
 				types
 			});
 		} else {
@@ -253,21 +270,19 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 
 										<Form.RadioGroup.Subsection>
 											<Input.Group>
-												<SearchInputList
-													clearOnAdd
-													containerClass='new-request-modal-container'
-													dataSourceFn={
-														fetchIndividuals
-													}
+												<ClayMultiSelect
 													disabled={
 														values.subjectIdType ===
 														SubjectIdType.ByFile
 													}
-													items={emails}
+													loadingState={networkStatus}
+													onChange={setEmail}
 													onItemsChange={setEmails}
 													placeholder={Liferay.Language.get(
 														'example-email'
 													)}
+													sourceItems={items}
+													value={email}
 												/>
 											</Input.Group>
 										</Form.RadioGroup.Subsection>
