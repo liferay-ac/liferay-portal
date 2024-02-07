@@ -12,6 +12,7 @@ import {Formik, FormikValues} from 'formik';
 import {NetworkStatus} from '@clayui/data-provider';
 import {paginationDefaults} from 'shared/util/pagination';
 import {sub} from 'shared/util/lang';
+import {useDebounce} from 'shared/hooks';
 
 const SAMPLE_CSV = 'user@example.com\nuser1@example.com\nuser2@example.com';
 
@@ -53,14 +54,16 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 	const [networkStatus, setNetworkStatus] = useState(NetworkStatus.Unused);
 	const [emails, setEmails] = useState([]);
 
+	const debouncedEmail = useDebounce(email, 500);
+
 	useEffect(() => {
-		setNetworkStatus(NetworkStatus.Refetch);
+		setNetworkStatus(NetworkStatus.Loading);
 
 		async function fetchIndividuals() {
 			const {items} = await API.individuals.search({
 				delta: AUTOCOMPLETE_DELTA,
-				filter: email
-					? `contains(demographics/email/value, '${email}')`
+				filter: debouncedEmail
+					? `contains(demographics/email/value, '${debouncedEmail}')`
 					: '',
 				groupId,
 				page
@@ -76,7 +79,7 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 		}
 
 		fetchIndividuals();
-	}, [email]);
+	}, [debouncedEmail]);
 
 	const _formRef = useRef<Formik>();
 
