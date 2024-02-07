@@ -255,7 +255,7 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 											<Input.Group>
 												<SearchInputList
 													clearOnAdd
-													containerClass='new-request-modal-container w-100'
+													containerClass='new-request-modal-container'
 													dataSourceFn={
 														fetchIndividuals
 													}

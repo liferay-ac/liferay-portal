@@ -87,12 +87,3 @@
 .bb-tooltip-container {
 	background-color: white;
 }
-
-/**
- * TEMP - Replaces z-index of the dropdown-menu class because
- * some old modals have a z-index greater than the z-index of the dropdown
- */
-
-.dropdown-menu {
-	z-index: 1060;
-}
