@@ -13,38 +13,32 @@ export default ({
 		render={({history, location: {search}, match: {params, path}}) => {
 			const query = parse(search);
 
-			const renderDefaultComponentDestructured = () => (
-				<DefaultComponent
-					history={history}
-					{...query}
-					{...params}
-					{...componentProps}
-				/>
-			);
-
-			const renderDefaultComponent = () => {
-				const {
-					params: {touchpoint}
-				} = matchPath(window.location.pathname, {path});
-
+			if (destructured) {
 				return (
 					<DefaultComponent
 						history={history}
-						router={{
-							params: {
-								...params,
-								touchpoint
-							},
-							query
-						}}
+						{...query}
+						{...params}
 						{...componentProps}
 					/>
 				);
-			};
+			}
 
-			return destructured
-				? renderDefaultComponentDestructured()
-				: renderDefaultComponent();
+			const matchedPath = matchPath(window.location.pathname, {path});
+
+			return (
+				<DefaultComponent
+					history={history}
+					router={{
+						params: {
+							...params,
+							touchpoint: matchedPath.params.touchpoint
+						},
+						query
+					}}
+					{...componentProps}
+				/>
+			);
 		}}
 	/>
 );
