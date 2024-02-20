@@ -49,7 +49,6 @@ public class FaroProjectAdminDisplay {
 			_individualsCount =
 				contactsEngineClient.getIndividualsCreatedSinceCount(
 					faroProject, subscriptionModifiedDate);
-
 			_pageViewsCount = GetterUtil.getInteger(
 				cerebroEngineClient.getPageViews(
 					faroProject, subscriptionModifiedDate, new Date()));
@@ -61,7 +60,6 @@ public class FaroProjectAdminDisplay {
 			_individualsCount =
 				contactsEngineClient.getIndividualsCreatedSinceCount(
 					faroProject, lastAnniversaryDate);
-
 			_pageViewsCount = GetterUtil.getInteger(
 				cerebroEngineClient.getPageViews(
 					faroProject, lastAnniversaryDate, new Date()));
