@@ -13,6 +13,10 @@ export function formatDate(date) {
 	return moment(date).format(DEFAULT_DATE_FORMAT);
 }
 
+export function isJapaneseString(str) {
+	return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
+}
+
 export function generateReport({
 	containers,
 	subtitle,
@@ -63,6 +67,12 @@ export function generateReport({
 	return Promise.all(promises).then(() => {
 		// Generate PDF Header
 
+		doc.addFont(
+			'/o/osb-faro-theme/fonts/noto-sans-jp-bold.ttf',
+			'NotoSansJP',
+			'bold'
+		);
+
 		doc.setFillColor(241, 242, 245);
 		doc.rect(0, 0, docWidth, docHeight, 'F');
 
@@ -75,11 +85,21 @@ export function generateReport({
 		doc.text('Analytics Cloud', paddingX, paddingY - 7);
 
 		doc.setFont('Helvetica', 'bold');
+
+		if (isJapaneseString(title)) {
+			doc.addFont(
+				'/o/osb-faro-theme/fonts/noto-sans-jp-bold.ttf',
+				'NotoSansJP',
+				'bold'
+			);
+
+			doc.setFont('NotoSansJP', 'bold');
+		}
+
 		doc.setTextColor('#000');
 		doc.setFontSize(16);
 		doc.text(title, paddingX, paddingY);
 
-		doc.setFont('Helvetica', 'normal');
 		doc.setTextColor('#6B6C7E');
 		doc.setFontSize(8);
 
@@ -88,9 +108,17 @@ export function generateReport({
 			doc.textWithLink(url, paddingX, paddingY + 5, {url});
 		}
 
+		doc.setFont('Helvetica', 'normal');
+
 		if (subtitle) {
+			if (isJapaneseString(subtitle)) {
+				doc.setFont('NotoSansJP', 'bold');
+			}
+
 			doc.text(subtitle, paddingX, paddingY + (url ? 9 : 5));
 		}
+
+		doc.setFont('Helvetica', 'normal');
 
 		doc.setFontSize(8);
 		doc.setTextColor(PRIMARY_COLOR);
