@@ -386,13 +386,8 @@ public class ProjectController extends BaseFaroController {
 					new FaroSubscriptionDisplay(
 						getOSBAccountEntry(faroProject.getCorpProjectUuid()));
 
-				faroSubscriptionDisplay.setCounts(
-					faroProject, cerebroEngineClient, contactsEngineClient);
-
 				String subscription = JSONUtil.writeValueAsString(
 					faroSubscriptionDisplay);
-
-				faroProject.setSubscription(subscription);
 
 				if (_isSubscriptionPlanChanged(
 						faroProject,
@@ -400,6 +395,11 @@ public class ProjectController extends BaseFaroController {
 
 					faroProject.setSubscriptionModifiedTime(now);
 				}
+				
+				faroProject.setSubscription(subscription);
+				
+				faroSubscriptionDisplay.setCounts(
+					faroProject, cerebroEngineClient, contactsEngineClient);
 			}
 
 			faroProject = _faroProjectLocalService.updateFaroProject(
