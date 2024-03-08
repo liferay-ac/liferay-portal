@@ -176,44 +176,44 @@ public class FaroChannelFinderImpl
 			return sql;
 		}
 
-		StringBundler oldSqlSB = new StringBundler(7);
+		StringBundler oldSQLSB = new StringBundler(7);
 
-		oldSqlSB.append(StringPool.OPEN_PARENTHESIS);
-		oldSqlSB.append(field);
-		oldSqlSB.append(" ");
-		oldSqlSB.append(operator);
-		oldSqlSB.append(" ? [$AND_OR_NULL_CHECK$])");
+		oldSQLSB.append(StringPool.OPEN_PARENTHESIS);
+		oldSQLSB.append(field);
+		oldSQLSB.append(" ");
+		oldSQLSB.append(operator);
+		oldSQLSB.append(" ? [$AND_OR_NULL_CHECK$])");
 
 		if (!last) {
-			oldSqlSB.append(" [$AND_OR_CONNECTOR$]");
+			oldSQLSB.append(" [$AND_OR_CONNECTOR$]");
 		}
 
-		StringBundler newSqlSB = new StringBundler((values.length * 6) + 2);
+		StringBundler newSQLSB = new StringBundler((values.length * 6) + 2);
 
-		newSqlSB.append(StringPool.OPEN_PARENTHESIS);
+		newSQLSB.append(StringPool.OPEN_PARENTHESIS);
 
 		int i;
 
 		for (i = 0; i < values.length; i++) {
 			if (i > 0) {
-				newSqlSB.append(" AND ");
+				newSQLSB.append(" AND ");
 			}
 
-			newSqlSB.append(StringPool.OPEN_PARENTHESIS);
-			newSqlSB.append(field);
-			newSqlSB.append(" ");
-			newSqlSB.append(operator);
-			newSqlSB.append(" ? [$AND_OR_NULL_CHECK$])");
+			newSQLSB.append(StringPool.OPEN_PARENTHESIS);
+			newSQLSB.append(field);
+			newSQLSB.append(" ");
+			newSQLSB.append(operator);
+			newSQLSB.append(" ? [$AND_OR_NULL_CHECK$])");
 		}
 
-		newSqlSB.append(StringPool.CLOSE_PARENTHESIS);
+		newSQLSB.append(StringPool.CLOSE_PARENTHESIS);
 
 		if (!last) {
-			oldSqlSB.append(" [$AND_OR_CONNECTOR$]");
+			oldSQLSB.append(" [$AND_OR_CONNECTOR$]");
 		}
 
 		return StringUtil.replace(
-			sql, oldSqlSB.toString(), newSqlSB.toString());
+			sql, oldSQLSB.toString(), newSQLSB.toString());
 	}
 
 	private static final String _PERMISSION_CHECK_JOIN_SQL =
