@@ -99,24 +99,37 @@
 					});
 				}
 
-				<%-- When navigating via SPA it is not necessary to check consent cookie --%>
+				if (Liferay.FeatureFlags['LPD-10588']) {
+					Liferay.on('cookieBannerSetCookie', () => {
+						if (<portlet:namespace />isPerfomanceCookieConsented()) {
+							<portlet:namespace />initializeAnalyticsSDKFromSPA();
+						}
+					});
 
-				Liferay.on('cookieBannerSetCookie', () => {
+					if (<portlet:namespace />isPerfomanceCookieConsented()) {
+						<portlet:namespace />initializeAnalyticsSDKFromSPA();
+					}
+				}
+				else {
 					<portlet:namespace />initializeAnalyticsSDKFromSPA();
-				});
+				}
 
-				<portlet:namespace />initializeAnalyticsSDKFromSPA();
 			</c:if>
 		});
 	}
 
-	Liferay.on('cookieBannerSetCookie', () => {
+	if (Liferay.FeatureFlags['LPD-10588']) {
+		Liferay.on('cookieBannerSetCookie', () => {
+			if (<portlet:namespace />isPerfomanceCookieConsented()) {
+				<portlet:namespace />initializeAnalyticsSDK();
+			}
+		});
+
 		if (<portlet:namespace />isPerfomanceCookieConsented()) {
 			<portlet:namespace />initializeAnalyticsSDK();
 		}
-	});
-
-	if (<portlet:namespace />isPerfomanceCookieConsented()) {
+	}
+	else {
 		<portlet:namespace />initializeAnalyticsSDK();
 	}
 </aui:script>
