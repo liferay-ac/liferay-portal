@@ -14,7 +14,8 @@ import {useTimeZoneId} from 'shared/hooks';
 export const KnownIndividualsSession = ({currentPlan}) => {
 	const timeZoneId = useTimeZoneId();
 	const {count, limit, status} = currentPlan.metrics.get('individuals');
-	const usersCount = currentPlan.metrics.get('usersCount') ?? 0;
+	const syncedIndividualsCount =
+		currentPlan.metrics.get('syncedIndividualsCount') ?? 0;
 	const available = limit - count;
 
 	return (
@@ -71,9 +72,9 @@ export const KnownIndividualsSession = ({currentPlan}) => {
 									Liferay.Language.get(
 										'individuals-synced-to-analytics-cloud-x'
 									),
-									[toThousands(usersCount)]
+									[toThousands(syncedIndividualsCount)]
 								) as string,
-								value: usersCount
+								value: syncedIndividualsCount
 							},
 							itemB: {
 								color: Colors.primary,
@@ -84,7 +85,7 @@ export const KnownIndividualsSession = ({currentPlan}) => {
 								value: count
 							}
 						}}
-						total={usersCount + count}
+						total={syncedIndividualsCount + count}
 					/>
 				</div>
 			</UsageMetric>
