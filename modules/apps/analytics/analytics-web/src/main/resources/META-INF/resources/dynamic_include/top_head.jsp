@@ -21,63 +21,102 @@
 </aui:script>
 
 <aui:script id="liferayAnalyticsScript" senna="permanent" type="text/javascript">
-	(function (u, c, a, m, o, l) {
-		o = 'script';
-		l = document;
-		a = l.createElement(o);
-		m = l.getElementsByTagName(o)[0];
-		a.async = 1;
-		a.src = u;
-		a.onload = c;
-		m.parentNode.insertBefore(a, m);
-	})('https://analytics-js-cdn.liferay.com', () => {
-		var config = <%= (String)request.getAttribute(AnalyticsWebKeys.ANALYTICS_CLIENT_CONFIG) %>;
+	function <portlet:namespace />checkPerformanceCookieConsent() {
+		var performanceCookieEnabled = Liferay.Util.Cookie.get(
+			Liferay.Util.Cookie.TYPES.PERFORMANCE
+		);
 
-		var dxpMiddleware = function (request) {
-			request.context.canonicalUrl = themeDisplay.getCanonicalURL();
-			request.context.channelId = analyticsClientChannelId;
-			request.context.groupId = themeDisplay.getScopeGroupIdOrLiveGroupId();
+		return (
+			!analyticsCookiesConsentMode ||
+			(analyticsCookiesConsentMode && performanceCookieEnabled === 'true')
+		);
+	}
 
-			return request;
-		};
+	function <portlet:namespace />isPerfomanceCookieConsented() {
+		var consentCookies = [<portlet:namespace />checkPerformanceCookieConsent()];
 
-		Analytics.create(config, [dxpMiddleware]);
+		return [checkPerformanceCookieConsent()].some((hasConsent) => hasConsent);
+	}
 
-		if (themeDisplay.isSignedIn()) {
-			Analytics.setIdentity({
-				email: themeDisplay.getUserEmailAddress(),
-				name: themeDisplay.getUserName(),
-			});
-		}
+	function <portlet:namespace />initializeAnalyticsSDK() {
+		(function (u, c, a, m, o, l) {
+			o = 'script';
+			l = document;
+			a = l.createElement(o);
+			m = l.getElementsByTagName(o)[0];
+			a.async = 1;
+			a.src = u;
+			a.onload = c;
+			m.parentNode.insertBefore(a, m);
+		})('https://analytics-js-cdn.liferay.com', () => {
+			var config = <%= (String)request.getAttribute(AnalyticsWebKeys.ANALYTICS_CLIENT_CONFIG) %>;
 
-		runMiddlewares();
+			var dxpMiddleware = function (request) {
+				request.context.canonicalUrl = themeDisplay.getCanonicalURL();
+				request.context.channelId = analyticsClientChannelId;
+				request.context.groupId = themeDisplay.getScopeGroupIdOrLiveGroupId();
 
-		Analytics.send('pageViewed', 'Page');
+				return request;
+			};
 
-		<c:if test="<%= GetterUtil.getBoolean(PropsUtil.get(PropsKeys.JAVASCRIPT_SINGLE_PAGE_APPLICATION_ENABLED)) %>">
-			Liferay.on('endNavigate', (event) => {
-				Analytics.dispose();
+			Analytics.create(config, [dxpMiddleware]);
 
-				var groupId = themeDisplay.getScopeGroupIdOrLiveGroupId();
+			if (themeDisplay.isSignedIn()) {
+				Analytics.setIdentity({
+					email: themeDisplay.getUserEmailAddress(),
+					name: themeDisplay.getUserName(),
+				});
+			}
 
-				if (
-					!themeDisplay.isControlPanel() &&
-					analyticsClientGroupIds.indexOf(groupId) >= 0
-				) {
-					Analytics.create(config, [dxpMiddleware]);
+			runMiddlewares();
 
-					if (themeDisplay.isSignedIn()) {
-						Analytics.setIdentity({
-							email: themeDisplay.getUserEmailAddress(),
-							name: themeDisplay.getUserName(),
-						});
-					}
+			Analytics.send('pageViewed', 'Page');
 
-					runMiddlewares();
+			<c:if test="<%= GetterUtil.getBoolean(PropsUtil.get(PropsKeys.JAVASCRIPT_SINGLE_PAGE_APPLICATION_ENABLED)) %>">
+				function <portlet:namespace />initializeAnalyticsSDKFromSPA() {
+					Liferay.on('endNavigate', (event) => {
+						Analytics.dispose();
 
-					Analytics.send('pageViewed', 'Page', {page: event.path});
+						var groupId = themeDisplay.getScopeGroupIdOrLiveGroupId();
+
+						if (
+							!themeDisplay.isControlPanel() &&
+							analyticsClientGroupIds.indexOf(groupId) >= 0
+						) {
+							Analytics.create(config, [dxpMiddleware]);
+
+							if (themeDisplay.isSignedIn()) {
+								Analytics.setIdentity({
+									email: themeDisplay.getUserEmailAddress(),
+									name: themeDisplay.getUserName(),
+								});
+							}
+
+							runMiddlewares();
+
+							Analytics.send('pageViewed', 'Page', {page: event.path});
+						}
+					});
 				}
-			});
-		</c:if>
+
+				<%-- When navigating via SPA it is not necessary to check consent cookie --%>
+
+				Liferay.on('cookieBannerSetCookie', () => {
+					<portlet:namespace />initializeAnalyticsSDKFromSPA();
+				});
+
+				<portlet:namespace />initializeAnalyticsSDKFromSPA();
+			</c:if>
+		});
+	}
+
+	Liferay.on('cookieBannerSetCookie', () => {
+		if (<portlet:namespace />isPerfomanceCookieConsented()) {
+			<portlet:namespace />initializeAnalyticsSDK();
+		}
 	});
+
+	if (<portlet:namespace />isPerfomanceCookieConsented()) {
+		<portlet:namespace />initializeAnalyticsSDK();
+	}
 </aui:script>
