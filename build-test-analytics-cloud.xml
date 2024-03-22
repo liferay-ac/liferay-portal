@@ -476,6 +476,8 @@ OSB_FARO_FRONTEND_URL=${analytics.cloud.faro.frontend.url}</echo>
 
 							String distributionURL = gradleWrapperProperties.getProperty("distributionUrl");
 
+							System.out.println("distribution url : " + distributionURL);
+
 							project.setProperty("gradle.wrapper.bin.file.name", distributionURL.replaceAll(".*/([^/]+)", "$1"));
 							project.setProperty("gradle.wrapper.bin.file.url", distributionURL);
 						]]>
