@@ -76,6 +76,8 @@ definition {
 	@description = "Feature ID: Legacy | Automation ID: LRAC-8782 | Test Summary: Maximum 5 search query strings"
 	@priority = 4
 	test CantSearchMoreThanFiveSearchQueryStrings {
+		property portal.upstream = "vini";
+
 		var queryStringList = "Test Query 1,Test Query 2,Test Query 3,Test Query 4,Test Query 5";
 
 		ACDefinitions.addMultipleSearchQuerySuccessfully(queryStringList = ${queryStringList});
