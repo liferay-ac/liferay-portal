@@ -447,3 +447,35 @@ The getJSOnClickConfigJSONObject function in PersonalMenuEntry is changed so it 
 
 This change makes getJSOnClickConfigJSONObject generic so that it can be used for any type of on-click interaction, not just for opening a selection modal.
 ```
+
+----
+
+# ac48b1fe243d41f6e4691e3f6e7025037811e4ac
+
+The breaking change message has a wrong formatting. The correct message is:
+
+```
+LRAC-15144 segments-service Add Experiment type support
+
+# breaking
+
+## What modules/apps/segments/segments-service/src/main/java/com/liferay/segments/service/impl/SegmentsExperimentServiceImpl.java
+
+Added the Experiment type parameter to the runSegmentsExpeirment
+
+## Why
+
+To support additional Experiment types
+
+----
+
+# breaking
+
+## What modules/apps/segments/segments-service/src/main/java/com/liferay/segments/service/impl/SegmentsExperimentLocalServiceImpl.java
+
+Added the Experiment type parameter to the runSegmentsExpeirment
+
+## Why
+
+To support additional Experiment types
+```
