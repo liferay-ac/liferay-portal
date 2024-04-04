@@ -267,7 +267,7 @@
 														"definition": {
 															"collectionConfig": {
 																"collectionReference": {
-																	"className": "com.liferay.object.web.internal.info.collection.provider.ObjectEntrySingleFormVariationInfoCollectionProvider_64994512087683_CookieEntry"
+																	"className": "com.liferay.object.web.internal.info.collection.provider.ObjectEntrySingleFormVariationInfoCollectionProvider_[$COMPANY_ID$]_NecessaryCookieEntry"
 																},
 																"collectionType": "CollectionProvider"
 															},
@@ -294,7 +294,7 @@
 															"displayAllItems": false,
 															"displayAllPages": true,
 															"listItemStyle": "",
-															"listStyle": "com.liferay.object.web.internal.info.list.renderer.ObjectEntryTableInfoListRenderer_64994512087683_CookieEntry",
+															"listStyle": "com.liferay.object.web.internal.info.list.renderer.ObjectEntryTableInfoListRenderer_[$COMPANY_ID$]_NecessaryCookieEntry",
 															"numberOfColumns": 1,
 															"numberOfItems": 5,
 															"numberOfItemsPerPage": 20,
@@ -442,7 +442,7 @@
 														"definition": {
 															"collectionConfig": {
 																"collectionReference": {
-																	"className": "com.liferay.object.web.internal.info.collection.provider.ObjectEntrySingleFormVariationInfoCollectionProvider_64994512087683_CookieEntry"
+																	"className": "com.liferay.object.web.internal.info.collection.provider.ObjectEntrySingleFormVariationInfoCollectionProvider_[$COMPANY_ID$]_FunctionalCookieEntry"
 																},
 																"collectionType": "CollectionProvider"
 															},
@@ -469,7 +469,7 @@
 															"displayAllItems": false,
 															"displayAllPages": true,
 															"listItemStyle": "",
-															"listStyle": "com.liferay.object.web.internal.info.list.renderer.ObjectEntryTableInfoListRenderer_64994512087683_CookieEntry",
+															"listStyle": "com.liferay.object.web.internal.info.list.renderer.ObjectEntryTableInfoListRenderer_[$COMPANY_ID$]_FunctionalCookieEntry",
 															"numberOfColumns": 1,
 															"numberOfItems": 5,
 															"numberOfItemsPerPage": 20,
@@ -617,7 +617,7 @@
 														"definition": {
 															"collectionConfig": {
 																"collectionReference": {
-																	"className": "com.liferay.object.web.internal.info.collection.provider.ObjectEntrySingleFormVariationInfoCollectionProvider_64994512087683_CookieEntry"
+																	"className": "com.liferay.object.web.internal.info.collection.provider.ObjectEntrySingleFormVariationInfoCollectionProvider_[$COMPANY_ID$]_PerformanceCookieEntry"
 																},
 																"collectionType": "CollectionProvider"
 															},
@@ -644,7 +644,7 @@
 															"displayAllItems": false,
 															"displayAllPages": true,
 															"listItemStyle": "",
-															"listStyle": "com.liferay.object.web.internal.info.list.renderer.ObjectEntryTableInfoListRenderer_64994512087683_CookieEntry",
+															"listStyle": "com.liferay.object.web.internal.info.list.renderer.ObjectEntryTableInfoListRenderer_[$COMPANY_ID$]_PerformanceCookieEntry",
 															"numberOfColumns": 1,
 															"numberOfItems": 5,
 															"numberOfItemsPerPage": 20,
@@ -793,7 +793,7 @@
 														"definition": {
 															"collectionConfig": {
 																"collectionReference": {
-																	"className": "com.liferay.object.web.internal.info.collection.provider.ObjectEntrySingleFormVariationInfoCollectionProvider_64994512087683_CookieEntry"
+																	"className": "com.liferay.object.web.internal.info.collection.provider.ObjectEntrySingleFormVariationInfoCollectionProvider_[$COMPANY_ID$]_PersonalizationCookieEntry"
 																},
 																"collectionType": "CollectionProvider"
 															},
@@ -820,7 +820,7 @@
 															"displayAllItems": false,
 															"displayAllPages": true,
 															"listItemStyle": "",
-															"listStyle": "com.liferay.object.web.internal.info.list.renderer.ObjectEntryTableInfoListRenderer_64994512087683_CookieEntry",
+															"listStyle": "com.liferay.object.web.internal.info.list.renderer.ObjectEntryTableInfoListRenderer_[$COMPANY_ID$]_PersonalizationCookieEntry",
 															"numberOfColumns": 1,
 															"numberOfItems": 5,
 															"numberOfItemsPerPage": 20,
