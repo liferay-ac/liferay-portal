@@ -145,7 +145,7 @@ public class OAuth2AuthorizationExpandoPortalInstanceLifecycleListener
 			ExpandoTable expandoTable, String name, int type)
 		throws Exception {
 
-		ExpandoColumn expandoColumn = _expandoColumnLocalService.fetchColumn(
+		ExpandoColumn expandoColumn = _expandoColumnLocalService.getColumn(
 			expandoTable.getTableId(), name);
 
 		if (expandoColumn != null) {
