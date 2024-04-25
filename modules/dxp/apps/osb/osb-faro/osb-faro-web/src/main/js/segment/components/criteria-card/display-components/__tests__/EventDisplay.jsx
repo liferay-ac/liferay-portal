@@ -102,6 +102,7 @@ describe('EventDisplay', () => {
 					entityName: 'Individual',
 					label: 'Downloaded Document',
 					name: 'documentDownloaded',
+					options: [{label: 'eventHidden', value: false}],
 					propertykey: 'event',
 					type: PropertyTypes.Event
 				}}
@@ -110,5 +111,24 @@ describe('EventDisplay', () => {
 		);
 
 		expect(container).toMatchSnapshot();
+	});
+
+	it('show an error message when custom event is hidden', () => {
+		const {getByText} = render(
+			<WrappedEventDisplay
+				criterion={mockCriterion}
+				property={{
+					entityName: 'Individual',
+					label: 'Downloaded Document',
+					name: 'documentDownloaded',
+					options: [{label: 'eventHidden', value: true}],
+					propertykey: 'event',
+					type: PropertyTypes.Event
+				}}
+				segment={mockSegment}
+			/>
+		);
+
+		expect(getByText('Custom event no longer exists.')).toBeTruthy();
 	});
 });
