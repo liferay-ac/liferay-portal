@@ -66,7 +66,7 @@ export function generateReport({
 		.replace(' ', '-')
 		.toLowerCase()}-${formatDate(new Date())}.pdf`;
 
-	const headerHeight = 30;
+	let headerHeight = 30;
 	const paddingX = 10;
 	const paddingY = 16;
 	const docWidth = doc.internal.pageSize.getWidth();
@@ -74,6 +74,8 @@ export function generateReport({
 	const padding = 2;
 	const containerArr = [];
 	const promises: Promise<void>[] = [];
+	let lines = [];
+	let linesSize;
 
 	containers.map(({id, layout}) => {
 		const containerElement = document.getElementById(id);
@@ -103,10 +105,19 @@ export function generateReport({
 			doc.addFont(path, style[0], style[1]);
 		});
 
+		if (title.length > 70) {
+			lines = doc.splitTextToSize(title, 180);
+			linesSize = lines.length;
+		}
+
 		doc.setFillColor(241, 242, 245);
 		doc.rect(0, 0, docWidth, docHeight, 'F');
 
 		doc.setFillColor(255, 255, 255);
+
+		if (linesSize > 1) {
+			headerHeight = headerHeight + linesSize * lines.length;
+		}
 		doc.rect(0, 0, docWidth, headerHeight, 'F');
 
 		doc.setFont('Helvetica', 'normal');
@@ -120,14 +131,41 @@ export function generateReport({
 
 		doc.setTextColor('#000');
 		doc.setFontSize(16);
-		doc.text(title, paddingX, paddingY);
+		if (linesSize > 1) {
+			doc.text(lines, paddingX, paddingY);
+		} else {
+			doc.text(title, paddingX, paddingY);
+		}
 
 		doc.setTextColor('#6B6C7E');
 		doc.setFontSize(8);
 
 		if (url) {
 			doc.setFontSize(7);
-			doc.textWithLink(url, paddingX, paddingY + 5, {url});
+
+			if (linesSize > 1) {
+				if (linesSize < 5) {
+					doc.textWithLink(
+						url,
+						paddingX,
+						paddingY + linesSize * lines.length + 7,
+						{
+							url
+						}
+					);
+				} else {
+					doc.textWithLink(
+						url,
+						paddingX,
+						paddingY + linesSize * lines.length + 5,
+						{
+							url
+						}
+					);
+				}
+			} else {
+				doc.textWithLink(url, paddingX, paddingY + 5, {url});
+			}
 		}
 
 		doc.setFont('Helvetica', 'normal');
@@ -135,7 +173,15 @@ export function generateReport({
 		if (subtitle) {
 			setExtraFonts(doc, subtitle);
 
-			doc.text(subtitle, paddingX, paddingY + (url ? 9 : 5));
+			if (lines.length > 1) {
+				doc.text(
+					subtitle,
+					paddingX,
+					paddingY + (url ? linesSize * lines.length + 10 : 5)
+				);
+			} else {
+				doc.text(subtitle, paddingX, paddingY + (url ? 9 : 5));
+			}
 		}
 
 		doc.setFont('Helvetica', 'normal');
@@ -150,7 +196,6 @@ export function generateReport({
 		);
 
 		// Generate PDF containers
-
 		let containerY = headerHeight + 2;
 		let previousLayout = null;
 		let previousContainerY = containerY;
