@@ -5,21 +5,16 @@
 
 package com.liferay.osb.faro.contacts.demo.internal;
 
-import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.service.FaroProjectLocalService;
 import com.liferay.osb.faro.util.FaroPropsValues;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Portlet;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.util.Validator;
-
-import java.util.concurrent.FutureTask;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -41,57 +36,22 @@ public class ContactsDemo {
 			return;
 		}
 
-		_futureTask = new FutureTask<>(
-			() -> {
-				long startTime = System.currentTimeMillis();
+		try {
+			if (StringUtil.equals(
+					FaroPropsValues.FARO_DEMO_CREATOR_METHOD, "nanite")) {
 
-				while ((System.currentTimeMillis() - startTime) <
-							(Time.MINUTE * 5)) {
+				_naniteDemoCreatorService.createDemo();
+			}
+			else {
+				_snapshotDemoCreatorService.createDemo();
+			}
 
-					try {
-						FaroProject faroProject =
-							_faroProjectLocalService.createFaroProject(0);
-
-						faroProject.setWeDeployKey(
-							FaroPropsValues.FARO_DEFAULT_WE_DEPLOY_KEY);
-
-						break;
-					}
-					catch (Exception exception) {
-						_log.error(exception);
-
-						Thread.sleep(Time.SECOND * 30);
-					}
-				}
-
-				if (StringUtil.equals(
-						FaroPropsValues.FARO_DEMO_CREATOR_METHOD, "nanite")) {
-
-					_naniteDemoCreatorService.createDemo();
-				}
-				else {
-					_snapshotDemoCreatorService.createDemo();
-				}
-
-				if (_log.isInfoEnabled()) {
-					_log.info("Completed demo data creation");
-				}
-
-				return null;
-			});
-
-		Thread thread = new Thread(
-			_futureTask, "Contacts Demo Creation Thread");
-
-		thread.setDaemon(true);
-
-		thread.start();
-	}
-
-	@Deactivate
-	protected void deactivate() {
-		if (_futureTask != null) {
-			_futureTask.cancel(true);
+			if (_log.isInfoEnabled()) {
+				_log.info("Completed demo data creation");
+			}
+		}
+		catch (Exception exception) {
+			_log.info("Unable to create demo data", exception);
 		}
 	}
 
@@ -99,8 +59,6 @@ public class ContactsDemo {
 
 	@Reference
 	private FaroProjectLocalService _faroProjectLocalService;
-
-	private FutureTask<Void> _futureTask;
 
 	@Reference
 	private NaniteDemoCreatorService _naniteDemoCreatorService;
