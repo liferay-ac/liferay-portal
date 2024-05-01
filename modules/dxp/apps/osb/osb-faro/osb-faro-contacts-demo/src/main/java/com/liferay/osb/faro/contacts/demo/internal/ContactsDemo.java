@@ -74,7 +74,7 @@ public class ContactsDemo {
 				}
 
 				if (_log.isInfoEnabled()) {
-					_log.info("Completed demo data creation");
+					_log.info("Completed demo data creation.");
 				}
 
 				return null;
