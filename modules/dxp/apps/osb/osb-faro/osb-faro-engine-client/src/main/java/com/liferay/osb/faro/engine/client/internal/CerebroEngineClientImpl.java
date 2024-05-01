@@ -7,7 +7,6 @@ package com.liferay.osb.faro.engine.client.internal;
 
 import com.liferay.osb.faro.engine.client.CerebroEngineClient;
 import com.liferay.osb.faro.engine.client.http.client.AuthenticationClientHttpRequestInterceptor;
-import com.liferay.osb.faro.engine.client.http.client.AuthorClientHttpRequestInterceptor;
 import com.liferay.osb.faro.engine.client.model.GraphQLRequest;
 import com.liferay.osb.faro.engine.client.util.EngineServiceURLUtil;
 import com.liferay.osb.faro.model.FaroProject;
@@ -186,8 +185,7 @@ public class CerebroEngineClientImpl implements CerebroEngineClient {
 
 		restTemplate.setInterceptors(
 			Arrays.asList(
-				new AuthenticationClientHttpRequestInterceptor(faroProject),
-				new AuthorClientHttpRequestInterceptor()));
+				new AuthenticationClientHttpRequestInterceptor(faroProject)));
 
 		return restTemplate.exchange(
 			EngineServiceURLUtil.getBackendURL(faroProject, "/graphql"),
