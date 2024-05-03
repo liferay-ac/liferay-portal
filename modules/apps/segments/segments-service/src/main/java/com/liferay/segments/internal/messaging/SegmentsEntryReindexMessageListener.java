@@ -160,11 +160,27 @@ public class SegmentsEntryReindexMessageListener extends BaseMessageListener {
 			long companyId, long segmentsEntryId, Set<Long> newClassPKs)
 		throws PortalException {
 
-		_bulkReindexer.reindex(
-			companyId,
-			SetUtil.symmetricDifference(
-				_getOldIndexClassPKs(companyId, segmentsEntryId), newClassPKs));
+		Set<Long> classPKs = SetUtil.symmetricDifference(
+			_getOldIndexClassPKs(companyId, segmentsEntryId), newClassPKs);
+
+		Set<Long> curClassPKs = new HashSet<>();
+
+		for (Long classPK : classPKs) {
+			curClassPKs.add(classPK);
+
+			if (curClassPKs.size() == _MAX_SIZE) {
+				_bulkReindexer.reindex(companyId, curClassPKs);
+
+				curClassPKs = new HashSet<>();
+			}
+		}
+
+		if (!curClassPKs.isEmpty()) {
+			_bulkReindexer.reindex(companyId, curClassPKs);
+		}
 	}
+
+	private static final int _MAX_SIZE = 30000;
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		SegmentsEntryReindexMessageListener.class);
