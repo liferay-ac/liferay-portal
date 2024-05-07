@@ -59,6 +59,8 @@ definition {
 	@description = "Feature ID: Legacy | Automation ID: LRAC-8626 | Test Summary: Segment distribution chart can be filtered by date property"
 	@priority = 5
 	test CanDistributionChartFilteredDateProperty {
+		property portal.upstream = "vini";
+
 		task ("View AC Page as new user") {
 			ACUtils.navigateToSitePageWithUser(
 				actionType = "View WC",

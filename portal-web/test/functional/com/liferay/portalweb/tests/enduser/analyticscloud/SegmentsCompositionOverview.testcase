@@ -33,6 +33,8 @@ definition {
 	@description = "Feature ID: Legacy | Automation ID: LRAC-8493 | Test Summary: Segment Composition shows Active and Known individuals"
 	@priority = 3
 	test SegmentCompositionShowsActiveAndKnownIndividuals {
+		property portal.upstream = "vini";
+
 		task ("Create a new user") {
 			JSONUser.addUser(
 				userEmailAddress = "testac@liferay.com",
