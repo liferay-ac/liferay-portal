@@ -1,6 +1,10 @@
+import ClayButton from '@clayui/button';
+import ClayDropDown from '@clayui/drop-down';
+import ClayIcon from '@clayui/icon';
 import Form from 'shared/components/form';
 import OperatorSelect from './OperatorSelect';
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
+import Sticker from 'shared/components/Sticker';
 import ValueInput from './ValueInput';
 import {
 	AddEntity,
@@ -8,15 +12,15 @@ import {
 	ReferencedEntities,
 	withReferencedObjectsConsumer
 } from '../../../context/referencedObjects';
-import {Attribute, DataTypes} from 'event-analysis/utils/types';
+import {Attribute} from 'event-analysis/utils/types';
 import {Criterion} from '../../../utils/types';
+import {DATA_TYPE_ICONS_MAP} from 'event-analysis/utils/utils';
 import {
 	getDefaultAttributeOperator,
 	getDefaultAttributeValue,
 	validateAttributeValue
 } from './utils';
 import {Map} from 'immutable';
-import {Option, Picker} from '@clayui/core';
 
 interface IAttributeFilterConjunctionInputProps {
 	addEntity: AddEntity;
@@ -60,11 +64,17 @@ const AttributeFilterConjunctionInput: React.FC<IAttributeFilterConjunctionInput
 		}
 	}, []);
 
-	const getAttributeFromContext = () => {
+	const [attributesDisplayed, setAttributesDisplayed] = useState<Attribute[]>(
+		attributes
+	);
+	const [searchValue, setSearchValue] = useState<string>('');
+
+	const getAttributeFromContext = (): Attribute => {
 		const attributeId = getAttributeId();
 
 		return (
-			attributes.find(attribute => attribute?.id === attributeId) || {}
+			attributes.find(attribute => attribute?.id === attributeId) ||
+			attributes[0]
 		);
 	};
 
@@ -78,6 +88,22 @@ const AttributeFilterConjunctionInput: React.FC<IAttributeFilterConjunctionInput
 		const attribute = attributes.find(({id}) => id === value);
 
 		setAttribute(attribute);
+	};
+
+	const onSearchAttribute = query => {
+		setSearchValue(query);
+
+		const filteredAttributes = attributes.filter(
+			({displayName, name}) =>
+				displayName.toLowerCase().includes(query.toLowerCase()) ||
+				name.toLowerCase().includes(query.toLowerCase())
+		);
+
+		if (!query) {
+			setAttributesDisplayed(attributes);
+		}
+
+		setAttributesDisplayed(filteredAttributes);
 	};
 
 	const setAttribute = (attribute: Attribute) => {
@@ -114,33 +140,61 @@ const AttributeFilterConjunctionInput: React.FC<IAttributeFilterConjunctionInput
 		});
 	};
 
-	const {dataType}: {dataType?: DataTypes} = getAttributeFromContext();
+	const attribute = getAttributeFromContext();
 	const {operatorName, value} = conjunctionCriterion;
 
 	return (
 		<>
 			<Form.GroupItem shrink>
-				<Picker
-					className='attribute-input'
-					items={attributes.map(({displayName, id, name}) => ({
-						label: displayName || name,
-						value: id
-					}))}
-					onSelectionChange={handleAttributeChange}
-					selectedKey={getAttributeId()}
+				<ClayDropDown
+					closeOnClick
+					trigger={
+						<ClayButton
+							className='form-control form-control-select form-control-select-secondary'
+							displayType='secondary'
+						>
+							{attribute.displayName || attribute.name}
+						</ClayButton>
+					}
 				>
-					{({label, value}) => <Option key={value}>{label}</Option>}
-				</Picker>
+					<ClayDropDown.Search
+						className='py-2 px-2'
+						onChange={onSearchAttribute}
+						placeholder={Liferay.Language.get('search')}
+						value={searchValue}
+					/>
+
+					<ClayDropDown.ItemList items={attributesDisplayed}>
+						{(attr: Attribute) => (
+							<ClayDropDown.Item
+								active={attr.id === attribute.id}
+								key={attr.name}
+								onClick={() => handleAttributeChange(attr.id)}
+								roleItem='option'
+							>
+								<Sticker className='mr-3' display='secondary'>
+									<ClayIcon
+										symbol={
+											DATA_TYPE_ICONS_MAP[attr.dataType]
+										}
+									/>
+								</Sticker>
+
+								{attr.displayName || attr.name}
+							</ClayDropDown.Item>
+						)}
+					</ClayDropDown.ItemList>
+				</ClayDropDown>
 			</Form.GroupItem>
 
 			<OperatorSelect
-				dataType={dataType}
+				dataType={attribute.dataType}
 				onChange={onChange}
 				operatorName={operatorName}
 			/>
 
 			<ValueInput
-				dataType={dataType}
+				dataType={attribute.dataType}
 				onChange={onChange}
 				operatorName={operatorName}
 				touched={touched.attributeValue}
