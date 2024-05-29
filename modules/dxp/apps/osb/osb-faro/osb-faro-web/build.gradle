@@ -59,6 +59,19 @@ node {
 	yarnVersion = "1.22.19"
 }
 
+task execYarnTest(type: Exec) {
+    commandLine 'yarn', 'run', 'test'
+}
+
+tasks.named('packageRunTest').configure {
+	// Override the default packageRunTest action because
+	// Analytics Cloud tests need to be run by yarn so
+	// babel can be interpreted first.
+    actions.clear()
+    
+	dependsOn execYarnTest
+}
+
 packageRunWebpack {
 	if (project.hasProperty("faroEnvironmentName")) {
 		environment "FARO_ENVIRONMENT_NAME", faroEnvironmentName
