@@ -9,6 +9,7 @@ import {
 	SUPPORTED_OPERATORS_MAP
 } from './constants';
 import {Criteria, Criterion, CriterionGroup, Operator} from './types';
+import {EntityType, ReferencedEntities} from '../context/referencedObjects';
 import {Event} from 'event-analysis/utils/types';
 import {every, isBoolean, isString, isUndefined} from 'lodash';
 import {FieldContexts, FieldOwnerTypes} from 'shared/util/constants';
@@ -478,6 +479,23 @@ export const invalidateCriterionWithMissingProperty = (
 				  )
 		};
 	}
+};
+
+export const parseReferencedEntityId = (
+	id: string,
+	referencedEntities: ReferencedEntities
+) => {
+	let parsedId = id;
+
+	if (parsedId.indexOf('_') === -1) {
+		const keys = Object.keys(
+			referencedEntities.getIn([EntityType.Assets]).toObject()
+		);
+
+		parsedId = keys.find(key => key.includes(id));
+	}
+
+	return parsedId;
 };
 
 /**
