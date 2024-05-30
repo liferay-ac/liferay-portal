@@ -18,6 +18,8 @@ public class FaroConstants {
 
 	public static final String APPLICATION_CONTACTS = "contacts";
 
+	public static final String APPLICATION_FUNCTIONAL = "functional";
+
 	public static final String APPLICATION_MAIN = "main";
 
 	public static final int TYPE_ACCOUNT = 0;
@@ -51,6 +53,8 @@ public class FaroConstants {
 
 	private static final Map<String, String> _applications = HashMapBuilder.put(
 		APPLICATION_CONTACTS, APPLICATION_CONTACTS
+	).put(
+		APPLICATION_FUNCTIONAL, APPLICATION_FUNCTIONAL
 	).put(
 		APPLICATION_MAIN, APPLICATION_MAIN
 	).build();

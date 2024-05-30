@@ -7,6 +7,7 @@ package com.liferay.osb.faro.web.internal.activator;
 
 import com.liferay.osb.faro.web.internal.application.AsahApplication;
 import com.liferay.osb.faro.web.internal.application.ContactsApplication;
+import com.liferay.osb.faro.web.internal.application.FunctionalApplication;
 import com.liferay.osb.faro.web.internal.application.MainApplication;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
@@ -68,6 +69,7 @@ public class ContactsActivator {
 			new String[] {
 				getServiceFilterString(AsahApplication.class.getName()),
 				getServiceFilterString(ContactsApplication.class.getName()),
+				getServiceFilterString(FunctionalApplication.class.getName()),
 				getServiceFilterString(MainApplication.class.getName())
 			});
 
