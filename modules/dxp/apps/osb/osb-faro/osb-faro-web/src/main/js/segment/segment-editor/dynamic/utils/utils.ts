@@ -487,7 +487,7 @@ export const parseReferencedEntityId = (
 ) => {
 	let parsedId = id;
 
-	if (parsedId.indexOf('_') === -1) {
+	if (parsedId && parsedId.indexOf('_') === -1) {
 		const keys = Object.keys(
 			referencedEntities.getIn([EntityType.Assets]).toObject()
 		);
