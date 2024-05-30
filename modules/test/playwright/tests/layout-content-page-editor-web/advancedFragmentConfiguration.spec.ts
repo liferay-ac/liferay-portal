@@ -7,23 +7,23 @@ import {expect, mergeTests} from '@playwright/test';
 
 import {apiHelpersTest} from '../../fixtures/apiHelpersTest';
 import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
+import {fragmentsPagesTest} from '../../fixtures/fragmentPagesTest';
 import {isolatedSiteTest} from '../../fixtures/isolatedSiteTest';
 import {loginTest} from '../../fixtures/loginTest';
+import {pageEditorPagesTest} from '../../fixtures/pageEditorPagesTest';
 import getRandomString from '../../utils/getRandomString';
-import {fragmentsPagesTest} from '../fragment-web/fixtures/fragmentPagesTest';
-import {pageEditorPagesTest} from './fixtures/pageEditorPagesTest';
 import getFragmentDefinition from './utils/getFragmentDefinition';
 import getPageDefinition from './utils/getPageDefinition';
 import getWidgetDefinition from './utils/getWidgetDefinition';
 
-export const test = mergeTests(
+const test = mergeTests(
 	apiHelpersTest,
 	featureFlagsTest({
 		'LPS-178052': true,
 	}),
 	fragmentsPagesTest,
-	loginTest(),
 	isolatedSiteTest,
+	loginTest(),
 	pageEditorPagesTest
 );
 
@@ -66,7 +66,7 @@ test('checks that the fragment is hidden from Site Search Results', async ({
 		title: getRandomString(),
 	});
 
-	await pageEditorPage.goToEditMode(layouts.fragment, site.friendlyUrlPath);
+	await pageEditorPage.goto(layouts.fragment, site.friendlyUrlPath);
 
 	await pageEditorPage.selectFragment(headingId);
 
@@ -83,7 +83,10 @@ test('checks that the fragment is hidden from Site Search Results', async ({
 	await searchBar.click();
 	await searchBar.fill('Heading');
 
-	await page.waitForTimeout(3000);
+	await page.locator('.search-bar-suggestions .loading-animation').waitFor();
+	await page
+		.locator('.search-bar-suggestions .loading-animation')
+		.waitFor({state: 'hidden'});
 
 	// Check that there are results
 
@@ -93,7 +96,7 @@ test('checks that the fragment is hidden from Site Search Results', async ({
 
 	// Go back to the fragment page and hide the fragment from the search results
 
-	await pageEditorPage.goToEditMode(layouts.fragment, site.friendlyUrlPath);
+	await pageEditorPage.goto(layouts.fragment, site.friendlyUrlPath);
 
 	await pageEditorPage.selectFragment(headingId);
 
@@ -118,7 +121,10 @@ test('checks that the fragment is hidden from Site Search Results', async ({
 	await searchBar.click();
 	await searchBar.fill('Heading');
 
-	await page.waitForTimeout(3000);
+	await page.locator('.search-bar-suggestions .loading-animation').waitFor();
+	await page
+		.locator('.search-bar-suggestions .loading-animation')
+		.waitFor({state: 'hidden'});
 
 	// Check that there are no results
 
@@ -141,7 +147,10 @@ test('checks that the advanced configuration of a fragment appears in its corres
 	// Add a new fragment set and a fragment inside it
 
 	const setName = getRandomString();
+
 	await fragmentsPage.createFragmentSet(setName);
+
+	await fragmentsPage.goto(site.friendlyUrlPath);
 
 	await fragmentsPage.createFragment(setName, 'My Fragment');
 

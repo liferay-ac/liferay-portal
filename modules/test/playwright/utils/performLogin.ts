@@ -5,6 +5,8 @@
 
 import {Cookie, Page, expect} from '@playwright/test';
 
+import {liferayConfig} from '../liferay.config';
+
 export type LoginScreenName =
 	| 'demo.company.admin'
 	| 'demo.organization.owner'
@@ -29,7 +31,7 @@ const userData = {
 	},
 	'test': {
 		name: 'Test',
-		password: 'test',
+		password: liferayConfig.environment.password,
 		surname: 'Test',
 	},
 };
@@ -60,6 +62,14 @@ async function performLogin(
 	});
 
 	return await page.context().cookies();
+}
+
+export async function performLogout(page: Page) {
+	await page.goto('/');
+
+	await page.getByTestId('userPersonalMenu').click();
+
+	await page.getByRole('menuitem', {name: 'Sign Out'}).click();
 }
 
 export default performLogin;

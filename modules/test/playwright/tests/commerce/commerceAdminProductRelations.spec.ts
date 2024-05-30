@@ -3,17 +3,21 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-// @ts-ignore
-
 import {expect, mergeTests} from '@playwright/test';
 
 import {apiHelpersTest} from '../../fixtures/apiHelpersTest';
 import {commercePagesTest} from '../../fixtures/commercePagesTest';
+import {dataApiHelpersTest} from '../../fixtures/dataApiHelpersTest';
 import {loginTest} from '../../fixtures/loginTest';
 
-export const test = mergeTests(apiHelpersTest, commercePagesTest, loginTest());
+export const test = mergeTests(
+	apiHelpersTest,
+	commercePagesTest,
+	dataApiHelpersTest,
+	loginTest()
+);
 
-test('LPD-13559 bulk actions for product relations', async ({
+test('LPD-13559 Bulk actions for product relations', async ({
 	apiHelpers,
 	commerceAdminProductDetailsPage,
 	commerceAdminProductDetailsProductRelationsPage,
@@ -45,55 +49,38 @@ test('LPD-13559 bulk actions for product relations', async ({
 		),
 	]);
 
-	try {
-		await commerceAdminProductPage.gotoProduct(product1.name['en_US']);
+	await commerceAdminProductPage.gotoProduct(product1.name['en_US']);
 
-		await commerceAdminProductDetailsPage.goToProductRelations();
+	await commerceAdminProductDetailsPage.goToProductRelations();
 
-		await expect(
-			(
-				await commerceAdminProductDetailsProductRelationsPage.tableRow(
-					2,
-					product2.name['en_US'],
-					true
-				)
-			).row
-		).toBeVisible();
-		await expect(
-			(
-				await commerceAdminProductDetailsProductRelationsPage.tableRow(
-					2,
-					product3.name['en_US'],
-					true
-				)
-			).row
-		).toBeVisible();
+	await expect(
+		(
+			await commerceAdminProductDetailsProductRelationsPage.tableRow(
+				2,
+				product2.name['en_US'],
+				true
+			)
+		).row
+	).toBeVisible();
+	await expect(
+		(
+			await commerceAdminProductDetailsProductRelationsPage.tableRow(
+				2,
+				product3.name['en_US'],
+				true
+			)
+		).row
+	).toBeVisible();
 
-		await commerceAdminProductDetailsProductRelationsPage.selectItemsInput.check();
+	await commerceAdminProductDetailsProductRelationsPage.selectItemsInput.check();
 
-		await expect(
-			commerceAdminProductDetailsProductRelationsPage.deleteBulkButton
-		).toBeVisible();
+	await expect(
+		commerceAdminProductDetailsProductRelationsPage.deleteBulkButton
+	).toBeVisible();
 
-		await commerceAdminProductDetailsProductRelationsPage.deleteBulkButton.click();
+	await commerceAdminProductDetailsProductRelationsPage.deleteBulkButton.click();
 
-		await expect(
-			commerceAdminProductDetailsProductRelationsPage.emptyTableMessage
-		).toBeVisible();
-	}
-	finally {
-		await Promise.all([
-			apiHelpers.headlessCommerceAdminCatalog.deleteProduct(
-				product1.productId
-			),
-			apiHelpers.headlessCommerceAdminCatalog.deleteProduct(
-				product2.productId
-			),
-			apiHelpers.headlessCommerceAdminCatalog.deleteProduct(
-				product3.productId
-			),
-		]);
-
-		await apiHelpers.headlessCommerceAdminCatalog.deleteCatalog(catalog.id);
-	}
+	await expect(
+		commerceAdminProductDetailsProductRelationsPage.emptyTableMessage
+	).toBeVisible();
 });

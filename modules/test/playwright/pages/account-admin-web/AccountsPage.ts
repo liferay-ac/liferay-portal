@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-// @ts-ignore
-
 import {Locator, Page} from '@playwright/test';
 
 import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
@@ -37,6 +35,7 @@ export const searchTableRowByValue = async function (
 };
 
 export class AccountsPage {
+	readonly accountGroupsTab: Locator;
 	readonly accountsTable: Locator;
 	readonly accountsTableRow: (
 		colPosition: number,
@@ -50,6 +49,9 @@ export class AccountsPage {
 
 	constructor(page: Page) {
 		this.applicationsMenuPage = new ApplicationsMenuPage(page);
+		this.accountGroupsTab = page.getByRole('link', {
+			name: 'Account Groups',
+		});
 		this.page = page;
 		this.pageTitle = page.getByTestId('headerTitle');
 		this.accountsTableRow = async (

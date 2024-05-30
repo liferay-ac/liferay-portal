@@ -1,0 +1,381 @@
+/**
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
+ * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
+ */
+
+import {expect, mergeTests} from '@playwright/test';
+import moment from 'moment';
+
+import {changeTrackingPagesTest} from '../../fixtures/changeTrackingPagesTest';
+import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
+import {workflowPagesTest} from '../../fixtures/workflowPagesTest';
+import {ApiHelpers} from '../../helpers/ApiHelpers';
+import getRandomString from '../../utils/getRandomString';
+import {journalPagesTest} from '../journal-web/fixtures/journalPagesTest';
+
+export const test = mergeTests(
+	featureFlagsTest({
+		'LPD-10703': true,
+	}),
+	journalPagesTest,
+	changeTrackingPagesTest,
+	workflowPagesTest
+);
+
+let date;
+let journalName;
+
+test.beforeEach(async ({journalEditArticlePage, workflowPage}) => {
+	await workflowPage.goto();
+
+	await workflowPage.changeWorkflow('Web Content Article', 'Single Approver');
+
+	journalName = getRandomString();
+
+	await journalEditArticlePage.goto();
+
+	await journalEditArticlePage.submitArticleForWorkflow(journalName);
+
+	date = moment().format('M/D/YY h:mm A');
+});
+
+test('LPD-19748 Add workflow info to the View Change screen', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+}) => {
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await expect(page.getByText(`Pending`)).toBeVisible();
+
+	await changeTrackingPage.viewDisplayTab('Workflow');
+});
+
+test('LPD-19748 Workflow data is displayed in tab', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+}) => {
+	const displayData = [
+		'Status',
+		'Assigned to',
+		'Task Name',
+		'Create Date',
+		'Due Date',
+		'Usages',
+		'Activities',
+	];
+
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	for (const data of displayData) {
+		await expect(page.getByText(data, {exact: true})).toBeVisible();
+	}
+});
+
+test('LPD-19748 Only workflow status is displayed when workflow is disabled', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+	workflowPage,
+}) => {
+	await workflowPage.goto();
+
+	await workflowPage.changeWorkflow('Web Content Article', 'No Workflow', {
+		disable: true,
+	});
+
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await expect(page.getByText(`Pending`)).toBeVisible();
+
+	await changeTrackingPage.viewDisplayTab('Workflow', {isHidden: true});
+});
+
+test('LPD-19763 Workflow assign actions are displayed in dropdown', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+}) => {
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	const moreActionsButton = page.getByLabel('more-actions');
+
+	await moreActionsButton.click();
+
+	await expect(
+		page.getByRole('menuitem', {
+			name: 'Assign to me',
+		})
+	).toBeVisible();
+
+	await expect(
+		page.getByRole('menuitem', {
+			name: 'Assign to...',
+		})
+	).toBeVisible();
+
+	const assignToMeMenuItem = page.getByRole('menuitem', {
+		name: 'Assign to me',
+	});
+
+	await assignToMeMenuItem.click();
+
+	const doneButton = page
+		.frameLocator('iframe[title="Assign to Me"]')
+		.getByRole('button', {exact: true, name: 'Done'});
+
+	await doneButton.click();
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	await page.getByRole('cell', {exact: true, name: 'Test Test'});
+
+	await moreActionsButton.click();
+
+	await expect(
+		page.getByRole('menuitem', {
+			name: 'Assign to...',
+		})
+	).toBeVisible();
+});
+
+test('LPD-22673 View Usages link is added to workflow info display', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+}) => {
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	await page.getByRole('link', {exact: true, name: 'View Usages'}).click();
+
+	await expect(page.getByText(`Usages: ${journalName}`)).toBeVisible();
+});
+
+test('LPD-23974 Comments link is added to workflow info display', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+}) => {
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	await page.getByRole('link', {exact: true, name: '0 Comments'}).click();
+
+	await expect(
+		page.getByTestId('headerTitle').getByText(`Review: ${journalName}`)
+	).toBeVisible();
+
+	await page.getByRole('button', {name: 'Comments'}).click();
+
+	await page
+		.frameLocator('iframe')
+		.getByRole('textbox')
+		.fill('Sample Comment');
+
+	await page.getByRole('button', {name: 'Reply'}).click();
+
+	await page.getByRole('link', {name: 'Back'}).click();
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	await expect(
+		page.getByRole('link', {exact: true, name: '1 Comment'})
+	).toBeVisible();
+});
+
+test('LPD-23331 Workflow data is displayed when workflow task is approved', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+	workflowTasksPage,
+}) => {
+	const displayData = [
+		'Status',
+		'Assigned to',
+		'Task Name',
+		'Create Date',
+		'Due Date',
+		'Usages',
+		'Activities',
+	];
+
+	await workflowTasksPage.goToAssignedToMyRoles();
+
+	await workflowTasksPage.assignToMe(journalName);
+
+	await workflowTasksPage.approve(journalName);
+
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await changeTrackingPage.viewDisplayTab('Workflow');
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	for (const data of displayData) {
+		await expect(page.getByText(data, {exact: true})).toBeVisible();
+	}
+});
+
+test('LPD-23969 Activities tab is added to workflow info display', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+}) => {
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	await page.getByRole('button', {exact: true, name: 'Activities'}).click();
+
+	await expect(
+		page.getByRole('cell', {exact: true, name: 'Activity Description'})
+	).toBeVisible();
+
+	await expect(
+		page.getByRole('cell', {exact: true, name: 'Date'})
+	).toBeVisible();
+
+	await expect(
+		page
+			.getByRole('row', {
+				exact: true,
+				name: `Task initially assigned to the Administrator role. Assigned initial task. ${date}`,
+			})
+			.getByRole('cell')
+			.nth(1)
+	).toBeVisible();
+
+	await expect(
+		page.getByRole('button', {exact: true, name: 'View More'})
+	).toBeHidden();
+});
+
+test('LPD-25058 View More button is added to workflow Activities tab for many rows', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+	workflowTasksPage,
+}) => {
+	await workflowTasksPage.goToAssignedToMyRoles();
+
+	await workflowTasksPage.assignToMe(journalName);
+
+	await workflowTasksPage.reject(journalName);
+
+	await workflowTasksPage.resubmit(journalName);
+
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	await page.getByRole('button', {exact: true, name: 'Activities'}).click();
+
+	await page.getByRole('button', {exact: true, name: 'View More'}).click();
+
+	await expect(
+		page.getByRole('button', {exact: true, name: 'View More'})
+	).toBeHidden();
+});
+
+test('LPD-24645 Workflow tab is not present for draft', async ({
+	changeTrackingPage,
+	ctCollection,
+	journalEditArticlePage,
+	page,
+}) => {
+	const title = getRandomString();
+
+	await journalEditArticlePage.goto();
+
+	await journalEditArticlePage.fillTitle(title);
+
+	await page.getByRole('button', {name: 'Save as Draft'}).click();
+
+	await page.getByText('Version: 1.0 Draft').waitFor();
+
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(title);
+
+	await changeTrackingPage.viewDisplayTab('Workflow', {isHidden: true});
+});
+
+test('LPD-22771 Assign button added to workflow view', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+}) => {
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	const assignButton = page.getByRole('button', {
+		exact: true,
+		name: 'Assign to...',
+	});
+
+	await expect(assignButton).toBeVisible();
+
+	await assignButton.click();
+
+	const doneButton = page
+		.frameLocator('iframe[title="Assign to..."]')
+		.getByRole('button', {exact: true, name: 'Done'});
+
+	await expect(doneButton).toBeVisible();
+
+	await doneButton.click();
+
+	await expect(
+		page.getByRole('cell').and(page.getByText('Test Test'))
+	).toBeVisible();
+});
+
+test('LPD-22771 Assign button is not visible in other publications', async ({
+	changeTrackingPage,
+	ctCollection,
+	page,
+}) => {
+	const apiHelpers = new ApiHelpers(page);
+
+	await apiHelpers.headlessChangeTracking.checkoutCTCollection('0');
+
+	await changeTrackingPage.goToReviewChanges(ctCollection.name);
+
+	await changeTrackingPage.reviewChange(journalName);
+
+	await changeTrackingPage.selectTab('Workflow');
+
+	const assignButton = page.getByRole('button', {
+		exact: true,
+		name: 'Assign to...',
+	});
+
+	await expect(assignButton).toBeVisible({visible: false});
+});

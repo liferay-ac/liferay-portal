@@ -3,18 +3,22 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-// @ts-ignore
-
 import {expect, mergeTests} from '@playwright/test';
 import * as path from 'path';
 
 import {apiHelpersTest} from '../../../fixtures/apiHelpersTest';
 import {commercePagesTest} from '../../../fixtures/commercePagesTest';
+import {dataApiHelpersTest} from '../../../fixtures/dataApiHelpersTest';
 import {loginTest} from '../../../fixtures/loginTest';
 
-export const test = mergeTests(apiHelpersTest, commercePagesTest, loginTest());
+export const test = mergeTests(
+	apiHelpersTest,
+	commercePagesTest,
+	dataApiHelpersTest,
+	loginTest()
+);
 
-test('The download URL is present when the file entry is a file upload', async ({
+test('LPD-3209 The download URL is present when the file entry is a file upload', async ({
 	apiHelpers,
 	attachmentsPage,
 }) => {
@@ -73,18 +77,10 @@ test('The download URL is present when the file entry is a file upload', async (
 	expect(channelProductAttachment.fileEntryId).not.toBeNull();
 	expect(channelProductAttachment.src).not.toBe('');
 
-	await Promise.all([
-		apiHelpers.headlessCommerceAdminChannel.deleteChannel(channel.id),
-		apiHelpers.headlessCommerceAdminCatalog.deleteProduct(
-			product.productId
-		),
-	]);
-
 	await apiHelpers.headlessDelivery.deleteDocument(siteDocument.id);
-	await apiHelpers.headlessCommerceAdminCatalog.deleteCatalog(catalog.id);
 });
 
-test('The download URL is not present when the file entry is an external resource', async ({
+test('LPD-3209 The download URL is not present when the file entry is an external resource', async ({
 	apiHelpers,
 	attachmentsPage,
 }) => {
@@ -143,13 +139,5 @@ test('The download URL is not present when the file entry is an external resourc
 	expect(channelProductAttachment.fileEntryId).not.toBeNull();
 	expect(channelProductAttachment.src).toBe('');
 
-	await Promise.all([
-		apiHelpers.headlessCommerceAdminChannel.deleteChannel(channel.id),
-		apiHelpers.headlessCommerceAdminCatalog.deleteProduct(
-			product.productId
-		),
-	]);
-
 	await apiHelpers.headlessDelivery.deleteDocument(siteDocument.id);
-	await apiHelpers.headlessCommerceAdminCatalog.deleteCatalog(catalog.id);
 });

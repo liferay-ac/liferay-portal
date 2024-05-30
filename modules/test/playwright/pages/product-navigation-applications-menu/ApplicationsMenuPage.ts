@@ -20,6 +20,7 @@ export class ApplicationsMenuPage {
 	private readonly controlPanelButton: Locator;
 	private readonly dataMigrationCenterMenuItem: Locator;
 	private readonly dataSetManagerMenuItem: Locator;
+	private readonly defaultPermissionsLink: Locator;
 	private readonly gogoShellItem: Locator;
 	private readonly homePage: HomePage;
 	private readonly instanceSettingsMenuItem: Locator;
@@ -28,8 +29,11 @@ export class ApplicationsMenuPage {
 	private readonly objectsMenuItem: Locator;
 	private readonly page: Page;
 	private readonly paymentsMenuItem: Locator;
+	private readonly picklistsMenuItem: Locator;
 	private readonly processBuilderItem: Locator;
 	private readonly productsMenuItem: Locator;
+	private readonly queueMenuItem: Locator;
+	private readonly searchItem: Locator;
 	private readonly serviceAccountsItem: Locator;
 	private readonly sitesItem: Locator;
 	private readonly systemSettingsItem: Locator;
@@ -87,6 +91,10 @@ export class ApplicationsMenuPage {
 			exact: true,
 			name: 'Data Sets',
 		});
+		this.defaultPermissionsLink = page.getByRole('link', {
+			exact: true,
+			name: 'Default Permissions',
+		});
 		this.instanceSettingsMenuItem = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Instance Settings',
@@ -108,6 +116,10 @@ export class ApplicationsMenuPage {
 			exact: true,
 			name: 'Payments',
 		});
+		this.picklistsMenuItem = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Picklists',
+		});
 		this.processBuilderItem = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Process Builder',
@@ -115,6 +127,14 @@ export class ApplicationsMenuPage {
 		this.productsMenuItem = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Products',
+		});
+		this.queueMenuItem = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Queue',
+		});
+		this.searchItem = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Search',
 		});
 		this.serviceAccountsItem = page.getByRole('menuitem', {
 			exact: true,
@@ -185,6 +205,11 @@ export class ApplicationsMenuPage {
 		await this.dataMigrationCenterMenuItem.click();
 	}
 
+	async goToDefaultPermissions() {
+		await this.goToInstanceSettings();
+		await this.defaultPermissionsLink.click();
+	}
+
 	async goToAPIBuilder() {
 		await this.goToControlPanel();
 		await this.apiBuilderMenuItem.click();
@@ -198,6 +223,16 @@ export class ApplicationsMenuPage {
 	async goToObjects() {
 		await this.goToControlPanel();
 		await this.objectsMenuItem.click();
+	}
+
+	async goToPicklists() {
+		await this.goToControlPanel();
+		await this.picklistsMenuItem.click();
+	}
+
+	async goToSearch() {
+		await this.goToControlPanel();
+		await this.searchItem.click();
 	}
 
 	async goToServerAdministration() {
@@ -255,6 +290,11 @@ export class ApplicationsMenuPage {
 		await this.productsMenuItem.click();
 	}
 
+	async goToQueue() {
+		await this.goToControlPanel();
+		await this.queueMenuItem.click();
+	}
+
 	async goToSite(name: string = 'Liferay DXP') {
 		await this.goto();
 		await this.page.getByRole('link', {exact: true, name}).click();
@@ -281,8 +321,16 @@ export class ApplicationsMenuPage {
 		await this.serviceAccountsItem.click();
 	}
 
-	async goToUsersAndOrganizations() {
-		await this.goto();
+	async goToUsersAndOrganizations(forceReload = true) {
+		if (forceReload) {
+			await this.goto();
+		}
+		else {
+			await this.homePage.openApplicationMenu();
+
+			await expect(this.applicationsMenuTabButton).toBeVisible();
+		}
+
 		await this.controlPanelButton.click();
 		await this.usersAndOrganizationsItem.click();
 	}

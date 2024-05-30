@@ -21,6 +21,7 @@ export class CommerceMiniCartPage {
 	readonly quickAddToCartSku: (sku: string) => Locator;
 	readonly searchProductsInput: Locator;
 	readonly showOptionsButton: Locator;
+	readonly submitButton: Locator;
 	readonly unitOfMeasureTableLabel: Locator;
 
 	constructor(page: Page) {
@@ -34,8 +35,8 @@ export class CommerceMiniCartPage {
 			exact: true,
 			name: 'Edit',
 		});
-		this.cartItemActionsButton = page.getByTestId('cart-item-actions');
-		this.miniCartButton = page.getByTestId('mini-cart-button');
+		this.cartItemActionsButton = page.getByTestId('cartItemActions');
+		this.miniCartButton = page.getByTestId('miniCartButton');
 		this.miniCartButtonClose = page.locator('.mini-cart-close');
 		this.miniCartSaveButton = page.getByRole('button', {
 			exact: true,
@@ -44,9 +45,7 @@ export class CommerceMiniCartPage {
 		this.miniCartUnitOfMeasureSelector = page.locator(
 			'select[name="minicart-uom-selector"]'
 		);
-		this.quickAddToCartButton = page.getByTestId(
-			'quick-add-to-cart-button'
-		);
+		this.quickAddToCartButton = page.getByTestId('quickAddToCartButton');
 		this.quickAddToCartSku = (sku) =>
 			page.getByRole('menuitem', {name: sku});
 		this.searchProductsInput = page.getByPlaceholder('Search Products');
@@ -54,6 +53,7 @@ export class CommerceMiniCartPage {
 			exact: true,
 			name: 'Show Options',
 		});
+		this.submitButton = page.getByRole('button', {name: 'Submit'});
 		this.unitOfMeasureTableLabel = page.getByText('Unit of Measure Table', {
 			exact: true,
 		});

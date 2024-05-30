@@ -35,15 +35,23 @@ export class HeadlessCommerceAdminChannelApiHelper {
 		);
 	}
 
+	async getChannelsPage(search: string) {
+		return this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${this.basePath}/channels?search=${search}`
+		);
+	}
+
 	async postChannel(channel: TChannel): Promise<TChannel> {
 		channel = await this.apiHelpers.post(
 			`${this.apiHelpers.baseUrl}${this.basePath}/channels`,
 			{
-				currencyCode: 'USD',
-				name: 'Channel' + getRandomInt(),
-				siteGroupId: 0,
-				type: 'site',
-				...channel,
+				data: {
+					currencyCode: 'USD',
+					name: 'Channel' + getRandomInt(),
+					siteGroupId: 0,
+					type: 'site',
+					...channel,
+				},
 			}
 		);
 

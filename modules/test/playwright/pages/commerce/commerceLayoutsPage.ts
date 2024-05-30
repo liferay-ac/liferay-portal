@@ -14,20 +14,25 @@ export class CommerceLayoutsPage {
 	readonly addWidgetButton: Locator;
 	readonly addWidgetLabel: (widgetName: string) => Locator;
 	readonly availableThemesFrame: FrameLocator;
+	readonly backLink: Locator;
 	readonly changeCurrentThemeButton: Locator;
 	readonly closeProductMenuButton: Locator;
-	readonly configurationMenuItem: Locator;
+	readonly configureMenuItem: Locator;
 	readonly createPageMenuItem: Locator;
+	readonly defineCustomThemeCheckbox: Locator;
 	readonly deleteLayoutModal: Locator;
 	readonly deletePageButton: Locator;
 	readonly designMenuItem: Locator;
+	readonly designLink: Locator;
+	readonly displayPageTemplateLink: (name: string) => Locator;
 	readonly displayPageTemplatesLink: Locator;
+	readonly moreActionsButton: Locator;
 	readonly openProductMenuButton: Locator;
-	readonly optionsButton: Locator;
 	readonly page: Page;
 	readonly pagesMenuItem: Locator;
 	readonly pageTemplatesMenuItem: Locator;
 	readonly previewItemSelectorButton: Locator;
+	readonly publishButton: Locator;
 	readonly saveButton: Locator;
 	readonly searchFormInput: Locator;
 	readonly selectOtherItemDropdownItem: Locator;
@@ -57,6 +62,7 @@ export class CommerceLayoutsPage {
 		this.availableThemesFrame = page.frameLocator(
 			'iframe[title="Available Themes"]'
 		);
+		this.backLink = page.getByRole('link', {exact: true, name: 'Back'});
 		this.changeCurrentThemeButton = page.getByRole('button', {
 			exact: true,
 			name: 'Change Current Theme',
@@ -65,9 +71,9 @@ export class CommerceLayoutsPage {
 			exact: true,
 			name: 'Close Product Menu',
 		});
-		this.configurationMenuItem = page.getByRole('menuitem', {
+		this.configureMenuItem = page.getByRole('menuitem', {
 			exact: true,
-			name: 'Configuration',
+			name: 'Configure',
 		});
 		this.createPageMenuItem = page
 			.getByTestId('dropdownMenu')
@@ -75,6 +81,9 @@ export class CommerceLayoutsPage {
 				exact: true,
 				name: 'Page',
 			});
+		this.defineCustomThemeCheckbox = page.getByLabel(
+			'Define a custom theme for this page.'
+		);
 		this.deleteLayoutModal = page.locator('#deleteLayoutModalDeleteButton');
 		this.deletePageButton = page
 			.getByTestId('actionDropdownItem')
@@ -85,15 +94,18 @@ export class CommerceLayoutsPage {
 		this.designMenuItem = page
 			.getByTestId('appGroup')
 			.filter({hasText: 'Design'});
+		this.designLink = page.getByRole('link', {exact: true, name: 'Design'});
+		this.displayPageTemplateLink = (name: string) =>
+			page.getByRole('link', {exact: true, name});
 		this.displayPageTemplatesLink = page.getByRole('link', {
 			exact: true,
 			name: 'Display Page Templates',
 		});
+		this.moreActionsButton = page.getByLabel('More actions');
 		this.openProductMenuButton = page.getByRole('tab', {
 			exact: true,
 			name: 'Open Product Menu',
 		});
-		this.optionsButton = page.getByLabel('Options', {exact: true});
 		this.page = page;
 		this.pagesMenuItem = page
 			.getByTestId('app')
@@ -104,6 +116,10 @@ export class CommerceLayoutsPage {
 		this.previewItemSelectorButton = page.getByTestId(
 			'previewItemSelectorButton'
 		);
+		this.publishButton = page.getByRole('button', {
+			exact: true,
+			name: 'Publish',
+		});
 		this.saveButton = page.getByRole('button', {exact: true, name: 'Save'});
 		this.searchFormInput = page.getByRole('textbox', {
 			name: 'Search Form',
@@ -127,6 +143,16 @@ export class CommerceLayoutsPage {
 			});
 	}
 
+	async addFragment(itemName: string) {
+		const source = await this.page.getByRole('menuitem', {
+			name: itemName,
+		});
+
+		await source.focus();
+		await source.press('Enter');
+		await source.press('Enter');
+	}
+
 	async addProductFragment(itemName: string) {
 		await this.page
 			.getByRole('menuitem', {exact: true, name: 'Product'})
@@ -139,6 +165,10 @@ export class CommerceLayoutsPage {
 		await source.focus();
 		await source.press('Enter');
 		await source.press('Enter');
+
+		await this.page
+			.getByRole('menuitem', {exact: true, name: 'Product'})
+			.click();
 	}
 
 	async addWidgetToPage(widgetName: string) {
@@ -147,19 +177,10 @@ export class CommerceLayoutsPage {
 		await this.addWidgetLabel(widgetName).click();
 	}
 
-	async changeCurrentTheme(themeName: string) {
-		await this.optionsButton.click();
-		await this.configurationMenuItem.click();
-		await this.changeCurrentThemeButton.click();
-		await this.availableThemesFrame
-			.getByRole('button', {exact: true, name: themeName})
-			.click();
-		await this.saveButton.click();
-	}
-
 	async createDisplayPageTemplate(
 		displayPageTemplateName: string,
-		contentTypeLabel: string = 'Product'
+		contentTypeLabel: string = 'Product',
+		siteName: string = 'guest'
 	) {
 		await this.page
 			.getByRole('link', {exact: true, name: 'Display Page Template'})
@@ -174,11 +195,21 @@ export class CommerceLayoutsPage {
 		await Promise.all([
 			this.page.getByRole('button', {exact: true, name: 'Save'}).click(),
 			this.page.waitForResponse(
-				(resp) =>
-					resp.status() === 200 &&
-					resp.url().includes('specification-fragment-site')
+				(resp) => resp.status() === 200 && resp.url().includes(siteName)
 			),
 		]);
+	}
+
+	async configureDisplayPageTemplateTheme(themeName: string) {
+		await this.moreActionsButton.click();
+		await this.configureMenuItem.click();
+		await this.designLink.click();
+		await this.defineCustomThemeCheckbox.check();
+		await this.changeCurrentThemeButton.click();
+		await this.availableThemesFrame
+			.getByRole('button', {exact: true, name: themeName})
+			.click();
+		await this.saveButton.click();
 	}
 
 	async createWidgetPage(pageName: string) {
@@ -261,37 +292,44 @@ export class CommerceLayoutsPage {
 		]);
 	}
 
-	async goToPages(navigation: boolean = true) {
+	async goToPages(navigation: boolean = true, siteName?: string) {
 		if (navigation) {
 			await this.goto();
 		}
 
-		if (
-			(await this.closeProductMenuButton.isVisible()) &&
-			(await this.pagesMenuItem.isHidden())
-		) {
-			await this.siteBuilderMenuItem.click();
+		if (siteName) {
+			await this.page.goto(
+				`/group/${siteName}/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet`
+			);
 		}
-		else if (await this.openProductMenuButton.isVisible()) {
-			await this.openProductMenuButton.click();
-
-			if (await this.pagesMenuItem.isHidden()) {
+		else {
+			if (
+				(await this.closeProductMenuButton.isVisible()) &&
+				(await this.pagesMenuItem.isHidden())
+			) {
 				await this.siteBuilderMenuItem.click();
 			}
-		}
+			else if (await this.openProductMenuButton.isVisible()) {
+				await this.openProductMenuButton.click();
 
-		await Promise.all([
-			this.pagesMenuItem.click(),
-			this.page.waitForResponse(
-				(resp) =>
-					resp.status() === 200 &&
-					resp
-						.url()
-						.includes(
-							'p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet'
-						)
-			),
-		]);
+				if (await this.pagesMenuItem.isHidden()) {
+					await this.siteBuilderMenuItem.click();
+				}
+			}
+
+			await Promise.all([
+				this.pagesMenuItem.click(),
+				this.page.waitForResponse(
+					(resp) =>
+						resp.status() === 200 &&
+						resp
+							.url()
+							.includes(
+								'p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet'
+							)
+				),
+			]);
+		}
 	}
 
 	async selectDisplayPageTemplatePreviewItem(itemName: string) {

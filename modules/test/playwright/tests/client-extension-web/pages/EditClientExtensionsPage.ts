@@ -5,6 +5,7 @@
 
 import {Locator, Page} from '@playwright/test';
 
+import {waitForSuccessAlert} from '../../../utils/waitForSuccessAlert';
 import {ClientExtensionsPage} from './ClientExtensionsPage';
 
 const EDIT_CLIENT_EXTENSION_BASE_URL =
@@ -17,6 +18,7 @@ export class EditClientExtensionsPage {
 	readonly clientExtensionsPage: ClientExtensionsPage;
 	readonly clientExtensionType: string;
 	readonly descriptionContentEditable: Locator;
+	readonly descriptionCKEditor: Locator;
 	readonly nameInput: Locator;
 	readonly newClientExtensionTypeMenuItem: Locator;
 	readonly page: Page;
@@ -32,6 +34,10 @@ export class EditClientExtensionsPage {
 		this.publishButton = page.getByRole('button', {
 			name: 'Publish',
 		});
+
+		this.descriptionCKEditor = page.locator(
+			'#cke__com_liferay_client_extension_web_internal_portlet_ClientExtensionAdminPortlet_description'
+		);
 
 		const descriptionIframe = page.frameLocator(
 			`#cke_${PORTLET_ID}_description iframe`
@@ -50,6 +56,6 @@ export class EditClientExtensionsPage {
 	async publish() {
 		await this.publishButton.click();
 
-		await this.page.waitForLoadState();
+		await waitForSuccessAlert(this.page);
 	}
 }

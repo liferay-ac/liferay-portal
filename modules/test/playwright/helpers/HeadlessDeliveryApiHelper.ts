@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import * as fs from 'fs';
+
+import getRandomString from '../utils/getRandomString';
 import {ApiHelpers} from './ApiHelpers';
 
 interface createSitePageProps {
@@ -11,6 +14,33 @@ interface createSitePageProps {
 	siteId: string;
 	title: string;
 }
+
+type TDocument = {
+	description?: string;
+	externalReferenceCode?: string;
+	fileName?: string;
+	id?: number;
+	title?: string;
+	viewableBy?: string;
+};
+
+type TWikiNode = {
+	description?: string;
+	externalReferenceCode?: string;
+	id?: number;
+	name?: string;
+	viewableBy?: string;
+};
+
+type TWikiPage = {
+	content?: string;
+	description?: string;
+	encodingFormat?: string;
+	externalReferenceCode?: string;
+	headline?: string;
+	id?: number;
+	viewableBy?: string;
+};
 
 export class HeadlessDeliveryApiHelper {
 	readonly apiHelpers: ApiHelpers;
@@ -40,7 +70,7 @@ export class HeadlessDeliveryApiHelper {
 	}: createSitePageProps): Promise<Layout> {
 		return this.apiHelpers.post(
 			`${this.apiHelpers.baseUrl}${this.basePath}/sites/${siteId}/site-pages`,
-			{pageDefinition, pagePermissions, title}
+			{data: {pageDefinition, pagePermissions, title}}
 		);
 	}
 
@@ -64,16 +94,76 @@ export class HeadlessDeliveryApiHelper {
 		);
 	}
 
-	async postStructuredContent(
-		siteId: string,
-		contentStructureId: number,
-		datePublished: string,
-		title: string
-	): Promise<StructuredContent> {
+	async postBlog(
+		siteId: number | string,
+		blog?: {
+			articleBody?: string;
+			headline?: string;
+		}
+	): Promise<any> {
+		blog = {
+			articleBody: getRandomString(),
+			headline: getRandomString(),
+			...(blog || {}),
+		};
+
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/sites/${siteId}/blog-postings`,
+			{
+				data: blog,
+				failOnStatusCode: true,
+			}
+		);
+	}
+
+	async postSiteKnowledgeBaseArticle({
+		articleBody,
+		siteId,
+		title,
+	}: {
+		articleBody: string;
+		siteId: string;
+		title: string;
+	}): Promise<KnowledgeBaseArticle> {
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/sites/${siteId}/knowledge-base-articles`,
+			{
+				data: {
+					articleBody,
+					title,
+				},
+				failOnStatusCode: true,
+			}
+		);
+	}
+
+	async postStructuredContent({
+		categoryIds,
+		contentStructureId,
+		datePublished,
+		siteId,
+		tags,
+		title,
+	}: {
+		categoryIds?: number[];
+		contentStructureId: number;
+		datePublished: string;
+		siteId: string;
+		tags?: string[];
+		title: string;
+	}): Promise<StructuredContent> {
 		return this.apiHelpers.post(
 			`${this.apiHelpers.baseUrl}${this.basePath}/sites/${siteId}/structured-contents`,
-			{contentStructureId, datePublished, title},
-			true
+			{
+				data: {
+					contentStructureId,
+					datePublished,
+					keywords: tags,
+					taxonomyCategoryIds: categoryIds,
+					title,
+				},
+				failOnStatusCode: true,
+			}
 		);
 	}
 
@@ -84,6 +174,79 @@ export class HeadlessDeliveryApiHelper {
 		return this.apiHelpers.get(
 			`${this.apiHelpers.baseUrl}${this.basePath}/sites/${siteId}/structured-contents/by-key/${key}`,
 			true
+		);
+	}
+
+	async postWikiNode(
+		siteId: number | string,
+		wikiNode?: TWikiNode
+	): Promise<TWikiNode> {
+		wikiNode = {
+			description: getRandomString(),
+			externalReferenceCode: getRandomString(),
+			name: getRandomString(),
+			viewableBy: 'Anyone',
+			...(wikiNode || {}),
+		};
+
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/sites/${siteId}/wiki-nodes`,
+			{
+				data: wikiNode,
+				failOnStatusCode: true,
+			}
+		);
+	}
+
+	async postWikiPage(
+		wikiNodeId: number | string,
+		wikiPage?: TWikiPage
+	): Promise<TWikiPage> {
+		wikiPage = {
+			content: getRandomString(),
+			description: getRandomString(),
+			encodingFormat: 'plain_text',
+			externalReferenceCode: getRandomString(),
+			headline: getRandomString(),
+			viewableBy: 'Anyone',
+			...(wikiPage || {}),
+		};
+
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/wiki-nodes/${wikiNodeId}/wiki-pages`,
+			{
+				data: wikiPage,
+				failOnStatusCode: true,
+			}
+		);
+	}
+
+	async postDocument(
+		siteId: number | string,
+		file: fs.ReadStream,
+		document?: TDocument
+	) {
+		document = {
+			description: getRandomString(),
+			externalReferenceCode: getRandomString(),
+			fileName: getRandomString(),
+			title: getRandomString(),
+			viewableBy: 'Anyone',
+			...(document || {}),
+		};
+
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/sites/${siteId}/documents`,
+			{
+				failOnStatusCode: true,
+				headers: {
+					...(await this.apiHelpers.getCSRFTokenHeader()),
+				},
+				multipart: {
+					document: JSON.stringify(document),
+					file,
+				},
+			}
 		);
 	}
 }

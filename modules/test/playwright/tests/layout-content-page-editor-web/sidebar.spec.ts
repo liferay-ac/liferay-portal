@@ -9,10 +9,11 @@ import {apiHelpersTest} from '../../fixtures/apiHelpersTest';
 import {applicationsMenuPageTest} from '../../fixtures/applicationsMenuPageTest';
 import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
 import {isolatedSiteTest} from '../../fixtures/isolatedSiteTest';
+import {loginTest} from '../../fixtures/loginTest';
+import {pageEditorPagesTest} from '../../fixtures/pageEditorPagesTest';
 import getRandomString from '../../utils/getRandomString';
-import {pageEditorPagesTest} from './fixtures/pageEditorPagesTest';
 
-export const test = mergeTests(
+const test = mergeTests(
 	apiHelpersTest,
 	applicationsMenuPageTest,
 	featureFlagsTest({
@@ -20,6 +21,7 @@ export const test = mergeTests(
 		'LPS-178052': true,
 	}),
 	isolatedSiteTest,
+	loginTest(),
 	pageEditorPagesTest
 );
 
@@ -45,7 +47,7 @@ test('renders all panel buttons in the vertical bar', async ({
 		title: getRandomString(),
 	});
 
-	await pageEditorPage.goToEditMode(layout, site.friendlyUrlPath);
+	await pageEditorPage.goto(layout, site.friendlyUrlPath);
 
 	for (const panel of PANELS) {
 		await expect(page.getByLabel(panel, {exact: true})).toBeVisible();
@@ -65,7 +67,7 @@ test('renders sidebars visible at desktop size and sidebars not visible at small
 		title: getRandomString(),
 	});
 
-	await pageEditorPage.goToEditMode(layout, site.friendlyUrlPath);
+	await pageEditorPage.goto(layout, site.friendlyUrlPath);
 
 	const panel = await page.getByLabel('Fragments and Widgets Panel');
 	const configurationPanel = await page.getByLabel('Configuration Panel', {
@@ -100,7 +102,7 @@ test('checks if sidebars are open or closed depending on Product Menu', async ({
 		title: getRandomString(),
 	});
 
-	await pageEditorPage.goToEditMode(layout, site.friendlyUrlPath);
+	await pageEditorPage.goto(layout, site.friendlyUrlPath);
 
 	const panel = await page.getByLabel('Fragments and Widgets Panel');
 	const configurationPanel = await page.getByLabel('Configuration Panel', {

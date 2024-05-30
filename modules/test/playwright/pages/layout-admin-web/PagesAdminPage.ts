@@ -12,12 +12,16 @@ import {waitForSuccessAlert} from '../../utils/waitForSuccessAlert';
 
 export class PagesAdminPage {
 	readonly configurationSaveButton: Locator;
+	readonly javaScriptClientExtensionsTab: Locator;
 	readonly page: Page;
 
 	constructor(page: Page) {
 		this.configurationSaveButton = page.getByRole('button', {
 			exact: true,
 			name: 'Save',
+		});
+		this.javaScriptClientExtensionsTab = page.getByRole('tab', {
+			name: 'JavaScript',
 		});
 		this.page = page;
 	}
@@ -41,7 +45,7 @@ export class PagesAdminPage {
 	async selectJavaScriptClientExtension(clientExtensionName: string) {
 		await this.gotoPagesConfiguration();
 
-		await this.page.getByRole('tab', {name: 'JavaScript'}).click();
+		await this.javaScriptClientExtensionsTab.click();
 
 		await this.page
 			.getByRole('button', {name: 'Add JavaScript Client Extensions'})
@@ -107,31 +111,39 @@ export class PagesAdminPage {
 	}
 
 	async selectPageAndChangePermissions(
-		pageName: string,
+		pageNames: string[],
 		permissionIds: string[]
 	) {
 
-		// Select the page
+		// Select the pages
 
-		const pageInput = await this.page.getByLabel(`Select ${pageName}`, {
-			exact: true,
-		});
+		for (const pageName of pageNames) {
+			const pageInput = await this.page.getByLabel(`Select ${pageName}`, {
+				exact: true,
+			});
 
-		await pageInput.check({trial: true});
-		await pageInput.check({timeout: 1000});
+			await pageInput.setChecked(true, {trial: true});
+			await pageInput.setChecked(true, {timeout: 1000});
+		}
 
 		// Open the permissions modal
 
 		await this.page.getByRole('button', {name: 'Permissions'}).click();
 
-		await this.page.waitForTimeout(3000);
+		const permissionsFrame = this.page.frameLocator(
+			'iframe[title="Permissions"]'
+		);
+
+		await permissionsFrame
+			.getByRole('cell', {exact: true, name: 'Role'})
+			.waitFor();
 
 		// Check the permissions
 
 		for (const permissionId of permissionIds) {
-			const permission = await this.page
-				.frameLocator('iframe[title="Permissions"]')
-				.locator(`#${permissionId}`);
+			const permission = await permissionsFrame.locator(
+				`#${permissionId}`
+			);
 
 			await permission.uncheck({trial: true});
 			await permission.uncheck({timeout: 1000});
@@ -139,12 +151,14 @@ export class PagesAdminPage {
 
 		// Save and close the modal
 
-		await this.page
-			.frameLocator('iframe[title="Permissions"]')
-			.getByRole('button', {name: 'Save'})
-			.click();
+		await permissionsFrame.getByRole('button', {name: 'Save'}).click();
 
-		await this.page.waitForTimeout(3000);
+		const successMessage =
+			pageNames.length > 1
+				? `Success:${pageNames.length} permissions were updated successfully.`
+				: undefined;
+
+		await waitForSuccessAlert(permissionsFrame, successMessage);
 
 		await this.page.getByLabel('close', {exact: true}).click();
 	}

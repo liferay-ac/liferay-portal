@@ -7,32 +7,34 @@ import {Locator, Page} from '@playwright/test';
 
 export class DiagramViewPage {
 	readonly backButton: Locator;
-	readonly reviewNodeLink: Locator;
+	readonly diagramArea: Locator;
+	readonly diagramNodes: Locator;
 	readonly saveWorkflowDefinitionButton: Locator;
 	readonly sourceViewButton: Locator;
 
 	constructor(page: Page) {
 		this.backButton = page.getByRole('link', {name: 'Back'});
-		this.reviewNodeLink = page.getByText('review', {exact: true});
+		this.diagramArea = page.locator('.react-flow');
+		this.diagramNodes = page.locator('.react-flow__node');
 		this.saveWorkflowDefinitionButton = page.getByRole('button', {
 			name: 'Save',
 		});
 		this.sourceViewButton = page.locator('button[title="Source View"]');
 	}
 
-	async clickReviewNodeLink() {
-		await this.reviewNodeLink.click();
+	async clickNode(nodeLabel: string) {
+		await this.diagramNodes.getByText(nodeLabel, {exact: true}).click();
 	}
 
 	async clickSourceViewButton() {
 		await this.sourceViewButton.click();
 	}
 
-	async goBack() {
-		await this.backButton.click();
-	}
-
 	async saveWorkflowDefinition() {
 		await this.saveWorkflowDefinitionButton.click();
+	}
+
+	async goBack() {
+		await this.backButton.click();
 	}
 }

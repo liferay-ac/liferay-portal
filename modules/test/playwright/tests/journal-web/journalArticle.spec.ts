@@ -9,6 +9,7 @@ import {apiHelpersTest} from '../../fixtures/apiHelpersTest';
 import {applicationsMenuPageTest} from '../../fixtures/applicationsMenuPageTest';
 import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
 import {isolatedSiteTest} from '../../fixtures/isolatedSiteTest';
+import {loginTest} from '../../fixtures/loginTest';
 import {workflowPagesTest} from '../../fixtures/workflowPagesTest';
 import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
 import fillAndClickOutside from '../../utils/fillAndClickOutside';
@@ -44,6 +45,7 @@ const baseTest = mergeTests(
 	applicationsMenuPageTest,
 	isolatedSiteTest,
 	journalPagesTest,
+	loginTest(),
 	workflowPagesTest
 );
 
@@ -106,12 +108,12 @@ keepTitlesUntranslated(
 
 		const title = 'add-web-content';
 
-		await addApprovedStructuredContent(
+		await addApprovedStructuredContent({
 			apiHelpers,
-			site.id,
 			contentStructureId,
-			title
-		);
+			siteId: site.id,
+			title,
+		});
 
 		await journalPage.goto(site.friendlyUrlPath);
 
@@ -144,12 +146,12 @@ privateContentIconTest(
 
 		const title = getRandomString();
 
-		await addApprovedStructuredContent(
+		await addApprovedStructuredContent({
 			apiHelpers,
-			site.id,
 			contentStructureId,
-			title
-		);
+			siteId: site.id,
+			title,
+		});
 
 		await journalPage.goto(site.friendlyUrlPath);
 
@@ -174,21 +176,21 @@ privateContentIconTest(
 			apiHelpers
 		);
 
-		await addApprovedStructuredContent(
+		await addApprovedStructuredContent({
 			apiHelpers,
-			site.id,
 			contentStructureId,
-			getRandomString()
-		);
+			siteId: site.id,
+			title: getRandomString(),
+		});
 
 		const title = getRandomString();
 
-		await addApprovedStructuredContent(
+		await addApprovedStructuredContent({
 			apiHelpers,
-			site.id,
 			contentStructureId,
-			title
-		);
+			siteId: site.id,
+			title,
+		});
 
 		await journalPage.goto(site.friendlyUrlPath);
 
@@ -226,12 +228,12 @@ prefixUrlTest(
 			apiHelpers
 		);
 
-		await addApprovedStructuredContent(
+		await addApprovedStructuredContent({
 			apiHelpers,
-			site.id,
 			contentStructureId,
-			articleTitle
-		);
+			siteId: site.id,
+			title: articleTitle,
+		});
 
 		await displayPageTemplatesPage.goto(site.friendlyUrlPath);
 
@@ -304,7 +306,7 @@ translationTest(
 
 		await expect(
 			page.getByRole('option', {
-				name: 'Catalan Language: Translating 3/4',
+				name: 'Catalan Language: Translating 1/2',
 			})
 		).toBeVisible({timeout: 1000});
 
@@ -315,6 +317,8 @@ translationTest(
 		const resetTranslationButton = page.getByRole('button', {
 			name: 'Reset Translation',
 		});
+
+		await expect(resetTranslationButton).toBeEnabled();
 
 		await resetTranslationButton.click();
 
@@ -335,6 +339,162 @@ translationTest(
 );
 
 translationTest(
+	'LPD-23278: This is a test for mark as translated button in web content',
+	async ({journalEditArticlePage, journalPage, page, site}) => {
+		await journalPage.goto();
+
+		await journalEditArticlePage.goto({siteUrl: site.friendlyUrlPath});
+
+		await journalEditArticlePage.fillTitle(getRandomString());
+
+		const translationButton = page.getByRole('combobox', {
+			name: 'Select a language',
+		});
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('option', {
+				name: 'Catalan Language: Not Translated',
+			}),
+			trigger: translationButton,
+		});
+
+		const translationOptionsButton = page.getByLabel('Translation Options');
+
+		await translationOptionsButton.click();
+
+		const markAsTranslatedButton = page.getByRole('button', {
+			name: 'Mark as Translated',
+		});
+
+		await markAsTranslatedButton.click();
+
+		await expect(
+			page.getByRole('heading', {name: 'Mark "ca_ES" as Translated'})
+		).toBeVisible();
+
+		await page.getByRole('button', {name: 'Mark as Translated'}).click();
+
+		await translationButton.click();
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('option', {
+				name: 'Catalan Language: Translated',
+			}),
+			trigger: translationButton,
+		});
+
+		await translationOptionsButton.click();
+
+		await expect(markAsTranslatedButton).toBeDisabled();
+	}
+);
+
+translationTest(
+	'LPD-24942: This is a test for translations filter button in web content',
+	async ({journalEditArticlePage, journalPage, page, site}) => {
+		await journalPage.goto();
+
+		await journalEditArticlePage.goto({siteUrl: site.friendlyUrlPath});
+
+		await journalEditArticlePage.fillTitle(getRandomString());
+
+		const translationButton = page.getByRole('combobox', {
+			name: 'Select a language',
+		});
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('option', {
+				name: 'Catalan Language: Not Translated',
+			}),
+			trigger: translationButton,
+		});
+
+		const translationFilterButton = page.getByRole('combobox', {
+			name: 'Select a Filter',
+		});
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('option', {
+				exact: true,
+				name: 'Translated',
+			}),
+			trigger: translationFilterButton,
+		});
+
+		const fieldsWrapper = page.getByRole('button', {name: 'Fields'});
+
+		const metadataWapper = page.getByRole('button', {name: 'Metadata'});
+
+		const noResultsWrapper = page.getByText('No Results Found');
+
+		await expect(fieldsWrapper).toBeHidden();
+
+		await expect(metadataWapper).toBeHidden();
+
+		await expect(noResultsWrapper).toBeVisible();
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('option', {
+				name: 'All Fields',
+			}),
+			trigger: translationFilterButton,
+		});
+
+		await journalEditArticlePage.fillTitle(getRandomString());
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('option', {
+				exact: true,
+				name: 'Translated',
+			}),
+			trigger: translationFilterButton,
+		});
+
+		await expect(fieldsWrapper).toBeHidden();
+
+		await expect(metadataWapper).toBeVisible();
+
+		await expect(noResultsWrapper).toBeHidden();
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('option', {
+				name: 'Untranslated',
+			}),
+			trigger: translationFilterButton,
+		});
+
+		await expect(fieldsWrapper).toBeVisible();
+
+		await expect(metadataWapper).toBeHidden();
+
+		await expect(noResultsWrapper).toBeHidden();
+
+		await journalEditArticlePage.fillContent(getRandomString());
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('option', {
+				name: 'Untranslated',
+			}),
+			trigger: translationFilterButton,
+		});
+
+		await expect(fieldsWrapper).toBeHidden();
+
+		await expect(metadataWapper).toBeHidden();
+
+		await expect(noResultsWrapper).toBeVisible();
+	}
+);
+
+translationTest(
 	'LPD-17245: Add error message in Translation for concurrent users',
 	async ({
 		apiHelpers,
@@ -349,12 +509,12 @@ translationTest(
 
 		const title = getRandomString();
 
-		await addApprovedStructuredContent(
+		await addApprovedStructuredContent({
 			apiHelpers,
-			site.id,
 			contentStructureId,
-			title
-		);
+			siteId: site.id,
+			title,
+		});
 
 		await journalPage.goto(site.friendlyUrlPath);
 
@@ -387,19 +547,19 @@ bulkTest(
 		const title1 = getRandomString();
 		const title2 = getRandomString();
 
-		await addApprovedStructuredContent(
+		await addApprovedStructuredContent({
 			apiHelpers,
-			site.id,
 			contentStructureId,
-			title1
-		);
+			siteId: site.id,
+			title: title1,
+		});
 
-		await addApprovedStructuredContent(
+		await addApprovedStructuredContent({
 			apiHelpers,
-			site.id,
 			contentStructureId,
-			title2
-		);
+			siteId: site.id,
+			title: title2,
+		});
 
 		await journalPage.goto(site.friendlyUrlPath);
 
@@ -458,7 +618,7 @@ translationTest(
 		await clickAndExpectToBeVisible({
 			autoClick: true,
 			target: page.getByRole('option', {
-				name: 'Catalan Language: Translating 3/4',
+				name: 'Catalan Language: Translating 1/2',
 			}),
 			trigger: translationButton,
 		});
@@ -516,7 +676,7 @@ translationTest(
 
 		await clickAndExpectToBeVisible({
 			target: page.getByRole('option', {
-				name: 'Catalan Language: Translating 4/5',
+				name: 'Catalan Language: Translating 2/3',
 			}),
 			timeout: 1000,
 			trigger: translationButton,
@@ -723,14 +883,12 @@ scheduleTest(
 scheduleTest(
 	'Create a web content scheduled with workflow activated',
 	async ({
-		apiHelpers,
 		journalEditArticlePage,
 		journalPage,
+		site,
 		workflowPage,
 		workflowTasksPage,
 	}) => {
-		const site = await apiHelpers.headlessSite.createSite('papite');
-
 		await workflowPage.goto(site.friendlyUrlPath);
 
 		await workflowPage.changeWorkflow(

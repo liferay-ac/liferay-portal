@@ -9,15 +9,17 @@ import {styleBookPageTest} from '../../fixtures/StyleBookPageTest';
 import {apiHelpersTest} from '../../fixtures/apiHelpersTest';
 import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
 import {isolatedSiteTest} from '../../fixtures/isolatedSiteTest';
+import {loginTest} from '../../fixtures/loginTest';
 import getRandomString from '../../utils/getRandomString';
 
-export const test = mergeTests(
+const test = mergeTests(
 	apiHelpersTest,
 	featureFlagsTest({
 		'LPS-178052': true,
 		'LPS-196847': true,
 	}),
 	isolatedSiteTest,
+	loginTest(),
 	styleBookPageTest
 );
 
@@ -53,7 +55,12 @@ test('checks the correct label for restricted pages in the preview selector', as
 		.getByText('Success:Your request completed successfully.')
 		.waitFor();
 
-	await page.waitForTimeout(3000);
+	const loadingAnimation = await page.locator(
+		'.style-book-editor__page-preview .loading-animation'
+	);
+
+	await loadingAnimation.waitFor();
+	await loadingAnimation.waitFor({state: 'hidden'});
 
 	// Check the restricted page label in the preview selector
 

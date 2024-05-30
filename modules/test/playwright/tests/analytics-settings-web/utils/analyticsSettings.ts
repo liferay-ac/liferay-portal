@@ -6,6 +6,8 @@
 import {expect} from '@playwright/test';
 
 import {liferayConfig} from '../../../liferay.config';
+import {createChannel} from '../../osb-faro-web/utils/channel';
+import {createDataSource} from '../../osb-faro-web/utils/dataSource';
 
 export async function acceptsCookiesBanner(page) {
 	const cookiesBannerButton = page.getByRole('button', {name: 'Accept All'});
@@ -29,16 +31,13 @@ export async function disconnectFromAnalyticsCloud(page) {
 	if (await disconnectButton.isVisible()) {
 		await disconnectButton.click();
 
-		const diconnectConfirmationModal = page.getByLabel(
-			'Disconnecting Data Source'
-		);
+		const confirmationModal = page.getByLabel('Disconnecting Data Source');
 
-		const diconnectConfirmationButton =
-			diconnectConfirmationModal.getByRole('button', {
-				name: 'Disconnect',
-			});
+		const confirmationButton = confirmationModal.getByRole('button', {
+			name: 'Disconnect',
+		});
 
-		await diconnectConfirmationButton.click();
+		await confirmationButton.click();
 	}
 }
 
@@ -58,6 +57,24 @@ export async function goToAnalyticsCloudInstanceSettings(page) {
 	});
 }
 
+export async function navigateToSitePage(page, siteName, pageName) {
+	const pageNameURL = pageName.replace(/ /g, '-').toLowerCase();
+
+	if (siteName) {
+		const siteNameURL = siteName.replace(/ /g, '-').toLowerCase();
+
+		await page.goto(
+			`${liferayConfig.environment.baseUrl}/web/${siteNameURL}/` +
+				`${pageNameURL}`
+		);
+	}
+	else {
+		await page.goto(
+			`${liferayConfig.environment.baseUrl}/web/guest/${pageNameURL}`
+		);
+	}
+}
+
 export async function syncAllContacts(page) {
 	const wizard = page.getByTestId('VIEW_WIZARD_MODE');
 
@@ -73,25 +90,35 @@ export async function syncAllContacts(page) {
 		await syncContactsButton.click();
 	}
 
-	await page.getByRole('button', {name: 'Next'}).click();
+	await page.getByRole('button', {exact: true, name: 'Next'}).click();
 }
 
-export async function syncSite(page) {
+export async function syncAnalyticsCloud(page, propertyName) {
+	await createChannel(page, propertyName);
+
+	await createDataSource(page);
+
+	await goToAnalyticsCloudInstanceSettings(page);
+
+	await acceptsCookiesBanner(page);
+
+	await disconnectFromAnalyticsCloud(page);
+
+	await connectToAnalyticsCloud(page);
+
+	await syncSite(page, propertyName);
+
+	await syncAllContacts(page);
+
+	await page.getByRole('button', {name: 'Finish'}).click();
+}
+
+export async function syncSite(page, propertyName) {
 	await expect(
 		page.getByRole('heading', {name: 'Property Assignment'})
 	).toBeVisible({
 		timeout: 100 * 1000,
 	});
-
-	// Known issue. See https://liferay.atlassian.net/browse/LRAC-13481
-
-	const tryAgainButton = page.getByRole('button', {name: 'Try Again'});
-
-	if (await tryAgainButton.isVisible()) {
-		await page.getByRole('button', {name: 'Previous'}).click();
-
-		await page.getByRole('button', {name: 'Next'}).click();
-	}
 
 	const wizard = page.getByTestId('VIEW_WIZARD_MODE');
 
@@ -99,27 +126,39 @@ export async function syncSite(page) {
 		timeout: 100 * 1000,
 	});
 
-	await page
-		.getByTestId('Liferay DXP')
-		.getByRole('button', {name: 'Assign'})
-		.click();
+	await page.getByPlaceholder('Search').fill(propertyName);
 
-	await page.getByRole('tab', {name: 'Sites'}).click();
+	await page.getByRole('button', {name: 'Search'}).click();
 
-	await page
-		.getByTestId('1')
-		.getByTestId('Liferay DXP')
-		.getByLabel('')
-		.check();
-
-	await page
-		.getByLabel('Assign to Liferay DXP')
-		.getByRole('button', {name: 'Assign'})
-		.click();
-
-	await expect(page.getByLabel('Assign to Liferay DXP')).toBeHidden({
+	await expect(page.getByRole('cell', {name: propertyName})).toBeVisible({
 		timeout: 100 * 1000,
 	});
 
-	await page.getByRole('button', {name: 'Next'}).click();
+	const assignButton = await page.$(
+		'table.table tbody tr:first-child button'
+	);
+
+	await assignButton.click();
+
+	await page.getByRole('tab', {name: 'Sites'}).click();
+
+	await page.waitForTimeout(3000);
+
+	const checkbox = await page.$(
+		'.modal table.table tbody tr:first-child input[type="checkbox"]'
+	);
+
+	await checkbox.check();
+
+	const submitButton = await page.$(
+		'.modal .modal-item-last button.btn-primary'
+	);
+
+	await submitButton.click();
+
+	await expect(
+		page.getByText('Success:Properties settings have been saved.')
+	).toBeVisible();
+
+	await page.getByRole('button', {exact: true, name: 'Next'}).click();
 }

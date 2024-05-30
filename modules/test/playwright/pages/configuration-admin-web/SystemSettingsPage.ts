@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-// @ts-ignore
-
 import {Locator, Page} from '@playwright/test';
 
 import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
@@ -15,7 +13,6 @@ export class SystemSettingsPage {
 	readonly page: Page;
 	readonly disabledFeaturesSection: Locator;
 	readonly disablePrivatePagesOption: Locator;
-	readonly updateButton: Locator;
 	readonly releaseFeatureFlagsLink: Locator;
 	private uiElementsPage;
 
@@ -33,7 +30,6 @@ export class SystemSettingsPage {
 		this.releaseFeatureFlagsLink = page.getByRole('link', {
 			name: 'Release Feature Flags',
 		});
-		this.updateButton = page.getByRole('button', {name: 'Update'});
 	}
 
 	async disablePrivatePages() {
@@ -41,7 +37,30 @@ export class SystemSettingsPage {
 		await this.releaseFeatureFlagsLink.click();
 		await this.disabledFeaturesSection.click();
 		await this.disablePrivatePagesOption.click();
-		await this.updateButton.click();
+		const submitButton = await this.page.$(
+			'button[data-qa-id="submitConfiguration"]'
+		);
+		await submitButton.click();
 		await this.uiElementsPage.anySuccessAlert.waitFor({state: 'visible'});
+	}
+
+	async goto() {
+		await this.applicationsMenuPage.goToSystemSettings();
+	}
+
+	async goToSystemSetting(categoryKey: string, configurationName: string) {
+		await this.goto();
+		await this.page
+			.getByRole('link', {
+				exact: true,
+				name: categoryKey,
+			})
+			.click();
+		await this.page
+			.getByRole('menuitem', {
+				exact: true,
+				name: configurationName,
+			})
+			.click();
 	}
 }

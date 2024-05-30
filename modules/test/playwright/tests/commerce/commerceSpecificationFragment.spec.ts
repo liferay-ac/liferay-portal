@@ -8,76 +8,38 @@ import {expect, mergeTests} from '@playwright/test';
 import {apiHelpersTest} from '../../fixtures/apiHelpersTest';
 import {applicationsMenuPageTest} from '../../fixtures/applicationsMenuPageTest';
 import {commercePagesTest} from '../../fixtures/commercePagesTest';
+import {dataApiHelpersTest} from '../../fixtures/dataApiHelpersTest';
+import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
 import {loginTest} from '../../fixtures/loginTest';
+import getRandomString from '../../utils/getRandomString';
 
 export const test = mergeTests(
 	apiHelpersTest,
 	applicationsMenuPageTest,
 	commercePagesTest,
+	dataApiHelpersTest,
+	featureFlagsTest({
+		'LPD-10856': true,
+	}),
 	loginTest()
 );
 
-const data = [];
-
-test.afterEach(async ({apiHelpers}) => {
-	for await (const item of data.reverse()) {
-		switch (item.type) {
-			case 'catalog':
-				await apiHelpers.headlessCommerceAdminCatalog.deleteCatalog(
-					item.id
-				);
-
-				break;
-			case 'channel':
-				await apiHelpers.headlessCommerceAdminChannel.deleteChannel(
-					item.id
-				);
-
-				break;
-			case 'product':
-				await apiHelpers.headlessCommerceAdminCatalog.deleteProduct(
-					item.id
-				);
-
-				break;
-			case 'site':
-				await apiHelpers.headlessSite.deleteSite(item.id);
-
-				break;
-			case 'specification':
-				await apiHelpers.headlessCommerceAdminCatalog.deleteSpecification(
-					item.id
-				);
-
-				break;
-			default:
-				break;
-		}
-	}
-
-	await apiHelpers.featureFlag.updateFeatureFlag('LPD-10856', false);
-});
-
-test('Product specification fragment only shows correct specifications', async ({
+test('LPD-13652 Product specification fragment only shows correct specifications', async ({
 	apiHelpers,
 	applicationsMenuPage,
 	commerceLayoutsPage,
 	page,
 }) => {
-	await apiHelpers.featureFlag.updateFeatureFlag('LPD-10856', true);
+	const site = await apiHelpers.headlessSite.createSite({
+		name: getRandomString(),
+	});
 
-	const site = await apiHelpers.headlessSite.createSite(
-		'Specification Fragment Site'
-	);
+	apiHelpers.data.push({id: site.id, type: 'site'});
 
-	data.push({id: site.id, type: 'site'});
-
-	const channel = await apiHelpers.headlessCommerceAdminChannel.postChannel({
+	await apiHelpers.headlessCommerceAdminChannel.postChannel({
 		name: 'Specification Fragment Channel',
 		siteGroupId: site.id,
 	});
-
-	data.push({id: channel.id, type: 'channel'});
 
 	const catalog = await apiHelpers.headlessCommerceAdminCatalog.postCatalog({
 		name: 'Specification Fragment Catalog',
@@ -89,8 +51,6 @@ test('Product specification fragment only shows correct specifications', async (
 			0,
 			'Test Specification'
 		);
-
-	data.push({id: specification.id, type: 'specification'});
 
 	const product1 = await apiHelpers.headlessCommerceAdminCatalog.postProduct({
 		catalogId: catalog.id,
@@ -105,9 +65,7 @@ test('Product specification fragment only shows correct specifications', async (
 		],
 	});
 
-	data.push({id: product1.productId, type: 'product'});
-
-	const product2 = await apiHelpers.headlessCommerceAdminCatalog.postProduct({
+	await apiHelpers.headlessCommerceAdminCatalog.postProduct({
 		catalogId: catalog.id,
 		name: {en_US: 'Product2'},
 		productSpecifications: [
@@ -120,12 +78,16 @@ test('Product specification fragment only shows correct specifications', async (
 		],
 	});
 
-	data.push({id: product2.productId, type: 'product'});
-
-	await applicationsMenuPage.goToSite('Specification Fragment Site');
+	await applicationsMenuPage.goToSite(site.name);
 
 	await commerceLayoutsPage.goToDisplayPageTemplates();
-	await commerceLayoutsPage.createDisplayPageTemplate('Product Details');
+	await commerceLayoutsPage.createDisplayPageTemplate(
+		'Product Details',
+		'Product',
+		site.name
+	);
+	await commerceLayoutsPage.addProductFragment('Price');
+
 	await commerceLayoutsPage.addProductFragment('Product Specification');
 
 	await page
