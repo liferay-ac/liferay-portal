@@ -152,7 +152,11 @@ export class BehaviorInput extends React.Component<IBehaviorInputProps> {
 
 		const reference = referencedEntities.getIn([
 			EntityType.Assets,
-			parseReferencedEntityId(this.getAssetId(), referencedEntities)
+			parseReferencedEntityId(
+				this.getAssetId(),
+				referencedEntities,
+				EntityType.Assets
+			)
 		]);
 
 		return reference && reference.toJS();
