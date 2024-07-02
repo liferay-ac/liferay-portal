@@ -63,7 +63,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createEvents(events: Event[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.baseUrl}${this.basePath}/events`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/events`,
 			{
 				data: events,
 				failOnStatusCode: true,
@@ -74,7 +74,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createIdentities(identities: Identity[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.baseUrl}${this.basePath}/identities`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/identities`,
 			{
 				data: identities,
 				failOnStatusCode: true,
@@ -85,7 +85,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createIndividuals(individuals: Individual[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.baseUrl}${this.basePath}/individuals`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/individuals`,
 			{
 				data: individuals,
 				failOnStatusCode: true,
@@ -96,7 +96,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createPagesDaily(pagesDaily: PageDaily[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.baseUrl}${this.basePath}/pagesdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/pagesdaily`,
 			{
 				data: pagesDaily,
 				failOnStatusCode: true,
