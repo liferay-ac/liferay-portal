@@ -18,7 +18,6 @@ definition {
 		}
 
 		task ("Set up instance and sign in DXP") {
-			TestCase.setUpPortalInstance();
 
 			ACUtils.launchDXP();
 		}

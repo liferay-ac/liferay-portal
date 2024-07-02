@@ -126,20 +126,22 @@ definition {
 
 	@summary = "Default summary"
 	macro deleteABTest() {
-		if (IsElementNotPresent(locator1 = "Modal#MODAL_CONTENT")) {
-			if (IsElementPresent(locator1 = "ABTest#KEBAB_AB_TEST")) {
-				Click(locator1 = "ABTest#KEBAB_AB_TEST");
-
-				MenuItem.clickNoError(menuItem = "Delete");
+		if (IsElementNotPresent(locator1 = "ABTest#IMAGE_EMPTY_STATE")) {
+			if (IsElementNotPresent(locator1 = "Modal#MODAL_CONTENT")) {
+				if (IsElementPresent(locator1 = "ABTest#KEBAB_AB_TEST")) {
+					Click(locator1 = "ABTest#KEBAB_AB_TEST");
+	
+					MenuItem.clickNoError(menuItem = "Delete");
+				}
+				else {
+					Click(locator1 = "Button#TRASH_ENABLED");
+				}
 			}
-			else {
-				Click(locator1 = "Button#TRASH_ENABLED");
-			}
+	
+			Click(locator1 = "ACSettings#CONFIRMATION_BUTTON");
+	
+			Alert.viewSuccessMessageText(successMessage = "Success:Your request completed successfully.");
 		}
-
-		Click(locator1 = "ACSettings#CONFIRMATION_BUTTON");
-
-		Alert.viewSuccessMessageText(successMessage = "Success:Your request completed successfully.");
 	}
 
 	@summary = "Default summary"
@@ -248,7 +250,7 @@ definition {
 			key_text = "Publish",
 			locator1 = "Button#ANY");
 
-		Alert.viewSuccessMessageText(successMessage = "Success:${variantName} was published successfully.");
+		AssertVisible(locator1 = "ABTest#IMAGE_EMPTY_STATE");
 	}
 
 	@summary = "Default summary"
