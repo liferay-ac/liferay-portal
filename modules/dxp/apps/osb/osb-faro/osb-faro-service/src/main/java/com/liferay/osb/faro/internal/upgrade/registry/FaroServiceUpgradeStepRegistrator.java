@@ -154,6 +154,11 @@ public class FaroServiceUpgradeStepRegistrator
 			UpgradeProcessFactory.runSQL(
 				"update OSBFaro_FaroProject set subscriptionModifiedTime = " +
 					"createTime"));
+
+		registry.register(
+			"20.0.0", "21.0.0",
+			new com.liferay.osb.faro.internal.upgrade.v21_0_0.
+				UpgradeFaroProjectUpgradeProcess());
 	}
 
 }
