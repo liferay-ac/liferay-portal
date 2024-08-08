@@ -10,13 +10,13 @@ import {dataApiHelpersTest} from '../../fixtures/dataApiHelpersTest';
 import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
 import {loginAnalyticsCloudTest} from '../../fixtures/loginAnalyticsCloudTest';
 import {loginTest} from '../../fixtures/loginTest';
-import getRandomString from '../../utils/getRandomString';
-import {navigateTo, navigateToACSitesPageViaURL} from './utils/navigation';
-import {CardSelectors} from './utils/selectors';
-import {changeTimeFilter} from './utils/time-filter';
 import {liferayConfig} from '../../liferay.config';
+import getRandomString from '../../utils/getRandomString';
 import {createChannel} from './utils/channel';
 import {createIndividuals} from './utils/individuals';
+import {ACPage, navigateTo, navigateToACPageViaURL} from './utils/navigation';
+import {CardSelectors} from './utils/selectors';
+import {changeTimeFilter} from './utils/time-filter';
 import {viewNameOnTableList} from './utils/utils';
 
 export const test = mergeTests(
@@ -80,7 +80,8 @@ test(
 		});
 
 		await test.step('Go to Analytics Cloud and Switch the property', async () => {
-			await navigateToACSitesPageViaURL({
+			await navigateToACPageViaURL({
+				acPage: ACPage.sitePage,
 				channelID: channel.id,
 				page,
 				projectID: project.groupId,
@@ -102,7 +103,7 @@ test(
 
 		await test.step('Check if user is in the Search Terms tab with the same time filter previously set (Last 24h)', async () => {
 			await expect(
-				page.getByRole('link', {name: 'Search Terms', exact: true})
+				page.getByRole('link', {exact: true, name: 'Search Terms'})
 			).toBeVisible();
 
 			await expect(
@@ -121,7 +122,7 @@ test(
 			});
 
 			await expect(
-				page.getByRole('cell', {name: '1', exact: true})
+				page.getByRole('cell', {exact: true, name: '1'})
 			).toBeVisible();
 		});
 
