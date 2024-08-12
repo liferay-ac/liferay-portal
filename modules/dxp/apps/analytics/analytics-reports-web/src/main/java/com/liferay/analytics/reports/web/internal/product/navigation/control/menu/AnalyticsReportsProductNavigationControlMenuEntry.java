@@ -24,6 +24,7 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -181,6 +182,10 @@ public class AnalyticsReportsProductNavigationControlMenuEntry
 	@Override
 	public boolean isShow(HttpServletRequest httpServletRequest)
 		throws PortalException {
+
+		if (FeatureFlagManagerUtil.isEnabled("LPD-28830")) {
+			return false;
+		}
 
 		InfoItemReference infoItemReference = _getInfoItemReference(
 			httpServletRequest);
