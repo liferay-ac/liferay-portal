@@ -558,7 +558,10 @@ public class ProjectController extends BaseFaroController {
 		}
 
 		return TransformUtil.transform(
-			faroProjects, faroProject -> new ProjectUsageDisplay(faroProject));
+			faroProjects,
+			faroProject -> new ProjectUsageDisplay(
+				faroProject, includeIndividualsCounts, includeMonthlyValues,
+				includePageViewsCounts));
 	}
 
 	@GET
