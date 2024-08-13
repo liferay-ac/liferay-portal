@@ -27,8 +27,6 @@ pipeline {
 						export FARO_ENVIRONMENT_NAME=$FARO_ENVIRONMENT
 						export GRADLE_OPTS=-Xmx6g
 
-						mkdir ~/.ssh
-
 						touch ~/.ssh/known_hosts
 
 						ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
