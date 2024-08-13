@@ -21,6 +21,8 @@ pipeline {
 				withCredentials([
 					string(credentialsId: 'analytics_cloud_ci_ssh', variable: 'SECRET'),
 					string(credentialsId: 'analytics_cloud_faro_license', variable: 'LICENSE')
+					string(credentialsId: 'liferay_nexus_repository_username', variable: 'NEXUS_USERNAME'),
+					string(credentialsId: 'liferay_nexus_repository_password', variable: 'NEXUS_PASSWORD'),
 				]) {
 					sh '''
 						export ANT_OPTS=-Xmx6g
@@ -45,6 +47,14 @@ pipeline {
 
 						ssh-add ~/.ssh/id_ed25519
 
+						touch "build.$(whoami).properties"
+
+						echo "build.repository.private.password=${NEXUS_PASSWORD}" >> "build.$(whoami).properties"
+						echo "build.repository.private.url=https://repository-cdn.liferay.com/nexus/service/local/repo_groups/private/content/" >> "build.$(whoami).properties"
+						echo "build.repository.private.username=${NEXUS_USERNAME}" >> "build.$(whoami).properties"
+
+						ant update-gradle-properties
+						
 						ant setup-sdk
 
 						ant setup-profile-dxp
