@@ -82,6 +82,7 @@ public class ContentDashboardAdminDisplayContext {
 	public ContentDashboardAdminDisplayContext(
 		List<AssetVocabulary> assetVocabularies,
 		AssetVocabularyMetric assetVocabularyMetric,
+		Boolean connectedToAnalyticsCloud, Boolean connectedToAssetLibrary,
 		ContentDashboardDropdownItemsProvider
 			contentDashboardDropdownItemsProvider,
 		ContentDashboardItemSubtypeFactoryRegistry
@@ -94,6 +95,8 @@ public class ContentDashboardAdminDisplayContext {
 
 		_assetVocabularies = assetVocabularies;
 		_assetVocabularyMetric = assetVocabularyMetric;
+		_connectedToAnalyticsCloud = connectedToAnalyticsCloud;
+		_connectedToAssetLibrary = connectedToAssetLibrary;
 		_contentDashboardDropdownItemsProvider =
 			contentDashboardDropdownItemsProvider;
 		_contentDashboardItemSubtypeFactoryRegistry =
@@ -549,6 +552,13 @@ public class ContentDashboardAdminDisplayContext {
 
 	private Map<String, Object> _getProps() {
 		return HashMapBuilder.<String, Object>put(
+			"contentPerformance",
+			JSONUtil.put(
+				"connectedToAnalyticsCloud", false
+			).put(
+				"connectedToAssetLibrary", false
+			)
+		).put(
 			"learnHowLink",
 			() -> {
 				ThemeDisplay themeDisplay =
@@ -574,6 +584,8 @@ public class ContentDashboardAdminDisplayContext {
 	private final List<AssetVocabulary> _assetVocabularies;
 	private final AssetVocabularyMetric _assetVocabularyMetric;
 	private List<Long> _authorIds;
+	private final Boolean _connectedToAnalyticsCloud;
+	private final Boolean _connectedToAssetLibrary;
 	private final ContentDashboardDropdownItemsProvider
 		_contentDashboardDropdownItemsProvider;
 	private final ContentDashboardItemSubtypeFactoryRegistry
