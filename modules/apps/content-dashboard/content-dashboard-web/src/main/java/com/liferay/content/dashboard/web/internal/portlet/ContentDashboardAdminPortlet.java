@@ -5,6 +5,8 @@
 
 package com.liferay.content.dashboard.web.internal.portlet;
 
+import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
+import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
 import com.liferay.asset.kernel.model.AssetVocabulary;
 import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.asset.kernel.service.AssetVocabularyLocalService;
@@ -22,19 +24,27 @@ import com.liferay.content.dashboard.web.internal.search.request.ContentDashboar
 import com.liferay.content.dashboard.web.internal.searcher.ContentDashboardSearchRequestBuilderFactory;
 import com.liferay.content.dashboard.web.internal.servlet.taglib.util.ContentDashboardDropdownItemsProvider;
 import com.liferay.content.dashboard.web.internal.util.ContentDashboardUtil;
+import com.liferay.depot.service.DepotEntryGroupRelService;
 import com.liferay.info.search.InfoSearchClassMapperRegistry;
 import com.liferay.item.selector.ItemSelector;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.dao.search.SearchContainer;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.language.constants.LanguageConstants;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 import com.liferay.portal.kernel.portlet.LiferayPortletRequest;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
+import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.search.aggregation.Aggregations;
 import com.liferay.portal.search.query.Queries;
 import com.liferay.portal.search.searcher.Searcher;
@@ -49,6 +59,8 @@ import javax.portlet.Portlet;
 import javax.portlet.PortletException;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -136,12 +148,54 @@ public class ContentDashboardAdminPortlet extends MVCPortlet {
 				return assetVocabulary;
 			});
 
+		HttpServletRequest originalHttpServletRequest =
+			_portal.getOriginalServletRequest(
+				_portal.getHttpServletRequest(renderRequest));
+
+		ThemeDisplay themeDisplay =
+			(ThemeDisplay)originalHttpServletRequest.getAttribute(
+				WebKeys.THEME_DISPLAY);
+
+		boolean connectedToAssetLibrary = false;
+
+		try {
+			long depotEntryGroupRelsCount =
+				_depotEntryGroupRelService.getDepotEntryGroupRelsCount(
+					themeDisplay.getScopeGroupId());
+
+			if (depotEntryGroupRelsCount > 0) {
+				connectedToAssetLibrary = true;
+			}
+		}
+		catch (PortalException portalException) {
+			_log.error(portalException);
+		}
+
+		boolean connectedToAnalyticsCloud = false;
+
+		try {
+			AnalyticsConfiguration analyticsConfiguration =
+				_analyticsSettingsManager.getAnalyticsConfiguration(
+					themeDisplay.getCompanyId());
+
+			if (ArrayUtil.contains(
+					analyticsConfiguration.syncedGroupIds(),
+					String.valueOf(themeDisplay.getScopeGroupId()))) {
+
+				connectedToAnalyticsCloud = true;
+			}
+		}
+		catch (ConfigurationException configurationException) {
+			_log.error(configurationException);
+		}
+
 		ContentDashboardAdminDisplayContext
 			contentDashboardAdminDisplayContext =
 				new ContentDashboardAdminDisplayContext(
 					assetVocabularies,
 					contentDashboardDataProvider.getAssetVocabularyMetric(
 						assetVocabularies),
+					connectedToAnalyticsCloud, connectedToAssetLibrary,
 					new ContentDashboardDropdownItemsProvider(
 						_language, liferayPortletRequest,
 						liferayPortletResponse, _portal),
@@ -184,8 +238,14 @@ public class ContentDashboardAdminPortlet extends MVCPortlet {
 		super.render(renderRequest, renderResponse);
 	}
 
+	private static final Log _log = LogFactoryUtil.getLog(
+		ContentDashboardAdminPortlet.class);
+
 	@Reference
 	private Aggregations _aggregations;
+
+	@Reference
+	private AnalyticsSettingsManager _analyticsSettingsManager;
 
 	@Reference
 	private AssetCategoryLocalService _assetCategoryLocalService;
@@ -208,6 +268,9 @@ public class ContentDashboardAdminPortlet extends MVCPortlet {
 	@Reference
 	private ContentDashboardSearchRequestBuilderFactory
 		_contentDashboardSearchRequestBuilderFactory;
+
+	@Reference
+	private DepotEntryGroupRelService _depotEntryGroupRelService;
 
 	@Reference
 	private GroupLocalService _groupLocalService;

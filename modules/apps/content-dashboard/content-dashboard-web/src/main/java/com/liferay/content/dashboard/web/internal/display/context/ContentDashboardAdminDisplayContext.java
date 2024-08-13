@@ -82,6 +82,7 @@ public class ContentDashboardAdminDisplayContext {
 	public ContentDashboardAdminDisplayContext(
 		List<AssetVocabulary> assetVocabularies,
 		AssetVocabularyMetric assetVocabularyMetric,
+		Boolean connectedToAnalyticsCloud, Boolean connectedToAssetLibrary,
 		ContentDashboardDropdownItemsProvider
 			contentDashboardDropdownItemsProvider,
 		ContentDashboardItemSubtypeFactoryRegistry
@@ -94,6 +95,8 @@ public class ContentDashboardAdminDisplayContext {
 
 		_assetVocabularies = assetVocabularies;
 		_assetVocabularyMetric = assetVocabularyMetric;
+		_connectedToAnalyticsCloud = connectedToAnalyticsCloud;
+		_connectedToAssetLibrary = connectedToAssetLibrary;
 		_contentDashboardDropdownItemsProvider =
 			contentDashboardDropdownItemsProvider;
 		_contentDashboardItemSubtypeFactoryRegistry =
@@ -511,6 +514,14 @@ public class ContentDashboardAdminDisplayContext {
 		).build();
 	}
 
+	public boolean isConnectedToAnalyticsCloud() {
+		return _connectedToAnalyticsCloud;
+	}
+
+	public boolean isConnectedToAssetLibrary() {
+		return _connectedToAssetLibrary;
+	}
+
 	public boolean isSwapConfigurationEnabled() {
 		if (_swapConfigurationEnabled != null) {
 			return _swapConfigurationEnabled;
@@ -574,6 +585,8 @@ public class ContentDashboardAdminDisplayContext {
 	private final List<AssetVocabulary> _assetVocabularies;
 	private final AssetVocabularyMetric _assetVocabularyMetric;
 	private List<Long> _authorIds;
+	private final Boolean _connectedToAnalyticsCloud;
+	private final Boolean _connectedToAssetLibrary;
 	private final ContentDashboardDropdownItemsProvider
 		_contentDashboardDropdownItemsProvider;
 	private final ContentDashboardItemSubtypeFactoryRegistry

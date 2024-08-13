@@ -16,6 +16,8 @@ import {OPEN_PANEL_VALUE} from '../utils/constants';
 import ActionsComponentPropsTransformer from './ActionsComponentPropsTransformer';
 
 const handlePanelStateFromSession = ({
+	connectedToAnalyticsCloud,
+	connectedToAssetLibrary,
 	currentRowId,
 	namespace,
 	panelState,
@@ -23,6 +25,8 @@ const handlePanelStateFromSession = ({
 	selectedItemRowId,
 	singlePageApplicationEnabled,
 }: {
+	connectedToAnalyticsCloud: boolean;
+	connectedToAssetLibrary: boolean;
 	currentRowId: string;
 	namespace: string;
 	panelState: string;

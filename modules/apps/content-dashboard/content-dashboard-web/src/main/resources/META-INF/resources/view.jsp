@@ -301,6 +301,10 @@ ContentDashboardAdminDisplayContext contentDashboardAdminDisplayContext = (Conte
 						<clay:dropdown-actions
 							additionalProps='<%=
 								HashMapBuilder.<String, Object>put(
+									"connectedToAnalyticsCloud", contentDashboardAdminDisplayContext.isConnectedToAnalyticsCloud()
+								).put(
+									"connectedToAssetLibrary", contentDashboardAdminDisplayContext.isConnectedToAssetLibrary()
+								).put(
 									"currentRowId", rowId
 								).put(
 									"namespace", liferayPortletResponse.getNamespace()
