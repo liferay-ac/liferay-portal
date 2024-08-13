@@ -20,9 +20,8 @@ pipeline {
 			steps {
 				withCredentials([
 					string(credentialsId: 'analytics_cloud_ci_ssh', variable: 'SECRET'),
-					string(credentialsId: 'analytics_cloud_faro_license', variable: 'LICENSE')
-					string(credentialsId: 'liferay_nexus_repository_username', variable: 'NEXUS_USERNAME'),
-					string(credentialsId: 'liferay_nexus_repository_password', variable: 'NEXUS_PASSWORD'),
+					string(credentialsId: 'analytics_cloud_faro_license', variable: 'LICENSE'),
+					[$class: 'UsernamePasswordMultiBinding', credentialsId: 'liferay-nexus-repository-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']
 				]) {
 					sh '''
 						export ANT_OPTS=-Xmx6g
