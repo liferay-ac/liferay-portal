@@ -48,17 +48,19 @@ pipeline {
 
 						touch "build.$(whoami).properties"
 
-						cat "build.$(whoami).properties"
-
 						echo "build.repository.private.password=${NEXUS_PASSWORD}" >> "build.$(whoami).properties"
 						echo "build.repository.private.url=https://repository-cdn.liferay.com/nexus/service/local/repo_groups/private/content/" >> "build.$(whoami).properties"
 						echo "build.repository.private.username=${NEXUS_USERNAME}" >> "build.$(whoami).properties"
 
+						cat "build.$(whoami).properties"
+
 						ant update-gradle-properties
-						
+
 						ant setup-sdk
 
 						ant setup-profile-dxp
+
+						cat build.profile-dxp.properties
 
 						ant compile install-portal-snapshots
 
