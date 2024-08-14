@@ -21,7 +21,7 @@ pipeline {
 				withCredentials([
 					string(credentialsId: 'analytics_cloud_ci_ssh', variable: 'SECRET'),
 					string(credentialsId: 'analytics_cloud_faro_license', variable: 'LICENSE'),
-					[$class: 'UsernamePasswordMultiBinding', credentialsId: 'liferay-nexus-repository-credentials', usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD']
+					withCredentials([usernamePassword(credentialsId: 'liferay-nexus-repository-credentials', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]
 				]) {
 					sh '''
 						echo "Nexus Username ${NEXUS_USERNAME}"
