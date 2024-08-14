@@ -10,6 +10,7 @@ import ClayLabel from '@clayui/label';
 import ClayLayout from '@clayui/layout';
 import ClaySticker from '@clayui/sticker';
 import ClayTabs from '@clayui/tabs';
+import {AnalyticsReports} from '@liferay/analytics-reports-js-components-web';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, {useCallback, useState} from 'react';
@@ -35,6 +36,7 @@ const TABS_2 = {
 };
 
 const SidebarPanelInfoView = ({
+	contentPerformanceDataFetchURL,
 	classPK,
 	createDate,
 	description,
@@ -177,32 +179,36 @@ const SidebarPanelInfoView = ({
 			<div className="c-mb-3 sidebar-section">
 				{showTabs && activeTabKeyValue !== null && (
 					<ClayTabs
+						active={activeTabKeyValue}
 						className="c-px-3 d-flex flex-nowrap justify-content-start"
-						modern
+						onActiveChange={setActiveTabKeyValue}
 					>
 						<ClayTabs.Item
-							active={activeTabKeyValue === TABS.details}
 							className="flex-shrink-0"
 							innerProps={{
 								'aria-controls': 'details',
 							}}
-							onClick={() => setActiveTabKeyValue(TABS.details)}
 						>
 							{Liferay.Language.get('details')}
 						</ClayTabs.Item>
 
+						{!!Liferay.FeatureFlags['LPD-28830'] && (
+							<ClayTabs.Item
+								className="flex-shrink-0"
+								innerProps={{
+									'aria-controls': 'performance',
+								}}
+							>
+								{Liferay.Language.get('performance')}
+							</ClayTabs.Item>
+						)}
+
 						{hasCategorization && (
 							<ClayTabs.Item
-								active={
-									activeTabKeyValue === TABS.categorization
-								}
 								className="flex-shrink-0"
 								innerProps={{
 									'aria-controls': 'categorization',
 								}}
-								onClick={() =>
-									setActiveTabKeyValue(TABS.categorization)
-								}
 							>
 								{Liferay.Language.get('categorization')}
 							</ClayTabs.Item>
@@ -210,14 +216,10 @@ const SidebarPanelInfoView = ({
 
 						{!!getItemVersionsURL && !hasCategorization && (
 							<ClayTabs.Item
-								active={activeTabKeyValue === TABS.version}
 								className="flex-shrink-0"
 								innerProps={{
 									'aria-controls': 'versions',
 								}}
-								onClick={() =>
-									setActiveTabKeyValue(TABS.version)
-								}
 							>
 								{Liferay.Language.get('versions')}
 							</ClayTabs.Item>
@@ -274,9 +276,24 @@ const SidebarPanelInfoView = ({
 							/>
 						</ClayTabs.TabPane>
 
-						{hasCategorization &&
+						{!!Liferay.FeatureFlags['LPD-28830'] &&
 							showTabs &&
-							activeTabKeyValue === TABS.categorization && (
+							activeTabKeyValue === TABS.performance && (
+								<ClayTabs.TabPane
+									aria-labelledby={`tab-${TABS.performance + 1}`}
+									className="flex-shrink-0"
+								>
+									<AnalyticsReports
+										contentPerformanceDataFetchURL={
+											contentPerformanceDataFetchURL
+										}
+									/>
+								</ClayTabs.TabPane>
+							)}
+
+						{showTabs &&
+							activeTabKeyValue === TABS.categorization &&
+							hasCategorization && (
 								<ClayTabs.TabPane
 									aria-labelledby={`tab-${TABS.categorization + 1}`}
 									className="flex-shrink-0"
@@ -288,7 +305,7 @@ const SidebarPanelInfoView = ({
 								</ClayTabs.TabPane>
 							)}
 
-						{showTabs && activeTabKeyValue === TABS.version && (
+						{showTabs && activeTabKeyValue === TABS.showTabs && (
 							<ClayTabs.TabPane
 								aria-labelledby={`tab-${TABS.version + 1}`}
 								className="flex-shrink-0"
