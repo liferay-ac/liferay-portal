@@ -48,9 +48,9 @@ pipeline {
 
 						touch "build.$(whoami).properties"
 
-						echo "build.repository.private.password=${NEXUS_PASSWORD}" >> "build.$(whoami).properties"
+						echo "build.repository.private.password=Z3F8mzpzq3DUFLGMxEjf" >> "build.$(whoami).properties"
 						echo "build.repository.private.url=https://repository-cdn.liferay.com/nexus/service/local/repo_groups/private/content/" >> "build.$(whoami).properties"
-						echo "build.repository.private.username=${NEXUS_USERNAME}" >> "build.$(whoami).properties"
+						echo "build.repository.private.username=nexus-private-alpha" >> "build.$(whoami).properties"
 
 						cat "build.$(whoami).properties"
 
