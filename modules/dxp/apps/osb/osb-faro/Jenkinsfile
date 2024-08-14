@@ -21,58 +21,13 @@ pipeline {
 				withCredentials([
 					string(credentialsId: 'analytics_cloud_ci_ssh', variable: 'SECRET'),
 					string(credentialsId: 'analytics_cloud_faro_license', variable: 'LICENSE'),
-					usernamePassword(credentialsId: 'liferay-nexus-repository-credentials', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')
+					[$class: 'UsernamePasswordMultiBinding', credentialsId: 'liferay-nexus-repository-credentials', usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD']
 				]) {
 					sh '''
-						export ANT_OPTS=-Xmx6g
-						export FARO_ENVIRONMENT_NAME=$FARO_ENVIRONMENT
-						export GRADLE_OPTS=-Xmx6g
+						echo "Nexus Username ${NEXUS_USERNAME}"
+						echo "Nexus Password ${NEXUS_PASSWORD}"
 
-						touch ~/.ssh/known_hosts
-
-						ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-
-						echo "$SECRET" | base64 --decode > ~/.ssh/id_ed25519
-						echo "\n" >> ~/.ssh/id_ed25519
-
-						chmod 0400 ~/.ssh/id_ed25519
-
-						echo "Host github.com" >> ~/.ssh/config
-						echo "  User git" >> ~/.ssh/config
-						echo "  Hostname github.com" >> ~/.ssh/config
-						echo "  IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
-
-						eval "$(ssh-agent -s)"
-
-						ssh-add ~/.ssh/id_ed25519
-
-						touch "build.$(whoami).properties"
-
-						echo "build.repository.private.password=Z3F8mzpzq3DUFLGMxEjf" >> "build.$(whoami).properties"
-						echo "build.repository.private.url=https://repository-cdn.liferay.com/nexus/service/local/repo_groups/private/content/" >> "build.$(whoami).properties"
-						echo "build.repository.private.username=nexus-private-alpha" >> "build.$(whoami).properties"
-
-						cat "build.$(whoami).properties"
-
-						ant update-gradle-properties
-
-						ant setup-sdk
-
-						ant setup-profile-dxp
-
-						cat build.profile-dxp.properties
-
-						ant compile install-portal-snapshots
-
-						cd modules/dxp/apps/osb/osb-faro
-
-						../../../../../gradlew copyCloudResources -Dliferay.ci=true
-
-						mkdir -p osb-faro-docker/cloud/license
-
-						echo "Deploying license."
-
-						echo "${LICENSE}" | base64 --decode > osb-faro-docker/cloud/license/license.xml
+						
 					'''
                 }
 			}
@@ -81,15 +36,7 @@ pipeline {
 		stage("Build Docker Image") {
 			steps {
 				dir("modules/dxp/apps/osb/osb-faro/osb-faro-docker/cloud") {
-					script {
-						withDockerRegistry([credentialsId: "dockerhub", url: ""]) {
-							osbFaroImage = docker.build(
-								"${IMAGE_NAME}:${IMAGE_TAG_SUFFIX}",
-								"${DOCKER_BUILD_ARGS}")
-
-                            osbFaroImage.push()
-                        }
-					}
+					
 				}
 			}
 		}
