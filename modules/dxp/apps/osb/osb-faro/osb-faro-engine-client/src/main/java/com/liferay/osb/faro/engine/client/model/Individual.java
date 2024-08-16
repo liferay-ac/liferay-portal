@@ -157,7 +157,7 @@ public class Individual {
 
 	}
 
-	private long _activitiesCount;
+	private Long _activitiesCount;
 	private Map<String, List<Field>> _custom = new HashMap<>();
 	private List<DataSourceIndividualPK> _dataSourceIndividualPKs =
 		new ArrayList<>();
