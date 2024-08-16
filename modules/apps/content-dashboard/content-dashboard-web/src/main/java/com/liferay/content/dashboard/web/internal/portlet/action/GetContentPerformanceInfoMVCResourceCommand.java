@@ -12,6 +12,7 @@ import com.liferay.asset.kernel.service.AssetEntryLocalService;
 import com.liferay.configuration.admin.constants.ConfigurationAdminPortletKeys;
 import com.liferay.content.dashboard.web.internal.constants.ContentDashboardPortletKeys;
 import com.liferay.depot.service.DepotEntryGroupRelService;
+import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -95,7 +96,7 @@ public class GetContentPerformanceInfoMVCResourceCommand
 			boolean assetLibrary = false;
 
 			if (Validator.isNotNull(
-					_depotEntryGroupRelService.fetchGroupDepotEntry(
+					_depotEntryLocalService.fetchGroupDepotEntry(
 						assetEntry.getGroupId()))) {
 
 				assetLibrary = true;
@@ -186,6 +187,9 @@ public class GetContentPerformanceInfoMVCResourceCommand
 
 	@Reference
 	private DepotEntryGroupRelService _depotEntryGroupRelService;
+
+	@Reference
+	private DepotEntryLocalService _depotEntryLocalService;
 
 	@Reference
 	private Portal _portal;
