@@ -147,6 +147,9 @@ public class UpdateFaroProjectSubscriptionsMessageListener
 				faroSubscriptionDisplay.setCounts(
 					faroProject, _cerebroEngineClient, _contactsEngineClient);
 
+				faroProject.setSubscription(
+					JSONUtil.writeValueAsString(faroSubscriptionDisplay));
+
 				faroSubscriptionDisplay.setUsageCounts(
 					_cerebroEngineClient, _contactsEngineClient, new Date(),
 					faroProject);
