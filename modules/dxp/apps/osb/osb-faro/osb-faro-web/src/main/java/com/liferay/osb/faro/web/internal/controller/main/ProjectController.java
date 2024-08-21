@@ -1053,9 +1053,12 @@ public class ProjectController extends BaseFaroController {
 		JSONObject subscriptionJSONObject = _jsonFactory.createJSONObject(
 			faroProject.getSubscription());
 
-		if (!Objects.equals(
-				subscriptionJSONObject.get("name"), subscriptionName)) {
+		String oldSubscriptionName = subscriptionJSONObject.getString("name");
 
+		oldSubscriptionName = oldSubscriptionName.replace(
+			"LXC ", "Liferay SaaS ");
+
+		if (!Objects.equals(oldSubscriptionName, subscriptionName)) {
 			return true;
 		}
 
