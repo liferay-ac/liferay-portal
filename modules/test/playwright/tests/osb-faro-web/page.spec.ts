@@ -479,18 +479,25 @@ test(
 	},
 
 	async ({apiHelpers, page}) => {
-		const pageTitle = 'My Page';
-		const sitePage = await createSitePage({
-			apiHelpers,
-			pageTitle,
+		const pageTitle = getRandomString();
+		const siteName = getRandomString();
+
+		const site = await apiHelpers.headlessSite.createSite({
+			name: siteName,
 		});
 
-		const channelName = 'My Property - ' + getRandomString();
+		await apiHelpers.headlessDelivery.createSitePage({
+			siteId: site.id,
+			title: pageTitle,
+		});
+
+		const channelName = getRandomString();
 		await test.step('Connect the DXP to AC', async () => {
 			await syncAnalyticsCloud({
 				apiHelpers,
 				channelName,
 				page,
+				siteName,
 			});
 		});
 
@@ -498,14 +505,16 @@ test(
 			await goToWithReferrer({
 				page,
 				referrer: 'https://www.google.com',
-				url: liferayConfig.environment.baseUrl,
+				url: `${liferayConfig.environment.baseUrl}/web/${site.name}/${pageTitle}`,
 			});
 
 			await page.waitForTimeout(10000);
 		});
 
-		await test.step('Go to My Page', async () => {
-			await page.getByText(pageTitle).first().click();
+		await test.step('Go to Page', async () => {
+			await page.goto(
+				`${liferayConfig.environment.baseUrl}/web/${site.name}/${pageTitle}`
+			);
 			await page.waitForTimeout(10000);
 		});
 
@@ -534,7 +543,7 @@ test(
 		await test.step('Access one of the pages on the list > Go to Path Tab', async () => {
 			await navigateTo({
 				page,
-				pageName: 'Home - Liferay DXP',
+				pageName: pageTitle,
 			});
 			await navigateTo({
 				page,
@@ -563,9 +572,7 @@ test(
 		});
 
 		await test.step('Check that My Page appears as exit pages and the number of views', async () => {
-			await expect(page.getByText('My Page - Lifer...')).toBeVisible({
-				timeout: 100 * 1000,
-			});
+			await expect(page.getByTitle(pageTitle)).toContainText(pageTitle);
 
 			await expect(page.getByText('1', {exact: true}).nth(2)).toBeVisible(
 				{
@@ -577,9 +584,7 @@ test(
 		await test.step('Delete pages created in DXP during automation execution', async () => {
 			await page.goto(liferayConfig.environment.baseUrl);
 
-			await apiHelpers.jsonWebServicesLayout.deleteLayout(
-				String(sitePage.id)
-			);
+			await apiHelpers.headlessSite.deleteSite(site.id);
 		});
 	}
 );
