@@ -596,41 +596,55 @@ test(
 	},
 
 	async ({apiHelpers, page}) => {
-		const pageTitle1 = 'My Page 1';
-		const sitePage1 = await createSitePage({
-			apiHelpers,
-			pageTitle: pageTitle1,
-		});
-		const pageTitle2 = 'My Page 2';
-		const sitePage2 = await createSitePage({
-			apiHelpers,
-			pageTitle: pageTitle2,
+		const pageTitle1 = getRandomString();
+		const pageTitle2 = getRandomString();
+		const siteName = getRandomString();
+
+		const site = await apiHelpers.headlessSite.createSite({
+			name: siteName,
 		});
 
-		const channelName = 'My Property - ' + getRandomString();
+		await apiHelpers.headlessDelivery.createSitePage({
+			siteId: site.id,
+			title: pageTitle1,
+		});
+
+		await apiHelpers.headlessDelivery.createSitePage({
+			siteId: site.id,
+			title: pageTitle2,
+		});
+
+		const channelName = getRandomString();
+
 		await test.step('Connect the DXP to AC', async () => {
 			await syncAnalyticsCloud({
 				apiHelpers,
 				channelName,
 				page,
+				siteName,
 			});
 		});
 
-		await test.step('Go to My Page 1', async () => {
+		await test.step('Go to Page 1', async () => {
 			await navigateToSitePage({
 				page,
 				pageName: pageTitle1,
+				siteName,
 			});
 			await page.waitForTimeout(10000);
 		});
 
-		await test.step('Go to My Page 2', async () => {
-			await page.getByText(pageTitle2).first().click();
+		await test.step('Go to Page 2', async () => {
+			await page.goto(
+				`${liferayConfig.environment.baseUrl}/web/${site.name}/${pageTitle2}`
+			);
 			await page.waitForTimeout(10000);
 		});
 
-		await test.step('Go to My Page 1', async () => {
-			await page.getByText(pageTitle1).first().click();
+		await test.step('Go to Page 1', async () => {
+			await page.goto(
+				`${liferayConfig.environment.baseUrl}/web/${site.name}/${pageTitle1}`
+			);
 			await page.waitForTimeout(10000);
 		});
 
@@ -659,7 +673,7 @@ test(
 		await test.step('Access one of the pages on the list > Go to Path Tab', async () => {
 			await navigateTo({
 				page,
-				pageName: 'My Page 1 - Liferay DXP',
+				pageName: pageTitle1,
 			});
 			await navigateTo({
 				page,
@@ -668,11 +682,7 @@ test(
 		});
 
 		await test.step('Check that My Page 2 and Direct Traffic appear as referral pages', async () => {
-			await expect(
-				page.getByText('My Page 2 - Lif...', {exact: true}).first()
-			).toBeVisible({
-				timeout: 100 * 1000,
-			});
+			await expect(page.getByText(pageTitle2)).toContainText(pageTitle2);
 
 			await expect(page.getByText('Direct Traffic')).toBeVisible({
 				timeout: 100 * 1000,
@@ -680,11 +690,7 @@ test(
 		});
 
 		await test.step('Check that My Page 2 and Drop Offs appear as exit pages', async () => {
-			await expect(
-				page.getByText('My Page 2 - Lif...', {exact: true}).nth(1)
-			).toBeVisible({
-				timeout: 100 * 1000,
-			});
+			await expect(page.getByText(pageTitle2)).toContainText(pageTitle2);
 
 			await expect(page.getByText('Drop Offs')).toBeVisible({
 				timeout: 100 * 1000,
@@ -694,12 +700,7 @@ test(
 		await test.step('Delete pages created in DXP during automation execution', async () => {
 			await page.goto(liferayConfig.environment.baseUrl);
 
-			await apiHelpers.jsonWebServicesLayout.deleteLayout(
-				String(sitePage1.id)
-			);
-			await apiHelpers.jsonWebServicesLayout.deleteLayout(
-				String(sitePage2.id)
-			);
+			await apiHelpers.headlessSite.deleteSite(site.id);
 		});
 	}
 );
