@@ -32,7 +32,11 @@ import {
 	navigateToACPageViaURL,
 	navigateToACWorkspace,
 } from './utils/navigation';
-import {createSitePage, navigateToSitePage} from './utils/portal';
+import {
+	createSitePage,
+	navigateToDXPandDeleteSite,
+	navigateToSitePage,
+} from './utils/portal';
 import {
 	addNestedSegmentField,
 	addSegmentField,
@@ -1285,17 +1289,30 @@ test(
 		tag: '@Legacy',
 	},
 	async ({apiHelpers, page}) => {
-		const channelName = 'My Property - ' + getRandomString();
-
-		const organization =
-			await apiHelpers.headlessAdminUser.postOrganization();
+		const siteName = getRandomString();
+		const channelName = getRandomString();
+		const organizationName = getRandomString();
 		const user = await apiHelpers.headlessAdminUser.postUserAccount();
+		const pageName = getRandomString();
 
 		userData[user.alternateName] = {
 			name: user.givenName,
 			password: 'test',
 			surname: user.familyName,
 		};
+
+		const site = await apiHelpers.headlessSite.createSite({name: siteName});
+
+		await createSitePage({
+			apiHelpers,
+			pageTitle: pageName,
+			siteName,
+		});
+
+		const organization =
+			await apiHelpers.headlessAdminUser.postOrganization({
+				name: organizationName,
+			});
 
 		await test.step('Add the new user to the organization', async () => {
 			await apiHelpers.headlessAdminUser.assignUserToOrganizationByEmailAddress(
@@ -1309,6 +1326,7 @@ test(
 			channelName,
 			organizationName: organization.name,
 			page,
+			siteName,
 		});
 
 		await test.step('Interact with the user that is not part of the organization', async () => {
@@ -1324,15 +1342,27 @@ test(
 
 			await page.goto(liferayConfig.environment.baseUrl);
 
+			await navigateToSitePage({
+				page,
+				pageName,
+				siteName,
+			});
+
 			await page.waitForTimeout(10000);
 		});
 
-		await test.step('Create dynamic segment using the organization criteria', async () => {
-			await navigateToACPageViaURL({
-				acPage: ACPage.segmentPage,
-				channelID: channel.id,
+		await test.step('Go to Analytics Cloud and Switch the property', async () => {
+			await navigateToACWorkspace({page});
+			await switchChannel({
+				channelName,
 				page,
-				projectID: project.groupId,
+			});
+		});
+
+		await test.step('Access the dynamic segment creation page and create dynamic segment using the organization criteria', async () => {
+			await navigateTo({
+				page,
+				pageName: 'Segments',
 			});
 
 			await createDynamicSegment(page);
@@ -1343,20 +1373,31 @@ test(
 				page,
 			});
 
+			await page.waitForTimeout(5000);
+
 			await selectAsset({
 				assetName: organization.name,
 				page,
 			});
+
+			await page.waitForTimeout(5000);
 
 			await setSegmentName({
 				page,
 				segmentName: 'Test Organization Segment',
 			});
 
+			await page.waitForTimeout(5000);
+
 			await saveSegment(page);
 		});
 
 		await test.step('Run the Segment Nanite', async () => {
+			await navigateTo({
+				page,
+				pageName: 'Segments',
+			});
+
 			await runNanites({
 				apiHelpers,
 				naniteNames: [Nanites.UpdateMembershipsNanite],
@@ -1373,6 +1414,11 @@ test(
 		});
 
 		await test.step('Check the segment member count in the membership', async () => {
+			await navigateTo({
+				page,
+				pageName: 'Test Organization Segment',
+			});
+
 			await navigateTo({
 				page,
 				pageName: 'Membership',
@@ -1405,6 +1451,10 @@ test(
 				`[${channel.id}]`,
 				project.groupId
 			);
+		});
+
+		await test.step('Delete site on DXP side', async () => {
+			await navigateToDXPandDeleteSite({apiHelpers, page, site});
 		});
 	}
 );
