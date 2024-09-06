@@ -12,6 +12,10 @@ definition {
 		task ("Go to DXP portal, login and create site") {
 			TestCase.setUpPortalInstance();
 
+			Navigator.openURL();
+
+			var companyId = JSONCompany.getCompanyId();
+
 			User.firstLoginPG();
 
 			Navigator.openURL();

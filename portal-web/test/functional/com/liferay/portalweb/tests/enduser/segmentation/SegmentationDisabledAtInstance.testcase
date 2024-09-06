@@ -12,6 +12,10 @@ definition {
 	setUp {
 		TestCase.setUpPortalInstance();
 
+		Navigator.openURL();
+
+		var companyId = JSONCompany.getCompanyId();
+
 		User.firstLoginPG();
 
 		HeadlessSite.addSite(siteName = "Test Site Name");

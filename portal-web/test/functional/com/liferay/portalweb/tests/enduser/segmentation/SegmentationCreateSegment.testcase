@@ -13,6 +13,10 @@ definition {
 		task ("Set up instance and sign in") {
 			TestCase.setUpPortalInstance();
 
+			Navigator.openURL();
+
+			var companyId = JSONCompany.getCompanyId();
+
 			User.firstLoginPG();
 		}
 

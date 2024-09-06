@@ -21,6 +21,10 @@ definition {
 		task ("Go to DXP portal, login and create site") {
 			TestCase.setUpPortalInstance();
 
+			Navigator.openURL();
+
+			var companyId = JSONCompany.getCompanyId();
+
 			User.firstLoginPG();
 
 			var siteId = HeadlessSite.addSite(siteName = "Test Site Name");
