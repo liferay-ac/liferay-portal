@@ -1360,9 +1360,11 @@ test(
 		});
 
 		await test.step('Access the dynamic segment creation page and create dynamic segment using the organization criteria', async () => {
-			await navigateTo({
+			await navigateToACPageViaURL({
+				acPage: ACPage.segmentPage,
+				channelID: channel.id,
 				page,
-				pageName: 'Segments',
+				projectID: project.groupId,
 			});
 
 			await createDynamicSegment(page);
