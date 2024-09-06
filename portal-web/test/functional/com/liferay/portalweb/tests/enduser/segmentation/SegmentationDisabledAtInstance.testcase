@@ -7,6 +7,7 @@ definition {
 	property portal.release = "true";
 	property portal.upstream = "true";
 	property property.group = "analytics.cloud.profile";
+	property test.run.type = "single";
 	property testray.main.component.name = "Segmentation";
 
 	setUp {
@@ -41,9 +42,6 @@ definition {
 	@description = "LPS-153084 Given the ""Enable Assign Roles by Segment"" is disable at Instance Settings And enabled at System Settings When user navigates to Regular Roles > Assignees > Segments Then the warning alert explains how to re-enable it"
 	@priority = 3
 	test CheckRoleDisabledAlertAtInstanceSettings {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
 		task ("Disable asssigning role by segment at Instance Settings") {
 			Segmentation.disableSegmentationAtSystemSettings();
 		}

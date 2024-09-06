@@ -7,6 +7,7 @@ definition {
 	property portal.release = "true";
 	property portal.upstream = "true";
 	property property.group = "analytics.cloud.profile";
+	property test.run.type = "single";
 	property testray.main.component.name = "Segmentation";
 
 	setUp {
@@ -40,8 +41,6 @@ definition {
 	@priority = 4
 	test CheckAssignRolesDisabledAlertAtInstanceSettings {
 		property portal.acceptance = "true";
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
 
 		task ("Given the 'Assign Roles by Segments' is disabled at System Settings") {
 			Segmentation.disableConfigurationAtSystemSettings(checkLabel = "Enable Assign Roles by Segment");
@@ -66,8 +65,6 @@ definition {
 	@priority = 4
 	test CheckSegmentationDisabledAlertAtInstanceSettings {
 		property portal.acceptance = "true";
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
 
 		task ("Given the 'Enable Segmentation' is disabled at System Settings") {
 			Segmentation.disableConfigurationAtSystemSettings(checkLabel = "Enable Segmentation");
@@ -91,9 +88,6 @@ definition {
 	@description = "LPS-152542: Add breadcrumbs to Instance Settings alerts"
 	@priority = 3
 	test ViewAssignRoleBySegmentDisabledWarningUserWithoutsPermissionToSystemSettings {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
 		task ("Given the 'Assign Roles by Segments' is disabled at System Settings") {
 			Segmentation.disableConfigurationAtSystemSettings(checkLabel = "Enable Assign Roles by Segment");
 		}
@@ -138,9 +132,6 @@ definition {
 	@description = "LPS-152542: Add breadcrumbs to Instance Settings alerts"
 	@priority = 3
 	test ViewSegmentationDisabledWarningUserWithoutsPermissionToSystemSettings {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
 		task ("Given 'Segmentation' is disabled at System Settings") {
 			Segmentation.disableConfigurationAtSystemSettings(checkLabel = "Enable Segmentation");
 		}
