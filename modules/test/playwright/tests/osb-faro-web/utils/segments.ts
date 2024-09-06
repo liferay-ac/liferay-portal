@@ -38,7 +38,12 @@ export async function addSegmentField({
 	criterionType: string;
 	page: Page;
 }) {
-	await page.locator('button.dropdown-toggle.btn-outline-secondary').click();
+	const dropdownButton = await page.locator('button.dropdown-toggle.btn-outline-secondary');
+
+	await expect(dropdownButton).toBeVisible();
+
+	await dropdownButton.click();
+	
 	await page.getByRole('menuitem', {name: criterionType}).click();
 
 	await dragAndDropCriteriaItem({
@@ -73,7 +78,12 @@ export async function addStaticMember({
 }
 
 export async function createDynamicSegment(page: Page) {
-	await page.getByRole('banner').getByLabel('Menu').click();
+	const createSegmentButton = await page.getByRole('banner').getByLabel('Menu');
+
+	await expect(createSegmentButton).toBeVisible();
+
+	await createSegmentButton.click();
+
 	await page.getByRole('menuitem', {name: 'Dynamic Segment'}).click();
 }
 
