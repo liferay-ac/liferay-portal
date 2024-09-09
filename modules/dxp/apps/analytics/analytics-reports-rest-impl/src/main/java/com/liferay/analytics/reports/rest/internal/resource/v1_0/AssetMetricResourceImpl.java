@@ -7,6 +7,7 @@ package com.liferay.analytics.reports.rest.internal.resource.v1_0;
 
 import com.liferay.analytics.reports.rest.dto.v1_0.AssetHistogramMetric;
 import com.liferay.analytics.reports.rest.dto.v1_0.AssetMetric;
+import com.liferay.analytics.reports.rest.dto.v1_0.AssetPageHistogramMetric;
 import com.liferay.analytics.reports.rest.internal.client.AnalyticsCloudClient;
 import com.liferay.analytics.reports.rest.resource.v1_0.AssetMetricResource;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
@@ -98,6 +99,40 @@ public class AssetMetricResourceImpl extends BaseAssetMetricResourceImpl {
 			_http);
 
 		return analyticsCloudClient.getAssetHistogramMetric(
+			_analyticsSettingsManager.getAnalyticsConfiguration(
+				group.getCompanyId()),
+			assetId, assetType, analyticsCloudChannelIds, identityType,
+			rangeKey);
+	}
+
+	@Override
+	public AssetPageHistogramMetric getGroupAssetMetricPageHistogram(
+			Long groupId, String assetType, String assetId, String identityType,
+			Integer rangeKey)
+		throws Exception {
+
+		List<Long> analyticsCloudChannelIds = new ArrayList<>();
+
+		Group group = _groupLocalService.getGroup(groupId);
+
+		DepotEntry depotEntry = _depotEntryLocalService.fetchGroupDepotEntry(
+			groupId);
+
+		if (depotEntry != null) {
+			analyticsCloudChannelIds = _getAnalyticsCloudChannelIds(
+				_depotEntryGroupRelLocalService.getDepotEntryGroupRels(
+					depotEntry));
+		}
+		else {
+			analyticsCloudChannelIds = Collections.singletonList(
+				Long.valueOf(
+					group.getTypeSettingsProperty("analyticsChannelId")));
+		}
+
+		AnalyticsCloudClient analyticsCloudClient = new AnalyticsCloudClient(
+			_http);
+
+		return analyticsCloudClient.getAssetPageHistogramMetric(
 			_analyticsSettingsManager.getAnalyticsConfiguration(
 				group.getCompanyId()),
 			assetId, assetType, analyticsCloudChannelIds, identityType,
