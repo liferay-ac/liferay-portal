@@ -109,7 +109,7 @@ paths:
             tags: ["AssetMetric"]
     "{groupId}/asset-metrics/{assetType}/histogram":
         get:
-            operationId: getGroupAssetMetricAssetTypeHistogram
+            operationId: getGroupAssetMetricHistogram
             parameters:
                 - in: path
                   name: groupId
@@ -142,4 +142,4 @@ paths:
                         application/xml:
                             schema:
                                 $ref: "#/components/schemas/AssetHistogramMetric"
-            tags: ["AssetHistogramMetric"]
+            tags: ["AssetMetric"]
