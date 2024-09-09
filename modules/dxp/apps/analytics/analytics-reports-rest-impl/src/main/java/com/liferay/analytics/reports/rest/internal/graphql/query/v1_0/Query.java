@@ -7,7 +7,7 @@ package com.liferay.analytics.reports.rest.internal.graphql.query.v1_0;
 
 import com.liferay.analytics.reports.rest.dto.v1_0.AssetHistogramMetric;
 import com.liferay.analytics.reports.rest.dto.v1_0.AssetMetric;
-import com.liferay.analytics.reports.rest.resource.v1_0.AssetHistogramMetricResource;
+import com.liferay.analytics.reports.rest.dto.v1_0.AssetPageHistogramMetric;
 import com.liferay.analytics.reports.rest.resource.v1_0.AssetMetricResource;
 import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.function.UnsafeFunction;
@@ -39,43 +39,12 @@ import org.osgi.service.component.ComponentServiceObjects;
 @Generated("")
 public class Query {
 
-	public static void setAssetHistogramMetricResourceComponentServiceObjects(
-		ComponentServiceObjects<AssetHistogramMetricResource>
-			assetHistogramMetricResourceComponentServiceObjects) {
-
-		_assetHistogramMetricResourceComponentServiceObjects =
-			assetHistogramMetricResourceComponentServiceObjects;
-	}
-
 	public static void setAssetMetricResourceComponentServiceObjects(
 		ComponentServiceObjects<AssetMetricResource>
 			assetMetricResourceComponentServiceObjects) {
 
 		_assetMetricResourceComponentServiceObjects =
 			assetMetricResourceComponentServiceObjects;
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {groupAssetMetricAssetTypeHistogram(assetId: ___, assetType: ___, groupId: ___, identityType: ___, rangeKey: ___){histograms}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public AssetHistogramMetric groupAssetMetricAssetTypeHistogram(
-			@GraphQLName("groupId") Long groupId,
-			@GraphQLName("assetType") String assetType,
-			@GraphQLName("assetId") String assetId,
-			@GraphQLName("identityType") String identityType,
-			@GraphQLName("rangeKey") Integer rangeKey)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_assetHistogramMetricResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			assetHistogramMetricResource ->
-				assetHistogramMetricResource.
-					getGroupAssetMetricAssetTypeHistogram(
-						groupId, assetType, assetId, identityType, rangeKey));
 	}
 
 	/**
@@ -101,37 +70,48 @@ public class Query {
 				selectedMetrics));
 	}
 
-	@GraphQLName("AssetHistogramMetricPage")
-	public class AssetHistogramMetricPage {
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {groupAssetMetricHistogram(assetId: ___, assetType: ___, groupId: ___, identityType: ___, rangeKey: ___){histograms}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public AssetHistogramMetric groupAssetMetricHistogram(
+			@GraphQLName("groupId") Long groupId,
+			@GraphQLName("assetType") String assetType,
+			@GraphQLName("assetId") String assetId,
+			@GraphQLName("identityType") String identityType,
+			@GraphQLName("rangeKey") Integer rangeKey)
+		throws Exception {
 
-		public AssetHistogramMetricPage(Page assetHistogramMetricPage) {
-			actions = assetHistogramMetricPage.getActions();
+		return _applyComponentServiceObjects(
+			_assetMetricResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			assetMetricResource ->
+				assetMetricResource.getGroupAssetMetricHistogram(
+					groupId, assetType, assetId, identityType, rangeKey));
+	}
 
-			items = assetHistogramMetricPage.getItems();
-			lastPage = assetHistogramMetricPage.getLastPage();
-			page = assetHistogramMetricPage.getPage();
-			pageSize = assetHistogramMetricPage.getPageSize();
-			totalCount = assetHistogramMetricPage.getTotalCount();
-		}
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {groupAssetMetricPageHistogram(assetId: ___, assetType: ___, groupId: ___, identityType: ___, rangeKey: ___){pageHistograms}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public AssetPageHistogramMetric groupAssetMetricPageHistogram(
+			@GraphQLName("groupId") Long groupId,
+			@GraphQLName("assetType") String assetType,
+			@GraphQLName("assetId") String assetId,
+			@GraphQLName("identityType") String identityType,
+			@GraphQLName("rangeKey") Integer rangeKey)
+		throws Exception {
 
-		@GraphQLField
-		protected Map<String, Map<String, String>> actions;
-
-		@GraphQLField
-		protected java.util.Collection<AssetHistogramMetric> items;
-
-		@GraphQLField
-		protected long lastPage;
-
-		@GraphQLField
-		protected long page;
-
-		@GraphQLField
-		protected long pageSize;
-
-		@GraphQLField
-		protected long totalCount;
-
+		return _applyComponentServiceObjects(
+			_assetMetricResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			assetMetricResource ->
+				assetMetricResource.getGroupAssetMetricPageHistogram(
+					groupId, assetType, assetId, identityType, rangeKey));
 	}
 
 	@GraphQLName("AssetMetricPage")
@@ -187,22 +167,6 @@ public class Query {
 	}
 
 	private void _populateResourceContext(
-			AssetHistogramMetricResource assetHistogramMetricResource)
-		throws Exception {
-
-		assetHistogramMetricResource.setContextAcceptLanguage(_acceptLanguage);
-		assetHistogramMetricResource.setContextCompany(_company);
-		assetHistogramMetricResource.setContextHttpServletRequest(
-			_httpServletRequest);
-		assetHistogramMetricResource.setContextHttpServletResponse(
-			_httpServletResponse);
-		assetHistogramMetricResource.setContextUriInfo(_uriInfo);
-		assetHistogramMetricResource.setContextUser(_user);
-		assetHistogramMetricResource.setGroupLocalService(_groupLocalService);
-		assetHistogramMetricResource.setRoleLocalService(_roleLocalService);
-	}
-
-	private void _populateResourceContext(
 			AssetMetricResource assetMetricResource)
 		throws Exception {
 
@@ -216,8 +180,6 @@ public class Query {
 		assetMetricResource.setRoleLocalService(_roleLocalService);
 	}
 
-	private static ComponentServiceObjects<AssetHistogramMetricResource>
-		_assetHistogramMetricResourceComponentServiceObjects;
 	private static ComponentServiceObjects<AssetMetricResource>
 		_assetMetricResourceComponentServiceObjects;
 

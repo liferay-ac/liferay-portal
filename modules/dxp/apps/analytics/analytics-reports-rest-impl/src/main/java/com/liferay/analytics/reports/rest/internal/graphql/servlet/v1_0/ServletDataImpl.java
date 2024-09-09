@@ -7,9 +7,7 @@ package com.liferay.analytics.reports.rest.internal.graphql.servlet.v1_0;
 
 import com.liferay.analytics.reports.rest.internal.graphql.mutation.v1_0.Mutation;
 import com.liferay.analytics.reports.rest.internal.graphql.query.v1_0.Query;
-import com.liferay.analytics.reports.rest.internal.resource.v1_0.AssetHistogramMetricResourceImpl;
 import com.liferay.analytics.reports.rest.internal.resource.v1_0.AssetMetricResourceImpl;
-import com.liferay.analytics.reports.rest.resource.v1_0.AssetHistogramMetricResource;
 import com.liferay.analytics.reports.rest.resource.v1_0.AssetMetricResource;
 import com.liferay.portal.kernel.util.ObjectValuePair;
 import com.liferay.portal.vulcan.graphql.servlet.ServletData;
@@ -36,8 +34,6 @@ public class ServletDataImpl implements ServletData {
 
 	@Activate
 	public void activate(BundleContext bundleContext) {
-		Query.setAssetHistogramMetricResourceComponentServiceObjects(
-			_assetHistogramMetricResourceComponentServiceObjects);
 		Query.setAssetMetricResourceComponentServiceObjects(
 			_assetMetricResourceComponentServiceObjects);
 	}
@@ -77,21 +73,22 @@ public class ServletDataImpl implements ServletData {
 			new HashMap<String, ObjectValuePair<Class<?>, String>>() {
 				{
 					put(
-						"query#groupAssetMetricAssetTypeHistogram",
-						new ObjectValuePair<>(
-							AssetHistogramMetricResourceImpl.class,
-							"getGroupAssetMetricAssetTypeHistogram"));
-					put(
 						"query#groupAssetMetric",
 						new ObjectValuePair<>(
 							AssetMetricResourceImpl.class,
 							"getGroupAssetMetric"));
+					put(
+						"query#groupAssetMetricHistogram",
+						new ObjectValuePair<>(
+							AssetMetricResourceImpl.class,
+							"getGroupAssetMetricHistogram"));
+					put(
+						"query#groupAssetMetricPageHistogram",
+						new ObjectValuePair<>(
+							AssetMetricResourceImpl.class,
+							"getGroupAssetMetricPageHistogram"));
 				}
 			};
-
-	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
-	private ComponentServiceObjects<AssetHistogramMetricResource>
-		_assetHistogramMetricResourceComponentServiceObjects;
 
 	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
 	private ComponentServiceObjects<AssetMetricResource>

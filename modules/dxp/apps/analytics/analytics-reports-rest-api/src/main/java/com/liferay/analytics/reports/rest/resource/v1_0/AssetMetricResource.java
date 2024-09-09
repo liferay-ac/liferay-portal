@@ -5,7 +5,9 @@
 
 package com.liferay.analytics.reports.rest.resource.v1_0;
 
+import com.liferay.analytics.reports.rest.dto.v1_0.AssetHistogramMetric;
 import com.liferay.analytics.reports.rest.dto.v1_0.AssetMetric;
+import com.liferay.analytics.reports.rest.dto.v1_0.AssetPageHistogramMetric;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.service.GroupLocalService;
@@ -46,6 +48,16 @@ public interface AssetMetricResource {
 	public AssetMetric getGroupAssetMetric(
 			Long groupId, String assetType, String assetId, String identityType,
 			Integer rangeKey, String[] selectedMetrics)
+		throws Exception;
+
+	public AssetHistogramMetric getGroupAssetMetricHistogram(
+			Long groupId, String assetType, String assetId, String identityType,
+			Integer rangeKey)
+		throws Exception;
+
+	public AssetPageHistogramMetric getGroupAssetMetricPageHistogram(
+			Long groupId, String assetType, String assetId, String identityType,
+			Integer rangeKey)
 		throws Exception;
 
 	public default void setContextAcceptLanguage(

@@ -13,7 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.analytics.reports.rest.client.dto.v1_0.AssetHistogramMetric;
 import com.liferay.analytics.reports.rest.client.dto.v1_0.AssetMetric;
+import com.liferay.analytics.reports.rest.client.dto.v1_0.AssetPageHistogramMetric;
 import com.liferay.analytics.reports.rest.client.http.HttpInvoker;
 import com.liferay.analytics.reports.rest.client.pagination.Page;
 import com.liferay.analytics.reports.rest.client.resource.v1_0.AssetMetricResource;
@@ -191,6 +193,57 @@ public abstract class BaseAssetMetricResourceTestCase {
 		Assert.assertTrue(true);
 	}
 
+	@Test
+	public void testGetGroupAssetMetricPageHistogram() throws Exception {
+		AssetMetric postAssetMetric = testGetAssetMetric_addAssetMetric();
+
+		AssetPageHistogramMetric postAssetPageHistogramMetric =
+			testGetGroupAssetMetricPageHistogram_addAssetPageHistogramMetric(
+				postAssetMetric.getId(), randomAssetPageHistogramMetric());
+
+		AssetPageHistogramMetric getAssetPageHistogramMetric =
+			assetMetricResource.getGroupAssetMetricPageHistogram(
+				postAssetMetric.getId());
+
+		assertEquals(postAssetPageHistogramMetric, getAssetPageHistogramMetric);
+		assertValid(getAssetPageHistogramMetric);
+	}
+
+	protected AssetPageHistogramMetric
+			testGetGroupAssetMetricPageHistogram_addAssetPageHistogramMetric(
+				long assetMetricId,
+				AssetPageHistogramMetric assetPageHistogramMetric)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGetGroupAssetMetricHistogram() throws Exception {
+		AssetMetric postAssetMetric = testGetAssetMetric_addAssetMetric();
+
+		AssetHistogramMetric postAssetHistogramMetric =
+			testGetGroupAssetMetricHistogram_addAssetHistogramMetric(
+				postAssetMetric.getId(), randomAssetHistogramMetric());
+
+		AssetHistogramMetric getAssetHistogramMetric =
+			assetMetricResource.getGroupAssetMetricHistogram(
+				postAssetMetric.getId());
+
+		assertEquals(postAssetHistogramMetric, getAssetHistogramMetric);
+		assertValid(getAssetHistogramMetric);
+	}
+
+	protected AssetHistogramMetric
+			testGetGroupAssetMetricHistogram_addAssetHistogramMetric(
+				long assetMetricId, AssetHistogramMetric assetHistogramMetric)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
 	protected void assertContains(
 		AssetMetric assetMetric, List<AssetMetric> assetMetrics) {
 
@@ -235,6 +288,25 @@ public abstract class BaseAssetMetricResourceTestCase {
 
 			assertEquals(assetMetric1, assetMetric2);
 		}
+	}
+
+	protected void assertEquals(
+		AssetPageHistogramMetric assetPageHistogramMetric1,
+		AssetPageHistogramMetric assetPageHistogramMetric2) {
+
+		Assert.assertTrue(
+			assetPageHistogramMetric1 + " does not equal " +
+				assetPageHistogramMetric2,
+			equals(assetPageHistogramMetric1, assetPageHistogramMetric2));
+	}
+
+	protected void assertEquals(
+		AssetHistogramMetric assetHistogramMetric1,
+		AssetHistogramMetric assetHistogramMetric2) {
+
+		Assert.assertTrue(
+			assetHistogramMetric1 + " does not equal " + assetHistogramMetric2,
+			equals(assetHistogramMetric1, assetHistogramMetric2));
 	}
 
 	protected void assertEqualsIgnoringOrder(
@@ -363,7 +435,61 @@ public abstract class BaseAssetMetricResourceTestCase {
 		}
 	}
 
+	protected void assertValid(
+		AssetPageHistogramMetric assetPageHistogramMetric) {
+
+		boolean valid = true;
+
+		for (String additionalAssertFieldName :
+				getAdditionalAssetPageHistogramMetricAssertFieldNames()) {
+
+			if (Objects.equals("pageHistograms", additionalAssertFieldName)) {
+				if (assetPageHistogramMetric.getPageHistograms() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			throw new IllegalArgumentException(
+				"Invalid additional assert field name " +
+					additionalAssertFieldName);
+		}
+
+		Assert.assertTrue(valid);
+	}
+
+	protected void assertValid(AssetHistogramMetric assetHistogramMetric) {
+		boolean valid = true;
+
+		for (String additionalAssertFieldName :
+				getAdditionalAssetHistogramMetricAssertFieldNames()) {
+
+			if (Objects.equals("histograms", additionalAssertFieldName)) {
+				if (assetHistogramMetric.getHistograms() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			throw new IllegalArgumentException(
+				"Invalid additional assert field name " +
+					additionalAssertFieldName);
+		}
+
+		Assert.assertTrue(valid);
+	}
+
 	protected String[] getAdditionalAssertFieldNames() {
+		return new String[0];
+	}
+
+	protected String[] getAdditionalAssetPageHistogramMetricAssertFieldNames() {
+		return new String[0];
+	}
+
+	protected String[] getAdditionalAssetHistogramMetricAssertFieldNames() {
 		return new String[0];
 	}
 
@@ -528,6 +654,66 @@ public abstract class BaseAssetMetricResourceTestCase {
 		}
 
 		return false;
+	}
+
+	protected boolean equals(
+		AssetPageHistogramMetric assetPageHistogramMetric1,
+		AssetPageHistogramMetric assetPageHistogramMetric2) {
+
+		if (assetPageHistogramMetric1 == assetPageHistogramMetric2) {
+			return true;
+		}
+
+		for (String additionalAssertFieldName :
+				getAdditionalAssetPageHistogramMetricAssertFieldNames()) {
+
+			if (Objects.equals("pageHistograms", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						assetPageHistogramMetric1.getPageHistograms(),
+						assetPageHistogramMetric2.getPageHistograms())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			throw new IllegalArgumentException(
+				"Invalid additional assert field name " +
+					additionalAssertFieldName);
+		}
+
+		return true;
+	}
+
+	protected boolean equals(
+		AssetHistogramMetric assetHistogramMetric1,
+		AssetHistogramMetric assetHistogramMetric2) {
+
+		if (assetHistogramMetric1 == assetHistogramMetric2) {
+			return true;
+		}
+
+		for (String additionalAssertFieldName :
+				getAdditionalAssetHistogramMetricAssertFieldNames()) {
+
+			if (Objects.equals("histograms", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						assetHistogramMetric1.getHistograms(),
+						assetHistogramMetric2.getHistograms())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			throw new IllegalArgumentException(
+				"Invalid additional assert field name " +
+					additionalAssertFieldName);
+		}
+
+		return true;
 	}
 
 	protected java.lang.reflect.Field[] getDeclaredFields(Class clazz)
@@ -861,6 +1047,24 @@ public abstract class BaseAssetMetricResourceTestCase {
 
 	protected AssetMetric randomPatchAssetMetric() throws Exception {
 		return randomAssetMetric();
+	}
+
+	protected AssetPageHistogramMetric randomAssetPageHistogramMetric()
+		throws Exception {
+
+		return new AssetPageHistogramMetric() {
+			{
+			}
+		};
+	}
+
+	protected AssetHistogramMetric randomAssetHistogramMetric()
+		throws Exception {
+
+		return new AssetHistogramMetric() {
+			{
+			}
+		};
 	}
 
 	protected AssetMetricResource assetMetricResource;

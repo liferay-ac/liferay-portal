@@ -5,10 +5,14 @@
 
 package com.liferay.analytics.reports.rest.client.resource.v1_0;
 
+import com.liferay.analytics.reports.rest.client.dto.v1_0.AssetHistogramMetric;
 import com.liferay.analytics.reports.rest.client.dto.v1_0.AssetMetric;
+import com.liferay.analytics.reports.rest.client.dto.v1_0.AssetPageHistogramMetric;
 import com.liferay.analytics.reports.rest.client.http.HttpInvoker;
 import com.liferay.analytics.reports.rest.client.problem.Problem;
+import com.liferay.analytics.reports.rest.client.serdes.v1_0.AssetHistogramMetricSerDes;
 import com.liferay.analytics.reports.rest.client.serdes.v1_0.AssetMetricSerDes;
+import com.liferay.analytics.reports.rest.client.serdes.v1_0.AssetPageHistogramMetricSerDes;
 
 import java.net.URL;
 
@@ -40,6 +44,27 @@ public interface AssetMetricResource {
 	public HttpInvoker.HttpResponse getGroupAssetMetricHttpResponse(
 			Long groupId, String assetType, String assetId, String identityType,
 			Integer rangeKey, String[] selectedMetrics)
+		throws Exception;
+
+	public AssetHistogramMetric getGroupAssetMetricHistogram(
+			Long groupId, String assetType, String assetId, String identityType,
+			Integer rangeKey)
+		throws Exception;
+
+	public HttpInvoker.HttpResponse getGroupAssetMetricHistogramHttpResponse(
+			Long groupId, String assetType, String assetId, String identityType,
+			Integer rangeKey)
+		throws Exception;
+
+	public AssetPageHistogramMetric getGroupAssetMetricPageHistogram(
+			Long groupId, String assetType, String assetId, String identityType,
+			Integer rangeKey)
+		throws Exception;
+
+	public HttpInvoker.HttpResponse
+			getGroupAssetMetricPageHistogramHttpResponse(
+				Long groupId, String assetType, String assetId,
+				String identityType, Integer rangeKey)
 		throws Exception;
 
 	public static class Builder {
@@ -269,6 +294,250 @@ public interface AssetMetricResource {
 				_builder._scheme + "://" + _builder._host + ":" +
 					_builder._port + _builder._contextPath +
 						"/o/analytics-reports-rest/v1.0{groupId}/asset-metrics/{assetType}");
+
+			httpInvoker.path("groupId", groupId);
+			httpInvoker.path("assetType", assetType);
+
+			httpInvoker.userNameAndPassword(
+				_builder._login + ":" + _builder._password);
+
+			return httpInvoker.invoke();
+		}
+
+		public AssetHistogramMetric getGroupAssetMetricHistogram(
+				Long groupId, String assetType, String assetId,
+				String identityType, Integer rangeKey)
+			throws Exception {
+
+			HttpInvoker.HttpResponse httpResponse =
+				getGroupAssetMetricHistogramHttpResponse(
+					groupId, assetType, assetId, identityType, rangeKey);
+
+			String content = httpResponse.getContent();
+
+			if ((httpResponse.getStatusCode() / 100) != 2) {
+				_logger.log(
+					Level.WARNING,
+					"Unable to process HTTP response content: " + content);
+				_logger.log(
+					Level.WARNING,
+					"HTTP response message: " + httpResponse.getMessage());
+				_logger.log(
+					Level.WARNING,
+					"HTTP response status code: " +
+						httpResponse.getStatusCode());
+
+				Problem.ProblemException problemException = null;
+
+				if (Objects.equals(
+						httpResponse.getContentType(), "application/json")) {
+
+					problemException = new Problem.ProblemException(
+						Problem.toDTO(content));
+				}
+				else {
+					_logger.log(
+						Level.WARNING,
+						"Unable to process content type: " +
+							httpResponse.getContentType());
+
+					Problem problem = new Problem();
+
+					problem.setStatus(
+						String.valueOf(httpResponse.getStatusCode()));
+
+					problemException = new Problem.ProblemException(problem);
+				}
+
+				throw problemException;
+			}
+			else {
+				_logger.fine("HTTP response content: " + content);
+				_logger.fine(
+					"HTTP response message: " + httpResponse.getMessage());
+				_logger.fine(
+					"HTTP response status code: " +
+						httpResponse.getStatusCode());
+			}
+
+			try {
+				return AssetHistogramMetricSerDes.toDTO(content);
+			}
+			catch (Exception e) {
+				_logger.log(
+					Level.WARNING,
+					"Unable to process HTTP response: " + content, e);
+
+				throw new Problem.ProblemException(Problem.toDTO(content));
+			}
+		}
+
+		public HttpInvoker.HttpResponse
+				getGroupAssetMetricHistogramHttpResponse(
+					Long groupId, String assetType, String assetId,
+					String identityType, Integer rangeKey)
+			throws Exception {
+
+			HttpInvoker httpInvoker = HttpInvoker.newHttpInvoker();
+
+			if (_builder._locale != null) {
+				httpInvoker.header(
+					"Accept-Language", _builder._locale.toLanguageTag());
+			}
+
+			for (Map.Entry<String, String> entry :
+					_builder._headers.entrySet()) {
+
+				httpInvoker.header(entry.getKey(), entry.getValue());
+			}
+
+			for (Map.Entry<String, String> entry :
+					_builder._parameters.entrySet()) {
+
+				httpInvoker.parameter(entry.getKey(), entry.getValue());
+			}
+
+			httpInvoker.httpMethod(HttpInvoker.HttpMethod.GET);
+
+			if (assetId != null) {
+				httpInvoker.parameter("assetId", String.valueOf(assetId));
+			}
+
+			if (identityType != null) {
+				httpInvoker.parameter(
+					"identityType", String.valueOf(identityType));
+			}
+
+			if (rangeKey != null) {
+				httpInvoker.parameter("rangeKey", String.valueOf(rangeKey));
+			}
+
+			httpInvoker.path(
+				_builder._scheme + "://" + _builder._host + ":" +
+					_builder._port + _builder._contextPath +
+						"/o/analytics-reports-rest/v1.0{groupId}/asset-metrics/{assetType}/histogram");
+
+			httpInvoker.path("groupId", groupId);
+			httpInvoker.path("assetType", assetType);
+
+			httpInvoker.userNameAndPassword(
+				_builder._login + ":" + _builder._password);
+
+			return httpInvoker.invoke();
+		}
+
+		public AssetPageHistogramMetric getGroupAssetMetricPageHistogram(
+				Long groupId, String assetType, String assetId,
+				String identityType, Integer rangeKey)
+			throws Exception {
+
+			HttpInvoker.HttpResponse httpResponse =
+				getGroupAssetMetricPageHistogramHttpResponse(
+					groupId, assetType, assetId, identityType, rangeKey);
+
+			String content = httpResponse.getContent();
+
+			if ((httpResponse.getStatusCode() / 100) != 2) {
+				_logger.log(
+					Level.WARNING,
+					"Unable to process HTTP response content: " + content);
+				_logger.log(
+					Level.WARNING,
+					"HTTP response message: " + httpResponse.getMessage());
+				_logger.log(
+					Level.WARNING,
+					"HTTP response status code: " +
+						httpResponse.getStatusCode());
+
+				Problem.ProblemException problemException = null;
+
+				if (Objects.equals(
+						httpResponse.getContentType(), "application/json")) {
+
+					problemException = new Problem.ProblemException(
+						Problem.toDTO(content));
+				}
+				else {
+					_logger.log(
+						Level.WARNING,
+						"Unable to process content type: " +
+							httpResponse.getContentType());
+
+					Problem problem = new Problem();
+
+					problem.setStatus(
+						String.valueOf(httpResponse.getStatusCode()));
+
+					problemException = new Problem.ProblemException(problem);
+				}
+
+				throw problemException;
+			}
+			else {
+				_logger.fine("HTTP response content: " + content);
+				_logger.fine(
+					"HTTP response message: " + httpResponse.getMessage());
+				_logger.fine(
+					"HTTP response status code: " +
+						httpResponse.getStatusCode());
+			}
+
+			try {
+				return AssetPageHistogramMetricSerDes.toDTO(content);
+			}
+			catch (Exception e) {
+				_logger.log(
+					Level.WARNING,
+					"Unable to process HTTP response: " + content, e);
+
+				throw new Problem.ProblemException(Problem.toDTO(content));
+			}
+		}
+
+		public HttpInvoker.HttpResponse
+				getGroupAssetMetricPageHistogramHttpResponse(
+					Long groupId, String assetType, String assetId,
+					String identityType, Integer rangeKey)
+			throws Exception {
+
+			HttpInvoker httpInvoker = HttpInvoker.newHttpInvoker();
+
+			if (_builder._locale != null) {
+				httpInvoker.header(
+					"Accept-Language", _builder._locale.toLanguageTag());
+			}
+
+			for (Map.Entry<String, String> entry :
+					_builder._headers.entrySet()) {
+
+				httpInvoker.header(entry.getKey(), entry.getValue());
+			}
+
+			for (Map.Entry<String, String> entry :
+					_builder._parameters.entrySet()) {
+
+				httpInvoker.parameter(entry.getKey(), entry.getValue());
+			}
+
+			httpInvoker.httpMethod(HttpInvoker.HttpMethod.GET);
+
+			if (assetId != null) {
+				httpInvoker.parameter("assetId", String.valueOf(assetId));
+			}
+
+			if (identityType != null) {
+				httpInvoker.parameter(
+					"identityType", String.valueOf(identityType));
+			}
+
+			if (rangeKey != null) {
+				httpInvoker.parameter("rangeKey", String.valueOf(rangeKey));
+			}
+
+			httpInvoker.path(
+				_builder._scheme + "://" + _builder._host + ":" +
+					_builder._port + _builder._contextPath +
+						"/o/analytics-reports-rest/v1.0{groupId}/asset-metrics/{assetType}/pages/histogram");
 
 			httpInvoker.path("groupId", groupId);
 			httpInvoker.path("assetType", assetType);
