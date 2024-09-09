@@ -22,6 +22,12 @@ components:
                     items:
                         $ref: "#/components/schemas/Metric"
                     type: array
+        AssetPageHistogramMetric:
+            properties:
+                pageHistograms:
+                    items:
+                        $ref: "#/components/schemas/PageHistogram"
+                    type: array
         Histogram:
             properties:
                 metricName:
@@ -48,6 +54,14 @@ components:
                     format: double
                     type: number
                 valueKey:
+                    type: string
+        PageHistogram:
+            properties:
+                assetHistogramMetrics:
+                    items:
+                        $ref: "#/components/schemas/AssetHistogramMetric"
+                    type: array
+                pageTitle:
                     type: string
         Trend:
             properties:
@@ -142,4 +156,40 @@ paths:
                         application/xml:
                             schema:
                                 $ref: "#/components/schemas/AssetHistogramMetric"
+            tags: ["AssetMetric"]
+    "{groupId}/asset-metrics/{assetType}/pages/histogram":
+        get:
+            operationId: getGroupAssetMetricPageHistogram
+            parameters:
+                - in: path
+                  name: groupId
+                  schema:
+                      format: int64
+                      type: integer
+                - in: path
+                  name: assetType
+                  schema:
+                      type: string
+                - in: query
+                  name: assetId
+                  schema:
+                      type: string
+                - in: query
+                  name: identityType
+                  schema:
+                      enum: [ALL, KNOWN, UNKNOWN]
+                      type: string
+                - in: query
+                  name: rangeKey
+                  schema:
+                      type: integer
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AssetPageHistogramMetric"
+                        application/xml:
+                            schema:
+                                $ref: "#/components/schemas/AssetPageHistogramMetric"
             tags: ["AssetMetric"]
