@@ -56,7 +56,7 @@ definition {
 	@description = "LPS-130918 Given the Segment Service Configuration in Instance Settings And Enable Segmentation by roles is checked in System Settings When Enable Segmentation by roles is disabled And the user accesses the Segments tab in the role assignment screen Then the user may still add segments to the list by using the ""+"" button, but assigning won't be accomplished"
 	@priority = 4
 	test AssigningBySegmentNotWorkingDisabledInstanceSettings {
-		property portal.acceptance = "true";
+		property portal.acceptance = "quarantine";
 
 		task ("Add user and set password") {
 			JSONUser.addUser(
@@ -141,7 +141,7 @@ definition {
 	@priority = 4
 	@uitest
 	test AssignSiteRolesOptionInSegmentsEditor {
-		property portal.acceptance = "true";
+		property portal.acceptance = "quarantine";
 
 		task ("Add segment in Test Site Name") {
 			JSONSegmentsentry.addSegment(
@@ -283,7 +283,7 @@ definition {
 	@description = "LPS-130918 Given the Segment Service Configuration in Instance Settings And Enable Segmentation by roles is checked in System Settings When Enable Segmentation by roles is enabled Then it shows a dialog allowing user to assign/unassign site roles"
 	@priority = 4
 	test CanAssignSiteRolesToSegment {
-		property portal.acceptance = "true";
+		property portal.acceptance = "quarantine";
 
 		task ("Add segment in Test Site Name") {
 			JSONSegmentsentry.addSegment(
@@ -333,6 +333,8 @@ definition {
 	@description = "LPS-130918 Given the Segment Service Configuration in Instance Settings When Enable Segmentation by roles is disabled And the user accesses the Segments tab in the role assignment screen Then a message will show: ""Warning: Assigning roles by segment is disabled. To enable, go to System Settings > Segments > Segments Service."""
 	@priority = 3
 	test CheckMessageSegmentationByRolesDisabledInstanceSettings {
+		property portal.acceptance = "quarantine";
+
 		task ("Disable segmentation by roles from instance settings") {
 			PortalSettings.openInstanceSettingsAdmin();
 
@@ -364,7 +366,7 @@ definition {
 	@priority = 4
 	@uitest
 	test DisableAssignRolesBySegment {
-		property portal.acceptance = "true";
+		property portal.acceptance = "quarantine";
 
 		task ("Add user and set password") {
 			JSONUser.addUser(
@@ -439,7 +441,7 @@ definition {
 	@priority = 3
 	@uitest
 	test DisableAssignRolesWarningMessage {
-		property portal.acceptance = "true";
+		property portal.acceptance = "quarantine";
 
 		task ("Assert the Enable Assign roles by segments checkbox is disabled") {
 			ApplicationsMenu.gotoPortlet(
@@ -474,7 +476,7 @@ definition {
 	@description = "LPS-130918 Given the Segment Service Configuration in Instance Settings And Enable Segmentation by roles is checked in System Settings When Enable Segmentation by roles is disabled Then the Assign Site Roles option will be disabled in the Segments Editor"
 	@priority = 4
 	test DisabledAssignSiteRolesOptionInSegmentsEditor {
-		property portal.acceptance = "true";
+		property portal.acceptance = "quarantine";
 
 		task ("Add segment in Test Site Name") {
 			JSONSegmentsentry.addSegment(
@@ -526,7 +528,7 @@ definition {
 	@description = "LPS-161227 Bug: NoSuchExperienceException when attempting to edit Content Page with Enable Assign Roles by Segment configuration enabled"
 	@priority = 5
 	test EditPageAfterEnableAssignRole {
-		property portal.acceptance = "true";
+		property portal.acceptance = "quarantine";
 
 		task ("Create a Content Page") {
 			JSONLayout.addPublicLayout(
@@ -564,7 +566,7 @@ definition {
 	@priority = 4
 	@uitest
 	test EnableAssignRolesBySegment {
-		property portal.acceptance = "true";
+		property portal.acceptance = "quarantine";
 
 		task ("Add user and set password") {
 			JSONUser.addUser(
