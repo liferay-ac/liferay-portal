@@ -2,6 +2,8 @@ components:
     schemas:
         AppearsOnHistogram:
             properties:
+                canonicalUrl:
+                    type: string
                 metrics:
                     items:
                         $ref: "#/components/schemas/Metric"
