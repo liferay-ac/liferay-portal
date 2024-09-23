@@ -47,6 +47,20 @@ public class AppearsOnHistogramSerDes {
 
 		sb.append("{");
 
+		if (appearsOnHistogram.getCanonicalUrl() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"canonicalUrl\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(appearsOnHistogram.getCanonicalUrl()));
+
+			sb.append("\"");
+		}
+
 		if (appearsOnHistogram.getMetrics() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -112,6 +126,15 @@ public class AppearsOnHistogramSerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
+		if (appearsOnHistogram.getCanonicalUrl() == null) {
+			map.put("canonicalUrl", null);
+		}
+		else {
+			map.put(
+				"canonicalUrl",
+				String.valueOf(appearsOnHistogram.getCanonicalUrl()));
+		}
+
 		if (appearsOnHistogram.getMetrics() == null) {
 			map.put("metrics", null);
 		}
@@ -152,7 +175,10 @@ public class AppearsOnHistogramSerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "metrics")) {
+			if (Objects.equals(jsonParserFieldName, "canonicalUrl")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "metrics")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "pageTitle")) {
@@ -170,7 +196,13 @@ public class AppearsOnHistogramSerDes {
 			AppearsOnHistogram appearsOnHistogram, String jsonParserFieldName,
 			Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "metrics")) {
+			if (Objects.equals(jsonParserFieldName, "canonicalUrl")) {
+				if (jsonParserFieldValue != null) {
+					appearsOnHistogram.setCanonicalUrl(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "metrics")) {
 				if (jsonParserFieldValue != null) {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;

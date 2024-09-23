@@ -51,6 +51,47 @@ public class AppearsOnHistogram implements Serializable {
 	}
 
 	@Schema
+	public String getCanonicalUrl() {
+		if (_canonicalUrlSupplier != null) {
+			canonicalUrl = _canonicalUrlSupplier.get();
+
+			_canonicalUrlSupplier = null;
+		}
+
+		return canonicalUrl;
+	}
+
+	public void setCanonicalUrl(String canonicalUrl) {
+		this.canonicalUrl = canonicalUrl;
+
+		_canonicalUrlSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCanonicalUrl(
+		UnsafeSupplier<String, Exception> canonicalUrlUnsafeSupplier) {
+
+		_canonicalUrlSupplier = () -> {
+			try {
+				return canonicalUrlUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String canonicalUrl;
+
+	@JsonIgnore
+	private Supplier<String> _canonicalUrlSupplier;
+
+	@Schema
 	@Valid
 	public Metric[] getMetrics() {
 		if (_metricsSupplier != null) {
@@ -200,6 +241,22 @@ public class AppearsOnHistogram implements Serializable {
 		StringBundler sb = new StringBundler();
 
 		sb.append("{");
+
+		String canonicalUrl = getCanonicalUrl();
+
+		if (canonicalUrl != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"canonicalUrl\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(canonicalUrl));
+
+			sb.append("\"");
+		}
 
 		Metric[] metrics = getMetrics();
 
