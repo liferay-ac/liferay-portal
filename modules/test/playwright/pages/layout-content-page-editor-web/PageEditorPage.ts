@@ -45,7 +45,11 @@ export class PageEditorPage {
 			'.page-editor__experience-selector'
 		);
 		this.languageSelector = page.getByLabel('Select a language');
-		this.publishButton = page.getByLabel('Publish', {exact: true});
+		this.publishButton = page.getByLabel('Publish', {exact: true}).or(
+			page.getByLabel('Submit for Workflow', {
+				exact: true,
+			})
+		);
 		this.publishMasterButton = page.getByLabel('Publish Master', {
 			exact: true,
 		});
@@ -872,7 +876,11 @@ export class PageEditorPage {
 			(element) => !!element.closest('.page-editor__form')
 		);
 
-		if (isCollection || isForm) {
+		const isGrid = await fragment.evaluate(
+			(element) => !!element.closest('.lfr-layout-structure-item-row')
+		);
+
+		if (isCollection || isForm || isGrid) {
 			await this.goToSidebarTab('Browser');
 
 			const treeNode = this.page.locator(
