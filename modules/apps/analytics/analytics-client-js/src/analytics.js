@@ -483,7 +483,7 @@ class Analytics {
 			);
 		}
 		else {
-			const path = Liferay?.themeDisplay?.getPathContext() || '/';
+			const path = themeDisplay.getPathContext() || '/';
 
 			document.cookie = `${key}=${data}; expires=${expires.toUTCString()}; path=${path}; Secure`;
 		}
