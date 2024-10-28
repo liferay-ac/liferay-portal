@@ -60,10 +60,15 @@ public class DisconnectDataSourcesMVCActionCommand
 			ThemeDisplay themeDisplay =
 				(ThemeDisplay)actionRequest.getAttribute(WebKeys.THEME_DISPLAY);
 
-			options.setLocation(
-				StringBundler.concat(
-					themeDisplay.getPortalURL(), "/o/faro/contacts/",
-					faroProject.getGroupId(), "/data_source/disconnect-all"));
+			String url = StringBundler.concat(
+				themeDisplay.getPortalURL(), "/o/faro/contacts/",
+				faroProject.getGroupId(), "/data_source/disconnect-all");
+
+			if (_log.isDebugEnabled()) {
+				_log.debug("Disconnect all data sources URL: " + url);
+			}
+
+			options.setLocation(url);
 
 			options.setPost(true);
 			options.setHeaders(getHeaders(actionRequest));
