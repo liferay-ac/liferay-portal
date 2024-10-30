@@ -450,6 +450,23 @@ public class SegmentsDisplayContextTest {
 				_isRoleSegmentationEnabled(TestPropsValues.getCompanyId()));
 		}
 	}
+	
+	@Test
+	public void testIsRoleSegmentationEnabled2() throws Exception {
+		Dictionary<String, Object> dictionary =
+			HashMapDictionaryBuilder.<String, Object>put(
+				"roleSegmentationEnabled", true
+			).build();
+
+		try (ConfigurationTemporarySwapper configurationTemporarySwapper =
+				new ConfigurationTemporarySwapper(
+					"com.liferay.segments.configuration.SegmentsConfiguration",
+					dictionary)) {
+
+			Assert.assertTrue(
+				_isRoleSegmentationEnabled(TestPropsValues.getCompanyId()));
+		}
+	}
 
 	@Test
 	public void testIsSegmentationDisabled() throws Exception {
