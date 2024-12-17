@@ -226,13 +226,8 @@ definition {
 	}
 
 	@description = "Feature ID: Legacy | Automation ID: LRAC-8692 | Test Summary: Check pageViewed is triggered with formViewed"
-	@ignore = "true"
 	@priority = 4
 	test CheckPageViewedIsTriggeredWithFormViewed {
-
-		// AC Bug: Unable to search using special characters
-		// AC Bug ticket: LRAC-13715
-
 		property proxy.server.enabled = "true";
 
 		task ("Get formId of form") {
