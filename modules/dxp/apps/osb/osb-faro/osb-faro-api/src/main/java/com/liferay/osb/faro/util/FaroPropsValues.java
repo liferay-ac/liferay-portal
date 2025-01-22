@@ -28,10 +28,9 @@ public class FaroPropsValues {
 			PropsUtil.get("faro.mock.osb.account.entry"),
 			System.getenv("FARO_MOCK_OSB_ACCOUNT_ENTRY"));
 
-	public static final String FARO_PENDO_API_KEY =
-		GetterUtil.getString(
-			PropsUtil.get("faro.pendo.api.key"),
-			System.getenv("FARO_PENDO_API_KEY"));
+	public static final String FARO_PENDO_API_KEY = GetterUtil.getString(
+		PropsUtil.get("faro.pendo.api.key"),
+		System.getenv("FARO_PENDO_API_KEY"));
 
 	public static final String FARO_PROJECT_ID = GetterUtil.getString(
 		PropsUtil.get("faro.project.id"), System.getenv("FARO_PROJECT_ID"));
