@@ -64,6 +64,7 @@ page import="com.liferay.portal.kernel.util.PortalUtil" %>
 		.put("locale", locale.toString())
 		.put("pagination", FaroPaginationConstants.getConstants())
 		.put("pathThemeRoot", themeDisplay.getPathThemeRoot())
+		.put("pendoApiKey", FaroPropsValues.FARO_PENDO_API_KEY)
 		.put("portletNamespace", PortalUtil.getPortletNamespace(FaroPortletKeys.FARO))
 		.put("preferencesScopes", FaroPreferencesConstants.getScopes())
 		.put("projectLocations", LCPProjectConstants.getLocations())
