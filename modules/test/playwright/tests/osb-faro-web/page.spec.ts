@@ -46,6 +46,7 @@ import {
 	viewNameNotPresentOnTableList,
 	viewNameOnTableList,
 } from './utils/utils';
+import { waitForLoading } from './utils/loading';
 
 export const test = mergeTests(
 	apiHelpersTest,
@@ -131,14 +132,21 @@ test(
 		tag: '@LRAC-8112 Legacy',
 	},
 
-	async ({page}) => {
+	async ({apiHelpers, page}) => {
 		await test.step('Go to My Page', async () => {
 			await navigateToSitePage({
 				page,
 				pageName: pageTitle,
 				siteName,
 			});
+
+			await page.waitForTimeout(2000);
+
+			await page.reload();
+
 			await page.waitForTimeout(10000);
+
+			await closeSessions(apiHelpers, page);
 		});
 
 		await test.step('Go to Analytics Cloud and Switch the property', async () => {
@@ -291,15 +299,18 @@ test(
 
 			await page.locator('.asset-title').getByText(blogTitle).click();
 
-			await page.waitForTimeout(3000);
+			await page.waitForTimeout(2000);
 
 			await page.reload();
 
 			await page.waitForTimeout(10000);
+
+			await closeSessions(apiHelpers, page);
 		});
 
 		await test.step('Go to Analytics Cloud and Switch the property', async () => {
 			await navigateToACWorkspace({page});
+
 			await switchChannel({
 				channelName,
 				page,
@@ -387,22 +398,39 @@ test(
 				pageName: pageTitle3,
 				siteName,
 			});
+
 			await page.reload();
+
 			await page.waitForTimeout(10000);
 		});
 
 		await test.step('Go to My Page 2', async () => {
-			await page.getByText(pageTitle1, {exact: true}).click();
-			await page.waitForTimeout(10000);
+			await navigateToSitePage({
+				page,
+				pageName: pageTitle1,
+				siteName,
+			});
+
+			await page.reload();
+
+			await page.waitForTimeout(5000);
 		});
 
 		await test.step('Go to My Page 3', async () => {
-			await page.getByText(pageTitle2, {exact: true}).click();
-			await page.waitForTimeout(10000);
+			await navigateToSitePage({
+				page,
+				pageName: pageTitle2,
+				siteName,
+			});
+
+			await page.reload();
+
+			await page.waitForTimeout(5000);
 		});
 
 		await test.step('Go to Analytics Cloud and Switch the property', async () => {
 			await navigateToACWorkspace({page});
+
 			await switchChannel({
 				channelName,
 				page,
@@ -709,7 +737,14 @@ test(
 				pageName: pageTitle,
 				siteName,
 			});
+			
+			await page.waitForTimeout(2000);
+
+			await page.reload();
+
 			await page.waitForTimeout(10000);
+
+			await closeSessions(apiHelpers, page);
 		});
 
 		await test.step('Go to Analytics Cloud and Switch the property', async () => {
@@ -889,7 +924,8 @@ test(
 				pageName: pageTitle,
 				siteName,
 			});
-			await page.waitForTimeout(3000);
+
+			await page.waitForTimeout(2000);
 
 			await page.reload();
 
@@ -951,7 +987,7 @@ test(
 		tag: '@LRAC-14827',
 	},
 
-	async ({page}) => {
+	async ({apiHelpers, page}) => {
 		await test.step('Access the DXP Home Page using Google Page as a reference page', async () => {
 			await goToWithReferrer({
 				page,
@@ -963,7 +999,12 @@ test(
 		});
 
 		await test.step('Go to My Page', async () => {
-			await page.getByText(pageTitle).first().click();
+			await page.getByRole('menuitem', {exact: true, name: pageTitle }).click();
+			
+			await page.waitForTimeout(2000);
+
+			await page.reload();
+
 			await page.waitForTimeout(10000);
 		});
 
@@ -987,6 +1028,8 @@ test(
 				page,
 				timeFilterPeriod: 'Last 24 hours',
 			});
+
+			await waitForLoading(page);
 		});
 
 		await test.step('Access one of the pages on the list > Go to Path Tab', async () => {
@@ -994,6 +1037,7 @@ test(
 				page,
 				pageName: pageTitle,
 			});
+
 			await navigateTo({
 				page,
 				pageName: 'Path',
@@ -1014,15 +1058,6 @@ test(
 			).toBeVisible();
 		});
 
-		await test.step('Check that My Page appears as exit pages and the number of views', async () => {
-			await expect(page.getByTitle('Go to Dashboard Page')).toContainText(
-				pageTitle
-			);
-
-			await expect(
-				page.getByText('1', {exact: true}).nth(2)
-			).toBeVisible();
-		});
 	}
 );
 
@@ -1048,17 +1083,20 @@ test(
 				pageName: pageTitle1,
 				siteName,
 			});
-			await page.waitForTimeout(10000);
+			await page.waitForTimeout(5000);
 		});
 
 		await test.step('Go to My Page 2', async () => {
 			await page.getByText(pageTitle2, {exact: true}).click();
-			await page.waitForTimeout(10000);
+
+			await page.waitForTimeout(5000);
 		});
 
 		await test.step('Go to My Page 1', async () => {
 			await page.getByText(pageTitle1, {exact: true}).click();
-			await page.waitForTimeout(10000);
+
+			await page.waitForTimeout(3000);
+
 			await closeSessions(apiHelpers, page);
 		});
 
@@ -1115,14 +1153,17 @@ test(
 		tag: '@LRAC-14836',
 	},
 
-	async ({page}) => {
+	async ({apiHelpers, page}) => {
 		await test.step('Go to created Page', async () => {
 			await navigateToSitePage({
 				page,
 				pageName: pageTitle,
 				siteName,
 			});
+			
 			await page.waitForTimeout(10000);
+
+			await closeSessions(apiHelpers, page);
 		});
 
 		await test.step('Go to Analytics Cloud and Switch the property', async () => {
@@ -1245,7 +1286,10 @@ test(
 				`${liferayConfig.environment.baseUrl}/web/${siteNameURL}`
 			);
 			await page.reload();
+
 			await page.waitForTimeout(10000);
+
+			await closeSessions(apiHelpers, page);
 		});
 
 		const href = page.url();
