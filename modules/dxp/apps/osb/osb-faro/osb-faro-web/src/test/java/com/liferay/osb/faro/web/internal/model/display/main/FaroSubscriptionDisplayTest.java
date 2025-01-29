@@ -774,13 +774,13 @@ public class FaroSubscriptionDisplayTest {
 	}
 
 	private Date _addToDate(Date date, int field, int increment) {
-		Calendar cal = Calendar.getInstance();
+		Calendar calendar = Calendar.getInstance();
 
-		cal.setTime(date);
+		calendar.setTime(date);
 
-		cal.add(field, increment);
+		calendar.add(field, increment);
 
-		return cal.getTime();
+		return calendar.getTime();
 	}
 
 	private void _assertCounts(
