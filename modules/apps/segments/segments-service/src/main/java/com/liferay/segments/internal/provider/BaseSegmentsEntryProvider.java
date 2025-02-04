@@ -13,8 +13,11 @@ import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -36,8 +39,10 @@ import com.liferay.segments.provider.SegmentsEntryProvider;
 import com.liferay.segments.service.SegmentsEntryLocalService;
 import com.liferay.segments.service.SegmentsEntryRelLocalService;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Reference;
 
@@ -307,6 +312,9 @@ public abstract class BaseSegmentsEntryProvider
 	protected Portal portal;
 
 	@Reference
+	protected RoleLocalService roleLocalService;
+
+	@Reference
 	protected SegmentsCriteriaContributorRegistry
 		segmentsCriteriaContributorRegistry;
 
@@ -359,12 +367,8 @@ public abstract class BaseSegmentsEntryProvider
 		).put(
 			"groupIds", user.getGroupIds()
 		).put(
-			"inheritedRoleIds",
-			TransformUtil.transform(
-				user.getInheritedRoles(), role -> role.getRoleId()
-			).toArray(
-				new Long[0]
-			)
+			"inheritedUserGroupRoleIds",
+			_getUserUserGroupRoleIds(user.getInheritedGroups())
 		).put(
 			"organizationIds", user.getOrganizationIds()
 		).put(
@@ -383,6 +387,20 @@ public abstract class BaseSegmentsEntryProvider
 				new Long[0]
 			)
 		).build();
+	}
+
+	private long[] _getUserUserGroupRoleIds(List<Group> groups) {
+		Set<Role> roles = new HashSet<>();
+
+		for (Group group : groups) {
+			if (!roleLocalService.hasGroupRoles(group.getGroupId())) {
+				continue;
+			}
+
+			roles.addAll(roleLocalService.getGroupRoles(group.getGroupId()));
+		}
+
+		return TransformUtil.transformToLongArray(roles, Role::getRoleId);
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

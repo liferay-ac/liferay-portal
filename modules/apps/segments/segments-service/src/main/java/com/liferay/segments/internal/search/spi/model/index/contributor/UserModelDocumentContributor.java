@@ -8,14 +8,20 @@ package com.liferay.segments.internal.search.spi.model.index.contributor;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Document;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.search.spi.model.index.contributor.ModelDocumentContributor;
 import com.liferay.segments.model.SegmentsEntryRel;
 import com.liferay.segments.service.SegmentsEntryRelLocalService;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -33,10 +39,14 @@ public class UserModelDocumentContributor
 	@Override
 	public void contribute(Document document, User user) {
 		try {
-			long[] inheritedRoleIds = _getInheritedRoleIds(user);
+			List<Group> inheritedGroups = user.getInheritedGroups();
 
-			if (ArrayUtil.isNotEmpty(inheritedRoleIds)) {
-				document.addKeyword("inheritedRoleIds", inheritedRoleIds);
+			if (!inheritedGroups.isEmpty()) {
+				long[] roleIds = _getUserUserGroupRoleIds(inheritedGroups);
+
+				if (ArrayUtil.isNotEmpty(roleIds)) {
+					document.addKeyword("inheritedUserGroupRoleIds", roleIds);
+				}
 			}
 
 			long[] segmentsEntryIds = _getSegmentsEntryIds(user);
@@ -53,11 +63,6 @@ public class UserModelDocumentContributor
 		}
 	}
 
-	private long[] _getInheritedRoleIds(User user) throws Exception {
-		return TransformUtil.transformToLongArray(
-			user.getInheritedRoles(), Role::getRoleId);
-	}
-
 	private long[] _getSegmentsEntryIds(User user) throws Exception {
 		return TransformUtil.transformToLongArray(
 			_segmentsEntryRelLocalService.getSegmentsEntryRels(
@@ -65,11 +70,28 @@ public class UserModelDocumentContributor
 			SegmentsEntryRel::getSegmentsEntryId);
 	}
 
+	private long[] _getUserUserGroupRoleIds(List<Group> groups) {
+		Set<Role> roles = new HashSet<>();
+
+		for (Group group : groups) {
+			if (!_roleLocalService.hasGroupRoles(group.getGroupId())) {
+				continue;
+			}
+
+			roles.addAll(_roleLocalService.getGroupRoles(group.getGroupId()));
+		}
+
+		return TransformUtil.transformToLongArray(roles, Role::getRoleId);
+	}
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		UserModelDocumentContributor.class);
 
 	@Reference
 	private Portal _portal;
+
+	@Reference
+	private RoleLocalService _roleLocalService;
 
 	@Reference
 	private SegmentsEntryRelLocalService _segmentsEntryRelLocalService;
