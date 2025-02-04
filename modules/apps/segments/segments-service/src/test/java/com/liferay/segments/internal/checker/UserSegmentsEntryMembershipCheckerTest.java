@@ -277,7 +277,7 @@ public class UserSegmentsEntryMembershipCheckerTest {
 		).put(
 			"groupIds", new long[] {1}
 		).put(
-			"inheritedRoleIds", new long[] {1}
+			"inheritedUserGroupRoleIds", new long[] {1}
 		).put(
 			"jobTitle", "test"
 		).put(

@@ -61,8 +61,8 @@ public class UserEntityModel extends BaseExpandoEntityModel {
 			new IdEntityField(
 				"groupIds", locale -> "groupIds", String::valueOf),
 			new IdEntityField(
-				"inheritedRoleIds", locale -> "inheritedRoleIds",
-				String::valueOf),
+				"inheritedUserGroupRoleIds",
+				locale -> "inheritedUserGroupRoleIds", String::valueOf),
 			new IdEntityField(
 				"organizationIds", locale -> "organizationIds",
 				String::valueOf),

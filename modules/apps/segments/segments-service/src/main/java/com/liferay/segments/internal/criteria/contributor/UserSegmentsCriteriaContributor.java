@@ -63,7 +63,7 @@ public class UserSegmentsCriteriaContributor
 					StringPool.BLANK, StringPool.OPEN_PARENTHESIS,
 					matcher.group(), StringPool.SPACE,
 					Criteria.Conjunction.OR.getValue(), StringPool.SPACE,
-					"inheritedRoleIds eq ", StringPool.APOSTROPHE,
+					"inheritedUserGroupRoleIds eq ", StringPool.APOSTROPHE,
 					String.valueOf(_getRoleId(matcher.group())),
 					StringPool.APOSTROPHE, StringPool.CLOSE_PARENTHESIS));
 		}

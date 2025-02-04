@@ -137,8 +137,9 @@ public class UserSegmentsCriteriaContributorTest {
 			Criteria.Conjunction.AND);
 
 		Assert.assertEquals(
-			"((roleIds eq '33916' or inheritedRoleIds eq '33916') and (not " +
-				"((roleIds eq '20101' or inheritedRoleIds eq '20101'))))",
+			"((roleIds eq '33916' or inheritedUserGroupRoleIds eq '33916') " +
+				"and (not ((roleIds eq '20101' or inheritedUserGroupRoleIds " +
+					"eq '20101'))))",
 			criteria.getFilterString(Criteria.Type.MODEL));
 	}
 
