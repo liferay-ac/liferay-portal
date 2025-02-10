@@ -484,9 +484,12 @@ function start_additional_bundles {
 }
 
 function start_analytics_cloud {
-	cd ${_PORTAL_PROJECT_DIR}
+	if [[ "$RELEASE_ROUTINE" === false ]]
+	then
+		cd ${_PORTAL_PROJECT_DIR}
 
-	ant -f build-test-analytics-cloud.xml start-analytics-cloud
+		ant -f build-test-analytics-cloud.xml start-analytics-cloud
+	fi
 }
 
 function start_app_server {

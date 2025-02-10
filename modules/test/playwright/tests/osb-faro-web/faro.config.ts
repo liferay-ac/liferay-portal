@@ -5,9 +5,11 @@
 
 const faroConfig = {
 	environment: {
-		baseUrl: process.env.FARO_URL
-			? process.env.FARO_URL
-			: 'http://osbfarofrontend:8080',
+		baseUrl: process.env.RELEASE_ROUTINE === 'true'
+			? 'https://analytics-stg.liferay.com/'
+			: process.env.FARO_URL
+				? process.env.FARO_URL
+				: 'http://osbfarofrontend:8080',
 	},
 	user: {
 		login: process.env.FARO_USER_LOGIN || 'test@liferay.com',

@@ -31,6 +31,10 @@ function loginAnalyticsCloudTest() {
 
 					await page.goto(faroConfig.environment.baseUrl);
 
+					await page.reload();
+
+					console.log(faroConfig.environment.baseUrl);
+
 					await page.getByRole('button', {name: 'Sign In'}).click();
 
 					await page.getByLabel('Email Address').fill(user);
