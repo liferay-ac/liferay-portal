@@ -721,6 +721,12 @@ OSB_FARO_FRONTEND_URL=${analytics.cloud.faro.frontend.url}</echo>
 
 	<macrodef name="start-analytics-cloud">
 		<sequential>
+			<condition property="releaseRoutineEnabled">
+				<equals arg1="${env.RELEASE_ROUTINE}" arg2="true"/>
+			</condition>
+
+			<fail message="Skipping start-analytics-cloud because RELEASE_ROUTINE is enabled." if="releaseRoutineEnabled" />
+			
 			<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
 
 			<build-analytics-cloud-images />
