@@ -484,7 +484,7 @@ function start_additional_bundles {
 }
 
 function start_analytics_cloud {
-	if [[ "$RELEASE_ROUTINE" === false ]]
+	if [[ "$TESTRAY_ROUTINE_NAME" == "[master] ci:test:analytics-cloud-release" ]]
 	then
 		cd ${_PORTAL_PROJECT_DIR}
 

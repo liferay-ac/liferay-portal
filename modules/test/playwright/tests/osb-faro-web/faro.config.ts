@@ -5,7 +5,7 @@
 
 const faroConfig = {
 	environment: {
-		baseUrl: process.env.RELEASE_ROUTINE === 'true'
+		baseUrl: process.env.TESTRAY_ROUTINE_NAME === "[master] ci:test:analytics-cloud-release"
 			? 'https://analytics-stg.liferay.com/'
 			: process.env.FARO_URL
 				? process.env.FARO_URL
