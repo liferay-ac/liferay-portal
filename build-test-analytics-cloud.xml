@@ -721,12 +721,12 @@ OSB_FARO_FRONTEND_URL=${analytics.cloud.faro.frontend.url}</echo>
 
 	<macrodef name="start-analytics-cloud">
 		<sequential>
-			<condition property="releaseRoutineEnabled">
-				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release"/>
-			</condition>
-
-			<fail message="Skipping start-analytics-cloud because TESTRAY_ROUTINE_NAME is set to '[master] ci:test:analytics-cloud-release'." if="releaseRoutineEnabled" />
-			
+			<if>
+            <not>
+                <equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release" />
+            </not>
+            <then>
+								
 			<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
 
 			<build-analytics-cloud-images />
@@ -795,6 +795,8 @@ OSB_FARO_FRONTEND_URL=${analytics.cloud.faro.frontend.url}</echo>
 					<fail message="${analytics.cloud.error}" />
 				</catch>
 			</trycatch>
+			</then>
+			</if>
 		</sequential>
 	</macrodef>
 
