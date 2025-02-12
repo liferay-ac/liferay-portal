@@ -724,10 +724,10 @@ OSB_FARO_FRONTEND_URL=${analytics.cloud.faro.frontend.url}</echo>
 			<if>
 				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release"/>
 			<then>
-				<fail message="Running tests for the release suite." />
+				<echo>Release!</echo>
 			</then>
     		<else>
-		
+
 			<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
 
 			<build-analytics-cloud-images />
@@ -898,6 +898,13 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 
 	<macrodef name="stop-analytics-cloud">
 		<sequential>
+		<if>
+				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release"/>
+			<then>
+				<echo>Release!</echo>
+			</then>
+    		<else>
+
 			<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
 
 			<create-analytics-cloud-docker-compose start.analytics.cloud="true" />
@@ -913,6 +920,8 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 
 				docker system df
 			</execute>
+			</else>
+			</if>
 		</sequential>
 	</macrodef>
 
