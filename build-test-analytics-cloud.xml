@@ -722,27 +722,26 @@ OSB_FARO_FRONTEND_URL=${analytics.cloud.faro.frontend.url}</echo>
 	<macrodef name="start-analytics-cloud">
 		<sequential>
 			<if>
-				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release"/>
-			<then>
-				<echo>Release!</echo>
-			</then>
-    		<else>
+				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release" />
+				<then>
+					<echo>Release!</echo>
+				</then>
+				<else>
+					<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
 
-			<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
+					<build-analytics-cloud-images />
 
-			<build-analytics-cloud-images />
+					<create-analytics-cloud-docker-compose start.analytics.cloud="true" />
 
-			<create-analytics-cloud-docker-compose start.analytics.cloud="true" />
+					<print-file file.name="${analytics.cloud.docker.test.yaml}" />
 
-			<print-file file.name="${analytics.cloud.docker.test.yaml}" />
-
-			<trycatch>
-				<try>
-					<trycatch property="analytics.cloud.error">
+					<trycatch>
 						<try>
-							<local name="analytics.cloud.start.result" />
+							<trycatch property="analytics.cloud.error">
+								<try>
+									<local name="analytics.cloud.start.result" />
 
-							<execute-analytics-cloud dir="${analytics.cloud.asah.dir}" resultproperty="analytics.cloud.start.result" timeout="${analytics.cloud.start.timeout}">
+									<execute-analytics-cloud dir="${analytics.cloud.asah.dir}" resultproperty="analytics.cloud.start.result" timeout="${analytics.cloud.start.timeout}">
 								#!/bin/bash
 
 								touch local.env
@@ -772,31 +771,31 @@ OSB_FARO_FRONTEND_URL=${analytics.cloud.faro.frontend.url}</echo>
 								docker logs ${analytics.cloud.faro.container.name}
 
 								docker system df
-							</execute-analytics-cloud>
+									</execute-analytics-cloud>
 
-							<if>
-								<not>
-									<equals arg1="${analytics.cloud.start.result}" arg2="0" />
-								</not>
-								<then>
-									<fail message="Failed to start Analytics Cloud with error code ${analytics.cloud.start.result}." />
-								</then>
-							</if>
+									<if>
+										<not>
+											<equals arg1="${analytics.cloud.start.result}" arg2="0" />
+										</not>
+										<then>
+											<fail message="Failed to start Analytics Cloud with error code ${analytics.cloud.start.result}." />
+										</then>
+									</if>
+								</try>
+								<catch>
+									<print-analytics-cloud-logs />
+
+									<stop-analytics-cloud />
+
+									<fail message="${analytics.cloud.error}" />
+								</catch>
+							</trycatch>
 						</try>
 						<catch>
-							<print-analytics-cloud-logs />
-
-							<stop-analytics-cloud />
-
 							<fail message="${analytics.cloud.error}" />
 						</catch>
 					</trycatch>
-				</try>
-				<catch>
-					<fail message="${analytics.cloud.error}" />
-				</catch>
-			</trycatch>
-			</else>
+				</else>
 			</if>
 		</sequential>
 	</macrodef>
@@ -898,20 +897,19 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 
 	<macrodef name="stop-analytics-cloud">
 		<sequential>
-		<if>
-				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release"/>
-			<then>
-				<echo>Release!</echo>
-			</then>
-    		<else>
+			<if>
+				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release" />
+				<then>
+					<echo>Release!</echo>
+				</then>
+				<else>
+					<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
 
-			<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
+					<create-analytics-cloud-docker-compose start.analytics.cloud="true" />
 
-			<create-analytics-cloud-docker-compose start.analytics.cloud="true" />
+					<property location="${analytics.cloud.asah.dir}/docker-compose.test.yml" name="analytics.cloud.docker.test.yaml" />
 
-			<property location="${analytics.cloud.asah.dir}/docker-compose.test.yml" name="analytics.cloud.docker.test.yaml" />
-
-			<execute dir="${analytics.cloud.asah.dir}">
+					<execute dir="${analytics.cloud.asah.dir}">
 				docker ps -a
 
 				touch local.env
@@ -919,8 +917,8 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 				docker-compose --file=${analytics.cloud.docker.test.yaml} --project-name=${analytics.cloud.project.name} down --volumes
 
 				docker system df
-			</execute>
-			</else>
+					</execute>
+				</else>
 			</if>
 		</sequential>
 	</macrodef>

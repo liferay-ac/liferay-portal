@@ -3411,19 +3411,18 @@ tell application "Safari" to quit
 					<equals arg1="${analytics.cloud.enabled}" arg2="true" />
 					<then>
 						<if>
-				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release"/>
-			<then>
-				<echo append="true" file="${test.ext.properties.file}">
+							<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release" />
+							<then>
+								<echo append="true" file="${test.ext.properties.file}">
 							analytics.cloud.url=${analytics.cloud.staging.url}
-						</echo>
-			</then>
-    		<else>
-			<echo append="true" file="${test.ext.properties.file}">
+								</echo>
+							</then>
+							<else>
+								<echo append="true" file="${test.ext.properties.file}">
 							analytics.cloud.url=${analytics.cloud.faro.frontend.url}
-						</echo>
-			</else>
-			</if>
-						
+								</echo>
+							</else>
+						</if>
 					</then>
 				</elseif>
 			</if>
@@ -13548,10 +13547,6 @@ captcha.enforce.disabled=true</echo>
 		<antcall target="deploy-license-xml">
 			<param name="test.build.license.xml.zip.url" value="${test.license.xml.url}" />
 		</antcall>
-	</target>
-
-	<target name="prepare-selenium-test">
-	<prepare-selenium-analytics-cloud-properties />
 	</target>
 
 	<target name="prepare-selenium">
