@@ -14,9 +14,9 @@ import com.liferay.osb.faro.engine.client.util.OrderByField;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.web.internal.model.display.contacts.ActivityGroupDisplay;
 import com.liferay.osb.faro.web.internal.model.display.main.FaroEntityDisplay;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
-import com.liferay.portal.kernel.util.MapUtil;
 
 import java.util.Collections;
 import java.util.Map;

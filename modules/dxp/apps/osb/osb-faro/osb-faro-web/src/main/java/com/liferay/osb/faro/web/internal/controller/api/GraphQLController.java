@@ -17,10 +17,10 @@ import com.liferay.osb.faro.util.FaroPropsValues;
 import com.liferay.osb.faro.web.internal.context.GroupInfo;
 import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
 import com.liferay.osb.faro.web.internal.util.JSONUtil;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.util.MapUtil;
 
 import java.net.URI;
 import java.net.URISyntaxException;

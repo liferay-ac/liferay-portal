@@ -5,8 +5,8 @@
 
 package com.liferay.osb.faro.web.internal.controller.api;
 
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
-import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Validator;
 
 import java.util.HashMap;

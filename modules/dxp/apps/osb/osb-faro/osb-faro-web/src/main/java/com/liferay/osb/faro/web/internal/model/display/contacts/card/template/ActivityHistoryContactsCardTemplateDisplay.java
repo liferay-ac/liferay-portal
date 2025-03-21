@@ -11,8 +11,8 @@ import com.liferay.osb.faro.engine.client.model.ActivityAggregation;
 import com.liferay.osb.faro.engine.client.model.Results;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.web.internal.model.display.main.FaroEntityDisplay;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
-import com.liferay.portal.kernel.util.MapUtil;
 
 import java.util.Map;
 

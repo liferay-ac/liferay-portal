@@ -8,7 +8,7 @@ package com.liferay.osb.faro.web.internal.model.display.contacts.card.template;
 import com.liferay.osb.faro.contacts.model.ContactsCardTemplate;
 import com.liferay.osb.faro.engine.client.ContactsEngineClient;
 import com.liferay.osb.faro.model.FaroProject;
-import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 
 import java.util.Arrays;
 import java.util.List;

@@ -9,7 +9,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import com.liferay.osb.faro.engine.client.model.IndividualSegmentMembershipChange;
 import com.liferay.osb.faro.web.internal.util.JSONUtil;
-import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 
 import java.util.Date;
 import java.util.List;

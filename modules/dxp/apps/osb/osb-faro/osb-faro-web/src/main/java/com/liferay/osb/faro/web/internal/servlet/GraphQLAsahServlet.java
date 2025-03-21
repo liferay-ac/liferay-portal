@@ -12,11 +12,11 @@ import com.liferay.osb.faro.service.FaroChannelLocalService;
 import com.liferay.osb.faro.util.FaroPermissionChecker;
 import com.liferay.osb.faro.web.internal.util.FaroProjectThreadLocal;
 import com.liferay.osb.faro.web.internal.util.JSONUtil;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.servlet.ServletResponseUtil;
-import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 
 import java.io.IOException;

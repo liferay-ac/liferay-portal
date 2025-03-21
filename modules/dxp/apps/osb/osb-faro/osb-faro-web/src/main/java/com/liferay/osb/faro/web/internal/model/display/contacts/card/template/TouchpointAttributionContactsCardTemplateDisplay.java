@@ -11,7 +11,7 @@ import com.liferay.osb.faro.contacts.model.ContactsCardTemplate;
 import com.liferay.osb.faro.engine.client.ContactsEngineClient;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.web.internal.util.JSONUtil;
-import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 
 import java.util.List;
 

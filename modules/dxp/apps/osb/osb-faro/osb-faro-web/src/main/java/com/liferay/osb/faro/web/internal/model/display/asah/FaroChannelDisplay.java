@@ -9,7 +9,7 @@ import com.liferay.osb.faro.engine.client.model.Channel;
 import com.liferay.osb.faro.engine.client.model.credentials.DummyCredentials;
 import com.liferay.osb.faro.engine.client.model.credentials.TokenCredentials;
 import com.liferay.osb.faro.model.FaroChannel;
-import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 
 import java.util.List;

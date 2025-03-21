@@ -24,7 +24,7 @@ import com.liferay.osb.faro.engine.client.model.Organization;
 import com.liferay.osb.faro.web.internal.constants.FaroConstants;
 import com.liferay.osb.faro.web.internal.model.display.main.FaroEntityDisplay;
 import com.liferay.osb.faro.web.internal.util.JSONUtil;
-import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 
 import java.util.Collections;
 import java.util.Date;

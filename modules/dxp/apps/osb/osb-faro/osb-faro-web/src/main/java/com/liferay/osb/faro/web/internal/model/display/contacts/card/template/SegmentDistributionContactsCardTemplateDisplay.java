@@ -18,12 +18,12 @@ import com.liferay.osb.faro.web.internal.model.display.contacts.FieldMappingDisp
 import com.liferay.osb.faro.web.internal.model.display.main.FaroEntityDisplay;
 import com.liferay.osb.faro.web.internal.util.IndividualSegmentUtil;
 import com.liferay.osb.faro.web.internal.util.JSONUtil;
+import com.liferay.osb.faro.web.internal.util.MapUtil;
 import com.liferay.osb.faro.web.internal.util.SchemaOrgUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
-import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Validator;
 
 import java.util.ArrayList;
