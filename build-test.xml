@@ -6583,6 +6583,8 @@ ${custom.upgrade.properties}</echo>
 			<generate-jdbc-properties properties.file="portal-impl/test/portal-test-ext.properties">
 				<post-action>
 					<echo file="@{properties.file}" append="true"><![CDATA[
+analytics.cloud.domain.allowed=*
+
 module.framework.base.dir=${liferay.home}/osgi
 
 memory.scheduler.org.quartz.threadPool.threadCount=1
