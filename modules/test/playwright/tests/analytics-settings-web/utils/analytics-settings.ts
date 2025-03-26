@@ -28,6 +28,8 @@ export async function connectToAnalyticsCloud(page: Page) {
 	await page.keyboard.press('Control+V');
 
 	await page.getByRole('button', {name: 'Connect'}).click();
+
+ 	expect(page.getByText('Error:Token is not valid.')).toBeVisible();
 }
 
 export async function connectToAnalyticsCloudWithNoSiteSynced(page: Page) {
@@ -108,7 +110,6 @@ export async function findChannel({
 	page: Page;
 }): Promise<any> {
 	await page.waitForSelector('[data-testid="properties"]');
-
 	await page.getByPlaceholder('Search').first().fill(channelName);
 
 	await page.getByRole('button', {name: 'Search'}).first().click();
