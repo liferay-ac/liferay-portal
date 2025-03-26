@@ -1239,7 +1239,7 @@ public class ProjectController extends BaseFaroController {
 		faroProject.setSubscription(
 			JSONUtil.writeValueAsString(faroSubscriptionDisplay));
 
-		Date date = new Date();
+		Date date = new Date(); //26/03/25
 
 		date = new Date(date.getTime() / Time.DAY * Time.DAY);
 
@@ -1258,6 +1258,8 @@ public class ProjectController extends BaseFaroController {
 
 		if (DateUtil.compareTo(startDate, lastAnniversaryDate) < 0) {
 			startDate = lastAnniversaryDate;
+			
+			calendar1.setTime(lastAnniversaryDate);
 		}
 
 		while (DateUtil.compareTo(date, startDate) > 0) {
