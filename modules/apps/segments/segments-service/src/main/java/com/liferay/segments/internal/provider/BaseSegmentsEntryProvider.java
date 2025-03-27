@@ -142,22 +142,31 @@ public abstract class BaseSegmentsEntryProvider
 			return new long[0];
 		}
 
-		return TransformUtil.transformToLongArray(
-			segmentsEntries,
-			segmentsEntry -> {
-				if ((ArrayUtil.isNotEmpty(filterSegmentsEntryIds) &&
-					 !ArrayUtil.contains(
-						 filterSegmentsEntryIds,
-						 segmentsEntry.getSegmentsEntryId())) ||
-					!isMember(
-						className, classPK, context, segmentsEntry,
-						segmentsEntryIds, _getUserAttributes(user))) {
+		try {
+			Map<String, Object> userAttributes = _getUserAttributes(user);
 
-					return null;
-				}
+			return TransformUtil.transformToLongArray(
+				segmentsEntries,
+				segmentsEntry -> {
+					if ((ArrayUtil.isNotEmpty(filterSegmentsEntryIds) &&
+						 !ArrayUtil.contains(
+							 filterSegmentsEntryIds,
+							 segmentsEntry.getSegmentsEntryId())) ||
+						!isMember(
+							className, classPK, context, segmentsEntry,
+							segmentsEntryIds, userAttributes)) {
 
-				return segmentsEntry.getSegmentsEntryId();
-			});
+						return null;
+					}
+
+					return segmentsEntry.getSegmentsEntryId();
+				});
+		}
+		catch (Exception exception) {
+			_log.error(exception);
+		}
+
+		return new long[0];
 	}
 
 	protected Criteria.Conjunction getConjunction(
