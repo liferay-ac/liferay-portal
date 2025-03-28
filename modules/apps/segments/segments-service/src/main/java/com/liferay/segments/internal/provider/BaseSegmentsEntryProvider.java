@@ -148,13 +148,13 @@ public abstract class BaseSegmentsEntryProvider
 			return TransformUtil.transformToLongArray(
 				segmentsEntries,
 				segmentsEntry -> {
-					if ((ArrayUtil.isNotEmpty(filterSegmentsEntryIds) &&
-						 !ArrayUtil.contains(
-							 filterSegmentsEntryIds,
-							 segmentsEntry.getSegmentsEntryId())) ||
-						!isMember(
-							className, classPK, context, segmentsEntry,
-							segmentsEntryIds, userAttributes)) {
+					if (ArrayUtil.isNotEmpty(filterSegmentsEntryIds) &&
+						(!ArrayUtil.contains(
+							filterSegmentsEntryIds,
+							segmentsEntry.getSegmentsEntryId()) ||
+						 !isMember(
+							 className, classPK, context, segmentsEntry,
+							 segmentsEntryIds, userAttributes))) {
 
 						return null;
 					}
