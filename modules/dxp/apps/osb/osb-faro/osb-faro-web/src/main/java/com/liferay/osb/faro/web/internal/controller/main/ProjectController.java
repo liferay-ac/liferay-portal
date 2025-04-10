@@ -1434,6 +1434,8 @@ public class ProjectController extends BaseFaroController {
 
 	private void _validateTimeZoneId(String timeZoneId) {
 		if (!TimeZoneUtil.validate(timeZoneId)) {
+			_log.error("Invalid timeZoneId " + timeZoneId);
+
 			throw new FaroValidationException(
 				"timeZoneId", _getTimeZoneIdErrorMessage(getUser()));
 		}
