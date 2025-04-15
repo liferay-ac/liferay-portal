@@ -4,6 +4,8 @@ Bundle-Version: 1.0.0
 Import-Package:\
 	!com.mifmif.common.regex.*,\
 	\
+	!jakarta.faces.*,\
+	\
 	!org.apache.commons.lang3.*,\
 	\
 	!org.yaml.snakeyaml.*,\

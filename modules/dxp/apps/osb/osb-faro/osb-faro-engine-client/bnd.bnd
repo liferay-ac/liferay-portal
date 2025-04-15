@@ -80,6 +80,8 @@ Import-Package:\
 	\
 	!io.undertow.*,\
 	\
+	!jakarta.faces.*,\
+	\
 	!javax.annotation.*,\
 	\
 	!javax.ejb.*,\
