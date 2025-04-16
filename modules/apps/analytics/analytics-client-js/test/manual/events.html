@@ -241,7 +241,7 @@
 				Object.keys(boxes)
 					.filter((key) => boxes[key] === 'hidden')
 					.forEach((key) => {
-						btns.push(`<button onclick='setShow("${key}")'>${key} X</button>`);
+						btns.push(`<button id="hidden-${key}-box-button">${key} X</button>`);
 					});
 
 				const hiddenBoxes = document.querySelector('#hiddenBoxes');
@@ -254,6 +254,12 @@
 									</div>
 								`;
 				}
+
+				Object.keys(boxes)
+					.filter((key) => boxes[key] === 'hidden')
+					.forEach((key) => {
+						document.querySelector(`#hidden-${key}-box-button`).onclick = event => setShow(key);
+					});
 			}
 
 			function renderBoxes() {
@@ -289,6 +295,12 @@
 			function init() {
 				renderBtns();
 				renderBoxes();
+
+				document.querySelector('#blog button').onclick = (event) => setHidden('blog');
+				document.querySelector('#custom button').onclick = (event) => setHidden('custom');
+				document.querySelector('#document button').onclick = (event) => setHidden('document');
+				document.querySelector('#form button').onclick = (event) => setHidden('form');
+				document.querySelector('#webContent button').onclick = (event) => setHidden('webContent');
 			}
 
 			init();
