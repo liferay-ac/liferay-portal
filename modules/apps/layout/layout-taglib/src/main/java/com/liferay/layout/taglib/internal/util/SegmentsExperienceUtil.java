@@ -36,6 +36,7 @@ public class SegmentsExperienceUtil {
 
 		SegmentsExperienceManager segmentsExperienceManager =
 			new SegmentsExperienceManager(
+				ServletContextUtil.getLayoutPermission(),
 				ServletContextUtil.getSegmentsExperienceLocalService());
 
 		return segmentsExperienceManager.getSegmentsExperienceId(

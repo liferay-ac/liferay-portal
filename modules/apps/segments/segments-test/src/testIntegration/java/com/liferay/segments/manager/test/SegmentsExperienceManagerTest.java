@@ -12,6 +12,7 @@ import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
+import com.liferay.portal.kernel.service.permission.LayoutPermission;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
@@ -57,7 +58,7 @@ public class SegmentsExperienceManagerTest {
 		_layout = LayoutTestUtil.addTypeContentLayout(_group);
 
 		_segmentsExperienceManager = new SegmentsExperienceManager(
-			_segmentsExperienceLocalService);
+			_layoutPermission, _segmentsExperienceLocalService);
 	}
 
 	@Test
@@ -202,6 +203,9 @@ public class SegmentsExperienceManagerTest {
 	private Group _group;
 
 	private Layout _layout;
+
+	@Inject
+	private LayoutPermission _layoutPermission;
 
 	@Inject
 	private Portal _portal;

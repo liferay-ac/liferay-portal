@@ -85,7 +85,7 @@ public class SegmentsExperienceSelectorProductNavigationControlMenuEntry
 						httpServletRequest, _jsonFactory, _language, _portal,
 						_segmentsEntryLocalService,
 						new SegmentsExperienceManager(
-							_segmentsExperienceLocalService),
+							_layoutPermission, _segmentsExperienceLocalService),
 						_segmentsExperienceLocalService,
 						_segmentsExperimentLocalService,
 						_segmentsExperimentRelLocalService);

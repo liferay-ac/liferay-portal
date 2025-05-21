@@ -8,6 +8,7 @@ package com.liferay.segments.experiment.web.internal.servlet.taglib;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.service.permission.LayoutPermission;
 import com.liferay.portal.kernel.servlet.taglib.DynamicInclude;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -64,7 +65,8 @@ public class SegmentsExperimentAnalyticsTopHeadDynamicInclude
 				SegmentsExperimentWebKeys.SEGMENTS_EXPERIMENT);
 
 		SegmentsExperienceManager segmentsExperienceManager =
-			new SegmentsExperienceManager(_segmentsExperienceLocalService);
+			new SegmentsExperienceManager(
+				_layoutPermission, _segmentsExperienceLocalService);
 
 		StringBundler sb = StringUtil.replaceToStringBundler(
 			_TMPL_CONTENT, "${", "}",
@@ -126,6 +128,9 @@ public class SegmentsExperimentAnalyticsTopHeadDynamicInclude
 
 	@Reference
 	private AnalyticsSettingsManager _analyticsSettingsManager;
+
+	@Reference
+	private LayoutPermission _layoutPermission;
 
 	@Reference
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;

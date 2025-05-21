@@ -15,6 +15,7 @@ import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.service.permission.LayoutPermission;
 import com.liferay.portal.kernel.servlet.ServletResponseUtil;
 import com.liferay.portal.kernel.struts.StrutsAction;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -142,7 +143,8 @@ public class GetLayoutReportsDataStrutsAction implements StrutsAction {
 
 		if (segmentsExperienceId == -1) {
 			SegmentsExperienceManager segmentsExperienceManager =
-				new SegmentsExperienceManager(_segmentsExperienceLocalService);
+				new SegmentsExperienceManager(
+					_layoutPermission, _segmentsExperienceLocalService);
 
 			segmentsExperienceId =
 				segmentsExperienceManager.getSegmentsExperienceId(
@@ -367,6 +369,9 @@ public class GetLayoutReportsDataStrutsAction implements StrutsAction {
 
 	@Reference
 	private Language _language;
+
+	@Reference
+	private LayoutPermission _layoutPermission;
 
 	@Reference
 	private LayoutReportsGooglePageSpeedConfigurationProvider

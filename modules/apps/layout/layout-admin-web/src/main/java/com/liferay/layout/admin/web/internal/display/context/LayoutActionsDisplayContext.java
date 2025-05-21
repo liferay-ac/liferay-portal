@@ -21,6 +21,7 @@ import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.LayoutLocalServiceUtil;
+import com.liferay.portal.kernel.service.permission.LayoutPermission;
 import com.liferay.portal.kernel.service.permission.LayoutPermissionUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
@@ -53,10 +54,12 @@ public class LayoutActionsDisplayContext {
 	public LayoutActionsDisplayContext(
 		HttpServletRequest httpServletRequest,
 		LayoutActionsHelper layoutActionsHelper,
+		LayoutPermission layoutPermission,
 		SegmentsExperienceLocalService segmentsExperienceLocalService) {
 
 		_httpServletRequest = httpServletRequest;
 		_layoutActionsHelper = layoutActionsHelper;
+		_layoutPermission = layoutPermission;
 		_segmentsExperienceLocalService = segmentsExperienceLocalService;
 
 		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
@@ -298,7 +301,8 @@ public class LayoutActionsDisplayContext {
 
 		if (segmentsExperienceId == -1) {
 			SegmentsExperienceManager segmentsExperienceManager =
-				new SegmentsExperienceManager(_segmentsExperienceLocalService);
+				new SegmentsExperienceManager(
+					_layoutPermission, _segmentsExperienceLocalService);
 
 			segmentsExperienceId =
 				segmentsExperienceManager.getSegmentsExperienceId(
@@ -359,6 +363,7 @@ public class LayoutActionsDisplayContext {
 	private Boolean _contentLayout;
 	private final HttpServletRequest _httpServletRequest;
 	private final LayoutActionsHelper _layoutActionsHelper;
+	private final LayoutPermission _layoutPermission;
 	private final SegmentsExperienceLocalService
 		_segmentsExperienceLocalService;
 	private final ThemeDisplay _themeDisplay;

@@ -8,6 +8,7 @@ package com.liferay.segments.experiment.web.internal.servlet.taglib;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.service.permission.LayoutPermission;
 import com.liferay.portal.kernel.servlet.taglib.BaseJSPDynamicInclude;
 import com.liferay.portal.kernel.servlet.taglib.DynamicInclude;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -62,7 +63,8 @@ public class SegmentsExperimentAnalyticsTopHeadJSPDynamicInclude
 		}
 
 		SegmentsExperienceManager segmentsExperienceManager =
-			new SegmentsExperienceManager(_segmentsExperienceLocalService);
+			new SegmentsExperienceManager(
+				_layoutPermission, _segmentsExperienceLocalService);
 
 		httpServletRequest.setAttribute(
 			SegmentsExperimentWebKeys.
@@ -107,6 +109,9 @@ public class SegmentsExperimentAnalyticsTopHeadJSPDynamicInclude
 
 	@Reference
 	private AnalyticsSettingsManager _analyticsSettingsManager;
+
+	@Reference
+	private LayoutPermission _layoutPermission;
 
 	@Reference
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;

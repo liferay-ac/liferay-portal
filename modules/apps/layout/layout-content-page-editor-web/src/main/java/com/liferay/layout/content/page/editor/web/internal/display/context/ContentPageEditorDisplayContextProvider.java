@@ -97,7 +97,8 @@ public class ContentPageEditorDisplayContextProvider {
 				_pageEditorConfiguration, _portal, portletRequest,
 				_portletResourcePermission, _portletURLFactory, renderResponse,
 				_segmentsConfigurationProvider,
-				new SegmentsExperienceManager(_segmentsExperienceLocalService),
+				new SegmentsExperienceManager(
+					_layoutPermission, _segmentsExperienceLocalService),
 				_segmentsExperienceLocalService,
 				_segmentsExperimentRelLocalService, _segmentsEntryService,
 				_staging, _stagingGroupHelper, _styleBookEntryLocalService,
@@ -118,7 +119,8 @@ public class ContentPageEditorDisplayContextProvider {
 				_pageEditorConfiguration, _portal, portletRequest,
 				_portletResourcePermission, _portletURLFactory, renderResponse,
 				_segmentsConfigurationProvider,
-				new SegmentsExperienceManager(_segmentsExperienceLocalService),
+				new SegmentsExperienceManager(
+					_layoutPermission, _segmentsExperienceLocalService),
 				_segmentsExperienceLocalService,
 				_segmentsExperimentRelLocalService, _segmentsEntryService,
 				_staging, _stagingGroupHelper, _styleBookEntryLocalService,
@@ -153,7 +155,8 @@ public class ContentPageEditorDisplayContextProvider {
 			_pageEditorConfiguration, pageIsDisplayPage, _portal,
 			portletRequest, _portletResourcePermission, _portletURLFactory,
 			renderResponse, _segmentsConfigurationProvider,
-			new SegmentsExperienceManager(_segmentsExperienceLocalService),
+			new SegmentsExperienceManager(
+				_layoutPermission, _segmentsExperienceLocalService),
 			_segmentsExperienceLocalService, _segmentsExperimentRelLocalService,
 			_segmentsEntryService, _staging, _stagingGroupHelper,
 			_styleBookEntryLocalService, _workflowDefinitionLinkLocalService);

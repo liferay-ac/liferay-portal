@@ -80,7 +80,7 @@ public class LayoutActionsProductNavigationControlMenuEntry
 		httpServletRequest.setAttribute(
 			LayoutAdminWebKeys.LAYOUT_ACTIONS_DISPLAY_CONTEXT,
 			new LayoutActionsDisplayContext(
-				httpServletRequest, layoutActionsHelper,
+				httpServletRequest, layoutActionsHelper, _layoutPermission,
 				_segmentsExperienceLocalService));
 
 		return super.includeIcon(httpServletRequest, httpServletResponse);

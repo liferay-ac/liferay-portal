@@ -22,6 +22,7 @@ import com.liferay.layout.provider.LayoutStructureProvider;
 import com.liferay.layout.taglib.internal.helper.LayoutClassedModelUsagesHelper;
 import com.liferay.layout.util.LayoutsTree;
 import com.liferay.portal.kernel.module.service.Snapshot;
+import com.liferay.portal.kernel.service.permission.LayoutPermission;
 import com.liferay.segments.SegmentsEntryRetriever;
 import com.liferay.segments.context.RequestContextMapper;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
@@ -93,6 +94,10 @@ public class ServletContextUtil {
 
 	public static LayoutListRetrieverRegistry getLayoutListRetrieverRegistry() {
 		return _layoutListRetrieverRegistrySnapshot.get();
+	}
+
+	public static LayoutPermission getLayoutPermission() {
+		return _layoutPermissionSnapshot.get();
 	}
 
 	public static LayoutsTree getLayoutsTree() {
@@ -168,6 +173,8 @@ public class ServletContextUtil {
 	private static final Snapshot<LayoutListRetrieverRegistry>
 		_layoutListRetrieverRegistrySnapshot = new Snapshot<>(
 			ServletContextUtil.class, LayoutListRetrieverRegistry.class);
+	private static final Snapshot<LayoutPermission> _layoutPermissionSnapshot =
+		new Snapshot<>(ServletContextUtil.class, LayoutPermission.class);
 	private static final Snapshot<LayoutsTree> _layoutsTreeSnapshot =
 		new Snapshot<>(ServletContextUtil.class, LayoutsTree.class);
 	private static final Snapshot<LayoutStructureProvider>

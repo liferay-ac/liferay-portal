@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
 import com.liferay.portal.kernel.portlet.PortletURLFactory;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.permission.LayoutPermission;
 import com.liferay.portal.kernel.service.permission.LayoutPermissionUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
@@ -385,7 +386,8 @@ public class SegmentsExperimentProductNavigationControlMenuEntry
 		}
 
 		SegmentsExperienceManager segmentsExperienceManager =
-			new SegmentsExperienceManager(_segmentsExperienceLocalService);
+			new SegmentsExperienceManager(
+				_layoutPermission, _segmentsExperienceLocalService);
 
 		return segmentsExperienceManager.getSegmentsExperienceId(
 			httpServletRequest);
@@ -484,6 +486,9 @@ public class SegmentsExperimentProductNavigationControlMenuEntry
 
 	@Reference
 	private LayoutLocalService _layoutLocalService;
+
+	@Reference
+	private LayoutPermission _layoutPermission;
 
 	@Reference
 	private Portal _portal;
