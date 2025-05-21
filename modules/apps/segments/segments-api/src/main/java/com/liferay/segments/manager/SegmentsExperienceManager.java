@@ -5,8 +5,9 @@
 
 package com.liferay.segments.manager;
 
-import com.liferay.portal.kernel.security.permission.PermissionChecker;
-import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.service.permission.LayoutPermission;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -24,8 +25,10 @@ import javax.servlet.http.HttpServletRequest;
 public class SegmentsExperienceManager {
 
 	public SegmentsExperienceManager(
+		LayoutPermission layoutPermission,
 		SegmentsExperienceLocalService segmentsExperienceLocalService) {
 
+		_layoutPermission = layoutPermission;
 		_segmentsExperienceLocalService = segmentsExperienceLocalService;
 	}
 
@@ -40,17 +43,21 @@ public class SegmentsExperienceManager {
 					ParamUtil.getLong(httpServletRequest, "plid"));
 		}
 
-		PermissionChecker permissionChecker =
-			PermissionThreadLocal.getPermissionChecker();
-
 		long segmentsExperienceId = ParamUtil.getLong(
 			PortalUtil.getOriginalServletRequest(httpServletRequest),
 			"segmentsExperienceId", -1);
 
-		if ((segmentsExperienceId != -1) &&
-			permissionChecker.isGroupAdmin(themeDisplay.getScopeGroupId())) {
+		try {
+			if ((segmentsExperienceId != -1) &&
+				_layoutPermission.containsLayoutUpdatePermission(
+					themeDisplay.getPermissionChecker(),
+					themeDisplay.getLayout())) {
 
-			return segmentsExperienceId;
+				return segmentsExperienceId;
+			}
+		}
+		catch (Exception exception) {
+			_log.error(exception);
 		}
 
 		long[] segmentsExperienceIds = GetterUtil.getLongValues(
@@ -65,6 +72,10 @@ public class SegmentsExperienceManager {
 			themeDisplay.getPlid());
 	}
 
+	private static final Log _log = LogFactoryUtil.getLog(
+		SegmentsExperienceManager.class);
+
+	private final LayoutPermission _layoutPermission;
 	private final SegmentsExperienceLocalService
 		_segmentsExperienceLocalService;
 
