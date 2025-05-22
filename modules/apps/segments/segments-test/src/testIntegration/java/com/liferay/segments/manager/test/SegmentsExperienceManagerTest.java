@@ -67,7 +67,7 @@ public class SegmentsExperienceManagerTest {
 			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
 				_layout.getPlid()),
 			_segmentsExperienceManager.getSegmentsExperienceId(
-				_getMockHttpServletRequest()));
+				_getMockHttpServletRequest(null)));
 	}
 
 	@Test
@@ -78,11 +78,8 @@ public class SegmentsExperienceManagerTest {
 			PermissionThreadLocal.getPermissionChecker();
 
 		try {
-			PermissionThreadLocal.setPermissionChecker(
-				_mockPermissionChecker(true));
-
 			MockHttpServletRequest mockHttpServletRequest =
-				_getMockHttpServletRequest();
+				_getMockHttpServletRequest(_mockPermissionChecker(true));
 
 			SegmentsExperience segmentsExperience1 =
 				SegmentsTestUtil.addSegmentsExperience(
@@ -119,11 +116,8 @@ public class SegmentsExperienceManagerTest {
 			PermissionThreadLocal.getPermissionChecker();
 
 		try {
-			PermissionThreadLocal.setPermissionChecker(
-				_mockPermissionChecker(false));
-
 			MockHttpServletRequest mockHttpServletRequest =
-				_getMockHttpServletRequest();
+				_getMockHttpServletRequest(_mockPermissionChecker(false));
 
 			SegmentsExperience segmentsExperience1 =
 				SegmentsTestUtil.addSegmentsExperience(
@@ -157,7 +151,7 @@ public class SegmentsExperienceManagerTest {
 		throws PortalException {
 
 		MockHttpServletRequest mockHttpServletRequest =
-			_getMockHttpServletRequest();
+			_getMockHttpServletRequest(null);
 
 		SegmentsExperience segmentsExperience =
 			SegmentsTestUtil.addSegmentsExperience(
@@ -173,13 +167,16 @@ public class SegmentsExperienceManagerTest {
 				mockHttpServletRequest));
 	}
 
-	private MockHttpServletRequest _getMockHttpServletRequest() {
+	private MockHttpServletRequest _getMockHttpServletRequest(
+		PermissionChecker permissionChecker) {
+
 		MockHttpServletRequest mockHttpServletRequest =
 			new MockHttpServletRequest();
 
 		ThemeDisplay themeDisplay = new ThemeDisplay();
 
 		themeDisplay.setLayout(_layout);
+		themeDisplay.setPermissionChecker(permissionChecker);
 		themeDisplay.setPlid(_layout.getPlid());
 
 		mockHttpServletRequest.setAttribute(
@@ -188,12 +185,19 @@ public class SegmentsExperienceManagerTest {
 		return mockHttpServletRequest;
 	}
 
-	private PermissionChecker _mockPermissionChecker(boolean groupAdmin) {
+	private PermissionChecker _mockPermissionChecker(boolean hasPermission) {
 		return new SimplePermissionChecker() {
 
 			@Override
+			public boolean hasPermission(
+				Group group, String name, String primKey, String actionId) {
+
+				return hasPermission;
+			}
+
+			@Override
 			public boolean isGroupAdmin(long groupId) {
-				return groupAdmin;
+				return hasPermission;
 			}
 
 		};
