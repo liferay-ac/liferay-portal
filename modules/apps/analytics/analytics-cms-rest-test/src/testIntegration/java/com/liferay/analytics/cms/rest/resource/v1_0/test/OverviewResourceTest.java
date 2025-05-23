@@ -24,7 +24,6 @@ import com.liferay.object.rest.test.util.ObjectEntryTestUtil;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
-import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
@@ -33,15 +32,11 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
-import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
 import java.util.Collections;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -58,11 +53,6 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class OverviewResourceTest extends BaseOverviewResourceTestCase {
 
-	@ClassRule
-	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
-
 	@Before
 	@Override
 	public void setUp() throws Exception {
@@ -78,17 +68,12 @@ public class OverviewResourceTest extends BaseOverviewResourceTestCase {
 			HashMapBuilder.put(
 				LocaleUtil.getDefault(), RandomTestUtil.randomString()
 			).build(),
-			ServiceContextTestUtil.getServiceContext());
+			_serviceContext);
 	}
 
-	@After
 	@Override
-	public void tearDown() throws Exception {
-		GroupTestUtil.deleteGroup(testGroup);
-	}
-
 	@Test
-	public void testGetOverviewContent() throws Exception {
+	public void testGetContentOverview() throws Exception {
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.
 				getObjectDefinitionByExternalReferenceCode(
@@ -97,44 +82,34 @@ public class OverviewResourceTest extends BaseOverviewResourceTestCase {
 		_objectEntry = ObjectEntryTestUtil.addObjectEntry(
 			_depotEntry.getGroupId(), objectDefinition, Collections.emptyMap());
 
-		Integer rangeKey = 7;
-
-		Overview overviewContent = overviewResource.getContentOverview(
-			"en_US", rangeKey, null);
+		Overview contentOverview = overviewResource.getContentOverview(
+			"en_US", 7, null);
 
 		Trend trend = new Trend();
 
 		trend.setClassification(Trend.Classification.POSITIVE);
 		trend.setPercentage(100.0);
 
-		long categoriesCount = 0;
-		long tagsCount = 0;
-		long totalCount = 1;
-		long vocabularyCount = 0;
+		Overview expectedContentOverview = new Overview();
 
-		Overview expectedResult = new Overview();
+		expectedContentOverview.setCategoriesCount(0L);
+		expectedContentOverview.setTagsCount(0L);
+		expectedContentOverview.setTotalCount(1L);
+		expectedContentOverview.setVocabulariesCount(0L);
+		expectedContentOverview.setTrend(trend);
 
-		expectedResult.setCategoriesCount(categoriesCount);
-		expectedResult.setTagsCount(tagsCount);
-		expectedResult.setTotalCount(totalCount);
-		expectedResult.setVocabulariesCount(vocabularyCount);
-		expectedResult.setTrend(trend);
-
-		Assert.assertEquals(expectedResult, overviewContent);
+		Assert.assertEquals(expectedContentOverview, contentOverview);
 	}
 
 	@Test
-	public void testGetOverviewContentWithAssetCategory() throws Exception {
+	public void testGetContentOverviewWithAssetCategory() throws Exception {
 		_assetVocabulary = _assetVocabularyLocalService.addVocabulary(
 			TestPropsValues.getUserId(), _depotEntry.getGroupId(), "novo",
 			_serviceContext);
 
-		String assetCategoryTitle = "Titulo";
-
 		_assetCategory = _assetCategoryLocalService.addCategory(
-			TestPropsValues.getUserId(), _depotEntry.getGroupId(),
-			assetCategoryTitle, _assetVocabulary.getVocabularyId(),
-			_serviceContext);
+			TestPropsValues.getUserId(), _depotEntry.getGroupId(), "Titulo",
+			_assetVocabulary.getVocabularyId(), _serviceContext);
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.
@@ -152,34 +127,27 @@ public class OverviewResourceTest extends BaseOverviewResourceTestCase {
 				addAssetEntryAssetCategoryRel(
 					assetEntry.getEntryId(), _assetCategory.getCategoryId());
 
-		Integer rangeKey = 7;
-
-		Overview overviewContent = overviewResource.getContentOverview(
-			"en_US", rangeKey, null);
+		Overview contentOverview = overviewResource.getContentOverview(
+			"en_US", 7, null);
 
 		Trend trend = new Trend();
 
 		trend.setClassification(Trend.Classification.POSITIVE);
 		trend.setPercentage(100.0);
 
-		long categoriesCount = 1;
-		long tagsCount = 0;
-		long totalCount = 1;
-		long vocabularyCount = 1;
+		Overview expectedContentOverview = new Overview();
 
-		Overview expectedResult = new Overview();
+		expectedContentOverview.setCategoriesCount(1L);
+		expectedContentOverview.setTagsCount(0L);
+		expectedContentOverview.setTotalCount(1L);
+		expectedContentOverview.setVocabulariesCount(1L);
+		expectedContentOverview.setTrend(trend);
 
-		expectedResult.setCategoriesCount(categoriesCount);
-		expectedResult.setTagsCount(tagsCount);
-		expectedResult.setTotalCount(totalCount);
-		expectedResult.setVocabulariesCount(vocabularyCount);
-		expectedResult.setTrend(trend);
-
-		Assert.assertEquals(expectedResult, overviewContent);
+		Assert.assertEquals(expectedContentOverview, contentOverview);
 	}
 
 	@Test
-	public void testGetOverviewContentWithAssetTag() throws Exception {
+	public void testGetContentOverviewWithAssetTag() throws Exception {
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.
 				getObjectDefinitionByExternalReferenceCode(
@@ -189,30 +157,23 @@ public class OverviewResourceTest extends BaseOverviewResourceTestCase {
 			_depotEntry.getGroupId(), objectDefinition, Collections.emptyMap(),
 			RandomTestUtil.randomString());
 
-		Integer rangeKey = 7;
-
-		Overview overviewContent = overviewResource.getContentOverview(
-			"en_US", rangeKey, null);
+		Overview contentOverview = overviewResource.getContentOverview(
+			"en_US", 7, null);
 
 		Trend trend = new Trend();
 
 		trend.setClassification(Trend.Classification.POSITIVE);
 		trend.setPercentage(100.0);
 
-		long categoriesCount = 0;
-		long tagsCount = 1;
-		long totalCount = 1;
-		long vocabularyCount = 0;
+		Overview expectedContentOverview = new Overview();
 
-		Overview expectedResult = new Overview();
+		expectedContentOverview.setCategoriesCount(0L);
+		expectedContentOverview.setTagsCount(1L);
+		expectedContentOverview.setTotalCount(1L);
+		expectedContentOverview.setTrend(trend);
+		expectedContentOverview.setVocabulariesCount(0L);
 
-		expectedResult.setCategoriesCount(categoriesCount);
-		expectedResult.setTagsCount(tagsCount);
-		expectedResult.setTotalCount(totalCount);
-		expectedResult.setTrend(trend);
-		expectedResult.setVocabulariesCount(vocabularyCount);
-
-		Assert.assertEquals(expectedResult, overviewContent);
+		Assert.assertEquals(expectedContentOverview, contentOverview);
 	}
 
 	@DeleteAfterTestRun
