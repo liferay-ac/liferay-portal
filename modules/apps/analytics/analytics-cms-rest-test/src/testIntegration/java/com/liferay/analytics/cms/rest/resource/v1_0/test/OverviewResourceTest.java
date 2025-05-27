@@ -16,6 +16,8 @@ import com.liferay.asset.kernel.model.AssetVocabulary;
 import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.asset.kernel.service.AssetEntryLocalService;
 import com.liferay.asset.kernel.service.AssetVocabularyLocalService;
+import com.liferay.batch.engine.unit.BatchEngineUnitProcessor;
+import com.liferay.batch.engine.unit.BatchEngineUnitReader;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.object.model.ObjectDefinition;
@@ -33,13 +35,20 @@ import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 
+import java.io.File;
+
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
 
 /**
  * @author Rachael Koestartyo
@@ -58,6 +67,25 @@ public class OverviewResourceTest extends BaseOverviewResourceTestCase {
 	@Override
 	public void setUp() throws Exception {
 		super.setUp();
+
+		Bundle testBundle = FrameworkUtil.getBundle(OverviewResourceTest.class);
+
+		BundleContext bundleContext = testBundle.getBundleContext();
+
+		for (Bundle bundle : bundleContext.getBundles()) {
+			if (Objects.equals(
+					bundle.getSymbolicName(),
+					"com.liferay.headless.builder.impl")) {
+
+				_setUpProcessedFile(bundle, "01.object.definition");
+
+				CompletableFuture<Void> completableFuture =
+					_batchEngineUnitProcessor.processBatchEngineUnits(
+						_batchEngineUnitReader.getBatchEngineUnits(bundle));
+
+				completableFuture.join();
+			}
+		}
 
 		_serviceContext = ServiceContextTestUtil.getServiceContext(
 			testGroup.getGroupId(), TestPropsValues.getUserId());
@@ -177,6 +205,16 @@ public class OverviewResourceTest extends BaseOverviewResourceTestCase {
 		Assert.assertEquals(expectedContentOverview, contentOverview);
 	}
 
+	private void _setUpProcessedFile(Bundle bundle, String processedFileName) {
+		File processedFile = bundle.getDataFile(
+			".com.liferay.headless.builder.internal.batch." +
+				processedFileName + ".batch.engine.data.json.0.processed");
+
+		if ((processedFile != null) && processedFile.exists()) {
+			processedFile.delete();
+		}
+	}
+
 	@DeleteAfterTestRun
 	private AssetCategory _assetCategory;
 
@@ -198,6 +236,12 @@ public class OverviewResourceTest extends BaseOverviewResourceTestCase {
 
 	@Inject
 	private AssetVocabularyLocalService _assetVocabularyLocalService;
+
+	@Inject
+	private BatchEngineUnitProcessor _batchEngineUnitProcessor;
+
+	@Inject
+	private BatchEngineUnitReader _batchEngineUnitReader;
 
 	@DeleteAfterTestRun
 	private DepotEntry _depotEntry;
