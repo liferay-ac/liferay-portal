@@ -4,12 +4,16 @@
  */
 
 import {expect, mergeTests} from '@playwright/test';
-import {loginTest} from '../../../fixtures/loginTest';
+
 import {apiHelpersTest} from '../../../fixtures/apiHelpersTest';
-import getRandomString from '../../../utils/getRandomString';
-import {createSitePage, navigateToSitePage} from '../../osb-faro-web/main/utils/portal';
 import {featureFlagsTest} from '../../../fixtures/featureFlagsTest';
-import { Analytics, Event } from "./utils/analytics"
+import {loginTest} from '../../../fixtures/loginTest';
+import getRandomString from '../../../utils/getRandomString';
+import {
+	createSitePage,
+	navigateToSitePage,
+} from '../../osb-faro-web/main/utils/portal';
+import {Analytics, Event} from './utils/analytics';
 
 const test = mergeTests(
 	apiHelpersTest,
@@ -23,7 +27,6 @@ let site;
 const siteName = getRandomString();
 
 test.beforeEach(async ({apiHelpers}) => {
-	
 	site = await apiHelpers.headlessSite.createSite({
 		name: siteName,
 	});
@@ -36,16 +39,15 @@ test.afterEach(async ({apiHelpers}) => {
 });
 
 test(
-	'Verify events after navigating by SPA', 
-	{ 
+	'Verify events after navigating by SPA',
+	{
 		tag: '@LPD-56895',
-	}, async ({apiHelpers, page,}) => {
-			
+	},
+	async ({apiHelpers, page}) => {
 		await test.step('test', async () => {
-
 			const pageTitle1 = 'MyPage 1';
 
-			await test.step('Create My Page 1', async () => {	
+			await test.step('Create My Page 1', async () => {
 				await createSitePage({
 					apiHelpers,
 					pageTitle: pageTitle1,
@@ -61,39 +63,39 @@ test(
 					pageTitle: pageTitle2,
 					siteName,
 				});
-
 			});
-				
+
 			await test.step('Go to My Page 1', async () => {
 				await navigateToSitePage({
 					page,
 					pageName: pageTitle1,
 					siteName,
-				});			
+				});
 			});
 
 			await test.step('Check the pageViewed event on My Page 1', async () => {
 				const analytics = new Analytics(page);
 
-  				const pageViewedEvent = (await analytics.getEvents("pageViewed")) as Event;
+				const pageViewedEvent = (await analytics.getEvents(
+					'pageViewed'
+				)) as Event;
 
-  				expect(pageViewedEvent).toBeTruthy();
+				expect(pageViewedEvent).toBeTruthy();
 			});
 
 			await test.step('Go to My Page 2', async () => {
-
-				await page.getByRole('menuitem', { name: 'MyPage 2' }).click();
-
+				await page.getByRole('menuitem', {name: 'MyPage 2'}).click();
 			});
 
 			await test.step('Check the pageViewed event on My Page 2', async () => {
 				const analytics = new Analytics(page);
 
-  				const pageViewedEvent = (await analytics.getEvents("pageViewed")) as Event;
+				const pageViewedEvent = (await analytics.getEvents(
+					'pageViewed'
+				)) as Event;
 
-  				expect(pageViewedEvent).toBeTruthy();
+				expect(pageViewedEvent).toBeTruthy();
 			});
-				
 		});
-			
-	});
+	}
+);
