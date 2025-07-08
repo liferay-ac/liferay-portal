@@ -5,11 +5,11 @@
 
 import React, {useEffect, useState} from 'react';
 
-import {Metrics} from '../../Metrics';
 import {
 	AssetTypeInfoPanelContext,
 	IAssetTypeInfoPanelContext,
 } from '../context';
+import {Metrics} from './performance/Metrics';
 
 export type Metric = {
 	comparison: number;
