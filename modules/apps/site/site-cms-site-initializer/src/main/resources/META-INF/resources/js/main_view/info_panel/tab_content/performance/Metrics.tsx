@@ -6,12 +6,12 @@
 import {Text} from '@clayui/core';
 import React from 'react';
 
-import '../../../css/InfoPanel/Metrics.scss';
+import '../../../../../css/infoPanel/Metrics.scss';
 
 import Icon from '@clayui/icon';
 
-import {toThousands} from '../dashboard/utils/number';
-import {Metric} from './info_panel/tab_content/PerformanceTabContent';
+import {toThousands} from '../../../dashboard/utils/number';
+import {Metric} from '../PerformanceTabContent';
 
 interface IMetricsProps {
 	metrics: Metric[];
@@ -61,7 +61,7 @@ const Metrics: React.FC<IMetricsProps> = ({
 				return (
 					<div
 						aria-pressed={isSelected}
-						className={`metrics-card rounded-lg fluid ${isSelected ? 'selected' : ''}`}
+						className={`metrics-card rounded-lg tab-focus ${isSelected ? 'selected' : ''}`}
 						key={metric.title}
 						onClick={() => setSelectedMetric(metric.title)}
 						onKeyDown={(event) =>

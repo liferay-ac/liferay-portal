@@ -8,8 +8,8 @@ import {render, screen, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-import {Metrics} from '../../../../../src/main/resources/META-INF/resources/js/main/components/Metrics';
-import {Metric} from '../../../../../src/main/resources/META-INF/resources/js/main/components/info_panel/tab_content/PerformanceTabContent';
+import {Metric} from '../../../../src/main/resources/META-INF/resources/js/main_view/info_panel/tab_content/PerformanceTabContent';
+import {Metrics} from '../.././../../src/main/resources/META-INF/resources/js/main_view/info_panel/tab_content/performance/Metrics';
 
 const metricsMock: Metric[] = [
 	{
