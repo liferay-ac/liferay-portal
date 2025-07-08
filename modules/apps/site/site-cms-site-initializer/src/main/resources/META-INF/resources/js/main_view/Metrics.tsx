@@ -51,7 +51,7 @@ const Metrics: React.FC<IMetricsProps> = ({
 	};
 
 	return (
-		<div className="d-flex flex-row justify-content-between">
+		<div className="d-flex flex-row justify-content-between metrics-container">
 			{metrics.map((metric) => {
 				const isSelected = metric.title === selectedMetric;
 				const comparisonClassName = getComparisonClassName(
