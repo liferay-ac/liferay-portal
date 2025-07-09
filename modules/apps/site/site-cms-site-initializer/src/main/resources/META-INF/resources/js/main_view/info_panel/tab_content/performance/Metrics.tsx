@@ -9,6 +9,7 @@ import React from 'react';
 import '../../../../../css/infoPanel/Metrics.scss';
 
 import Icon from '@clayui/icon';
+import classNames from 'classnames';
 
 import {toThousands} from '../../../dashboard/utils/number';
 import {Metric} from '../PerformanceTabContent';
@@ -53,15 +54,24 @@ const Metrics: React.FC<IMetricsProps> = ({
 	return (
 		<div className="d-flex flex-row justify-content-between metrics-container">
 			{metrics.map((metric) => {
-				const isSelected = metric.title === selectedMetric;
 				const comparisonClassName = getComparisonClassName(
 					metric.comparison
+				);
+
+				const isSelected = metric.title === selectedMetric;
+				const cardClassName = classNames(
+					'metrics-card',
+					'rounded-lg',
+					{
+						selected: isSelected,
+					},
+					'tab-focus'
 				);
 
 				return (
 					<div
 						aria-pressed={isSelected}
-						className={`metrics-card rounded-lg tab-focus ${isSelected ? 'selected' : ''}`}
+						className={cardClassName}
 						key={metric.title}
 						onClick={() => setSelectedMetric(metric.title)}
 						onKeyDown={(event) =>
