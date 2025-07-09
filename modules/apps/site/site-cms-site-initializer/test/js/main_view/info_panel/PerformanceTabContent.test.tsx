@@ -8,7 +8,11 @@ import {render, screen, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-import {Metric} from '../../../../src/main/resources/META-INF/resources/js/main_view/info_panel/tab_content/PerformanceTabContent';
+import {
+	EmptyStateData,
+	Metric,
+} from '../../../../src/main/resources/META-INF/resources/js/main_view/info_panel/tab_content/PerformanceTabContent';
+import {getEmptyState} from '../../../../src/main/resources/META-INF/resources/js/main_view/info_panel/tab_content/performance/EmptyState';
 import {Metrics} from '../.././../../src/main/resources/META-INF/resources/js/main_view/info_panel/tab_content/performance/Metrics';
 
 const metricsMock: Metric[] = [
@@ -162,5 +166,129 @@ describe('CMS Asset Type Info Panel Metrics Component', () => {
 		expect(viewsCard).toHaveFocus();
 		await userEvent.keyboard(' ');
 		expect(setSelectedMetricMock).toHaveBeenCalledWith('Views');
+	});
+});
+
+const renderEmptyState = (data: EmptyStateData) => {
+	const Component = getEmptyState(data);
+
+	return render(<>{Component}</>);
+};
+
+describe('getEmptyState', () => {
+	it('renders site not connected (admin)', () => {
+		renderEmptyState({
+			analyticsSettingsPortletURL: '/mock-url',
+			connectedToAnalyticsCloud: false,
+			connectedToSpace: false,
+			isAdmin: true,
+			siteEditDepotEntryDepotAdminPortletURL: '/mock-url',
+			siteSyncedToAnalyticsCloud: false,
+		});
+
+		expect(
+			screen.getByText('no-sites-are-connected-yet')
+		).toBeInTheDocument();
+		expect(screen.getByText('connect')).toBeInTheDocument();
+	});
+
+	it('renders site not connected (non-admin)', () => {
+		renderEmptyState({
+			analyticsSettingsPortletURL: '/mock-url',
+			connectedToAnalyticsCloud: false,
+			connectedToSpace: false,
+			isAdmin: false,
+			siteEditDepotEntryDepotAdminPortletURL: '/mock-url',
+			siteSyncedToAnalyticsCloud: false,
+		});
+
+		expect(
+			screen.getByText(
+				'please-contact-an-administrator-to-sync-sites-to-this-space'
+			)
+		).toBeInTheDocument();
+	});
+
+	it('renders not connected to analytics cloud (admin)', () => {
+		renderEmptyState({
+			analyticsSettingsPortletURL: '/mock-url',
+			connectedToAnalyticsCloud: false,
+			connectedToSpace: true,
+			isAdmin: true,
+			siteEditDepotEntryDepotAdminPortletURL: '/mock-url',
+			siteSyncedToAnalyticsCloud: false,
+		});
+
+		expect(
+			screen.getByText(/connect-to-liferay-analytics-cloud/i)
+		).toBeInTheDocument();
+		expect(screen.getByRole('link', {name: 'connect'})).toHaveAttribute(
+			'href',
+			'/mock-url'
+		);
+	});
+
+	it('renders not connected to analytics cloud (non-admin)', () => {
+		renderEmptyState({
+			analyticsSettingsPortletURL: '/mock-url',
+			connectedToAnalyticsCloud: false,
+			connectedToSpace: true,
+			isAdmin: false,
+			siteEditDepotEntryDepotAdminPortletURL: '/mock-url',
+			siteSyncedToAnalyticsCloud: false,
+		});
+
+		expect(
+			screen.getByText(
+				'please-contact-a-dxp-instance-administrator-to-connect-your-dxp-instance-to-analytics-cloud'
+			)
+		).toBeInTheDocument();
+	});
+
+	it('renders site not synced to analytics cloud (admin)', () => {
+		renderEmptyState({
+			analyticsSettingsPortletURL: '/mock-url',
+			connectedToAnalyticsCloud: true,
+			connectedToSpace: true,
+			isAdmin: true,
+			siteEditDepotEntryDepotAdminPortletURL: '/mock-url',
+			siteSyncedToAnalyticsCloud: false,
+		});
+
+		expect(screen.getByText('sync-to-analytics-cloud')).toBeInTheDocument();
+		expect(screen.getByRole('link', {name: 'sync'})).toHaveAttribute(
+			'href',
+			'/mock-url&currentPage=PROPERTIES'
+		);
+	});
+
+	it('renders site not synced to analytics cloud (non-admin)', () => {
+		renderEmptyState({
+			analyticsSettingsPortletURL: '/mock-url',
+			connectedToAnalyticsCloud: true,
+			connectedToSpace: true,
+			isAdmin: false,
+			siteEditDepotEntryDepotAdminPortletURL: '/mock-url',
+			siteSyncedToAnalyticsCloud: false,
+		});
+
+		expect(
+			screen.getByText(
+				'please-contact-a-dxp-instance-administrator-to-sync-your-sites-to-analytics-cloud'
+			)
+		).toBeInTheDocument();
+	});
+
+	it('returns null when all conditions are satisfied', () => {
+		const result = getEmptyState({
+			analyticsSettingsPortletURL: '/mock-url',
+			connectedToAnalyticsCloud: true,
+			connectedToSpace: true,
+			isAdmin: true,
+			siteEditDepotEntryDepotAdminPortletURL: '/mock-url',
+			siteSyncedToAnalyticsCloud: true,
+		});
+
+		expect(result).toBeNull();
 	});
 });
