@@ -60,6 +60,7 @@ const Metrics: React.FC<IMetricsProps> = ({
 
 				const isSelected = metric.title === selectedMetric;
 				const cardClassName = classNames(
+					'flex-grow-1',
 					'metrics-card',
 					'rounded-lg',
 					{
@@ -84,7 +85,7 @@ const Metrics: React.FC<IMetricsProps> = ({
 							{metric.title.toUpperCase()}
 						</Text>
 
-						<div className="body">
+						<div className="mt-2">
 							<Text size={7} weight="bold">
 								{toThousands(metric.total)}
 							</Text>
