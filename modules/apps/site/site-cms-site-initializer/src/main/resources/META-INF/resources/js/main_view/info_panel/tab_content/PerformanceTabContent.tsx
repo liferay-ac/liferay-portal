@@ -17,7 +17,7 @@ export type Metric = {
 	total: number;
 };
 
-const defaultSelectedMetric = 'Impressions';
+const defaultSelectedMetric = Liferay.Language.get('impressions');
 
 const metricsMock: Metric[] = [
 	{
