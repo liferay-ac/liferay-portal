@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import React, {useEffect, useState} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 
 import {
 	AssetTypeInfoPanelContext,
 	IAssetTypeInfoPanelContext,
 } from '../context';
+import {getEmptyState} from './performance/EmptyState';
 import {Metrics} from './performance/Metrics';
 
 export type Metric = {
@@ -18,6 +19,14 @@ export type Metric = {
 };
 
 const defaultSelectedMetric = Liferay.Language.get('impressions');
+export type EmptyStateData = {
+	analyticsSettingsPortletURL: string;
+	connectedToAnalyticsCloud: boolean;
+	connectedToSpace: boolean;
+	isAdmin: boolean;
+	siteEditDepotEntryDepotAdminPortletURL: string;
+	siteSyncedToAnalyticsCloud: boolean;
+};
 
 const metricsMock: Metric[] = [
 	{
@@ -41,23 +50,55 @@ async function fetchComponentData(_fileId: number): Promise<Metric[]> {
 	return metricsMock;
 }
 
-const PerformanceTabContent = () => {
+async function fetchEmptyStateData(
+	_contentPerformanceDataFetchURL: string
+): Promise<EmptyStateData> {
+
+	// TO DO Endpoint
+
+	// const response = await fetch(contentPerformanceDataFetchURL, {
+	// 	method: 'GET',
+	// });
+
+	// return await response.json();
+
+	// Mock
+
+	return {
+		analyticsSettingsPortletURL: '/mock-analytics',
+		connectedToAnalyticsCloud: true,
+		connectedToSpace: true,
+		isAdmin: true,
+		siteEditDepotEntryDepotAdminPortletURL: '/mock-depot',
+		siteSyncedToAnalyticsCloud: true,
+	};
+}
+
+const PerformanceTabContent = (contentPerformanceDataFetchURL: string) => {
 	const [metrics, setMetrics] = useState<Metric[]>([]);
+	const [emptyStateData, setEmptyStateData] = useState<EmptyStateData | null>(
+		null
+	);
 	const [selectedMetric, setSelectedMetric] = useState<string>(
 		defaultSelectedMetric
 	);
 
-	const fileContext = React.useContext<IAssetTypeInfoPanelContext>(
+	const fileContext = useContext<IAssetTypeInfoPanelContext>(
 		AssetTypeInfoPanelContext
 	);
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
-				const data = await fetchComponentData(fileContext.id || 0);
+				const id = fileContext?.id || 0;
+				const metricsData = await fetchComponentData(id);
+				setMetrics(metricsData);
 
-				if (data) {
-					setMetrics(data);
+				if (!metricsData.length) {
+					const emptyData = await fetchEmptyStateData(
+						contentPerformanceDataFetchURL
+					);
+					setEmptyStateData(emptyData);
 				}
 			}
 			catch (error) {
@@ -65,8 +106,14 @@ const PerformanceTabContent = () => {
 			}
 		};
 
-		fetchData();
-	});
+		if (fileContext?.id) {
+			fetchData();
+		}
+	}, [fileContext?.id, contentPerformanceDataFetchURL]);
+
+	if (!metrics.length && emptyStateData) {
+		return getEmptyState(emptyStateData);
+	}
 
 	return (
 		<div>
