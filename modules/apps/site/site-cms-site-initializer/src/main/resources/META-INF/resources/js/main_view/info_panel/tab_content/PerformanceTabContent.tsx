@@ -37,9 +37,7 @@ const metricsMock: Metric[] = [
 	},
 ];
 
-async function fetchComponentData(fileId: number): Promise<Metric[]> {
-	fileId;
-
+async function fetchComponentData(_fileId: number): Promise<Metric[]> {
 	return metricsMock;
 }
 
@@ -55,8 +53,16 @@ const PerformanceTabContent = () => {
 
 	useEffect(() => {
 		const fetchData = async () => {
-			const data = await fetchComponentData(fileContext.id || 0);
-			setMetrics(data);
+			try {
+				const data = await fetchComponentData(fileContext.id || 0);
+
+				if (data) {
+					setMetrics(data);
+				}
+			}
+			catch (error) {
+				console.error(error);
+			}
 		};
 
 		fetchData();
