@@ -87,6 +87,7 @@ export function getEmptyState(data: EmptyStateData) {
 			className="d-flex empty-state-performance-tab flex-column justify-content-center pt-6 text-center"
 			description={description}
 			imgSrc={imgSrc}
+			imgSrcReducedMotion={imgSrc}
 			title={title}
 		>
 			{action}
