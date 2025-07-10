@@ -84,7 +84,7 @@ export function getEmptyState(data: EmptyStateData) {
 
 	return (
 		<EmptyState
-			className="d-flex flex-column justify-content-center pt-6 text-center"
+			className="d-flex empty-state-performance-tab flex-column justify-content-center pt-6 text-center"
 			description={description}
 			imgSrc={imgSrc}
 			title={title}
