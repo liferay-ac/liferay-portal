@@ -73,12 +73,12 @@ describe('CMS Asset Type Info Panel Metrics Component', () => {
 			name: /downloads/i,
 		});
 
-		within(impressionsCard).getByText('11', {selector: '.body > .text-7'});
+		within(impressionsCard).getByText('11', {selector: '.text-7'});
 
-		within(viewsCard).getByText('25.32K', {selector: '.body > .text-7'});
+		within(viewsCard).getByText('25.32K', {selector: '.text-7'});
 
 		within(downloadsCard).getByText('220.15M', {
-			selector: '.body > .text-7',
+			selector: '.text-7',
 		});
 	});
 
@@ -172,7 +172,7 @@ describe('CMS Asset Type Info Panel Metrics Component', () => {
 const renderEmptyState = (data: EmptyStateData) => {
 	const Component = getEmptyState(data);
 
-	return render(<>{Component}</>);
+	return render(Component);
 };
 
 describe('getEmptyState', () => {
