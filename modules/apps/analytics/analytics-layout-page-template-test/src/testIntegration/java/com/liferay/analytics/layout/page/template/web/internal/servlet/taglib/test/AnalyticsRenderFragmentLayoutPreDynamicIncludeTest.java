@@ -91,7 +91,7 @@ public class AnalyticsRenderFragmentLayoutPreDynamicIncludeTest {
 
 		Assert.assertEquals(
 			StringBundler.concat(
-				"<div data-analytics-asset-external-reference-code=\"",
+				"<div data-analytics-external-reference-code=\"",
 				blogsEntry.getExternalReferenceCode(),
 				"\" data-analytics-asset-id=\"", blogsEntry.getEntryId(),
 				"\" data-analytics-asset-title=\"", blogsEntry.getTitle(),
@@ -129,7 +129,7 @@ public class AnalyticsRenderFragmentLayoutPreDynamicIncludeTest {
 		Assert.assertEquals(
 			StringBundler.concat(
 				"<div data-analytics-asset-action=\"preview\" ",
-				"data-analytics-asset-external-reference-code=\"",
+				"data-analytics-external-reference-code=\"",
 				fileEntry.getExternalReferenceCode(),
 				"\" data-analytics-asset-id=\"", fileEntry.getFileEntryId(),
 				"\" data-analytics-asset-title=\"", fileEntry.getTitle(),
@@ -164,7 +164,7 @@ public class AnalyticsRenderFragmentLayoutPreDynamicIncludeTest {
 
 		Assert.assertEquals(
 			StringBundler.concat(
-				"<div data-analytics-asset-external-reference-code=\"",
+				"<div data-analytics-external-reference-code=\"",
 				journalArticle.getExternalReferenceCode(),
 				"\" data-analytics-asset-id=\"",
 				journalArticle.getResourcePrimKey(),

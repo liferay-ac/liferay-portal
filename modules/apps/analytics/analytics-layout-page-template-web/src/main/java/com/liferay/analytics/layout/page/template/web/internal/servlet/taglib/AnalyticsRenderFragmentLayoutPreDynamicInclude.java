@@ -90,7 +90,7 @@ public class AnalyticsRenderFragmentLayoutPreDynamicInclude
 		long classPK, String externalReferenceCode, String title) {
 
 		return TreeMapBuilder.<String, Function<T, String>>put(
-			"data-analytics-asset-external-reference-code",
+			"data-analytics-external-reference-code",
 			displayObject -> externalReferenceCode
 		).put(
 			"data-analytics-asset-id", displayObject -> String.valueOf(classPK)
