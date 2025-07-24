@@ -10,7 +10,12 @@ import React, {useContext, useEffect} from 'react';
 
 import {Context, ContextProvider} from '../../../js/Context';
 import {MetricsContent} from '../../../js/components/cms/Metrics';
-import {MetricType} from '../../../js/types/global';
+import {TableView} from '../../../js/components/cms/current-vs-previous/TableView';
+import {
+	Individuals,
+	MetricType,
+	RangeSelectors,
+} from '../../../js/types/global';
 import {TrendClassification} from '../../../js/utils/metrics';
 
 type Metric = {
@@ -201,5 +206,126 @@ describe('CMS Asset Type Info Panel Metrics Component', () => {
 			expect(viewsCard).toHaveAttribute('aria-pressed', 'true');
 			expect(downloadsCard).toHaveAttribute('aria-pressed', 'false');
 		});
+	});
+});
+
+const renderTableViewMetric = (metricType: MetricType) => {
+	return render(
+		<Context.Provider
+			value={{
+				assetId: '0',
+				assetType: null,
+				changeIndividualFilter: jest.fn(),
+				changeMetricFilter: jest.fn(),
+				changeRangeSelectorFilter: jest.fn(),
+				filters: {
+					individual: Individuals.AllIndividuals,
+					metric: metricType,
+					rangeSelector: RangeSelectors.Last24Hours,
+				},
+				groupId: '0',
+			}}
+		>
+			<TableView />
+		</Context.Provider>
+	);
+};
+
+describe('TableView with different metrics', () => {
+	it('renders table correctly with metric "Views" and displays data', () => {
+		renderTableViewMetric(MetricType.Views);
+
+		expect(screen.getByText(/views/i)).toBeInTheDocument();
+
+		const rows = screen.getAllByRole('row');
+		expect(rows.length).toBeGreaterThan(1);
+
+		const firstDataRow = rows[1] as HTMLTableRowElement;
+
+		const dateCellText = firstDataRow.cells[0].textContent || '';
+		expect(dateCellText).toMatch(
+			/(\d{2}\/\d{2}\/\d{4})|(\d{4}-\d{2}-\d{2})|([A-Za-z]{3} \d{1,2})/
+		);
+
+		const valueCellText = firstDataRow.cells[1].textContent || '';
+		const previousCellText = firstDataRow.cells[2].textContent || '';
+
+		expect(valueCellText).toMatch(/[\d,.]+/);
+		expect(previousCellText).toMatch(/[\d,.]+/);
+	});
+
+	it('renders table correctly with metric "Impressions" and displays data', () => {
+		renderTableViewMetric(MetricType.Impressions);
+
+		expect(screen.getByText(/impressions/i)).toBeInTheDocument();
+
+		const rows = screen.getAllByRole('row');
+		expect(rows.length).toBeGreaterThan(1);
+
+		const firstDataRow = rows[1] as HTMLTableRowElement;
+
+		const dateCellText = firstDataRow.cells[0].textContent || '';
+		expect(dateCellText).toMatch(
+			/(\d{2}\/\d{2}\/\d{4})|(\d{4}-\d{2}-\d{2})|([A-Za-z]{3} \d{1,2})/
+		);
+
+		const valueCellText = firstDataRow.cells[1].textContent || '';
+		const previousCellText = firstDataRow.cells[2].textContent || '';
+
+		expect(valueCellText).toMatch(/[\d,.]+/);
+		expect(previousCellText).toMatch(/[\d,.]+/);
+	});
+
+	it('renders table correctly with metric "Downloads" and displays data', () => {
+		renderTableViewMetric(MetricType.Downloads);
+
+		expect(screen.getByText(/downloads/i)).toBeInTheDocument();
+
+		const rows = screen.getAllByRole('row');
+		expect(rows.length).toBeGreaterThan(1);
+
+		const firstDataRow = rows[1] as HTMLTableRowElement;
+
+		const dateCellText = firstDataRow.cells[0].textContent || '';
+		expect(dateCellText).toMatch(
+			/(\d{2}\/\d{2}\/\d{4})|(\d{4}-\d{2}-\d{2})|([A-Za-z]{3} \d{1,2})/
+		);
+
+		const valueCellText = firstDataRow.cells[1].textContent || '';
+		const previousCellText = firstDataRow.cells[2].textContent || '';
+
+		expect(valueCellText).toMatch(/[\d,.]+/);
+		expect(previousCellText).toMatch(/[\d,.]+/);
+	});
+
+	it('renders pagination component', () => {
+		renderTableViewMetric(MetricType.Views);
+
+		const paginationButton = screen.getByLabelText('Go to page, 1');
+
+		expect(paginationButton).toBeInTheDocument();
+	});
+
+	it('changes number of items displayed when selecting items per page', async () => {
+		renderTableViewMetric(MetricType.Views);
+
+		const itemsPerPageButton = screen.getByRole('button', {
+			name: /items per page/i,
+		});
+		expect(itemsPerPageButton).toBeInTheDocument();
+
+		await userEvent.click(itemsPerPageButton);
+
+		const menu = await screen.findByRole('menu');
+
+		const option20 = within(menu).getByText(/20 items/i, {
+			selector: 'button',
+		});
+		expect(option20).toBeInTheDocument();
+
+		await userEvent.click(option20);
+
+		const rows = screen.getAllByRole('row');
+		expect(rows.length).toBeLessThanOrEqual(21);
 	});
 });
