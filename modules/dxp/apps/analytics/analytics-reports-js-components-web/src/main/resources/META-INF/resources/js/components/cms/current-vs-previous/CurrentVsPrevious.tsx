@@ -9,6 +9,7 @@ import ClayIcon from '@clayui/icon';
 import React, {useState} from 'react';
 
 import CurrentVsPreviousChart from './CurrentVsPreviousChart';
+import {TableView} from './TableView';
 
 type DropdownItem = {
 	Component: () => JSX.Element;
@@ -25,7 +26,7 @@ const dropdownItems: DropdownItem[] = [
 		value: 'chart',
 	},
 	{
-		Component: () => <>table</>,
+		Component: TableView,
 		icon: 'table',
 		name: Liferay.Language.get('table'),
 		value: 'table',
