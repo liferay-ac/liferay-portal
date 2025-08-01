@@ -6,9 +6,11 @@
 package com.liferay.analytics.cms.rest.internal.graphql.query.v1_0;
 
 import com.liferay.analytics.cms.rest.dto.v1_0.InventoryAnalysis;
+import com.liferay.analytics.cms.rest.dto.v1_0.ObjectEntryHistogramMetric;
 import com.liferay.analytics.cms.rest.dto.v1_0.ObjectEntryMetric;
 import com.liferay.analytics.cms.rest.dto.v1_0.Overview;
 import com.liferay.analytics.cms.rest.resource.v1_0.InventoryAnalysisResource;
+import com.liferay.analytics.cms.rest.resource.v1_0.ObjectEntryHistogramMetricResource;
 import com.liferay.analytics.cms.rest.resource.v1_0.ObjectEntryMetricResource;
 import com.liferay.analytics.cms.rest.resource.v1_0.OverviewResource;
 import com.liferay.petra.function.UnsafeConsumer;
@@ -46,6 +48,15 @@ public class Query {
 
 		_inventoryAnalysisResourceComponentServiceObjects =
 			inventoryAnalysisResourceComponentServiceObjects;
+	}
+
+	public static void
+		setObjectEntryHistogramMetricResourceComponentServiceObjects(
+			ComponentServiceObjects<ObjectEntryHistogramMetricResource>
+				objectEntryHistogramMetricResourceComponentServiceObjects) {
+
+		_objectEntryHistogramMetricResourceComponentServiceObjects =
+			objectEntryHistogramMetricResourceComponentServiceObjects;
 	}
 
 	public static void setObjectEntryMetricResourceComponentServiceObjects(
@@ -93,6 +104,29 @@ public class Query {
 					categoryId, groupBy, languageId, rangeEnd, rangeKey,
 					rangeStart, spaceId, structureId, tagId, vocabularyId,
 					Pagination.of(page, pageSize)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {objectEntryHistogramMetric(externalReferenceCode: ___, groupId: ___, rangeKey: ___, selectedMetrics: ___){histograms}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public ObjectEntryHistogramMetric objectEntryHistogramMetric(
+			@GraphQLName("externalReferenceCode") String externalReferenceCode,
+			@GraphQLName("groupId") Long groupId,
+			@GraphQLName("rangeKey") Integer rangeKey,
+			@GraphQLName("selectedMetrics") String[] selectedMetrics)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_objectEntryHistogramMetricResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			objectEntryHistogramMetricResource ->
+				objectEntryHistogramMetricResource.
+					getObjectEntryHistogramMetric(
+						externalReferenceCode, groupId, rangeKey,
+						selectedMetrics));
 	}
 
 	/**
@@ -176,6 +210,41 @@ public class Query {
 
 		@GraphQLField
 		protected java.util.Collection<InventoryAnalysis> items;
+
+		@GraphQLField
+		protected long lastPage;
+
+		@GraphQLField
+		protected long page;
+
+		@GraphQLField
+		protected long pageSize;
+
+		@GraphQLField
+		protected long totalCount;
+
+	}
+
+	@GraphQLName("ObjectEntryHistogramMetricPage")
+	public class ObjectEntryHistogramMetricPage {
+
+		public ObjectEntryHistogramMetricPage(
+			Page objectEntryHistogramMetricPage) {
+
+			actions = objectEntryHistogramMetricPage.getActions();
+
+			items = objectEntryHistogramMetricPage.getItems();
+			lastPage = objectEntryHistogramMetricPage.getLastPage();
+			page = objectEntryHistogramMetricPage.getPage();
+			pageSize = objectEntryHistogramMetricPage.getPageSize();
+			totalCount = objectEntryHistogramMetricPage.getTotalCount();
+		}
+
+		@GraphQLField
+		protected Map<String, Map<String, String>> actions;
+
+		@GraphQLField
+		protected java.util.Collection<ObjectEntryHistogramMetric> items;
 
 		@GraphQLField
 		protected long lastPage;
@@ -293,6 +362,26 @@ public class Query {
 	}
 
 	private void _populateResourceContext(
+			ObjectEntryHistogramMetricResource
+				objectEntryHistogramMetricResource)
+		throws Exception {
+
+		objectEntryHistogramMetricResource.setContextAcceptLanguage(
+			_acceptLanguage);
+		objectEntryHistogramMetricResource.setContextCompany(_company);
+		objectEntryHistogramMetricResource.setContextHttpServletRequest(
+			_httpServletRequest);
+		objectEntryHistogramMetricResource.setContextHttpServletResponse(
+			_httpServletResponse);
+		objectEntryHistogramMetricResource.setContextUriInfo(_uriInfo);
+		objectEntryHistogramMetricResource.setContextUser(_user);
+		objectEntryHistogramMetricResource.setGroupLocalService(
+			_groupLocalService);
+		objectEntryHistogramMetricResource.setRoleLocalService(
+			_roleLocalService);
+	}
+
+	private void _populateResourceContext(
 			ObjectEntryMetricResource objectEntryMetricResource)
 		throws Exception {
 
@@ -323,6 +412,8 @@ public class Query {
 
 	private static ComponentServiceObjects<InventoryAnalysisResource>
 		_inventoryAnalysisResourceComponentServiceObjects;
+	private static ComponentServiceObjects<ObjectEntryHistogramMetricResource>
+		_objectEntryHistogramMetricResourceComponentServiceObjects;
 	private static ComponentServiceObjects<ObjectEntryMetricResource>
 		_objectEntryMetricResourceComponentServiceObjects;
 	private static ComponentServiceObjects<OverviewResource>

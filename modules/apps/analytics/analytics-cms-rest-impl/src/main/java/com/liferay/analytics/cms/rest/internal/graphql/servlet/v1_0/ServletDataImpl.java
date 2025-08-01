@@ -8,9 +8,11 @@ package com.liferay.analytics.cms.rest.internal.graphql.servlet.v1_0;
 import com.liferay.analytics.cms.rest.internal.graphql.mutation.v1_0.Mutation;
 import com.liferay.analytics.cms.rest.internal.graphql.query.v1_0.Query;
 import com.liferay.analytics.cms.rest.internal.resource.v1_0.InventoryAnalysisResourceImpl;
+import com.liferay.analytics.cms.rest.internal.resource.v1_0.ObjectEntryHistogramMetricResourceImpl;
 import com.liferay.analytics.cms.rest.internal.resource.v1_0.ObjectEntryMetricResourceImpl;
 import com.liferay.analytics.cms.rest.internal.resource.v1_0.OverviewResourceImpl;
 import com.liferay.analytics.cms.rest.resource.v1_0.InventoryAnalysisResource;
+import com.liferay.analytics.cms.rest.resource.v1_0.ObjectEntryHistogramMetricResource;
 import com.liferay.analytics.cms.rest.resource.v1_0.ObjectEntryMetricResource;
 import com.liferay.analytics.cms.rest.resource.v1_0.OverviewResource;
 import com.liferay.portal.kernel.util.ObjectValuePair;
@@ -40,6 +42,8 @@ public class ServletDataImpl implements ServletData {
 	public void activate(BundleContext bundleContext) {
 		Query.setInventoryAnalysisResourceComponentServiceObjects(
 			_inventoryAnalysisResourceComponentServiceObjects);
+		Query.setObjectEntryHistogramMetricResourceComponentServiceObjects(
+			_objectEntryHistogramMetricResourceComponentServiceObjects);
 		Query.setObjectEntryMetricResourceComponentServiceObjects(
 			_objectEntryMetricResourceComponentServiceObjects);
 		Query.setOverviewResourceComponentServiceObjects(
@@ -86,6 +90,11 @@ public class ServletDataImpl implements ServletData {
 							InventoryAnalysisResourceImpl.class,
 							"getInventoryAnalysis"));
 					put(
+						"query#objectEntryHistogramMetric",
+						new ObjectValuePair<>(
+							ObjectEntryHistogramMetricResourceImpl.class,
+							"getObjectEntryHistogramMetric"));
+					put(
 						"query#objectEntryMetric",
 						new ObjectValuePair<>(
 							ObjectEntryMetricResourceImpl.class,
@@ -104,6 +113,10 @@ public class ServletDataImpl implements ServletData {
 	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
 	private ComponentServiceObjects<InventoryAnalysisResource>
 		_inventoryAnalysisResourceComponentServiceObjects;
+
+	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
+	private ComponentServiceObjects<ObjectEntryHistogramMetricResource>
+		_objectEntryHistogramMetricResourceComponentServiceObjects;
 
 	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
 	private ComponentServiceObjects<ObjectEntryMetricResource>
