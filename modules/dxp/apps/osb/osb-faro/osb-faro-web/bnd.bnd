@@ -53,6 +53,9 @@ Import-Package:\
 	com.liferay.portal.security.service.access.policy.service;version="[1.4.0,9999.0.0)",\
 	com.liferay.portal.util;version="[48.0.0,9999.0.0)",\
 	\
+	org.apache.cxf.jaxrs.ext;version="[4.1,4.2)",\
+	org.apache.cxf.message;version="[4.1,4.2)",\
+	\
 	*
 Provide-Capability:\
 	liferay.language.resources;\
@@ -60,3 +63,6 @@ Provide-Capability:\
 Web-ContextPath: /osb-faro-web
 -dsannotations-options: inherit
 -fixupmessages "Classes found in the wrong directory"; restrict:=error; is:=ignore
+# Embed the CXF JAR into your module.
+-includeresource.cxf=\
+	{cxf-core-4.1.3.jar}

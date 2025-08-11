@@ -137,6 +137,8 @@ prepareAppDockerImageInputDir {
 	dependsOn buildNexusCredentials, copyDatabaseConnector
 	finalizedBy copyDockerResources
 
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
 	rename {
 		String fileName ->
 
