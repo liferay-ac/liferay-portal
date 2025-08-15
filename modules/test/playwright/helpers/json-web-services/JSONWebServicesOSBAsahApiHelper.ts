@@ -203,7 +203,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createPagesDaily(pagesDaily: PageDaily[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/pagesdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/pages-daily`,
 			{
 				data: pagesDaily,
 				failOnStatusCode: true,
@@ -214,7 +214,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createBlogsDaily(blogsDaily: BlogDaily[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/blogsdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/blogs-daily`,
 			{
 				data: blogsDaily,
 				failOnStatusCode: true,
@@ -227,7 +227,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 		documentLibrariesDaily: DocumentLibraryDaily[]
 	): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/documentlibrariesdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/document-libraries-daily`,
 			{
 				data: documentLibrariesDaily,
 				failOnStatusCode: true,
@@ -238,7 +238,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createJournalsDaily(journalsdaily: JournalDaily[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/journalsdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/journals-daily`,
 			{
 				data: journalsdaily,
 				failOnStatusCode: true,
