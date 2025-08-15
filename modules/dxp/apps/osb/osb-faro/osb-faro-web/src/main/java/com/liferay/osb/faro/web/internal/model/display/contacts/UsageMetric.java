@@ -32,7 +32,7 @@ public class UsageMetric {
 		return _knownIndividualsCount;
 	}
 
-	public long getKnownIndividualsCountLastAnniversary() {
+	public long getKnownIndividualsCountSinceLastAnniversary() {
 		return _knownIndividualsCountSinceLastAnniversary;
 	}
 
@@ -40,7 +40,7 @@ public class UsageMetric {
 		return _pageViewsCount;
 	}
 
-	public long getPageViewsCountLastAnniversary() {
+	public long getPageViewsCountSinceLastAnniversary() {
 		return _pageViewsCountSinceLastAnniversary;
 	}
 
