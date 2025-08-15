@@ -129,13 +129,8 @@ export class SegmentsPage {
 	async closePanel() {
 		const isPanelVisible = await this.panelLocator.isVisible();
 		if (isPanelVisible) {
-			console.log('Closing Edit Mode panel...');
 			await this.clickToggleButton();
 			await expect(this.panelLocator).toBeHidden({timeout: 10000});
-			console.log('Edit Mode panel is now closed.');
-		}
-		else {
-			console.log('Edit Mode panel is already closed.');
 		}
 	}
 
@@ -179,13 +174,8 @@ export class SegmentsPage {
 	async openPanel() {
 		const isPanelVisible = await this.panelLocator.isVisible();
 		if (!isPanelVisible) {
-			console.log('Opening Edit Mode panel...');
 			await this.clickToggleButton();
 			await expect(this.panelLocator).toBeVisible({timeout: 10000});
-			console.log('Edit Mode panel is now open.');
-		}
-		else {
-			console.log('Edit Mode panel is already open.');
 		}
 	}
 

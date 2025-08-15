@@ -284,11 +284,11 @@ test(
 		page.on('dialog', async (dialog) => await dialog.accept());
 
 		await test.step('Given 2 users were created', async () => {
-			const user1 = await apiHelpers.headlessAdminUser.postUserAccount({
+			await apiHelpers.headlessAdminUser.postUserAccount({
 				emailAddress: `userea1@liferay.com`,
 			});
 
-			const user2 = await apiHelpers.headlessAdminUser.postUserAccount({
+			await apiHelpers.headlessAdminUser.postUserAccount({
 				emailAddress: `userea2@liferay.com`,
 			});
 		});
