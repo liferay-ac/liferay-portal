@@ -1304,6 +1304,8 @@ public class ProjectController extends BaseFaroController {
 				predicate
 			).groupBy(
 				faroProjectUsageTable.monthDateKey
+			).orderBy(
+				faroProjectUsageTable.monthDateKey.descending()
 			));
 
 		List<UsageMetric> usageMetrics = new ArrayList<>();
