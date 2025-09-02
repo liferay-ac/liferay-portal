@@ -160,7 +160,7 @@ const PaginatedTable: React.FC<IPaginatedTable> = ({
 						<Row>
 							<Cell
 								className={
-									viewType === 'chart' ? 'borderless' : ''
+									viewType === 'chart' ? 'border-0' : ''
 								}
 								expanded={
 									viewSpecs[viewType].expandable === 'volume'
@@ -179,7 +179,7 @@ const PaginatedTable: React.FC<IPaginatedTable> = ({
 							<Cell
 								align="right"
 								className={
-									viewType === 'chart' ? 'borderless' : ''
+									viewType === 'chart' ? 'border-0' : ''
 								}
 								expanded={
 									viewSpecs[viewType].expandable === 'volume'
@@ -192,7 +192,7 @@ const PaginatedTable: React.FC<IPaginatedTable> = ({
 							<Cell
 								align="right"
 								className={
-									viewType === 'chart' ? 'borderless' : ''
+									viewType === 'chart' ? 'border-0' : ''
 								}
 								width="10%"
 							>
