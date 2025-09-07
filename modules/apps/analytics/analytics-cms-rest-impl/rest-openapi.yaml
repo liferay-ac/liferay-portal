@@ -218,7 +218,7 @@ paths:
             tags: ["AssetDeletionOverview"]
     "/asset-deletion-usages/{assetId}":
         get:
-            operationId: getAssetDeletionUsagesPage
+            operationId: getAssetDeletionUsagesAssetPage
             parameters:
                 -   in: path
                     name: assetId

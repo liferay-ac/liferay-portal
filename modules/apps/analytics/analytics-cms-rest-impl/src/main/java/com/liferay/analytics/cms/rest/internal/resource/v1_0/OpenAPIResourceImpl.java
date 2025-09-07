@@ -87,6 +87,8 @@ public class OpenAPIResourceImpl {
 		{
 			add(AssetDeletionOverviewResourceImpl.class);
 
+			add(AssetDeletionUsageResourceImpl.class);
+
 			add(ChannelResourceImpl.class);
 
 			add(ConnectionInfoResourceImpl.class);
