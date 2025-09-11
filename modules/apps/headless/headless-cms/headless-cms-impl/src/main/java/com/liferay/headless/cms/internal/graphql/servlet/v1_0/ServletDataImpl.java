@@ -7,7 +7,9 @@ package com.liferay.headless.cms.internal.graphql.servlet.v1_0;
 
 import com.liferay.headless.cms.internal.graphql.mutation.v1_0.Mutation;
 import com.liferay.headless.cms.internal.graphql.query.v1_0.Query;
+import com.liferay.headless.cms.internal.resource.v1_0.BulkActionPreviewItemResourceImpl;
 import com.liferay.headless.cms.internal.resource.v1_0.BulkActionResourceImpl;
+import com.liferay.headless.cms.resource.v1_0.BulkActionPreviewItemResource;
 import com.liferay.headless.cms.resource.v1_0.BulkActionResource;
 import com.liferay.portal.kernel.util.ObjectValuePair;
 import com.liferay.portal.vulcan.graphql.servlet.ServletData;
@@ -36,6 +38,9 @@ public class ServletDataImpl implements ServletData {
 	public void activate(BundleContext bundleContext) {
 		Mutation.setBulkActionResourceComponentServiceObjects(
 			_bulkActionResourceComponentServiceObjects);
+
+		Query.setBulkActionPreviewItemResourceComponentServiceObjects(
+			_bulkActionPreviewItemResourceComponentServiceObjects);
 	}
 
 	public String getApplicationName() {
@@ -76,11 +81,21 @@ public class ServletDataImpl implements ServletData {
 						"mutation#createBulkAction",
 						new ObjectValuePair<>(
 							BulkActionResourceImpl.class, "postBulkAction"));
+
+					put(
+						"query#bulkActionDeletePreview",
+						new ObjectValuePair<>(
+							BulkActionPreviewItemResourceImpl.class,
+							"getBulkActionDeletePreviewPage"));
 				}
 			};
 
 	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
 	private ComponentServiceObjects<BulkActionResource>
 		_bulkActionResourceComponentServiceObjects;
+
+	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
+	private ComponentServiceObjects<BulkActionPreviewItemResource>
+		_bulkActionPreviewItemResourceComponentServiceObjects;
 
 }
