@@ -87,6 +87,8 @@ public class OpenAPIResourceImpl {
 		{
 			add(BulkActionResourceImpl.class);
 
+			add(BulkActionPreviewItemResourceImpl.class);
+
 			add(OpenAPIResourceImpl.class);
 		}
 	};
