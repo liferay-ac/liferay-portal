@@ -37,6 +37,14 @@ components:
                     type: integer
                 name:
                     type: string
+        BulkActionPreviewItem:
+            allOf:
+                -   $ref: "#/components/schemas/BulkActionItem"
+                -   properties:
+                        attributes:
+                            additionalProperties:
+                                type: object
+                            type: object
         BulkActionTask:
             properties:
                 actionName:
@@ -146,3 +154,55 @@ paths:
                             schema:
                                 $ref: "#/components/schemas/BulkActionTask"
             tags: ["BulkAction"]
+    "/bulk-action/preview":
+        post:
+            description:
+                Creates a preview for each item based on the bulk action type
+            operationId: postBulkActionPreviewPage
+            parameters:
+                -   in: query
+                    name: filter
+                    required: false
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    required: true
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    required: true
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    required: false
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/BulkAction"
+                    application/xml:
+                        schema:
+                            $ref: "#/components/schemas/BulkAction"
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                items:
+                                    $ref: "#/components/schemas/BulkActionPreviewItem"
+                                type: array
+                        application/xml:
+                            schema:
+                                items:
+                                    $ref: "#/components/schemas/BulkActionPreviewItem"
+                                type: array
+            tags: ["BulkActionPreviewItem"]
