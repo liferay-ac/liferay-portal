@@ -220,8 +220,8 @@ public class ExpiredAssetResourceImpl extends BaseExpiredAssetResourceImpl {
 					_portal.getClassNameId(className), objectEntryId);
 
 		List<ObjectRelationship> objectRelationships =
-			_objectRelationshipLocalService.
-				getObjectRelationshipsByObjectDefinitionId2(objectDefinitionId);
+			_objectRelationshipLocalService.getObjectRelationships(
+				objectDefinitionId);
 
 		for (ObjectRelationship objectRelationship : objectRelationships) {
 			ObjectRelatedModelsProvider objectRelatedModelsProvider =

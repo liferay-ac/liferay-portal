@@ -276,9 +276,8 @@ public class BulkActionPreviewItemResourceImpl
 			ObjectEntryThreadLocal.setSkipObjectEntryResourcePermission(true);
 
 			List<ObjectRelationship> objectRelationships =
-				_objectRelationshipLocalService.
-					getObjectRelationshipsByObjectDefinitionId2(
-						objectDefinitionId);
+				_objectRelationshipLocalService.getObjectRelationships(
+					objectDefinitionId);
 
 			for (ObjectRelationship objectRelationship : objectRelationships) {
 				ObjectRelatedModelsProvider objectRelatedModelsProvider =
