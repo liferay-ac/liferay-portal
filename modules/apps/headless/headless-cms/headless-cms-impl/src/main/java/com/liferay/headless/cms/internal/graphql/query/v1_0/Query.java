@@ -5,7 +5,9 @@
 
 package com.liferay.headless.cms.internal.graphql.query.v1_0;
 
+import com.liferay.headless.cms.dto.v1_0.AssetUsage;
 import com.liferay.headless.cms.dto.v1_0.BulkActionPreviewItem;
+import com.liferay.headless.cms.resource.v1_0.AssetUsageResource;
 import com.liferay.headless.cms.resource.v1_0.BulkActionPreviewItemResource;
 import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.function.UnsafeFunction;
@@ -36,12 +38,43 @@ import org.osgi.service.component.ComponentServiceObjects;
 @Generated("")
 public class Query {
 
+	public static void setAssetUsageResourceComponentServiceObjects(
+		ComponentServiceObjects<AssetUsageResource>
+			assetUsageResourceComponentServiceObjects) {
+
+		_assetUsageResourceComponentServiceObjects =
+			assetUsageResourceComponentServiceObjects;
+	}
+
 	public static void setBulkActionPreviewItemResourceComponentServiceObjects(
 		ComponentServiceObjects<BulkActionPreviewItemResource>
 			bulkActionPreviewItemResourceComponentServiceObjects) {
 
 		_bulkActionPreviewItemResourceComponentServiceObjects =
 			bulkActionPreviewItemResourceComponentServiceObjects;
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetUsagesAsset(assetId: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public AssetUsagePage assetUsagesAsset(
+			@GraphQLName("assetId") Long assetId,
+			@GraphQLName("search") String search,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_assetUsageResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			assetUsageResource -> new AssetUsagePage(
+				assetUsageResource.getAssetUsagesAssetPage(
+					assetId, search, Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(assetUsageResource, sortsString))));
 	}
 
 	/**
@@ -73,6 +106,39 @@ public class Query {
 					Pagination.of(page, pageSize),
 					_sortsBiFunction.apply(
 						bulkActionPreviewItemResource, sortsString))));
+	}
+
+	@GraphQLName("AssetUsagePage")
+	public class AssetUsagePage {
+
+		public AssetUsagePage(Page assetUsagePage) {
+			actions = assetUsagePage.getActions();
+
+			items = assetUsagePage.getItems();
+			lastPage = assetUsagePage.getLastPage();
+			page = assetUsagePage.getPage();
+			pageSize = assetUsagePage.getPageSize();
+			totalCount = assetUsagePage.getTotalCount();
+		}
+
+		@GraphQLField
+		protected Map<String, Map<String, String>> actions;
+
+		@GraphQLField
+		protected java.util.Collection<AssetUsage> items;
+
+		@GraphQLField
+		protected long lastPage;
+
+		@GraphQLField
+		protected long page;
+
+		@GraphQLField
+		protected long pageSize;
+
+		@GraphQLField
+		protected long totalCount;
+
 	}
 
 	@GraphQLName("BulkActionPreviewItemPage")
@@ -127,6 +193,19 @@ public class Query {
 		}
 	}
 
+	private void _populateResourceContext(AssetUsageResource assetUsageResource)
+		throws Exception {
+
+		assetUsageResource.setContextAcceptLanguage(_acceptLanguage);
+		assetUsageResource.setContextCompany(_company);
+		assetUsageResource.setContextHttpServletRequest(_httpServletRequest);
+		assetUsageResource.setContextHttpServletResponse(_httpServletResponse);
+		assetUsageResource.setContextUriInfo(_uriInfo);
+		assetUsageResource.setContextUser(_user);
+		assetUsageResource.setGroupLocalService(_groupLocalService);
+		assetUsageResource.setRoleLocalService(_roleLocalService);
+	}
+
 	private void _populateResourceContext(
 			BulkActionPreviewItemResource bulkActionPreviewItemResource)
 		throws Exception {
@@ -143,6 +222,8 @@ public class Query {
 		bulkActionPreviewItemResource.setRoleLocalService(_roleLocalService);
 	}
 
+	private static ComponentServiceObjects<AssetUsageResource>
+		_assetUsageResourceComponentServiceObjects;
 	private static ComponentServiceObjects<BulkActionPreviewItemResource>
 		_bulkActionPreviewItemResourceComponentServiceObjects;
 

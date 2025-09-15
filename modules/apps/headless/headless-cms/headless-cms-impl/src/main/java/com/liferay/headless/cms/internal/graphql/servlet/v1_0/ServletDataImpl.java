@@ -7,8 +7,10 @@ package com.liferay.headless.cms.internal.graphql.servlet.v1_0;
 
 import com.liferay.headless.cms.internal.graphql.mutation.v1_0.Mutation;
 import com.liferay.headless.cms.internal.graphql.query.v1_0.Query;
+import com.liferay.headless.cms.internal.resource.v1_0.AssetUsageResourceImpl;
 import com.liferay.headless.cms.internal.resource.v1_0.BulkActionPreviewItemResourceImpl;
 import com.liferay.headless.cms.internal.resource.v1_0.BulkActionResourceImpl;
+import com.liferay.headless.cms.resource.v1_0.AssetUsageResource;
 import com.liferay.headless.cms.resource.v1_0.BulkActionPreviewItemResource;
 import com.liferay.headless.cms.resource.v1_0.BulkActionResource;
 import com.liferay.portal.kernel.util.ObjectValuePair;
@@ -39,6 +41,8 @@ public class ServletDataImpl implements ServletData {
 		Mutation.setBulkActionResourceComponentServiceObjects(
 			_bulkActionResourceComponentServiceObjects);
 
+		Query.setAssetUsageResourceComponentServiceObjects(
+			_assetUsageResourceComponentServiceObjects);
 		Query.setBulkActionPreviewItemResourceComponentServiceObjects(
 			_bulkActionPreviewItemResourceComponentServiceObjects);
 	}
@@ -83,6 +87,11 @@ public class ServletDataImpl implements ServletData {
 							BulkActionResourceImpl.class, "postBulkAction"));
 
 					put(
+						"query#assetUsagesAsset",
+						new ObjectValuePair<>(
+							AssetUsageResourceImpl.class,
+							"getAssetUsagesAssetPage"));
+					put(
 						"query#bulkActionDeletePreview",
 						new ObjectValuePair<>(
 							BulkActionPreviewItemResourceImpl.class,
@@ -93,6 +102,10 @@ public class ServletDataImpl implements ServletData {
 	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
 	private ComponentServiceObjects<BulkActionResource>
 		_bulkActionResourceComponentServiceObjects;
+
+	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
+	private ComponentServiceObjects<AssetUsageResource>
+		_assetUsageResourceComponentServiceObjects;
 
 	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
 	private ComponentServiceObjects<BulkActionPreviewItemResource>
