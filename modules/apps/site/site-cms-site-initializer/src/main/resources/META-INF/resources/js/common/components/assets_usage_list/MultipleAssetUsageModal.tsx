@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import ClayAlert from '@clayui/alert';
-import ClayButton from '@clayui/button';
-import {Text} from '@clayui/core';
+import ClayButton, {ClayButtonWithIcon} from '@clayui/button';
+import ClayLabel from '@clayui/label';
+import ClayList from '@clayui/list';
 import ClayLoadingIndicator from '@clayui/loading-indicator';
 import ClayModal from '@clayui/modal';
-import {FrontendDataSet} from '@liferay/frontend-data-set-web';
 import {fetch, sub} from 'frontend-js-web';
 import React, {useEffect, useMemo, useState} from 'react';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {AssetUsageItem} from './AssetUsageItem';
 import {
 	Item,
@@ -21,6 +21,44 @@ import {
 } from './utils';
 
 import '../../../../css/components/MultipleAssetUsageModal.scss';
+
+import {ClayInput} from '@clayui/form';
+import {ClayPaginationBarWithBasicItems} from '@clayui/pagination-bar';
+
+import {AssetIcon, MimeTypes} from '../AssetIcon';
+
+// Mock de itens
+
+const mockItems = [
+	{
+		deletionType: 'PERMANENT_DELETION',
+		id: 1,
+		mimeType: MimeTypes.DocumentText,
+		name: 'Contrato',
+		usages: 3,
+	},
+	{
+		deletionType: 'RECYCLE_BIN',
+		id: 2,
+		mimeType: MimeTypes.DocumentImage,
+		name: 'Banner',
+		usages: 1,
+	},
+	{
+		deletionType: 'PERMANENT_DELETION',
+		id: 3,
+		mimeType: MimeTypes.Blog,
+		name: 'Blog',
+		usages: 7,
+	},
+	{
+		deletionType: 'RECYCLE_BIN',
+		id: 4,
+		mimeType: MimeTypes.KnowledgeBase,
+		name: 'Artigo',
+		usages: 0,
+	},
+];
 
 interface IMultipleAssetUsageModal {
 	closeModal: () => void;
@@ -37,10 +75,33 @@ const MultipleAssetUsageModal: React.FC<IMultipleAssetUsageModal> = ({
 		itemsData.map(({embedded: {id}}) => id)
 	);
 
+	const [search, setSearch] = useState('');
+	const [activePage, setActivePage] = useState(1);
+	const [itemsPerPage, setItemsPerPage] = useState(2);
+
+	// filtrar itens pelo saerch
+
+	const filteredItems = useMemo(() => {
+		return mockItems.filter((item) =>
+			item.name.toLowerCase().includes(search.toLowerCase())
+		);
+	}, [search]);
+
+	// calcular itens da pagina atual
+
+	const paginatedItems = useMemo(() => {
+		const start = (activePage - 1) * itemsPerPage;
+		const end = start + itemsPerPage;
+
+		return filteredItems.slice(start, end);
+	}, [filteredItems, activePage, itemsPerPage]);
+
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [selectedIds, setSelectedIds] = useState<number[]>(
 		itemsData.map(({embedded: {id}}) => id)
 	);
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [alert, setAlert] = useState<{
 		displayType: string;
 		title: string;
@@ -60,6 +121,7 @@ const MultipleAssetUsageModal: React.FC<IMultipleAssetUsageModal> = ({
 		}
 	}, [selectedIds]);
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const itemsListUsingClassPK = useMemo(() => {
 		if (!data?.items) {
 			return [];
@@ -75,6 +137,7 @@ const MultipleAssetUsageModal: React.FC<IMultipleAssetUsageModal> = ({
 		return null;
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const handleClickUsageItem = (item: Item) => {
 		closeModal();
 
@@ -88,73 +151,120 @@ const MultipleAssetUsageModal: React.FC<IMultipleAssetUsageModal> = ({
 		<>
 			<ClayModal.Header>
 				{sub(
-					selectedIds.length === 1
+					itemsData.length === 1
 						? Liferay.Language.get('delete-1-item')
 						: Liferay.Language.get('delete-x-items'),
-					selectedIds.length
+					itemsData.length
 				)}
 			</ClayModal.Header>
 
-			<ClayModal.Body>
-				<div className="mb-3">
-					<Text>
-						{Liferay.Language.get(
-							'some-items-are-being-used-in-other-assets-or-pages.-deleting-them-will-break-those-references-and-cause-broken-links-or-missing-content.-this-action-cannot-be-undone.-are-you-sure-you-want-to-continue'
-						)}
-					</Text>
-				</div>
-
-				{alert && (
-					<ClayAlert
-						displayType={alert.displayType as any}
-						title={alert.title}
-					/>
-				)}
-
+			<ClayModal.Body className="modal-body">
 				{loading && <ClayLoadingIndicator />}
 
-				{!loading && !!itemsListUsingClassPK.length && (
-					<FrontendDataSet
-						bulkActions={[{}]}
-						id="delete-assets-list"
-						items={itemsListUsingClassPK}
-						onSelectedItemsChange={setSelectedIds}
-						pagination={{initialDelta: 20}}
-						selectedItems={selectedIds}
-						selectedItemsKey="id"
-						selectionType="multiple"
-						showPagination
-						views={[
-							{
-								contentRenderer: 'list',
-								label: Liferay.Language.get('list'),
-								name: 'list',
-								schema: {
-									description: 'asset-description',
-									symbol: 'document',
-									title: 'name',
-									titleRenderer: {
-										component: ({itemData}) => (
-											<div
-												className="d-flex"
-												key={itemData.id}
-											>
-												<AssetUsageItem
-													item={itemData as Item}
-													onClick={() =>
-														handleClickUsageItem(
-															itemData as Item
-														)
+				{!loading && !!paginatedItems.length && (
+					<>
+						<ClayInput.Group className="mb-4">
+							<ClayInput.GroupItem>
+								<ClayInput
+									aria-label="Search"
+									className="form-control input-group-inset input-group-inset-after"
+									sizing="lg"
+									type="text"
+									value={search}
+								/>
+
+								<ClayInput.GroupInsetItem after tag="span">
+									<ClayButtonWithIcon
+										aria-label="Search"
+										displayType="unstyled"
+										symbol="search"
+										type="submit"
+									/>
+								</ClayInput.GroupInsetItem>
+							</ClayInput.GroupItem>
+						</ClayInput.Group>
+
+						<ClayList>
+							{paginatedItems.map(
+								({
+									deletionType,
+									id,
+									mimeType,
+									name,
+									usages,
+								}) => (
+									<ClayList.Item flex key={id}>
+										<ClayList.ItemField>
+											<AssetIcon mimeType={mimeType} />
+										</ClayList.ItemField>
+
+										<ClayList.ItemField expand>
+											<ClayList.ItemTitle>
+												{name}
+											</ClayList.ItemTitle>
+
+											<ClayList.ItemText>
+												{sub(
+													Liferay.Language.get(
+														'x-usages'
+													),
+													[usages]
+												)}
+											</ClayList.ItemText>
+
+											<ClayList.ItemText>
+												<ClayLabel
+													displayType={
+														deletionType ===
+														'PERMANENT_DELETION'
+															? 'danger'
+															: 'secondary'
 													}
-												/>
-											</div>
-										),
-									},
-								},
-								thumbnail: 'list',
-							},
-						]}
-					/>
+												>
+													{deletionType ===
+													'PERMANENT_DELETION'
+														? Liferay.Language.get(
+																'permanent-deletion'
+															)
+														: Liferay.Language.get(
+																'recycle-bin'
+															)}
+												</ClayLabel>
+											</ClayList.ItemText>
+										</ClayList.ItemField>
+
+										<ClayList.ItemField>
+											<ClayButtonWithIcon
+												aria-label={Liferay.Language.get(
+													'view-usages'
+												)}
+												className="border-0"
+												displayType="secondary"
+												symbol="list-ul"
+												title={Liferay.Language.get(
+													'view-usages'
+												)}
+											/>
+										</ClayList.ItemField>
+									</ClayList.Item>
+								)
+							)}
+						</ClayList>
+
+						<ClayPaginationBarWithBasicItems
+							activeDelta={itemsPerPage}
+							activePage={activePage}
+							deltas={[{label: 2}, {label: 5}, {label: 10}]}
+							ellipsisBuffer={2}
+							onActiveChange={setActivePage}
+							onDeltaChange={(delta) => {
+								setItemsPerPage(delta);
+								setActivePage(1);
+							}}
+							showDeltasDropDown
+							totalItems={filteredItems.length}
+						/>
+					</>
 				)}
 			</ClayModal.Body>
 
@@ -171,51 +281,36 @@ const MultipleAssetUsageModal: React.FC<IMultipleAssetUsageModal> = ({
 						<ClayButton
 							displayType="danger"
 							onClick={async () => {
-								if (!selectedIds.length) {
-									setAlert({
-										displayType: 'danger',
-										title: Liferay.Language.get(
-											'unable-to-perform-this-action,-please-select-an-item-to-delete'
-										),
-									});
-								}
-								else {
-									setAlert(null);
+								closeModal();
 
-									closeModal();
+								const bulkActionItems = itemsData.map(
+									(item) => ({
+										classExternalReferenceCode:
+											item.embedded.externalReferenceCode,
+										className: item.entryClassName,
+										classPK: item.embedded.id,
+										name: item.embedded.title,
+									})
+								);
 
-									const bulkActionItems = itemsData.map(
-										(item) => ({
-											classExternalReferenceCode:
-												item.embedded
-													.externalReferenceCode,
-											className: item.entryClassName,
-											classPK: item.embedded.id,
-											name: item.embedded.title,
-										})
-									);
+								await fetch(
+									'/o/headless-cms/v1.0/bulk-action',
+									{
+										body: JSON.stringify({
+											bulkActionItems,
+											selectAll: false,
+											type: 'DeleteBulkAction',
+										}),
+										headers: {
+											'Accept': 'application/json',
+											'Content-Type': 'application/json',
+											'x-csrf-token': Liferay.authToken,
+										},
+										method: 'POST',
+									}
+								);
 
-									await fetch(
-										'/o/headless-cms/v1.0/bulk-action',
-										{
-											body: JSON.stringify({
-												bulkActionItems,
-												selectAll: false,
-												type: 'DeleteBulkAction',
-											}),
-											headers: {
-												'Accept': 'application/json',
-												'Content-Type':
-													'application/json',
-												'x-csrf-token':
-													Liferay.authToken,
-											},
-											method: 'POST',
-										}
-									);
-
-									loadData?.();
-								}
+								loadData?.();
 							}}
 						>
 							{Liferay.Language.get('delete')}
