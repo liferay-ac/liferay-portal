@@ -7,6 +7,7 @@ import {IInternalRenderer, IView} from '@liferay/frontend-data-set-web';
 import {openModal} from 'frontend-js-components-web';
 import React from 'react';
 
+import {openAssetUsageListModal} from '../../common/components/asset_usage/utils';
 import {START_TASK} from '../../common/utils/events';
 import formatActionURL from '../../common/utils/formatActionURL';
 import {ISearchAssetObjectEntry} from '../../structure_builder/types/AssetType';
@@ -39,6 +40,7 @@ const ACTIONS = {
 export type AdditionalProps = {
 	autocompleteURL: string;
 	baseFolderViewURL: string;
+	brokenLinksCheckerEnabled: boolean;
 	cmsGroupId?: number;
 	collaboratorURLs: Record<string, string>;
 	contentViewURL: string;
@@ -206,7 +208,18 @@ export default function AssetsFDSPropsTransformer({
 				});
 			}
 			else if (action?.data?.id === 'delete') {
-				await deleteItemAction(itemData, loadData);
+				if (additionalProps.brokenLinksCheckerEnabled) {
+					openAssetUsageListModal({
+						itemsData: [itemData],
+						onDelete: async () => {
+							await deleteItemAction(itemData, loadData);
+						},
+						selectAll: false,
+					});
+				}
+				else {
+					await deleteItemAction(itemData, loadData);
+				}
 			}
 			else if (
 				action?.data?.id === 'export-for-translation' ||
@@ -268,9 +281,25 @@ export default function AssetsFDSPropsTransformer({
 			selectedData: any;
 		}) => {
 			if (action?.data?.id === 'delete') {
-				deleteAssetEntriesBulkAction({
-					selectedData,
-				});
+				if (additionalProps.brokenLinksCheckerEnabled) {
+					openAssetUsageListModal({
+						apiURL: selectedData.apiURL,
+						itemsData: selectedData.items,
+						onDelete: () => {
+							Liferay.fire(START_TASK, {
+								actionId: action?.data?.id,
+								selectedData,
+							});
+						},
+						selectAll: selectedData.selectAll,
+					});
+				}
+				else {
+					deleteAssetEntriesBulkAction({
+						actionId: action.data.id,
+						selectedData,
+					});
+				}
 			}
 			else if (action?.data?.id === 'download') {
 				Liferay.fire(START_TASK, {
