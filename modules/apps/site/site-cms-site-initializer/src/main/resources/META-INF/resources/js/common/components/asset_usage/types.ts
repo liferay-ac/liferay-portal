@@ -10,6 +10,7 @@ export type BulkActionItem = {
 		deletionType: 'RECYCLE_BIN' | 'PERMANENT_DELETION';
 		mimeType: MimeTypes;
 		type: 'ASSET' | 'FOLDER';
+		url?: string;
 		usages: 0;
 	};
 	classExternalReferenceCode: string;
