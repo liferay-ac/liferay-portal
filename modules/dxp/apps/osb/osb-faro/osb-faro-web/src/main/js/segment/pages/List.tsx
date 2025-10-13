@@ -1,15 +1,24 @@
 import * as API from 'shared/api';
-import BaseListPage from 'contacts/components/BaseListPage';
+import * as breadcrumbs from 'shared/util/breadcrumbs';
+import BasePage from 'shared/components/base-page';
+import Card from 'shared/components/Card';
 import ClayButton from '@clayui/button';
-import ClayLink from '@clayui/link';
+import ClayDropDown, {Align} from '@clayui/drop-down';
+import ClayIcon from '@clayui/icon';
+import CrossPageSelect from 'shared/hoc/CrossPageSelect';
+import Nav from 'shared/components/Nav';
 import React, {useContext, useEffect, useRef, useState} from 'react';
 import RowActions from 'shared/components/RowActions';
 import SearchableEntityTable from 'shared/components/SearchableEntityTable';
-import URLConstants from 'shared/util/url-constants';
 import {
 	ActionType,
 	UnassignedSegmentsContext
 } from 'shared/context/unassignedSegments';
+import {
+	ActionTypes,
+	useSelectionContext,
+	withSelectionProvider
+} from 'shared/context/selection';
 import {addAlert} from 'shared/actions/alerts';
 import {Alert, FilterByType} from 'shared/types';
 import {ALERT_CONFIG_MAP, AlertTypes} from 'shared/components/Alert';
@@ -28,17 +37,18 @@ import {OrderParams} from 'shared/util/records';
 import {
 	Routes,
 	SEGMENT_STATE,
+	SEGMENT_TYPE,
 	SEGMENTS,
 	setUriQueryValue,
 	toRoute
 } from 'shared/util/router';
-import {segmentsListColumns} from 'shared/util/table-columns';
-import {SegmentStates, SegmentTypes, Sizes} from 'shared/util/constants';
+import {SegmentStates, SegmentTypes} from 'shared/util/constants';
 import {setUriQueryValues} from 'shared/util/router';
 import {sub} from 'shared/util/lang';
+import {useChannelContext} from 'shared/context/channel';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
-import {useTimeZone} from 'shared/hooks/useTimeZone';
+import {useRequest} from 'shared/hooks/useRequest';
 
 export interface FetchSegmentsParams {
 	channelId: string;
@@ -48,19 +58,6 @@ export interface FetchSegmentsParams {
 	orderIOMap: OrderedMap<string, OrderParams>;
 	page: number;
 	query: string;
-}
-
-function fetchSegments(params: FetchSegmentsParams): any {
-	const {channelId, delta, groupId, orderIOMap, page, query} = params;
-
-	return API.individualSegment.search({
-		channelId,
-		delta,
-		groupId,
-		orderIOMap,
-		page,
-		query
-	});
 }
 
 function fetchDisabledSegments(
@@ -87,6 +84,32 @@ interface IListProps extends PropsFromRedux {
 	history: any;
 }
 
+export const SEGMENT_TYPES_LABEL_MAP = {
+	[SegmentTypes.Batch]: Liferay.Language.get('batch'),
+	[SegmentTypes.RealTime]: Liferay.Language.get('real-time')
+};
+
+const FILTER_BY_OPTIONS = [
+	{
+		key: SEGMENT_TYPE,
+		label: Liferay.Language.get('segment-type'),
+		values: [
+			{
+				label: `${
+					SEGMENT_TYPES_LABEL_MAP[SegmentTypes.Dynamic]
+				} ${Liferay.Language.get('segment')}`,
+				value: SegmentTypes.Dynamic
+			},
+			{
+				label: `${
+					SEGMENT_TYPES_LABEL_MAP[SegmentTypes.RealTime]
+				} ${Liferay.Language.get('segment')}`,
+				value: SegmentTypes.RealTime
+			}
+		]
+	}
+];
+
 export const List: React.FC<IListProps> = ({
 	addAlert,
 	channelId,
@@ -95,12 +118,15 @@ export const List: React.FC<IListProps> = ({
 	history,
 	open
 }) => {
-	const {timeZoneId} = useTimeZone();
+	// TODO => Probably use this to get the update
+	// const {timeZoneId} = useTimeZone();
 	const currentUser = useCurrentUser();
+	const {selectedChannel} = useChannelContext();
 	const _tableRef = useRef<HTMLDivElement & SearchableEntityTable>();
 
-	const {delta, orderIOMap, page, query} = useQueryPagination({
-		filterFields: [SEGMENT_STATE],
+	const {selectedItems, selectionDispatch} = useSelectionContext();
+	const {delta, filterBy, orderIOMap, page, query} = useQueryPagination({
+		filterFields: [SEGMENT_TYPE],
 		initialDelta: paginationDefaults.delta,
 		initialOrderIOMap: createOrderIOMap(NAME, getDefaultSortOrder(NAME)),
 		initialPage: paginationDefaults.page,
@@ -128,13 +154,23 @@ export const List: React.FC<IListProps> = ({
 		};
 	}, []);
 
+	const {data, error, loading, refetch} = useRequest({
+		dataSourceFn: API.individualSegment.search,
+		variables: {
+			channelId,
+			delta,
+			groupId,
+			orderIOMap,
+			page,
+			query
+		}
+	});
 	const getDisabledSegmentsAlert = (abortSignal: AbortSignal) =>
 		fetchDisabledSegments(channelId, groupId, orderIOMap).then(
 			({total}) => {
 				if (abortSignal.aborted) {
 					return;
 				}
-
 				if (total) {
 					setAlerts(() => handleDisabledSegmentsAlert());
 				}
@@ -254,6 +290,9 @@ export const List: React.FC<IListProps> = ({
 								)
 							);
 						}
+						selectionDispatch({type: ActionTypes.ClearAll});
+
+						refetch();
 					})
 					.catch(() => {
 						addAlert({
@@ -267,9 +306,18 @@ export const List: React.FC<IListProps> = ({
 			titleIcon: 'warning-full'
 		});
 	};
-
 	const renderRowActions = ({data: {id, name}, items}) => {
 		const commonActions = [
+			{
+				href: toRoute(Routes.CONTACTS_SEGMENT, {
+					channelId,
+					groupId,
+					id,
+					type: SEGMENTS
+				}),
+				iconSymbol: 'view',
+				label: Liferay.Language.get('view')
+			},
 			{
 				href: toRoute(Routes.CONTACTS_SEGMENT_EDIT, {
 					channelId,
@@ -287,18 +335,21 @@ export const List: React.FC<IListProps> = ({
 			}
 		];
 
-		const actions = commonActions.map(({href, label, onClick}) => ({
-			href,
-			label,
-			onClick
-		}));
-
+		const actions = commonActions.map(
+			({href, iconSymbol, label, onClick}) => ({
+				href,
+				iconSymbol,
+				label,
+				onClick
+			})
+		);
 		return <RowActions actions={actions} quickActions={commonActions} />;
 	};
 
-	const pageAction = [
+	const pageActions = [
 		{
-			displayType: 'primary',
+			// TODO => Check if disabled needs to be dynamic based on user authorization
+			disabled: false,
 			href: setUriQueryValues(
 				{type: SegmentTypes.Dynamic},
 				toRoute(Routes.CONTACTS_SEGMENT_CREATE, {
@@ -306,67 +357,172 @@ export const List: React.FC<IListProps> = ({
 					groupId
 				})
 			),
-			label: Liferay.Language.get('create-segment')
+			label: Liferay.Language.get('batch-segment')
+		},
+		{
+			// TODO => Check if disabled needs to be dynamic based on user authorization
+			disabled: false,
+			href: setUriQueryValues(
+				{type: SegmentTypes.RealTime},
+				// TODO => Change to real-time segment route when available
+				toRoute(Routes.CONTACTS_SEGMENT_CREATE, {
+					channelId,
+					groupId
+				})
+			),
+			label: Liferay.Language.get('real-time-segment')
 		}
 	];
 
-	return (
-		<BaseListPage
-			alerts={getAlerts()}
-			className='segment-list-root'
-			columns={[
-				segmentsListColumns.getName({channelId, groupId}),
-				segmentsListColumns.getOwnerName(timeZoneId)
-			]}
-			currentUser={currentUser}
-			dataSourceFn={fetchSegments}
-			delta={delta}
-			emptyStateTitle={Liferay.Language.get('no-data-sources-connected')}
-			entityLabel={Liferay.Language.get('segments')}
-			noResultsConfig={{
-				description: (
-					<>
-						{Liferay.Language.get(
-							'create-a-segment-to-get-started'
-						)}
+	const pageActionsLabel = Liferay.Language.get('new-segment');
 
-						<ClayLink
-							className='d-block'
-							href={URLConstants.SegmentsDocumentationLink}
-							key='DOCUMENTATION'
-							target='_blank'
-						>
-							{Liferay.Language.get(
-								'access-our-documentation-to-learn-more'
-							)}
-						</ClayLink>
-					</>
-				),
-				icon: {
-					border: false,
-					size: Sizes.XXXLarge,
-					symbol: 'ac_satellite'
-				},
-				title: Liferay.Language.get('there-are-no-segments-found')
-			}}
-			orderByOptions={[
-				{
-					label: Liferay.Language.get('name'),
-					value: NAME
-				},
-				{
-					label: Liferay.Language.get('last-modified'),
-					value: 'dateModified'
-				}
-			]}
-			orderIOMap={orderIOMap}
-			page={page}
-			pageActions={pageAction}
-			query={query}
-			ref={_tableRef}
-			renderRowActions={renderRowActions}
-		/>
+	const renderNav = () => {
+		if (selectedItems.isEmpty()) {
+			return (
+				<Nav>
+					<Nav.Item>
+						{pageActions.length > 1 && (
+							<ClayDropDown
+								alignmentPosition={Align.BottomRight}
+								trigger={
+									<ClayButton
+										aria-label={
+											pageActionsLabel &&
+											Liferay.Language.get('menu')
+										}
+										className='button-root nav-btn p-2'
+										disabled={/* disabled || */ false}
+										displayType='primary'
+									>
+										<>
+											<span>{pageActionsLabel}</span>
+											<ClayIcon
+												className='icon-root ml-2'
+												symbol='caret-bottom'
+											/>
+										</>
+									</ClayButton>
+								}
+							>
+								{pageActions.map(({label, ...props}) => (
+									<ClayDropDown.Item key={label} {...props}>
+										{label}
+									</ClayDropDown.Item>
+								))}
+							</ClayDropDown>
+						)}
+					</Nav.Item>
+				</Nav>
+			);
+		}
+		return (
+			<Nav>
+				<ClayButton
+					aria-label={Liferay.Language.get('delete')}
+					borderless
+					className='button-root text-danger'
+					displayType='primary'
+					onClick={() =>
+						handleDeleteSegment({
+							id: undefined,
+							items: selectedItems,
+							name
+						})
+					}
+					outline
+				>
+					<ClayIcon className='icon-root mr-2' symbol='trash' />
+					<span>{Liferay.Language.get('delete')}</span>
+				</ClayButton>
+			</Nav>
+		);
+	};
+
+	return (
+		<BasePage
+			className='segment-list-root'
+			documentTitle={Liferay.Language.get('segments')}
+		>
+			<BasePage.Header
+				breadcrumbs={[
+					breadcrumbs.getHome({
+						channelId,
+						groupId,
+						label: selectedChannel && selectedChannel.name
+					})
+				]}
+				groupId={groupId}
+			>
+				<BasePage.Row>
+					<BasePage.Header.TitleSection
+						title={Liferay.Language.get('segments')}
+					/>
+					<BasePage.Header.Section>
+						<BasePage.Header.PageActions
+							disabled={error || loading}
+							label={pageActionsLabel}
+						/>
+					</BasePage.Header.Section>
+				</BasePage.Row>
+			</BasePage.Header>
+			<BasePage.Body>
+				<Card pageDisplay>
+					<Card.Body noPadding>
+						<CrossPageSelect
+							alerts={getAlerts()}
+							className='segment-list-root'
+							columns={[
+								// TODO => This is probably wrong. We probably need to use cell renderers here
+								{
+									accessor: 'name',
+									className: 'table-cell-expand',
+									label: Liferay.Language.get('segment-name'),
+									title: true
+								},
+								{
+									accessor: 'segmentType',
+									label: Liferay.Language.get('type')
+								},
+								{
+									acessor: 'segmentMembership',
+									label: Liferay.Language.get(
+										'segment-membership'
+									)
+								},
+								{
+									acessor: 'lastModifiedBy',
+									label: Liferay.Language.get(
+										'last-modified-by'
+									)
+								},
+								{
+									acessor: 'modifiedDate',
+									label: Liferay.Language.get('modified-date')
+								}
+							]}
+							currentUser={currentUser}
+							delta={delta}
+							filterBy={filterBy}
+							filterByOptions={FILTER_BY_OPTIONS}
+							items={data?.items}
+							loading={false}
+							orderByOptions={[
+								{
+									label: Liferay.Language.get('name'),
+									value: NAME
+								}
+							]}
+							orderIOMap={orderIOMap}
+							page={page}
+							query={query}
+							renderInlineRowActions={renderRowActions}
+							renderNav={renderNav}
+							total={data?.total}
+						/>
+					</Card.Body>
+				</Card>
+			</BasePage.Body>
+		</BasePage>
 	);
 };
-
-export default compose(connector)(List);
+export default compose(connector, withSelectionProvider)(List);

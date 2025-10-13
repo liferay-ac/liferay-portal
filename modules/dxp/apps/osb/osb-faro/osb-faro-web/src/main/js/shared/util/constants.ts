@@ -243,7 +243,9 @@ export enum SegmentStates {
 }
 
 export enum SegmentTypes {
-	Dynamic = 'DYNAMIC'
+	Batch = 'BATCH',
+	Dynamic = 'DYNAMIC',
+	RealTime = 'REAL_TIME'
 }
 
 export enum SessionEntityTypes {
