@@ -184,6 +184,8 @@ export const List: React.FC<IListProps> = ({
 		};
 	}, []);
 
+	const selectedSegmentTypes = filterBy.get(SEGMENT_TYPE)?.toArray() || [];
+
 	const {data, error, loading, refetch} = useRequest({
 		dataSourceFn: API.individualSegment.search,
 		variables: {
@@ -192,7 +194,10 @@ export const List: React.FC<IListProps> = ({
 			groupId,
 			orderIOMap,
 			page,
-			query
+			query,
+			segmentTypes: selectedSegmentTypes.length
+				? selectedSegmentTypes
+				: undefined
 		}
 	});
 
