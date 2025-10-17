@@ -56,14 +56,7 @@ exports[`List should render 1`] = `
           </div>
           <div
             class="header-section"
-          >
-            <a
-              class="button-root btn btn-primary"
-              href="/workspace/23/123/contacts/segments/create?type=BATCH"
-            >
-              Create Segment
-            </a>
-          </div>
+          />
         </div>
       </div>
     </header>
@@ -298,7 +291,7 @@ exports[`List should render 1`] = `
                     >
                       <a
                         class="button-root inline-item text-truncate-inline btn btn-unstyled"
-                        href="/?field=lastMembershipUpdate&page=1&sortOrder=ASC"
+                        href="/?field=lastMembershipUpdateDate&page=1&sortOrder=ASC"
                       >
                         <span
                           class="text-truncate"
@@ -312,7 +305,7 @@ exports[`List should render 1`] = `
                     >
                       <a
                         class="button-root inline-item text-truncate-inline btn btn-unstyled"
-                        href="/?field=lastModifiedBy&page=1&sortOrder=ASC"
+                        href="/?field=author%2Fname&page=1&sortOrder=ASC"
                       >
                         <span
                           class="text-truncate"
