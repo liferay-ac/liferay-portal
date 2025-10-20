@@ -520,6 +520,32 @@ export const List: React.FC<IListProps> = ({
 								},
 								{
 									accessor: 'segmentType',
+									cellRenderer: item => {
+										if (item.data.segmentType === 'BATCH') {
+											return (
+												<td>
+													{Liferay.Language.get(
+														'batch'
+													)}
+												</td>
+											);
+										}
+
+										if (
+											item.data.segmentType ===
+											'REAL_TIME'
+										) {
+											return (
+												<td>
+													{Liferay.Language.get(
+														'real-time'
+													)}
+												</td>
+											);
+										}
+
+										return <td>{item.data.segmentType}</td>;
+									},
 									label: Liferay.Language.get('type')
 								},
 								{
