@@ -74,6 +74,16 @@ public class InventoryAnalysisSerDes {
 			sb.append("]");
 		}
 
+		if (inventoryAnalysis.getItensTotalCount() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"itensTotalCount\": ");
+
+			sb.append(inventoryAnalysis.getItensTotalCount());
+		}
+
 		if (inventoryAnalysis.getTotalCount() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -114,6 +124,15 @@ public class InventoryAnalysisSerDes {
 				String.valueOf(inventoryAnalysis.getInventoryAnalysisItems()));
 		}
 
+		if (inventoryAnalysis.getItensTotalCount() == null) {
+			map.put("itensTotalCount", null);
+		}
+		else {
+			map.put(
+				"itensTotalCount",
+				String.valueOf(inventoryAnalysis.getItensTotalCount()));
+		}
+
 		if (inventoryAnalysis.getTotalCount() == null) {
 			map.put("totalCount", null);
 		}
@@ -142,6 +161,9 @@ public class InventoryAnalysisSerDes {
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
 			if (Objects.equals(jsonParserFieldName, "inventoryAnalysisItems")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "itensTotalCount")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "totalCount")) {
@@ -174,6 +196,12 @@ public class InventoryAnalysisSerDes {
 
 					inventoryAnalysis.setInventoryAnalysisItems(
 						inventoryAnalysisItemsArray);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "itensTotalCount")) {
+				if (jsonParserFieldValue != null) {
+					inventoryAnalysis.setItensTotalCount(
+						Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "totalCount")) {
