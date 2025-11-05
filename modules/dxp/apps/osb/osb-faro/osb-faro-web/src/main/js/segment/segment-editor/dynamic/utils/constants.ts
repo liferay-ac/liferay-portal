@@ -127,9 +127,24 @@ export const SUPPORTED_CONJUNCTION_OPTIONS = [
 export const SUPPORTED_OPERATORS_MAP = {
 	[PropertyTypes.AccountNumber]: [
 		{
-			key: CustomFunctionOperators.AccountsFilter,
-			label: Liferay.Language.get('is-fragment'),
-			name: CustomFunctionOperators.AccountsFilter
+			key: RelationalOperators.EQ,
+			label: Liferay.Language.get('is-equal-to-fragment'),
+			name: RelationalOperators.EQ
+		},
+		{
+			key: RelationalOperators.GT,
+			label: Liferay.Language.get('greater-than-fragment'),
+			name: RelationalOperators.GT
+		},
+		{
+			key: RelationalOperators.LT,
+			label: Liferay.Language.get('less-than-fragment'),
+			name: RelationalOperators.LT
+		},
+		{
+			key: RelationalOperators.NE,
+			label: Liferay.Language.get('is-not-equal-to-fragment'),
+			name: RelationalOperators.NE
 		}
 	],
 	[PropertyTypes.AccountText]: [

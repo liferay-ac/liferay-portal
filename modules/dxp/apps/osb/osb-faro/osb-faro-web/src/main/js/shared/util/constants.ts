@@ -128,6 +128,7 @@ export enum FaroEnv {
 }
 
 export enum FieldContexts {
+	Account = 'account',
 	Custom = 'custom',
 	Demographics = 'demographics',
 	Interests = 'interests',
