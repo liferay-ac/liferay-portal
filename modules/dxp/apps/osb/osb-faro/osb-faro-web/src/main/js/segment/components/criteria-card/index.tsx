@@ -1,7 +1,7 @@
 import CriteriaView from './CriteriaView';
 import Label from 'shared/components/Label';
 import Panel from '@clayui/panel';
-import React, {useState} from 'react';
+import React from 'react';
 import {translateQueryToCriteria} from 'segment/segment-editor/dynamic/utils/odata';
 
 interface ICriteriaCardProps {

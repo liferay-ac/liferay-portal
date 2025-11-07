@@ -1,15 +1,11 @@
-import CompositionCard from 'segment/components/CompositionCard';
 import CriteriaCard from 'segment/components/criteria-card';
-import DistributionCard from 'contacts/hoc/segment/DistributionCard';
-import InterestsCard from 'contacts/hoc/segment/InterestsCard';
+
 import React, {useCallback, useEffect, useRef} from 'react';
-import SegmentProfileCard from 'segment/components/ProfileCard';
 import {connect, ConnectedProps} from 'react-redux';
 import {debounce} from 'lodash';
 import {ReferencedObjectsProvider} from 'segment/segment-editor/dynamic/context/referencedObjects';
 import {RootState} from 'shared/store';
 import {Segment} from 'shared/util/records';
-import {SegmentTypes} from 'shared/util/constants';
 
 const HEADER_MARGIN = 16;
 const connector = connect((store: RootState, {groupId}: {groupId: string}) => ({
@@ -32,13 +28,7 @@ interface IOverviewProps extends PropsFromRedux {
 	tabId?: string;
 }
 
-const Overview: React.FC<IOverviewProps> = ({
-	channelId,
-	groupId,
-	id,
-	segment,
-	timeZoneId
-}) => {
+const Overview: React.FC<IOverviewProps> = ({segment, timeZoneId}) => {
 	const _sideColumnRef = useRef<any>();
 
 	const updateHeaderVisible = useCallback(
@@ -64,56 +54,16 @@ const Overview: React.FC<IOverviewProps> = ({
 		return () => window.removeEventListener('scroll', updateHeaderVisible);
 	}, []);
 
-	const {
-		activeIndividualCount,
-		criteriaString,
-		includeAnonymousUsers,
-		individualCount,
-		knownIndividualCount,
-		segmentType
-	} = segment;
+	const {criteriaString, includeAnonymousUsers} = segment;
 
 	return (
-		<div className='overview-layout'>
-			<div className='overview-column-main'>
-				<SegmentProfileCard
-					channelId={channelId}
-					groupId={groupId}
-					id={id}
-					segment={segment}
-				/>
-
-				<InterestsCard
-					channelId={channelId}
-					groupId={groupId}
-					id={id}
-				/>
-
-				<DistributionCard
-					channelId={channelId}
-					groupId={groupId}
-					id={id}
-				/>
-			</div>
-
-			<div className='overview-column-side' ref={_sideColumnRef}>
-				<CompositionCard
-					activeIndividualCount={activeIndividualCount}
-					individualCount={individualCount}
-					knownIndividualCount={knownIndividualCount}
-				/>
-
-				{segmentType === SegmentTypes.Batch && (
-					<ReferencedObjectsProvider segment={segment}>
-						<CriteriaCard
-							criteriaString={criteriaString}
-							includeAnonymousUsers={includeAnonymousUsers}
-							timeZoneId={timeZoneId}
-						/>
-					</ReferencedObjectsProvider>
-				)}
-			</div>
-		</div>
+		<ReferencedObjectsProvider segment={segment}>
+			<CriteriaCard
+				criteriaString={criteriaString}
+				includeAnonymousUsers={includeAnonymousUsers}
+				timeZoneId={timeZoneId}
+			/>
+		</ReferencedObjectsProvider>
 	);
 };
 
