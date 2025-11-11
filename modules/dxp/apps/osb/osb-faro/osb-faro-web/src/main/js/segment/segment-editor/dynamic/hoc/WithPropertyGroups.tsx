@@ -2,6 +2,13 @@ import * as API from 'shared/api';
 import client from 'shared/apollo/client';
 import EventDefinitionsQuery from 'event-analysis/queries/EventDefinitionsQuery';
 import React from 'react';
+import {
+	ACCOUNT_PROPERTIES,
+	INDIVIDUAL_PROPERTIES,
+	ORGANIZATION_PROPERTIES,
+	SESSION_PROPERTIES,
+	WEB_BEHAVIORS
+} from '../utils/properties';
 import {compose} from 'redux';
 import {
 	convertEventToProperty,
@@ -10,18 +17,8 @@ import {
 	convertFieldMappingToOrganizationProperty
 } from '../utils/utils';
 import {createInterestProperty} from '../utils/utils';
-import {
-	ENABLE_ACCOUNTS,
-	FieldContexts,
-	FieldOwnerTypes
-} from 'shared/util/constants';
 import {EventTypes} from 'event-analysis/utils/types';
-import {
-	INDIVIDUAL_PROPERTIES,
-	ORGANIZATION_PROPERTIES,
-	SESSION_PROPERTIES,
-	WEB_BEHAVIORS
-} from '../utils/properties';
+import {FieldContexts, FieldOwnerTypes} from 'shared/util/constants';
 import {List} from 'immutable';
 import {NAME} from 'shared/util/pagination';
 import {OrderByDirections} from 'shared/util/constants';
@@ -51,6 +48,13 @@ const fetchPropertyGroups = ({
 			groupId,
 			ownerType: FieldOwnerTypes.Individual
 		}),
+		API.fieldMappings.search({
+			context: FieldContexts.Account,
+			delta: MAX_DELTA,
+			groupId,
+			ownerType: FieldOwnerTypes.Account
+		}),
+		Promise.resolve(ACCOUNT_PROPERTIES),
 		API.fieldMappings.search({
 			context: FieldContexts.Organization,
 			delta: MAX_DELTA,
@@ -117,6 +121,16 @@ const mapResultToProps = ([
 		})
 	);
 
+	const accountProperties = (accountMappings?.items || []).map(
+		convertFieldMappingToAccountProperty
+	);
+
+	const accountSubgroupsIList = List([
+		new PropertySubgroup({
+			properties: List(accountProperties.concat(ACCOUNT_PROPERTIES))
+		})
+	]);
+
 	const organizationPropertyGroup = new PropertyGroup({
 		label: sub(Liferay.Language.get('x-attributes'), [
 			Liferay.Language.get('organization')
@@ -166,22 +180,13 @@ const mapResultToProps = ([
 				propertyKey: FieldOwnerTypes.Individual,
 				propertySubgroups: individualSubgroupsIList
 			}),
-			ENABLE_ACCOUNTS &&
-				new PropertyGroup({
-					label: sub(Liferay.Language.get('x-attributes'), [
-						Liferay.Language.get('account')
-					]) as string,
-					propertyKey: FieldOwnerTypes.Account,
-					propertySubgroups: List([
-						new PropertySubgroup({
-							properties: List(
-								accountMappings.items.map(
-									convertFieldMappingToAccountProperty
-								)
-							)
-						})
-					])
-				}),
+			new PropertyGroup({
+				label: sub(Liferay.Language.get('x-attributes'), [
+					Liferay.Language.get('account')
+				]) as string,
+				propertyKey: FieldOwnerTypes.Account,
+				propertySubgroups: accountSubgroupsIList
+			}),
 			new PropertyGroup({
 				label: Liferay.Language.get('interests'),
 				propertyKey: 'interest',
