@@ -14,23 +14,24 @@ jest.unmock('react-dom');
 
 const TestComponent = ({propertyGroupsIList}) => (
 	<div>
-		{propertyGroupsIList.map((attribute, i) => {
-			if (attribute) {
-				return (
-					<div key={i}>
-						{attribute.label}
+		{propertyGroupsIList &&
+			propertyGroupsIList.map((attribute, i) => {
+				if (attribute) {
+					return (
+						<div key={i}>
+							{attribute.label}
 
-						{attribute.propertySubgroups.map(
-							({label, properties}, i) => (
-								<div key={i}>{`${
-									label || attribute.label
-								}-${i}: ${properties.size}`}</div>
-							)
-						)}
-					</div>
-				);
-			}
-		})}
+							{attribute.propertySubgroups.map(
+								({label, properties}, i) => (
+									<div key={i}>{`${
+										label || attribute.label
+									}-${i}: ${properties.size}`}</div>
+								)
+							)}
+						</div>
+					);
+				}
+			})}
 	</div>
 );
 
@@ -74,27 +75,10 @@ describe('WithPropertyGroups', () => {
 			Promise.resolve({
 				items: [
 					{
-						context: 'organization',
+						context: 'account',
 						displayName: 'Account Value',
 						id: '123',
 						name: 'Account Value',
-						ownerType: 'account',
-						rawType: 'Text',
-						type: 'Text'
-					}
-				],
-				total: 1
-			})
-		);
-
-		API.fieldMappings.search.mockReturnValueOnce(
-			Promise.resolve({
-				items: [
-					{
-						context: 'account',
-						displayName: 'Account Custom Field',
-						id: '123',
-						name: 'Account Custom',
 						ownerType: 'account',
 						rawType: 'Text',
 						type: 'Text'
@@ -142,11 +126,24 @@ describe('WithPropertyGroups', () => {
 			})
 		);
 
+		API.interests.searchKeywords.mockReturnValueOnce(
+			Promise.resolve({
+				items: [
+					{keyword: 'interest-1'},
+					{keyword: 'interest-2'},
+					{keyword: 'interest-3'},
+					{keyword: 'interest-4'},
+					{keyword: 'interest-5'}
+				],
+				total: 5
+			})
+		);
+
 		const WrappedComponent = withPropertyGroups(TestComponent);
 
 		const {container} = render(
 			<StaticRouter>
-				<WrappedComponent channelId='123' groupId='123' />
+				<WrappedComponent channelId='123' groupId='123' type='BATCH' />
 			</StaticRouter>
 		);
 
