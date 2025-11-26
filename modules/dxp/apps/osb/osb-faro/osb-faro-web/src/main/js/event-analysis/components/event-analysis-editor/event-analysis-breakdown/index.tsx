@@ -57,6 +57,34 @@ export interface IBreakdownTableProps
 	type: CalculationTypes;
 }
 
+type TableColumnAttributesType = {
+	charWidthRatio: number;
+	columnSizePercentage: {
+		breakdownColumn1x: number;
+		breakdownColumn2x: number;
+		breakdownColumn3x: number;
+		breakdownColumn4x: number;
+		breakdownColumn5x: number;
+	};
+	fontSize: number;
+	paddingX: number;
+	truncateGap: number;
+};
+
+const TABLE_COLUMN_ATTRIBUTES_MAP: TableColumnAttributesType = {
+	charWidthRatio: 2,
+	columnSizePercentage: {
+		breakdownColumn1x: 0.25,
+		breakdownColumn2x: 0.22,
+		breakdownColumn3x: 0.19,
+		breakdownColumn4x: 0.17,
+		breakdownColumn5x: 0.17
+	},
+	fontSize: 14,
+	paddingX: 32,
+	truncateGap: 1
+};
+
 const getBreakdownByAccessor = (
 	accessor: string,
 	breakdownOrder: string[],
