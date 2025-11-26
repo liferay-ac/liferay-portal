@@ -63,6 +63,8 @@ type TableColumnAttributesType = {
 		breakdownColumn1x: number;
 		breakdownColumn2x: number;
 		breakdownColumn3x: number;
+		breakdownColumn4x: number;
+		breakdownColumn5x: number;
 	};
 	fontSize: number;
 	paddingX: number;
@@ -72,9 +74,11 @@ type TableColumnAttributesType = {
 const TABLE_COLUMN_ATTRIBUTES_MAP: TableColumnAttributesType = {
 	charWidthRatio: 2,
 	columnSizePercentage: {
-		breakdownColumn1x: 0.33,
-		breakdownColumn2x: 0.25,
-		breakdownColumn3x: 0.2
+		breakdownColumn1x: 0.25,
+		breakdownColumn2x: 0.22,
+		breakdownColumn3x: 0.19,
+		breakdownColumn4x: 0.17,
+		breakdownColumn5x: 0.17
 	},
 	fontSize: 14,
 	paddingX: 32,
