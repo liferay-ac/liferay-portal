@@ -59,6 +59,7 @@ interface ITableProps {
 	rowIdentifier: string | string[];
 	selectedItemsIOMap?: OrderedMap<string, object>;
 	showCheckbox?: boolean;
+	striped?: boolean;
 }
 
 const Table: React.FC<ITableProps> = ({

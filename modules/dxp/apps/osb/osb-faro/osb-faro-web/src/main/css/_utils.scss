@@ -95,3 +95,13 @@
 .dropdown-menu {
 	z-index: 1060;
 }
+
+/**
+ * White Space
+ */
+
+.white-space-normal {
+	overflow-wrap: break-word;
+	white-space: normal !important;
+	word-break: normal;
+}
