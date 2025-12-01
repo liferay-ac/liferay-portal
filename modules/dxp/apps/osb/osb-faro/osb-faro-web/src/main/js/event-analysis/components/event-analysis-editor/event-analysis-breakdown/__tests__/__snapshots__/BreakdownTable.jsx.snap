@@ -54,7 +54,17 @@ exports[`BreakdownTable render 1`] = `
             <th
               class="table-head-title"
             >
-              % of View Article
+              <div
+                style="width: 128px;"
+              >
+                <span
+                  class="text-truncate white-space-normal table-column-text-end"
+                  data-tooltip="false"
+                  title=""
+                >
+                  % of View Article
+                </span>
+              </div>
             </th>
           </tr>
         </thead>
@@ -64,15 +74,20 @@ exports[`BreakdownTable render 1`] = `
           >
             <td
               class="font-weight-semibold align-top"
+              data-testid="articleTitle [0]"
               rowspan="1"
             >
-              <span
-                class="text-truncate"
-                data-tooltip="true"
-                title="articleTitle [0]"
+              <div
+                style="width: 128px;"
               >
-                ...
-              </span>
+                <span
+                  class="text-truncate white-space-normal"
+                  data-tooltip="false"
+                  title=""
+                >
+                  articleTitle [0]
+                </span>
+              </div>
             </td>
             <td
               class="align-top"
@@ -169,7 +184,7 @@ exports[`BreakdownTable render 1`] = `
               </div>
             </td>
             <td
-              class="align-top"
+              class="align-top "
             >
               <ul
                 class="percentage-column"
