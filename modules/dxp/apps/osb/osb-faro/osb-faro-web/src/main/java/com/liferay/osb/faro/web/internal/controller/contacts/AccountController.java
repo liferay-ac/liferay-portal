@@ -39,7 +39,6 @@ import jakarta.ws.rs.core.MediaType;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 
 import org.osgi.service.component.annotations.Component;
@@ -178,36 +177,29 @@ public class AccountController extends BaseFaroController {
 			@QueryParam("delta") int delta)
 		throws Exception {
 
-			for (FieldMappingMap mapping :
-					FieldMappingConstants.getAccountFieldMappingMaps()) {
+		for (FieldMappingMap mapping :
+				FieldMappingConstants.getAccountFieldMappingMaps()) {
 
-				if (fieldMappingFieldName.equals(mapping.getName())) {
-					FieldMapping fieldMapping = new FieldMapping();
+			if (fieldMappingFieldName.equals(mapping.getName())) {
+				FieldMapping fieldMapping = new FieldMapping();
 
-					fieldMapping.setContext(context);
-					fieldMapping.setDisplayName(
-						FieldMappingConstants.getAccountFieldMappingLanguageKey(
-							mapping.getName()));
-					fieldMapping.setDisplayType("input-field");
-					fieldMapping.setFieldName(mapping.getName());
-					fieldMapping.setFieldType(mapping.getType());
-					fieldMapping.setOwnerType(
-						FieldMappingConstants.OWNER_TYPE_ACCOUNT);
-
-					return new FaroResultsDisplay(
-						new Results<>(
-							Collections.singletonList(fieldMapping), 1));
-				}
+				fieldMapping.setContext(context);
+				fieldMapping.setDisplayName(
+					FieldMappingConstants.getAccountFieldMappingLanguageKey(
+						mapping.getName()));
+				fieldMapping.setDisplayType("input-field");
+				fieldMapping.setFieldName(mapping.getName());
+				fieldMapping.setFieldType(mapping.getType());
+				fieldMapping.setOwnerType(
+					FieldMappingConstants.OWNER_TYPE_ACCOUNT);
 
 				return new FaroResultsDisplay(
-					new Results<>(Collections.emptyList(), 0));
+					new Results<>(Collections.singletonList(fieldMapping), 1));
 			}
 		}
 
 		return new FaroResultsDisplay(
-			contactsEngineClient.getFieldValues(
-				faroProjectLocalService.getFaroProjectByGroupId(groupId),
-				channelId, query, fieldMappingFieldName, cur, delta));
+			new Results<>(Collections.emptyList(), 0));
 	}
 
 	@SuppressWarnings("unchecked")
