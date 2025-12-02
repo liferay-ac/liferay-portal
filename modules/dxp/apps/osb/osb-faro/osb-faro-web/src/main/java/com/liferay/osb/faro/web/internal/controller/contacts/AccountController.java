@@ -183,7 +183,6 @@ public class AccountController extends BaseFaroController {
 			if (fieldMappingFieldName.equals(mapping.getName())) {
 				FieldMapping fieldMapping = new FieldMapping();
 
-				fieldMapping.setContext(context);
 				fieldMapping.setDisplayName(
 					FieldMappingConstants.getAccountFieldMappingLanguageKey(
 						mapping.getName()));
