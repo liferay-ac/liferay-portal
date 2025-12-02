@@ -200,6 +200,9 @@ public class AccountController extends BaseFaroController {
 						new Results<>(
 							Collections.singletonList(fieldMapping), 1));
 				}
+
+				return new FaroResultsDisplay(
+					new Results<>(Collections.emptyList(), 0));
 			}
 		}
 
