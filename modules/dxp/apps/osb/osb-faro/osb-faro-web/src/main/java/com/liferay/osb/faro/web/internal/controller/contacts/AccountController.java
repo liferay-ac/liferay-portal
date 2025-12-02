@@ -171,7 +171,6 @@ public class AccountController extends BaseFaroController {
 	@RolesAllowed(RoleConstants.SITE_MEMBER)
 	@SuppressWarnings("unchecked")
 	public FaroResultsDisplay searchValues(
-			@PathParam("context") String context,
 			@PathParam("groupId") long groupId,
 			@QueryParam("channelId") long channelId,
 			@QueryParam("fieldMappingFieldName") String fieldMappingFieldName,
@@ -179,7 +178,6 @@ public class AccountController extends BaseFaroController {
 			@QueryParam("delta") int delta)
 		throws Exception {
 
-		if (Objects.equals(context, FieldMappingConstants.CONTEXT_ACCOUNT)) {
 			for (FieldMappingMap mapping :
 					FieldMappingConstants.getAccountFieldMappingMaps()) {
 
