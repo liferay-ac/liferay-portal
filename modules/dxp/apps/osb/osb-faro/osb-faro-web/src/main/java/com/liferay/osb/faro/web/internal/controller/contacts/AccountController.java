@@ -24,7 +24,6 @@ import com.liferay.osb.faro.web.internal.util.PhotoURLHelper;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.model.RoleConstants;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -181,11 +180,9 @@ public class AccountController extends BaseFaroController {
 		throws Exception {
 
 		if (Objects.equals(context, FieldMappingConstants.CONTEXT_ACCOUNT)) {
-			List<FieldMappingMap> accountFieldMappings =
-				FieldMappingConstants.getAccountFieldMappingMaps();
-			List<FieldMapping> fieldMappings = new ArrayList<>();
+			for (FieldMappingMap mapping :
+					FieldMappingConstants.getAccountFieldMappingMaps()) {
 
-			for (FieldMappingMap mapping : accountFieldMappings) {
 				if (fieldMappingFieldName.equals(mapping.getName())) {
 					FieldMapping fieldMapping = new FieldMapping();
 
@@ -199,13 +196,10 @@ public class AccountController extends BaseFaroController {
 					fieldMapping.setOwnerType(
 						FieldMappingConstants.OWNER_TYPE_ACCOUNT);
 
-					fieldMappings.add(fieldMapping);
+					return new FaroResultsDisplay(
+						new Results<>(
+							Collections.singletonList(fieldMapping), 1));
 				}
-
-				Results<FieldMapping> results = new Results<>(
-					fieldMappings, fieldMappings.size());
-
-				return new FaroResultsDisplay(results);
 			}
 		}
 
