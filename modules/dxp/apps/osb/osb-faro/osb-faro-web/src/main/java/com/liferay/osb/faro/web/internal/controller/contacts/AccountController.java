@@ -36,7 +36,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -201,6 +200,9 @@ public class AccountController extends BaseFaroController {
 						new Results<>(
 							Collections.singletonList(fieldMapping), 1));
 				}
+
+				return new FaroResultsDisplay(
+					new Results<>(Collections.emptyList(), 0));
 			}
 		}
 
