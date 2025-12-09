@@ -81,6 +81,18 @@ const getDefaultValue = (property: Property): any => {
 				}
 			]);
 		case PropertyTypes.AccountDate:
+			return createCustomValueMap([
+				{
+					key: 'criterionGroup',
+					value: [
+						{
+							operatorName: RelationalOperators.EQ,
+							propertyName: name,
+							value: new Date().toISOString()
+						}
+					]
+				}
+			]);
 		case PropertyTypes.AccountNumber:
 		case PropertyTypes.AccountText:
 		case PropertyTypes.OrganizationSelectText:
