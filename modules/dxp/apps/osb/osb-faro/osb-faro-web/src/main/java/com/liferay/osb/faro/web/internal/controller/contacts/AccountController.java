@@ -198,7 +198,9 @@ public class AccountController extends BaseFaroController {
 		}
 
 		return new FaroResultsDisplay(
-			new Results<>(Collections.emptyList(), 0));
+			contactsEngineClient.getAccountFieldValues(
+				faroProjectLocalService.getFaroProjectByGroupId(groupId),
+				channelId, fieldMappingFieldName, query, cur, delta));
 	}
 
 	@SuppressWarnings("unchecked")
