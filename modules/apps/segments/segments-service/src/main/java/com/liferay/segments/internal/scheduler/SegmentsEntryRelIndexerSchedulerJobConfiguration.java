@@ -9,6 +9,7 @@ import com.liferay.petra.function.UnsafeRunnable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
+import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.Property;
 import com.liferay.portal.kernel.dao.orm.PropertyFactoryUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -24,6 +25,7 @@ import com.liferay.portal.search.spi.reindexer.BulkReindexer;
 import com.liferay.segments.configuration.SegmentsConfiguration;
 import com.liferay.segments.internal.helper.IndexerHelper;
 import com.liferay.segments.model.SegmentsEntry;
+import com.liferay.segments.model.SegmentsEntryRelTable;
 import com.liferay.segments.provider.SegmentsEntryProviderRegistry;
 import com.liferay.segments.service.SegmentsEntryLocalService;
 import com.liferay.segments.service.SegmentsEntryRelLocalService;
@@ -59,6 +61,9 @@ public class SegmentsEntryRelIndexerSchedulerJobConfiguration
 
 					dynamicQuery.add(activeProperty.eq(true));
 				});
+
+			FinderCacheUtil.clearDSLQueryCache(
+				SegmentsEntryRelTable.INSTANCE.getTableName());
 
 			Set<Long> classPKs = new HashSet<>();
 
