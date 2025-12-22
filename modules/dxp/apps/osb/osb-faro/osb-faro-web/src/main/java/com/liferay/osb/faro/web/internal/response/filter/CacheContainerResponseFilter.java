@@ -5,14 +5,14 @@
 
 package com.liferay.osb.faro.web.internal.response.filter;
 
+import java.io.IOException;
+
 import javax.annotation.Priority;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.MultivaluedMap;
-
-import java.io.IOException;
 
 /**
  * @author Marcos Martins
