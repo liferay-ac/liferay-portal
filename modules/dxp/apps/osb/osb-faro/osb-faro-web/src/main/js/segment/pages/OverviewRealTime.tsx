@@ -8,7 +8,6 @@ import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import React, {useMemo, useState} from 'react';
 import SearchableEntityTable from 'shared/components/SearchableEntityTable';
 import URLConstants from 'shared/util/url-constants';
-import {fetchMembershipChangesAggregations} from 'shared/api/individual-segment';
 import {FilterOptionType} from 'shared/types';
 import {formatUTCDate} from 'shared/util/date';
 import {membershipChangesColumns} from 'shared/util/table-columns';
@@ -33,11 +32,11 @@ const DEFAULT_ORDER_BY_OPTIONS = [
 	},
 	{
 		label: Liferay.Language.get('first-seen'),
-		value: 'firstSeenDate'
+		value: 'firstSeenTime'
 	},
 	{
 		label: Liferay.Language.get('last-active'),
-		value: 'lastActive'
+		value: 'lastActivityTime'
 	},
 	{
 		label: Liferay.Language.get('profile-type'),
@@ -62,12 +61,38 @@ const FILTER_BY_DEFAULT_OPTIONS: FilterOptionType[] = [
 ];
 
 const MEMBERSHIP_CHANGE_FILTER_OPTION: FilterOptionType = {
-	key: 'membershipChange',
+	key: 'type',
 	label: Liferay.Language.get('membership-change'),
 	values: [
 		{label: Liferay.Language.get('added'), value: 'ADDED'},
 		{label: Liferay.Language.get('removed'), value: 'REMOVED'}
 	]
+};
+
+const getAllMembers = (data: Data) => {
+	const {delta, groupId, id, orderIOMap, page, query} = data;
+
+	return API.individualSegment.fetchRealTimeMembership({
+		delta,
+		groupId,
+		orderIOMap,
+		page,
+		query,
+		segmentId: id
+	});
+};
+
+const getMembershipChanges = (data: Data) => {
+	const {delta, groupId, id, orderIOMap, query, selectedDate} = data;
+
+	return API.individualSegment.fetchRealTimeMembershipChanges({
+		date: selectedDate,
+		delta,
+		groupId,
+		orderIOMap,
+		query,
+		segmentId: id
+	});
 };
 
 type Data = {
@@ -130,12 +155,20 @@ const RealTimeSegmentOverview: React.FC<IOverviewProps> = ({
 	groupId,
 	segment
 }) => {
+	const fetchMembers = params => {
+		const fetchMembersFn = selectedPointState.hasSelectedPoint
+			? getMembershipChanges
+			: getAllMembers;
+
+		return fetchMembersFn(params);
+	};
+
 	const {criteriaString, id, includeAnonymousUsers} = segment;
 
 	const {timeZoneId} = useTimeZone();
 
 	const {data, loading} = useRequest({
-		dataSourceFn: fetchMembershipChangesAggregations,
+		dataSourceFn: fetchMembers,
 		variables: {channelId, groupId, id, interval: 'day', max: 30}
 	});
 
@@ -194,19 +227,6 @@ const RealTimeSegmentOverview: React.FC<IOverviewProps> = ({
 		}),
 		initialPage: 0
 	});
-
-	const fetchMembers = async (data: Data) => {
-		const {delta, groupId, id, orderIOMap, query, selectedDate} = data;
-
-		return API.individualSegment.fetchRealTimeMembershipChanges({
-			date: selectedDate,
-			delta,
-			groupId,
-			orderIOMap,
-			query,
-			segmentId: id
-		});
-	};
 
 	const orderByOptions = useMemo(
 		() =>

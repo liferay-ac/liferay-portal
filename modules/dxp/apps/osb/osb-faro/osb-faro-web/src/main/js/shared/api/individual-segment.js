@@ -146,6 +146,29 @@ export function fetchMembershipChanges({
 	});
 }
 
+export function fetchRealTimeMembership({
+	delta,
+	groupId,
+	orderIOMap,
+	page,
+	query,
+	segmentId
+}) {
+	const orderParams = orderIOMap.first();
+	const orderByFields = buildOrderByFields(orderParams, INDIVIDUALS);
+
+	return sendRequest({
+		data: {
+			delta,
+			orderByFields,
+			page,
+			query
+		},
+		method: 'GET',
+		path: `${groupId}/individual_segment/${segmentId}/real_time_memberships`
+	});
+}
+
 export function fetchRealTimeMembershipChanges({
 	date,
 	delta,
@@ -159,13 +182,13 @@ export function fetchRealTimeMembershipChanges({
 
 	return sendRequest({
 		data: {
-			date,
+			day: date,
 			delta,
 			orderByFields,
 			query
 		},
 		method: 'GET',
-		path: `contacts/${groupId}/individual_real_time_segment/${segmentId}/memberships`
+		path: `${groupId}/individual_real_time_segment/${segmentId}/real_time_memberships`
 	});
 }
 
