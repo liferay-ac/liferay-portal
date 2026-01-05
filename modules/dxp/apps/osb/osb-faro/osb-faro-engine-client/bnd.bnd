@@ -192,6 +192,7 @@ Import-Package:\
 	!org.springframework.messaging.rsocket.*,\
 	!org.springframework.oxm.*,\
 	!org.springframework.plugin.*,\
+	!org.springframework.orm.jpa.*,\
 	!org.springframework.r2dbc.connection.*,\
 	!org.springframework.security.authentication.*,\
 	!org.springframework.security.core.*,\

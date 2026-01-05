@@ -225,8 +225,8 @@ const RealTimeSegmentOverview: React.FC<IOverviewProps> = ({
 	const paginationParams = useStatefulPagination(null, {
 		initialDelta: 20,
 		initialOrderIOMap: OrderedMap({
-			['name']: new OrderParams({
-				field: 'name',
+			['accountName']: new OrderParams({
+				field: 'accountName',
 				sortOrder: OrderByDirections.Descending
 			})
 		}),

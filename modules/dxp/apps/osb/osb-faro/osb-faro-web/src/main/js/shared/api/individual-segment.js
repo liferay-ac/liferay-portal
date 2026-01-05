@@ -159,10 +159,10 @@ export function fetchRealTimeMembership({
 	segmentId
 }) {
 	const orderParams = orderIOMap.first();
-	const orderByFields = createOrderByField(
-		orderParams.field,
-		orderParams.sortOrder
-	);
+
+	const orderByFields = [
+		createOrderByField(orderParams.field, orderParams.sortOrder)
+	];
 
 	return sendRequest({
 		data: {
@@ -185,10 +185,9 @@ export function fetchRealTimeMembershipChanges({
 	segmentId
 }) {
 	const orderParams = orderIOMap.first();
-	const orderByFields = createOrderByField(
-		orderParams.field,
-		orderParams.sortOrder
-	);
+	const orderByFields = [
+		createOrderByField(orderParams.field, orderParams.sortOrder)
+	];
 
 	return sendRequest({
 		data: {
