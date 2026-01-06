@@ -180,6 +180,7 @@ Import-Package:\
 	!org.springframework.core.metrics.*,\
 	!org.springframework.instrument.*,\
 	!org.springframework.messaging.rsocket.*,\
+	!org.springframework.orm.jpa.*,\
 	!org.springframework.oxm.*,\
 	!org.springframework.plugin.*,\
 	!org.springframework.r2dbc.connection.*,\
