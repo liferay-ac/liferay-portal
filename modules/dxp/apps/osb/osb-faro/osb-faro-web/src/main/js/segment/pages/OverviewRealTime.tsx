@@ -20,6 +20,7 @@ import {membershipChangesColumns} from 'shared/util/table-columns';
 import {ReferencedObjectsProvider} from 'segment/segment-editor/dynamic/context/referencedObjects';
 import {ReportContainer} from 'shared/components/download-report/DownloadPDFReport';
 import {Segment} from 'shared/util/records';
+import {SegmentActivationCard} from 'segment/components/SegmentActivationCard';
 import {SegmentGrowthChart} from 'segment/components/Growth';
 import {SegmentTypes} from 'shared/util/constants';
 import {Text} from '@clayui/core';
@@ -263,7 +264,7 @@ const RealTimeSegmentOverview: React.FC<IOverviewProps> = ({
 					timeZoneId={timeZoneId}
 				/>
 			</ReferencedObjectsProvider>
-
+			<SegmentActivationCard segment={segment} />
 			<Card
 				className='segment-membership-root'
 				reportContainer={ReportContainer.SegmentMembershipTrendCard}
