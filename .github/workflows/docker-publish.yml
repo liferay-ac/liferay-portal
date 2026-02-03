@@ -53,5 +53,5 @@ jobs:
 
       - name: Push to Docker Hub
         run: |
-          docker tag osb-faro:latest liferay/com-liferay-osb-faro:master
+          docker tag osb-faro:master liferay/com-liferay-osb-faro:master
           docker push liferay/osb-faro:master
