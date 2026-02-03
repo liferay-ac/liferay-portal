@@ -10,6 +10,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    env:
+      ANT_OPTS: -Xmx6g
     steps:
       - name: Checkout Fork
         uses: actions/checkout@v4
