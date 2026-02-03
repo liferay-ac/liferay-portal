@@ -19,20 +19,21 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'ant'
 
       # 1. Create the build.me.properties file in the ROOT
       - name: Create Build Properties File
         run: |
-          echo "build.repository.private.password=${{ secrets.NEXUS_PASSWORD }}" > build.me.properties
-          echo "build.repository.private.url=${{ secrets.NEXUS_URL }}" >> build.me.properties
-          echo "build.repository.private.username=${{ secrets.NEXUS_USERNAME }}" >> build.me.properties
+          echo "build.repository.private.password=${{ secrets.NEXUS_PASSWORD }}" > build.$(whoami).properties
+          echo "build.repository.private.url=${{ secrets.NEXUS_URL }}" >> build.$(whoami).properties
+          echo "build.repository.private.username=${{ secrets.NEXUS_USERNAME }}" >> build.$(whoami).properties
 
       # 2. Run Ant commands from the ROOT
       - name: Run Ant Preparation and Build
         run: |
+          ant update-gradle-properties
+          ant setup-sdk
           ant setup-profile-dxp
-          ant all
+          ant compile install-portal-snapshots
 
       # 3. Navigate to osb-faro module and run Gradle Task
       - name: Build Module Docker Image
