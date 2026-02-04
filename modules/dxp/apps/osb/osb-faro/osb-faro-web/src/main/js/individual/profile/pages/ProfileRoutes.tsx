@@ -31,6 +31,8 @@ const InterestDetails = lazy(
 const Interests = lazy(
 	() => import(/* webpackChunkName: "IndividualInterests" */ './Interests')
 );
+
+// vai ter que trocar aqui
 const Overview = lazy(
 	() => import(/* webpackChunkName: "IndividualOverview" */ './Overview')
 );
@@ -38,7 +40,7 @@ const Overview = lazy(
 const NAV_ITEMS = [
 	{
 		exact: true,
-		label: Liferay.Language.get('overview'),
+		label: Liferay.Language.get('activities'),
 		route: Routes.CONTACTS_INDIVIDUAL
 	},
 	{
@@ -73,6 +75,16 @@ export const IndividualProfileRoutes = ({
 
 	const componentProps = {individual};
 
+	const account = 'Account';
+	// individual.get('accountNames') ?? Liferay.Language.get('unknown');
+
+	const country = 'Brazil';
+	// 	individual.get('countries') ?? Liferay.Language.get('unknown');
+
+	const email = individual.getIn(['properties', 'email']);
+
+	const subtitle = `${email} | ${account} | ${country}`;
+
 	const entityName = individual.name || Liferay.Language.get('unknown');
 
 	return (
@@ -98,7 +110,10 @@ export const IndividualProfileRoutes = ({
 				]}
 				groupId={groupId}
 			>
-				<BasePage.Header.TitleSection title={entityName} />
+				<BasePage.Header.TitleSection
+					subtitle={subtitle}
+					title={entityName}
+				/>
 
 				<BasePage.Header.NavBar
 					items={NAV_ITEMS}
