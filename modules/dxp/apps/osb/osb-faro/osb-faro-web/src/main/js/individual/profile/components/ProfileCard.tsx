@@ -1,6 +1,7 @@
 import ActivitiesChart from 'contacts/components/ActivitiesChart';
 import Card from 'shared/components/Card';
 import ClayButton from '@clayui/button';
+import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
 import EventMetricQuery, {
 	EventMetricsData,
@@ -329,13 +330,15 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 					<NoResultsDisplay
 						description={
 							<>
-								<span className='mr-1'>
+								<span>
 									{Liferay.Language.get(
-										'check-back-later-to-verify-if-data-has-been-received-from-your-data-sources'
+										'check-back-later-to-see-if-data-has-been-received-from-your-data-sources-or-try-a-different-date-range'
 									)}
 								</span>
 
 								<ClayLink
+									className='d-block mb-3'
+									decoration='underline'
 									href={
 										URLConstants.IndividualProfilesDocument
 									}
@@ -345,13 +348,18 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 									{Liferay.Language.get(
 										'learn-more-about-individuals'
 									)}
+
+									<span className='inline-item inline-item-after'>
+										<ClayIcon
+											fontSize={8}
+											symbol='shortcut'
+										/>
+									</span>
 								</ClayLink>
 							</>
 						}
 						spacer
-						title={Liferay.Language.get(
-							'there-are-no-events-found'
-						)}
+						title={Liferay.Language.get('there-are-no-data-found')}
 					/>
 				}
 				onDeltaChange={onDeltaChange}

@@ -1,59 +1,87 @@
-import * as API from 'shared/api';
-import AssociatedSegmentsCard from 'contacts/components/AssociatedSegmentsCard';
+import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
-import DetailsCard from '../components/DetailsCard';
 import IndividualProfileCard from '../hoc/ProfileCard';
-import InterestsCard from '../components/InterestsCard';
-import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import React from 'react';
+import StatesRenderer from 'shared/components/states-renderer/StatesRenderer';
 import URLConstants from 'shared/util/url-constants';
 import {connect} from 'react-redux';
-import {createOrderIOMap, INDIVIDUAL_COUNT} from 'shared/util/pagination';
-import {EntityTypes, OrderByDirections} from 'shared/util/constants';
-import {Individual} from 'shared/util/records';
-import {INDIVIDUALS} from 'shared/util/router';
-import {PropTypes} from 'prop-types';
 import {Routes, toRoute} from 'shared/util/router';
+import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useDataSource} from 'shared/hooks/useDataSource';
 
-const ITEMS_PER_CARD = 5;
+const Overview = ({channelId, groupId, individual, tabId, timeZoneId}) => {
+	const currentUser = useCurrentUser();
+	const authorized = currentUser.isAdmin();
+	const dataSourceStates = useDataSource();
 
-function fetchAssociatedSegments({channelId, groupId, id, searchValue}) {
-	return API.individualSegment.search({
-		channelId,
-		contactsEntityId: id,
-		contactsEntityType: EntityTypes.Individual,
-		delta: ITEMS_PER_CARD,
-		groupId,
-		orderIOMap: createOrderIOMap(
-			INDIVIDUAL_COUNT,
-			OrderByDirections.Descending
-		),
-		query: searchValue
-	});
-}
+	// Precisa mudar a logica de verificar se tem Data Source conectado pq o empty sempre retorna 'false'
 
-export class Overview extends React.Component {
-	static propTypes = {
-		channelId: PropTypes.string,
-		groupId: PropTypes.string.isRequired,
-		id: PropTypes.string.isRequired,
-		individual: PropTypes.instanceOf(Individual).isRequired,
-		tabId: PropTypes.string,
-		timeZoneId: PropTypes.string
+	const items = dataSourceStates?.items || [];
+
+	const isEmpty =
+		dataSourceStates.empty ||
+		items.length === 0 ||
+		items[0]?.status !== 'ACTIVE';
+
+	const processedStates = {
+		...dataSourceStates,
+		empty: isEmpty
 	};
 
-	render() {
-		const {
-			channelId,
-			groupId,
-			id,
-			individual,
-			tabId,
-			timeZoneId
-		} = this.props;
+	return (
+		<StatesRenderer {...processedStates}>
+			<StatesRenderer.Loading />
 
-		return (
-			<div className='overview-layout'>
+			<StatesRenderer.Empty
+				description={
+					<>
+						{authorized
+							? Liferay.Language.get(
+									'connect-a-data-source-containing-site-data'
+							  )
+							: Liferay.Language.get(
+									'contact-an-administrator-to-connect-a-data-source-containing-site-data'
+							  )}
+
+						<ClayLink
+							className='d-block mb-3'
+							decoration='underline'
+							href={URLConstants.DataSourceConnection}
+							key='DOCUMENTATION'
+							target='_blank'
+						>
+							{Liferay.Language.get(
+								'learn-more-about-data-sources'
+							)}
+
+							<span className='inline-item inline-item-after'>
+								<ClayIcon fontSize={8} symbol='shortcut' />
+							</span>
+						</ClayLink>
+
+						{authorized && (
+							<ClayLink
+								button
+								className='button-root mt-1'
+								displayType='primary'
+								href={toRoute(
+									Routes.SETTINGS_DATA_SOURCE_LIST,
+									{
+										groupId
+									}
+								)}
+							>
+								{Liferay.Language.get('connect-data-source')}
+							</ClayLink>
+						)}
+					</>
+				}
+				displayCard
+				showIcon={false}
+				title={Liferay.Language.get('no-site-data-synced')}
+			/>
+
+			<StatesRenderer.Success>
 				<div className='overview-column-main'>
 					<IndividualProfileCard
 						channelId={channelId}
@@ -63,68 +91,10 @@ export class Overview extends React.Component {
 						timeZoneId={timeZoneId}
 					/>
 				</div>
-
-				<div className='overview-column-side'>
-					<DetailsCard
-						channelId={channelId}
-						entity={individual}
-						groupId={groupId}
-						timeZoneId={timeZoneId}
-					/>
-
-					<InterestsCard
-						channelId={channelId}
-						compact
-						entity={individual}
-						groupId={groupId}
-						showFilter
-						type={INDIVIDUALS}
-					/>
-
-					<AssociatedSegmentsCard
-						channelId={channelId}
-						dataSourceFn={fetchAssociatedSegments}
-						groupId={groupId}
-						id={id}
-						noResultsRenderer={() => (
-							<NoResultsDisplay
-								description={
-									<>
-										{Liferay.Language.get(
-											'create-a-segment-to-get-started'
-										)}
-
-										<ClayLink
-											className='d-block'
-											href={
-												URLConstants.IndividualProfilesDocumentSegments
-											}
-											key='DOCUMENTATION'
-											target='_blank'
-										>
-											{Liferay.Language.get(
-												'learn-more-about-segments'
-											)}
-										</ClayLink>
-									</>
-								}
-								spacer
-								title={Liferay.Language.get(
-									'there-are-no-segments-found'
-								)}
-							/>
-						)}
-						pageUrl={toRoute(Routes.CONTACTS_INDIVIDUAL_SEGMENTS, {
-							channelId,
-							groupId,
-							id
-						})}
-					/>
-				</div>
-			</div>
-		);
-	}
-}
+			</StatesRenderer.Success>
+		</StatesRenderer>
+	);
+};
 
 export default connect((store, {groupId}) => ({
 	timeZoneId: store.getIn([
