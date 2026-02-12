@@ -56,14 +56,6 @@ public class IndividualSegmentDisplay implements FaroEntityDisplay {
 		_id = individualSegment.getId();
 		_includeAnonymousUsers = individualSegment.isIncludeAnonymousUsers();
 
-		SegmentActivation segmentActivation =
-			individualSegment.getSegmentActivation();
-
-		if (segmentActivation != null) {
-			_individualSegmentActivationDisplay =
-				new IndividualSegmentActivationDisplay(segmentActivation);
-		}
-
 		Map<String, Object> embeddedResources =
 			individualSegment.getEmbeddedResources();
 
@@ -130,6 +122,15 @@ public class IndividualSegmentDisplay implements FaroEntityDisplay {
 		}
 
 		_individualCount = individualSegment.getIndividualCount();
+
+		SegmentActivation segmentActivation =
+			individualSegment.getSegmentActivation();
+
+		if (segmentActivation != null) {
+			_individualSegmentActivationDisplay =
+				new IndividualSegmentActivationDisplay(segmentActivation);
+		}
+
 		_knownIndividualCount = individualSegment.getKnownIndividualCount();
 		_lastActivityDate = individualSegment.getLastActivityDate();
 		_lastMembershipUpdateDate =
