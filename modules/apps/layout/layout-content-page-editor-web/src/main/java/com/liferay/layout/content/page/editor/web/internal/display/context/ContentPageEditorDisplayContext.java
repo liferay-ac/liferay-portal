@@ -71,6 +71,7 @@ import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.editor.configuration.EditorConfiguration;
 import com.liferay.portal.kernel.editor.configuration.EditorConfigurationFactoryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
@@ -1253,10 +1254,22 @@ public class ContentPageEditorDisplayContext {
 
 		Map<String, Object> availableSegmentsEntries = new HashMap<>();
 
-		List<SegmentsEntry> segmentsEntries =
-			_segmentsEntryService.getSegmentsEntries(
+		List<SegmentsEntry> segmentsEntries = null;
+
+		if (FeatureFlagManagerUtil.isEnabled(
+				themeDisplay.getCompanyId(), "LPD-78863")) {
+
+			segmentsEntries = _segmentsEntryService.getSegmentsEntries(
 				stagingGroupHelper.getStagedPortletGroupId(
 					getGroupId(), SegmentsPortletKeys.SEGMENTS));
+		}
+		else {
+			segmentsEntries = _segmentsEntryService.getSegmentsEntries(
+				stagingGroupHelper.getStagedPortletGroupId(
+					getGroupId(), SegmentsPortletKeys.SEGMENTS),
+				SegmentsEntryConstants.SOURCE_ASAH_FARO_BACKEND,
+				QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
+		}
 
 		for (SegmentsEntry segmentsEntry : segmentsEntries) {
 			availableSegmentsEntries.put(

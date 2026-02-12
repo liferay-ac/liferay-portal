@@ -15,6 +15,7 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.search.EmptyOnClickRowChecker;
 import com.liferay.portal.kernel.dao.search.SearchContainer;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -267,6 +268,19 @@ public class SegmentsDisplayContext {
 					searchContainer.getStart(), searchContainer.getEnd(),
 					_getSort()));
 		}
+		else if (!FeatureFlagManagerUtil.isEnabled(
+					_themeDisplay.getCompanyId(), "LPD-78863")) {
+
+			searchContainer.setResultsAndTotal(
+				() -> _segmentsEntryService.getSegmentsEntries(
+					_themeDisplay.getScopeGroupId(),
+					SegmentsEntryConstants.SOURCE_ASAH_FARO_BACKEND,
+					searchContainer.getStart(), searchContainer.getEnd(),
+					searchContainer.getOrderByComparator()),
+				_segmentsEntryService.getSegmentsEntriesCount(
+					_themeDisplay.getScopeGroupId(),
+					SegmentsEntryConstants.SOURCE_ASAH_FARO_BACKEND));
+		}
 		else {
 			searchContainer.setResultsAndTotal(
 				() -> _segmentsEntryService.getSegmentsEntries(
@@ -324,6 +338,12 @@ public class SegmentsDisplayContext {
 
 			return liferayAnalyticsURL + "/contacts/segments/" +
 				segmentsEntry.getSegmentsEntryKey();
+		}
+
+		if (!FeatureFlagManagerUtil.isEnabled(
+				_themeDisplay.getCompanyId(), "LPD-78863")) {
+
+			return StringPool.BLANK;
 		}
 
 		return PortletURLBuilder.createRenderURL(
@@ -403,7 +423,8 @@ public class SegmentsDisplayContext {
 					_permissionChecker, segmentsEntry,
 					ActionKeys.ASSIGN_USER_ROLES)) {
 
-				return true;
+				return FeatureFlagManagerUtil.isEnabled(
+					_themeDisplay.getCompanyId(), "LPD-78863");
 			}
 
 			return false;
@@ -436,8 +457,16 @@ public class SegmentsDisplayContext {
 
 	public boolean isShowPermissionAction(SegmentsEntry segmentsEntry) {
 		try {
-			return SegmentsEntryPermission.contains(
-				_permissionChecker, segmentsEntry, ActionKeys.PERMISSIONS);
+			if (FeatureFlagManagerUtil.isEnabled(
+					_themeDisplay.getCompanyId(), "LPD-78863") &&
+				SegmentsEntryPermission.contains(
+					_permissionChecker, segmentsEntry,
+					ActionKeys.PERMISSIONS)) {
+
+				return true;
+			}
+
+			return false;
 		}
 		catch (PortalException portalException) {
 			_log.error(portalException);
@@ -448,8 +477,15 @@ public class SegmentsDisplayContext {
 
 	public boolean isShowUpdateAction(SegmentsEntry segmentsEntry) {
 		try {
-			return SegmentsEntryPermission.contains(
-				_permissionChecker, segmentsEntry, ActionKeys.UPDATE);
+			if (FeatureFlagManagerUtil.isEnabled(
+					_themeDisplay.getCompanyId(), "LPD-78863") &&
+				SegmentsEntryPermission.contains(
+					_permissionChecker, segmentsEntry, ActionKeys.UPDATE)) {
+
+				return true;
+			}
+
+			return false;
 		}
 		catch (PortalException portalException) {
 			_log.error(portalException);
@@ -460,8 +496,15 @@ public class SegmentsDisplayContext {
 
 	public boolean isShowViewAction(SegmentsEntry segmentsEntry) {
 		try {
-			return SegmentsEntryPermission.contains(
-				_permissionChecker, segmentsEntry, ActionKeys.VIEW);
+			if (FeatureFlagManagerUtil.isEnabled(
+					_themeDisplay.getCompanyId(), "LPD-78863") &&
+				SegmentsEntryPermission.contains(
+					_permissionChecker, segmentsEntry, ActionKeys.VIEW)) {
+
+				return true;
+			}
+
+			return false;
 		}
 		catch (PortalException portalException) {
 			_log.error(portalException);

@@ -7,6 +7,7 @@ package com.liferay.segments.configuration;
 
 import aQute.bnd.annotation.metatype.Meta;
 
+import com.liferay.portal.configuration.metatype.annotations.ExtendedAttributeDefinition;
 import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClassDefinition;
 
 /**
@@ -22,6 +23,7 @@ import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClass
 )
 public interface SegmentsCompanyConfiguration {
 
+	@ExtendedAttributeDefinition(featureFlagKey = "LPD-78863")
 	@Meta.AD(
 		deflt = "false", description = "role-segmentation-enabled-description",
 		name = "role-segmentation-enabled-name", required = false

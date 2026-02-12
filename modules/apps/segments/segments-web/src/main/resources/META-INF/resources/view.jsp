@@ -20,7 +20,7 @@ request.setAttribute("view.jsp-eventName", eventName);
 	propsTransformer="{SegmentsManagementToolbarPropsTransformer} from segments-web"
 />
 
-<c:if test="<%= !segmentsDisplayContext.isSegmentationEnabled(themeDisplay.getCompanyId()) %>">
+<c:if test='<%= !segmentsDisplayContext.isSegmentationEnabled(themeDisplay.getCompanyId()) && FeatureFlagManagerUtil.isEnabled(themeDisplay.getCompanyId(), "LPD-78863") %>'>
 	<clay:stripe
 		defaultTitleDisabled="<%= true %>"
 		dismissible="<%= true %>"
