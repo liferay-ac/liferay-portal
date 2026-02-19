@@ -1067,6 +1067,19 @@ export const segmentsListColumns = {
 		cellRendererProps: {renderIcon: SegmentSticker},
 		className: 'table-cell-expand',
 		label: Liferay.Language.get('segment-name')
+	},
+	segmentType: {
+		accessor: 'segmentType',
+		cellRenderer: item => {
+			const segmentTypeMap = {
+				BATCH: Liferay.Language.get('batch'),
+				REAL_TIME: Liferay.Language.get('real-time')
+			};
+
+			return <td>{segmentTypeMap[item.data.segmentType]}</td>;
+		},
+		label: Liferay.Language.get('type'),
+		sortable: false
 	}
 };
 
