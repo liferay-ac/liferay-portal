@@ -27,6 +27,7 @@ import {
 	getPropertyValue,
 	setPropertyValue
 } from '../utils/custom-inputs';
+import {getSafeDecodedURIComponent} from 'shared/util/util';
 import {isBoolean, isNil, isNull} from 'lodash';
 import {Modal} from 'shared/types/Modal';
 import {parseActivityKey, parseReferencedEntityId} from '../utils/utils';
@@ -42,10 +43,10 @@ export const AssetItem: React.FC<{
 			<div
 				data-tooltip
 				data-tooltip-align='top'
-				title={decodeURIComponent(dataSourceAssetPK)}
+				title={getSafeDecodedURIComponent(dataSourceAssetPK)}
 			>
 				<div className='asset-url text-secondary text-truncate'>
-					{decodeURIComponent(dataSourceAssetPK)}
+					{getSafeDecodedURIComponent(dataSourceAssetPK)}
 				</div>
 			</div>
 		)}
