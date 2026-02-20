@@ -3,9 +3,11 @@ import getCN from 'classnames';
 import React from 'react';
 import SearchableEntityTable from 'shared/components/SearchableEntityTable';
 import {DATE_CREATED, NAME} from 'shared/util/pagination';
+import {ENABLE_CDP} from 'shared/util/constants';
 import {getPluralMessage} from 'shared/util/lang';
 import {OrderedMap} from 'immutable';
 import {OrderParams} from 'shared/util/records';
+import {SectionHeader} from 'individual/profile/components/SectionHeader';
 import {segmentsListColumns} from 'shared/util/table-columns';
 
 interface IAssociatedSegmentsListProps {
@@ -37,53 +39,83 @@ const AssociatedSegmentsList: React.FC<IAssociatedSegmentsListProps> = ({
 	timeZoneId,
 	total
 }) => (
-	<Card
-		className={getCN('associated-segments-list-root', className)}
-		pageDisplay
-	>
-		<Card.Header>
-			<Card.Title>
-				{Liferay.Language.get('associated-segments')}
-			</Card.Title>
+	<>
+		{ENABLE_CDP && (
+			<SectionHeader
+				icon='relationship'
+				title={Liferay.Language.get('associated-segments')}
+			/>
+		)}
 
-			<div className='secondary-info'>
-				{getPluralMessage(
-					Liferay.Language.get('x-segment'),
-					Liferay.Language.get('x-segments'),
-					total,
-					false,
-					[<b key='SEGMENT_TOTAL'>{total.toLocaleString()}</b>]
+		<Card
+			className={getCN('associated-segments-list-root', className)}
+			pageDisplay
+		>
+			<Card.Header className='d-flex align-items-start justify-content-between'>
+				<div>
+					<Card.Title>
+						{Liferay.Language.get('associated-segments')}
+					</Card.Title>
+
+					<div className='secondary-info'>
+						{getPluralMessage(
+							Liferay.Language.get('x-segment'),
+							Liferay.Language.get('x-segments'),
+							total,
+							false,
+							[
+								<b key='SEGMENT_TOTAL'>
+									{total.toLocaleString()}
+								</b>
+							]
+						)}
+					</div>
+				</div>
+
+				{ENABLE_CDP && (
+					<div className='text-right'>
+						<span className='text-secondary text-uppercase'>
+							<small>
+								<strong>
+									{Liferay.Language.get('last-30-days')}
+								</strong>
+							</small>
+						</span>
+					</div>
 				)}
-			</div>
-		</Card.Header>
+			</Card.Header>
 
-		<SearchableEntityTable
-			columns={[
-				segmentsListColumns.getName({channelId, groupId}),
-				segmentsListColumns.individualAddedDate,
-				segmentsListColumns.getDateCreated(timeZoneId)
-			]}
-			dataSourceFn={dataSourceFn}
-			dataSourceParams={{channelId, groupId, id}}
-			delta={delta}
-			entityLabel={Liferay.Language.get('associated-segments')}
-			noResultsRenderer={noResultsRenderer}
-			orderByOptions={[
-				{
-					label: Liferay.Language.get('name'),
-					value: NAME
-				},
-				{
-					label: Liferay.Language.get('date-created'),
-					value: DATE_CREATED
-				}
-			]}
-			orderIOMap={orderIOMap}
-			page={page}
-			query={query}
-			rowIdentifier='id'
-		/>
-	</Card>
+			<SearchableEntityTable
+				columns={[
+					segmentsListColumns.getName({channelId, groupId}),
+					...(ENABLE_CDP
+						? [segmentsListColumns.getSegmentType(ENABLE_CDP)]
+						: []),
+					segmentsListColumns.individualAddedDate,
+					segmentsListColumns.getDateCreated(timeZoneId)
+				]}
+				dataSourceFn={dataSourceFn}
+				dataSourceParams={{channelId, groupId, id}}
+				delta={delta}
+				entityLabel={Liferay.Language.get('associated-segments')}
+				noResultsRenderer={noResultsRenderer}
+				orderByOptions={[
+					{
+						label: Liferay.Language.get('name'),
+						value: NAME
+					},
+					{
+						label: Liferay.Language.get('date-created'),
+						value: DATE_CREATED
+					}
+				]}
+				orderIOMap={orderIOMap}
+				page={page}
+				query={query}
+				rowIdentifier='id'
+			/>
+		</Card>
+	</>
 );
 
 export default AssociatedSegmentsList;

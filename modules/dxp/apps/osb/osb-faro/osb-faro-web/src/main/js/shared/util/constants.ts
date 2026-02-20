@@ -404,7 +404,7 @@ export const ENABLE_BLOCKLIST_KEYWORDS = false;
 
 // LPD-75612 Display known, unknown and total values in the new individuals screen
 
-export const ENABLE_CDP = false;
+export const ENABLE_CDP = true;
 
 // LRAC-11651 Disable temporarily CSV File
 

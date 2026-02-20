@@ -1,5 +1,6 @@
 import * as API from 'shared/api';
 import * as breadcrumbs from 'shared/util/breadcrumbs';
+import AssociatedSegmentsCDP from './AssociatedSegmentsCDP';
 import BasePage from 'shared/components/base-page';
 import BundleRouter from 'route-middleware/BundleRouter';
 import DownloadCSVReport from 'shared/components/download-report/DownloadCSVReport';
@@ -12,7 +13,6 @@ import {compose, withIndividual} from 'shared/hoc';
 import {CSVType} from 'shared/components/download-report/utils';
 import {ENABLE_CDP} from 'shared/util/constants';
 import {getMatchedRoute, Routes} from 'shared/util/router';
-import {SectionHeader} from '../components/SectionHeader';
 import {Switch, withRouter} from 'react-router-dom';
 import {Text} from '@clayui/core';
 import {useDataSource} from 'shared/hooks/useDataSource';
@@ -162,15 +162,14 @@ export const IndividualProfileRoutes = ({
 
 			<BasePage.Body>
 				<Suspense fallback={<Loading />}>
-					<SectionHeader
-						icon='analytics'
-						title={Liferay.Language.get('interaction-history')}
-					/>
-
 					<Switch>
 						<BundleRouter
 							componentProps={componentProps}
-							data={AssociatedSegments}
+							data={
+								ENABLE_CDP
+									? AssociatedSegmentsCDP
+									: AssociatedSegments
+							}
 							exact
 							path={Routes.CONTACTS_INDIVIDUAL_SEGMENTS}
 						/>

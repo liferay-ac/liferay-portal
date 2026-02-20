@@ -10,6 +10,7 @@ import URLConstants from 'shared/util/url-constants';
 import {connect} from 'react-redux';
 import {isNil} from 'lodash';
 import {Routes, toRoute} from 'shared/util/router';
+import {SectionHeader} from '../components/SectionHeader';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useRequest} from 'shared/hooks/useRequest';
 
@@ -103,13 +104,20 @@ const Overview = ({channelId, groupId, individual, tabId, timeZoneId}) => {
 			/>
 
 			{dataSourceData?.total > 0 && (
-				<IndividualProfileCard
-					channelId={channelId}
-					entity={individual}
-					groupId={groupId}
-					tabId={tabId}
-					timeZoneId={timeZoneId}
-				/>
+				<>
+					<SectionHeader
+						icon='analytics'
+						title={Liferay.Language.get('interaction-history')}
+					/>
+
+					<IndividualProfileCard
+						channelId={channelId}
+						entity={individual}
+						groupId={groupId}
+						tabId={tabId}
+						timeZoneId={timeZoneId}
+					/>
+				</>
 			)}
 		</div>
 	);

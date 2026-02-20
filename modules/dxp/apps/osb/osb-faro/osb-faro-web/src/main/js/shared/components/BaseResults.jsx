@@ -11,6 +11,7 @@ import {ACTION_TYPES, SelectionContext} from 'shared/context/selection';
 import {autoCancel, hasRequest} from 'shared/util/request-decorator';
 import {hasChanges} from 'shared/util/react';
 import {paginationConfig, paginationDefaults} from 'shared/util/pagination';
+import {setUriFilterValues, setUriQueryValues} from 'shared/util/router';
 import {Sizes} from 'shared/util/constants';
 
 @hasRequest
@@ -21,6 +22,7 @@ export default class BaseResults extends React.Component {
 		...paginationDefaults,
 		checkDisabled: () => false,
 		crossPageSelect: false,
+		enableClearSearch: false,
 		filterByOptions: [],
 		orderByOptions: [],
 		placeholder: Liferay.Language.get('search'),
@@ -38,6 +40,7 @@ export default class BaseResults extends React.Component {
 		crossPageSelect: PropTypes.bool,
 		dataSourceFn: PropTypes.func.isRequired,
 		dataSourceParams: PropTypes.object,
+		enableClearSearch: PropTypes.bool,
 		entityLabel: PropTypes.string,
 		filterByOptions: PropTypes.array,
 		maxLength: PropTypes.number,
@@ -234,6 +237,28 @@ export default class BaseResults extends React.Component {
 	}
 
 	@autobind
+	handleClearAllFilters() {
+		const {filterBy, history, onFilterByChange, onQueryChange, onSearchValueChange} = this.props;
+		
+		const emptyFilterBy = filterBy.map(() => Set([]));
+
+		onSearchValueChange('');
+
+		if (onQueryChange || onFilterByChange) {
+			onQueryChange && onQueryChange('');
+
+			onFilterByChange && onFilterByChange(emptyFilterBy as FilterByType);
+		} else {
+					history.push(
+						setUriFilterValues(
+							emptyFilterBy,
+							setUriQueryValues({page: defaultPage, query: ''})
+						)
+					);
+				}	
+			}
+
+	@autobind
 	handleSearchValueChange(value) {
 		const {onSearchValueChange} = this.props;
 
@@ -300,7 +325,29 @@ export default class BaseResults extends React.Component {
 						title={Liferay.Language.get(
 							'there-are-no-results-found'
 						)}
-					/>
+					>
+						{/* {enableClearSearch && (
+							<ClayButton
+								className='button-root'
+								displayType='secondary'
+								onClick={() => {
+									// this.setState({searchValue: ''});
+									onQueryChange('');
+									// setSearchValue('');
+								}}
+							>
+								{Liferay.Language.get('clear-search')}
+							</ClayButton>
+						)} */}
+
+						<ClayButton
+							className='button-root'
+							displayType='secondary'
+							onClick={this.handleClearAllFilters}
+						>
+							{Liferay.Language.get('clear-search')}
+						</ClayButton>
+					</NoResultsDisplay>
 				);
 			} else if (noResultsRenderer) {
 				return noResultsRenderer(query, activeFilters);

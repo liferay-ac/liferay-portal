@@ -16,6 +16,7 @@ import {EntityTypes, Sizes} from 'shared/util/constants';
 import {RootState} from 'shared/store';
 import {Routes, SEGMENTS, toRoute} from 'shared/util/router';
 import {SectionHeader} from '../components/SectionHeader';
+import {setUriFilterValues, setUriQueryValues} from 'shared/util/router';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
 
 const fetchAssociatedSegments = ({
