@@ -70,16 +70,16 @@ const NAV_ITEMS = [
 ];
 
 const buildHeaderSubtitle = (individual: {
-	accountNames: string;
+	accountName: string;
 	lastSessionCountry: string;
-	properties: {toJS: () => any};
+	properties: {email: string};
 }) => {
-	const {email} = individual.properties.toJS();
-	const {accountNames, lastSessionCountry} = individual;
+	const {email} = individual.properties;
+	const {accountName, lastSessionCountry} = individual;
 
 	return (
 		<Text color='secondary' size={4}>
-			{[email, accountNames, lastSessionCountry]
+			{[email, accountName, lastSessionCountry]
 				.filter(Boolean)
 				.join(' | ')}
 		</Text>
@@ -135,7 +135,7 @@ export const IndividualProfileRoutes = ({
 				groupId={groupId}
 			>
 				<BasePage.Header.TitleSection
-					subtitle={buildHeaderSubtitle(individual)}
+					subtitle={buildHeaderSubtitle(individual.toJS())}
 					title={entityName}
 				/>
 
