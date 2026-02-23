@@ -54,60 +54,60 @@ public class SnapshotDemoCreatorService extends DemoCreatorService {
 	public void createData() throws Exception {
 		ClassLoader classLoader = getClass().getClassLoader();
 
-		try (InputStream inputStream = classLoader.getResourceAsStream(
-				"/elasticsearch-snapshot-1.3.0.zip")) {
+		// try (InputStream inputStream = classLoader.getResourceAsStream(
+		// 		"/elasticsearch-snapshot-1.3.0.zip")) {
 
-			Path tempDirectoryPath = Files.createTempDirectory("temp");
+		// 	Path tempDirectoryPath = Files.createTempDirectory("temp");
 
-			ZipInputStream zipInputStream = new ZipInputStream(inputStream);
+		// 	ZipInputStream zipInputStream = new ZipInputStream(inputStream);
 
-			ZipEntry zipEntry = zipInputStream.getNextEntry();
+		// 	ZipEntry zipEntry = zipInputStream.getNextEntry();
 
-			int daysBetween = DateUtil.getDaysBetween(
-				new Date(zipEntry.getTime()),
-				new Date(System.currentTimeMillis()));
+		// 	int daysBetween = DateUtil.getDaysBetween(
+		// 		new Date(zipEntry.getTime()),
+		// 		new Date(System.currentTimeMillis()));
 
-			long timeOffset = Time.DAY * daysBetween;
+		// 	long timeOffset = Time.DAY * daysBetween;
 
-			List<Path> paths = new ArrayList<>();
+		// 	List<Path> paths = new ArrayList<>();
 
-			while (zipEntry != null) {
-				if (StringUtil.endsWith(zipEntry.getName(), ".json")) {
-					Path path = tempDirectoryPath.resolve(zipEntry.getName());
+		// 	while (zipEntry != null) {
+		// 		if (StringUtil.endsWith(zipEntry.getName(), ".json")) {
+		// 			Path path = tempDirectoryPath.resolve(zipEntry.getName());
 
-					Files.copy(
-						zipInputStream, path,
-						StandardCopyOption.REPLACE_EXISTING);
+		// 			Files.copy(
+		// 				zipInputStream, path,
+		// 				StandardCopyOption.REPLACE_EXISTING);
 
-					paths.add(path);
-				}
+		// 			paths.add(path);
+		// 		}
 
-				zipEntry = zipInputStream.getNextEntry();
-			}
+		// 		zipEntry = zipInputStream.getNextEntry();
+		// 	}
 
-			zipInputStream.close();
+		// 	zipInputStream.close();
 
-			paths.sort(
-				Comparator.comparingInt(
-					path -> {
-						int index = _priorityFileNames.indexOf(
-							String.valueOf(path.getFileName()));
+		// 	paths.sort(
+		// 		Comparator.comparingInt(
+		// 			path -> {
+		// 				int index = _priorityFileNames.indexOf(
+		// 					String.valueOf(path.getFileName()));
 
-						if (index == -1) {
-							return Integer.MAX_VALUE;
-						}
+		// 				if (index == -1) {
+		// 					return Integer.MAX_VALUE;
+		// 				}
 
-						return index;
-					}));
+		// 				return index;
+		// 			}));
 
-			for (Path path : paths) {
-				_processFile(path, timeOffset);
+		// 	for (Path path : paths) {
+		// 		_processFile(path, timeOffset);
 
-				Files.delete(path);
-			}
+		// 		Files.delete(path);
+		// 	}
 
-			Files.delete(tempDirectoryPath);
-		}
+		// 	Files.delete(tempDirectoryPath);
+		// }
 
 		contactsEngineClient.deleteData(
 			faroProject, "osbasahfaroinfo", "run-logs");
