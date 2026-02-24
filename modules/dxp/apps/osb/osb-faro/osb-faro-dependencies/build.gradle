@@ -2,7 +2,6 @@ dependencies {
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-admin-web")
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-api")
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-contacts-api")
-	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-contacts-demo")
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-contacts-service")
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-engine-client")
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-login-web-fragment")
