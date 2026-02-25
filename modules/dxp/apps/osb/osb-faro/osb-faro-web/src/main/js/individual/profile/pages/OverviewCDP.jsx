@@ -123,12 +123,9 @@ const Overview = ({channelId, groupId, individual, tabId, timeZoneId}) => {
 				channelId={channelId}
 				entity={individual}
 				groupId={groupId}
-				showEmptyState={!sitesSelected}
 				tabId={tabId}
 				timeZoneId={timeZoneId}
-			>
-				{EMPTY_STATE_FRAGMENT}
-			</IndividualProfileCard>
+			/>
 		</div>
 	);
 };
