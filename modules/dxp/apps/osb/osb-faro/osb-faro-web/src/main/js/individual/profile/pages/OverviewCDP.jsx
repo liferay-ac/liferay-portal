@@ -111,7 +111,12 @@ const Overview = ({channelId, groupId, individual, tabId, timeZoneId}) => {
 
 	return (
 		<div className='overview-column-main'>
-			<ContextualInformation showEmptyState={!sitesSelected}>
+			<ContextualInformation
+				contextData={individual.context}
+				email={individual.properties.get('email')}
+				showEmptyState={!sitesSelected}
+				uuid={individual.properties.get('uuid')}
+			>
 				{EMPTY_STATE_FRAGMENT}
 			</ContextualInformation>
 			<IndividualProfileCard
