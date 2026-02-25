@@ -16,6 +16,8 @@ import com.liferay.exportimport.kernel.staging.Staging;
 import com.liferay.exportimport.portlet.data.handler.helper.PortletDataHandlerHelper;
 import com.liferay.exportimport.staged.model.repository.StagedModelRepository;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
+import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.module.framework.ModuleServiceLifecycle;
 import com.liferay.portal.kernel.xml.Element;
 import com.liferay.segments.constants.SegmentsConstants;
@@ -84,6 +86,9 @@ public class SegmentsPortletDataHandler extends BasePortletDataHandler {
 			PortletPreferences portletPreferences)
 		throws Exception {
 
+		FeatureFlagManagerUtil.checkEnabled(
+			CompanyConstants.SYSTEM, "LPD-78863");
+
 		if (portletDataContext.addPrimaryKey(
 				SegmentsPortletDataHandler.class, "deleteData")) {
 
@@ -101,6 +106,9 @@ public class SegmentsPortletDataHandler extends BasePortletDataHandler {
 			PortletDataContext portletDataContext, String portletId,
 			PortletPreferences portletPreferences)
 		throws Exception {
+
+		FeatureFlagManagerUtil.checkEnabled(
+			CompanyConstants.SYSTEM, "LPD-78863");
 
 		Element rootElement = addExportDataRootElement(portletDataContext);
 
@@ -129,6 +137,9 @@ public class SegmentsPortletDataHandler extends BasePortletDataHandler {
 			PortletPreferences portletPreferences, String data)
 		throws Exception {
 
+		FeatureFlagManagerUtil.checkEnabled(
+			CompanyConstants.SYSTEM, "LPD-78863");
+
 		if (!portletDataContext.getBooleanParameter(NAMESPACE, "segments")) {
 			return null;
 		}
@@ -154,6 +165,9 @@ public class SegmentsPortletDataHandler extends BasePortletDataHandler {
 			PortletDataContext portletDataContext,
 			PortletPreferences portletPreferences)
 		throws Exception {
+
+		FeatureFlagManagerUtil.checkEnabled(
+			CompanyConstants.SYSTEM, "LPD-78863");
 
 		if (ExportImportDateUtil.isRangeFromLastPublishDate(
 				portletDataContext)) {
