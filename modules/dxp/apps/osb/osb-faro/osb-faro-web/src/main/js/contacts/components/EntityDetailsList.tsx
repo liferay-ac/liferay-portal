@@ -5,7 +5,11 @@ import getCN from 'classnames';
 import Nav from 'shared/components/Nav';
 import React from 'react';
 import SearchableEntityTable from 'shared/components/SearchableEntityTable';
-import {detailsListColumns} from 'shared/util/table-columns';
+import {
+	detailsListCDPColumns,
+	detailsListColumns
+} from 'shared/util/table-columns';
+import {ENABLE_CDP} from 'shared/util/constants';
 import {isBlank} from 'shared/util/util';
 import {pick, some} from 'lodash';
 import {sub} from 'shared/util/lang';
@@ -69,6 +73,15 @@ export default class EntityDetailsList extends React.Component<IEntityDetailsLis
 	getColumns() {
 		const {groupId, timeZoneId} = this.props;
 
+		if (ENABLE_CDP) {
+			return [
+				detailsListCDPColumns.name,
+				detailsListCDPColumns.sourceName,
+				detailsListCDPColumns.getDataSourceName(groupId),
+				detailsListCDPColumns.getDateModified()
+			];
+		}
+
 		return [
 			detailsListColumns.name,
 			detailsListColumns.sourceName,
@@ -118,6 +131,10 @@ export default class EntityDetailsList extends React.Component<IEntityDetailsLis
 	renderNav() {
 		const {hideBlanks} = this.state;
 
+		if (ENABLE_CDP) {
+			return null;
+		}
+
 		return (
 			<Nav>
 				<Nav.Item>
@@ -142,36 +159,40 @@ export default class EntityDetailsList extends React.Component<IEntityDetailsLis
 				className={getCN('entity-details-list-root', className)}
 				pageDisplay
 			>
-				<Card.Header>
-					<Card.Title>{title}</Card.Title>
+				{!ENABLE_CDP && (
+					<Card.Header>
+						<Card.Title>{title}</Card.Title>
 
-					<div className='secondary-info'>
-						{this._knownCount === 1
-							? sub(
-									Liferay.Language.get(
-										'1-known-individual-is-available-of-x-total'
-									),
-									[
-										<b key='TOTAL'>
-											{this._detailsData.length}
-										</b>
-									],
-									false
-							  )
-							: sub(
-									Liferay.Language.get(
-										'x-known-individuals-are-available-of-x-total'
-									),
-									[
-										<b key='KNOWN'>{this._knownCount}</b>,
-										<b key='TOTAL'>
-											{this._detailsData.length}
-										</b>
-									],
-									false
-							  )}
-					</div>
-				</Card.Header>
+						<div className='secondary-info'>
+							{this._knownCount === 1
+								? sub(
+										Liferay.Language.get(
+											'1-known-individual-is-available-of-x-total'
+										),
+										[
+											<b key='TOTAL'>
+												{this._detailsData.length}
+											</b>
+										],
+										false
+								  )
+								: sub(
+										Liferay.Language.get(
+											'x-known-individuals-are-available-of-x-total'
+										),
+										[
+											<b key='KNOWN'>
+												{this._knownCount}
+											</b>,
+											<b key='TOTAL'>
+												{this._detailsData.length}
+											</b>
+										],
+										false
+								  )}
+						</div>
+					</Card.Header>
+				)}
 
 				<Card.Body noPadding>
 					<SearchableEntityTableStateful

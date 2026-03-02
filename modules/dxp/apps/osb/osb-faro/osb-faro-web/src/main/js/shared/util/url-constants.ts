@@ -12,6 +12,7 @@ enum URLConstants {
 	AssetsDocumentsAndMediaListDocumentation = 'https://learn.liferay.com/w/dxp/personalization/analytics-cloud/touchpoints/assets-analytics/documents-and-media-analytics',
 	AssetsFormsListDocumentation = 'https://learn.liferay.com/w/dxp/personalization/analytics-cloud/touchpoints/assets-analytics/forms-analytics',
 	AssetsWebContentListDocumentation = 'https://learn.liferay.com/w/dxp/personalization/analytics-cloud/touchpoints/assets-analytics/web-content-analytics',
+	ConnectLiferayDxpToAnalyticsCloud = 'https://learn.liferay.com/w/dxp/personalization/analytics-cloud/getting-started/connecting-liferay-dxp-to-analytics-cloud',
 	ContactSales = 'https://www.liferay.com/products/analytics-cloud#contact-sales',
 	CreateProperty = 'https://learn.liferay.com/w/dxp/personalization/analytics-cloud/workspace-settings/scoping-sites-and-individuals-using-properties',
 	CreateSegments = 'https://learn.liferay.com/w/dxp/personalization/analytics-cloud/people/segments-analytics/creating-segments',

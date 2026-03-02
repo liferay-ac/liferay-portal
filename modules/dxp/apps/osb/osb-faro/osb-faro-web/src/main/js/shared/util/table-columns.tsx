@@ -480,6 +480,43 @@ export const detailsListColumns = {
 };
 
 /**
+ * Details List Columns for CDP
+ */
+export const detailsListCDPColumns = {
+	getDataSourceName: groupId => ({
+		accessor: 'dataSourceName',
+		cellRenderer: SourceCell,
+		cellRendererProps: {groupId},
+		label: Liferay.Language.get('data-source'),
+		sortable: false
+	}),
+	getDateModified: () => ({
+		accessor: 'dateModified',
+		cellRenderer: DateCell,
+		cellRendererProps: {
+			dateFormatter: date => formatDateToTimeZone(date, 'll'),
+			datePath: 'dateModified'
+		},
+		label: Liferay.Language.get('last-modified'),
+		sortable: false
+	}),
+	name: {
+		accessor: 'name',
+		cellRenderer: PropertyCell,
+		className: 'table-cell-expand',
+		label: `${Liferay.Language.get(
+			'attribute-name'
+		)} | ${Liferay.Language.get('value')}`
+	},
+	sourceName: {
+		accessor: 'sourceName',
+		className: 'table-cell-expand-small',
+		label: Liferay.Language.get('source-name'),
+		sortable: false
+	}
+};
+
+/**
  * Event List Columns
  */
 export const eventListColumns = {
