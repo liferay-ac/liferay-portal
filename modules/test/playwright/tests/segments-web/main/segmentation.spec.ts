@@ -1758,3 +1758,28 @@ test(
 		});
 	}
 );
+
+test('Assert segment deprecation warning message and learn resource message', async ({
+	page,
+	segmentsPage,
+}) => {
+	await goToSegmentsAdmin(page);
+
+	await segmentsPage.clickAddNewSegmentButton();
+
+	await expect(
+		page.getByText(
+			'Liferay DXP Segmentation conditions are deprecated and will be removed in future releases. To continue using segmentation, migrate your segments to Liferay Analytics Cloud.'
+		)
+	).toBeVisible();
+
+	const learnResourceMessage = page.getByRole('link', {
+		name: 'Learn more about Liferay Analytics Cloud.',
+	});
+
+	await expect(learnResourceMessage).toBeVisible();
+
+	expect(await learnResourceMessage.getAttribute('href')).toBe(
+		'https://learn.liferay.com/w/dxp/personalization/analytics-cloud'
+	);
+});
