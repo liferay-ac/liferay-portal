@@ -160,6 +160,11 @@ public class AnalyticsAttributesUtil {
 				"data-analytics-object-definition-name",
 				_getAnalyticsObjectDefinitionName(
 					infoItemServiceRegistry, objectEntry));
+			element.attr(
+				"data-analytics-object-structure-name",
+				_getAnalyticsObjectStructureName(
+					infoItemServiceRegistry, objectEntry,
+					fragmentEntryProcessorContext.getLocale()));
 		}
 
 		element.attr(
@@ -244,6 +249,39 @@ public class AnalyticsAttributesUtil {
 			ObjectDefinition objectDefinition = (ObjectDefinition)infoItem;
 
 			return objectDefinition.getName();
+		}
+		catch (Exception exception) {
+			_log.error(exception);
+		}
+
+		return StringPool.BLANK;
+	}
+
+	private static String _getAnalyticsObjectStructureName(
+		InfoItemServiceRegistry infoItemServiceRegistry,
+		ObjectEntry objectEntry, Locale locale) {
+
+		try {
+			InfoItemObjectProvider<ObjectDefinition> infoItemObjectProvider =
+				infoItemServiceRegistry.getFirstInfoItemService(
+					InfoItemObjectProvider.class,
+					ObjectDefinition.class.getName());
+
+			if (infoItemObjectProvider == null) {
+				return StringPool.BLANK;
+			}
+
+			Object infoItem = infoItemObjectProvider.getInfoItem(
+				new ClassPKInfoItemIdentifier(
+					objectEntry.getObjectDefinitionId()));
+
+			if (infoItem == null) {
+				return StringPool.BLANK;
+			}
+
+			ObjectDefinition objectDefinition = (ObjectDefinition)infoItem;
+
+			return objectDefinition.getLabel(locale);
 		}
 		catch (Exception exception) {
 			_log.error(exception);
