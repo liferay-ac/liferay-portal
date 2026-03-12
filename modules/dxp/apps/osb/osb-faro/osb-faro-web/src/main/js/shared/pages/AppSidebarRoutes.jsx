@@ -4,11 +4,7 @@ import React, {lazy, Suspense} from 'react';
 import RouteNotFound from 'shared/components/RouteNotFound';
 import {ChannelContext} from 'shared/context/channel';
 import {connect} from 'react-redux';
-import {
-	DEVELOPER_MODE,
-	ENABLE_ACCOUNTS,
-	ENABLE_CDP
-} from 'shared/util/constants';
+import {DEVELOPER_MODE, ENABLE_ACCOUNTS} from 'shared/util/constants';
 import {DownloadReportProvider} from 'shared/components/download-report/DownloadReportContext';
 import {Routes} from 'shared/util/router';
 import {Switch, withRouter} from 'react-router-dom';
@@ -160,143 +156,155 @@ const CommerceDashboard = lazy(() =>
 	import(/* webpackChunkName: "CommerceDashboard" */ 'commerce/pages')
 );
 
-const ROUTES = [
-	ENABLE_ACCOUNTS && {
-		data: AccountsList,
-		path: Routes.CONTACTS_LIST_ACCOUNT
-	},
-	{
-		data: AccountProfileRoutes,
-		exact: false,
-		path: Routes.CONTACTS_ACCOUNT
-	},
-	{
-		data: ENABLE_CDP ? IndividualProfileRoutesCDP : IndividualProfileRoutes,
-		exact: false,
-		path: Routes.CONTACTS_INDIVIDUAL
-	},
-	{
-		data: ENABLE_CDP ? IndividualsDashboardCDP : IndividualsDashboard,
-		destructured: false,
-		exact: false,
-		path: Routes.CONTACTS_INDIVIDUALS
-	},
-	{
-		data: SegmentsList,
-		path: Routes.CONTACTS_LIST_SEGMENT
-	},
-	{
-		data: SegmentEdit,
-		path: Routes.CONTACTS_SEGMENT_EDIT
-	},
-	{
-		data: SegmentEdit,
-		path: Routes.CONTACTS_SEGMENT_CREATE
-	},
-	{
-		data: SegmentProfileRoutes,
-		exact: false,
-		path: Routes.CONTACTS_SEGMENT
-	},
-	{
-		data: Blog,
-		destructured: false,
-		path: Routes.ASSETS_BLOGS_ROUTES
-	},
-	{
-		data: CustomAssetsDashboard,
-		destructured: false,
-		path: Routes.ASSETS_CUSTOM_DASHBOARD
-	},
-	{
-		data: DocumentAndMedia,
-		destructured: false,
-		exact: false,
-		path: Routes.ASSETS_DOCUMENTS_AND_MEDIA_ROUTES
-	},
-	{
-		data: Form,
-		destructured: false,
-		exact: false,
-		path: Routes.ASSETS_FORMS_ROUTES
-	},
-	{
-		data: WebContent,
-		destructured: false,
-		exact: false,
-		path: Routes.ASSETS_WEB_CONTENT_ROUTES
-	},
-	{
-		data: TouchpointRoutes,
-		destructured: false,
-		exact: false,
-		path: Routes.SITES_TOUCHPOINTS_ROUTES
-	},
-	{
-		data: EventAnalysisList,
-		destructured: false,
-		exact: true,
-		path: Routes.EVENT_ANALYSIS
-	},
-	{
-		data: EventAnalysisCreate,
-		destructured: false,
-		exact: true,
-		path: Routes.EVENT_ANALYSIS_CREATE
-	},
-	{
-		data: EventAnalysisEdit,
-		destructured: false,
-		exact: true,
-		path: Routes.EVENT_ANALYSIS_EDIT
-	},
-	{
-		data: ExperimentsList,
-		destructured: false,
-		path: Routes.TESTS
-	},
-	{
-		data: ExperimentOverview,
-		destructured: false,
-		path: Routes.TESTS_OVERVIEW
-	},
-	{
-		data: AssetsList,
-		destructured: false,
-		exact: false,
-		path: Routes.ASSETS
-	},
-	{
-		data: SitesDashboard,
-		destructured: false,
-		exact: false,
-		path: Routes.SITES
-	},
-	{
-		data: SitesDashboard,
-		destructured: false,
-		path: Routes.CHANNEL
-	},
-	DEVELOPER_MODE && {
-		data: CommerceDashboard,
-		destructured: false,
-		path: Routes.COMMERCE
-	}
-].filter(Boolean);
-
+const getRoutes = cdpEnabled =>
+	[
+		ENABLE_ACCOUNTS && {
+			data: AccountsList,
+			path: Routes.CONTACTS_LIST_ACCOUNT
+		},
+		{
+			data: AccountProfileRoutes,
+			exact: false,
+			path: Routes.CONTACTS_ACCOUNT
+		},
+		{
+			data: cdpEnabled
+				? IndividualProfileRoutesCDP
+				: IndividualProfileRoutes,
+			exact: false,
+			path: Routes.CONTACTS_INDIVIDUAL
+		},
+		{
+			data: cdpEnabled ? IndividualsDashboardCDP : IndividualsDashboard,
+			destructured: false,
+			exact: false,
+			path: Routes.CONTACTS_INDIVIDUALS
+		},
+		{
+			data: SegmentsList,
+			path: Routes.CONTACTS_LIST_SEGMENT
+		},
+		{
+			data: SegmentEdit,
+			path: Routes.CONTACTS_SEGMENT_EDIT
+		},
+		{
+			data: SegmentEdit,
+			path: Routes.CONTACTS_SEGMENT_CREATE
+		},
+		{
+			data: SegmentProfileRoutes,
+			exact: false,
+			path: Routes.CONTACTS_SEGMENT
+		},
+		{
+			data: Blog,
+			destructured: false,
+			path: Routes.ASSETS_BLOGS_ROUTES
+		},
+		{
+			data: CustomAssetsDashboard,
+			destructured: false,
+			path: Routes.ASSETS_CUSTOM_DASHBOARD
+		},
+		{
+			data: DocumentAndMedia,
+			destructured: false,
+			exact: false,
+			path: Routes.ASSETS_DOCUMENTS_AND_MEDIA_ROUTES
+		},
+		{
+			data: Form,
+			destructured: false,
+			exact: false,
+			path: Routes.ASSETS_FORMS_ROUTES
+		},
+		{
+			data: WebContent,
+			destructured: false,
+			exact: false,
+			path: Routes.ASSETS_WEB_CONTENT_ROUTES
+		},
+		{
+			data: TouchpointRoutes,
+			destructured: false,
+			exact: false,
+			path: Routes.SITES_TOUCHPOINTS_ROUTES
+		},
+		{
+			data: EventAnalysisList,
+			destructured: false,
+			exact: true,
+			path: Routes.EVENT_ANALYSIS
+		},
+		{
+			data: EventAnalysisCreate,
+			destructured: false,
+			exact: true,
+			path: Routes.EVENT_ANALYSIS_CREATE
+		},
+		{
+			data: EventAnalysisEdit,
+			destructured: false,
+			exact: true,
+			path: Routes.EVENT_ANALYSIS_EDIT
+		},
+		{
+			data: ExperimentsList,
+			destructured: false,
+			path: Routes.TESTS
+		},
+		{
+			data: ExperimentOverview,
+			destructured: false,
+			path: Routes.TESTS_OVERVIEW
+		},
+		{
+			data: AssetsList,
+			destructured: false,
+			exact: false,
+			path: Routes.ASSETS
+		},
+		{
+			data: SitesDashboard,
+			destructured: false,
+			exact: false,
+			path: Routes.SITES
+		},
+		{
+			data: SitesDashboard,
+			destructured: false,
+			path: Routes.CHANNEL
+		},
+		DEVELOPER_MODE && {
+			data: CommerceDashboard,
+			destructured: false,
+			path: Routes.COMMERCE
+		}
+	].filter(Boolean);
 @withRouter
 @withSidebar
 @withOnboarding
 @withUnassignedSegments
-@connect((store, {groupId}) => ({
-	project: store.getIn(['projects', groupId, 'data'])
-}))
+@connect((store, {groupId}) => {
+	const project = store.getIn(['projects', groupId, 'data']);
+	const cdpEnabled = project
+		?.getIn(['faroSubscription', 'name'])
+		?.includes('Enterprise');
+
+	return {
+		cdpEnabled,
+		project
+	};
+})
 export default class AppSidebarRoutes extends React.PureComponent {
 	static contextType = ChannelContext;
 
 	render() {
-		const {currentUser, groupId} = this.props;
+		const {cdpEnabled, currentUser, groupId} = this.props;
 		const {selectedChannel} = this.context;
+
+		const routes = getRoutes(cdpEnabled);
 
 		return (
 			<DownloadReportProvider>
@@ -311,7 +319,7 @@ export default class AppSidebarRoutes extends React.PureComponent {
 							/>
 						)}
 
-						{ROUTES.map(
+						{routes.map(
 							({data, exact = true, path, ...otherProps}) => (
 								<BundleRouter
 									{...otherProps}

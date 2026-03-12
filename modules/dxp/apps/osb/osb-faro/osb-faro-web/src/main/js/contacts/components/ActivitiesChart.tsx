@@ -21,7 +21,6 @@ import {
 } from 'recharts';
 import {CHART_COLOR_NAMES} from 'shared/util/charts';
 import {createDateKeysIMap} from 'shared/util/intervals';
-import {ENABLE_CDP} from 'shared/util/constants';
 import {
 	formatXAxisDate,
 	getBarColor,
@@ -35,6 +34,7 @@ const {stark: CHART_BLUE} = CHART_COLOR_NAMES;
 
 interface IChartProps<T> extends React.HTMLAttributes<HTMLElement> {
 	alwaysShowSelectedTooltip: boolean;
+	cdpEnabled?: boolean;
 	hasSelectedPoint?: boolean;
 	height?: number;
 	history: Array<T>;
@@ -60,6 +60,7 @@ const ActivitiesChart: React.FC<
 	IChartProps<IActivitiesHistoryProps<number>>
 > = ({
 	alwaysShowSelectedTooltip = false,
+	cdpEnabled = false,
 	hasSelectedPoint,
 	height = 340,
 	history,
@@ -203,7 +204,7 @@ const ActivitiesChart: React.FC<
 					allowDecimals={false}
 					axisLine={{stroke: AXIS.borderStroke}}
 					label={
-						ENABLE_CDP
+						cdpEnabled
 							? {
 									dy: -20,
 									position: 'top',

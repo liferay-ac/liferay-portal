@@ -25,7 +25,7 @@ const ItemRenderer = ({name, value}) => (
 export const SubscriptionDetails = ({currentPlan, planType}) => {
 	const addOns = getPlanAddOns(currentPlan);
 
-	const showAddOns = !!Object.keys(addOns).length;
+	const showAddOns = !!Object.keys(addOns).length && planType == 'Enterprise';
 
 	return (
 		<Card testId='subscription-details'>
@@ -64,7 +64,7 @@ export const SubscriptionDetails = ({currentPlan, planType}) => {
 				/>
 			</Card.Body>
 
-			{!!Object.keys(addOns).length && (
+			{showAddOns && (
 				<>
 					<Card.Header className='pb-2'>
 						<Card.Title>

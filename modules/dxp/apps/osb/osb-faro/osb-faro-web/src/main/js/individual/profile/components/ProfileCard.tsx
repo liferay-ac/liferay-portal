@@ -46,6 +46,7 @@ import {useQuery} from '@apollo/react-hooks';
 import {useSelectedPoint} from 'shared/hooks/useSelectedPoint';
 import {withEmpty} from 'cerebro-shared/hocs/utils';
 import {withError, withLoading, WrapSafeResults} from 'shared/hoc/util';
+import {useSelector} from 'react-redux';
 
 const formatTimestamp = (timestamp: number) => {
 	const date = new Date(timestamp);
@@ -99,6 +100,16 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 }) => {
 	const {hasSelectedPoint, onPointSelect, selectedPoint} = useSelectedPoint();
 	const [searchValue, setSearchValue] = useState<string>('');
+
+	const project = useSelector(
+		(state: any) =>
+			state.getIn(['projects', channelId, 'data']) ||
+			state.getIn(['projects', 'current', 'data'])
+	);
+
+	const cdpEnabled = project
+		?.getIn(['faroSubscription', 'name'])
+		?.includes('Enterprise');
 
 	const activityResponse = useQuery<EventMetricsData, EventMetricsVariables>(
 		EventMetricQuery,
@@ -335,6 +346,7 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 				<div className='individuals-activities-chart'>
 					<ActivitiesChart
 						alwaysShowSelectedTooltip
+						cdpEnabled={cdpEnabled}
 						hasSelectedPoint={hasSelectedPoint}
 						history={activityHistory}
 						interval={interval}
