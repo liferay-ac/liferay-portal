@@ -935,7 +935,7 @@ public class ProjectController extends BaseFaroController {
 
 				if (trial) {
 					osbOfferingEntry.setProductEntryId(
-						ProductConstants.BASIC_PRODUCT_ENTRY_ID);
+						ProductConstants.DATA_PLATFORM_PRODUCT_ENTRY_ID);
 				}
 				else {
 					osbOfferingEntry.setProductEntryId(
