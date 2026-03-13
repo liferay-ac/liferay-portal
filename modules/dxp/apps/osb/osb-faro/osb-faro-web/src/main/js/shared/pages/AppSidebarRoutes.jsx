@@ -4,16 +4,16 @@ import React, {lazy, Suspense} from 'react';
 import RouteNotFound from 'shared/components/RouteNotFound';
 import {ChannelContext} from 'shared/context/channel';
 import {connect} from 'react-redux';
-import {
-	DEVELOPER_MODE,
-	ENABLE_ACCOUNTS,
-	ENABLE_CDP
-} from 'shared/util/constants';
+import {DEVELOPER_MODE, ENABLE_ACCOUNTS} from 'shared/util/constants';
 import {DownloadReportProvider} from 'shared/components/download-report/DownloadReportContext';
 import {ENABLE_ASSET_OBJECT_ENTRY} from 'shared/util/constants';
 import {Routes} from 'shared/util/router';
 import {Switch, withRouter} from 'react-router-dom';
-import {withOnboarding, withUnassignedSegments} from 'shared/hoc';
+import {
+	withLDPEnabled,
+	withOnboarding,
+	withUnassignedSegments
+} from 'shared/hoc';
 import {withSidebar} from 'shared/hoc';
 
 const UIKit = lazy(() =>
@@ -175,17 +175,7 @@ const ROUTES = [
 		exact: false,
 		path: Routes.CONTACTS_ACCOUNT
 	},
-	{
-		data: ENABLE_CDP ? IndividualProfileRoutesCDP : IndividualProfileRoutes,
-		exact: false,
-		path: Routes.CONTACTS_INDIVIDUAL
-	},
-	{
-		data: ENABLE_CDP ? IndividualsDashboardCDP : IndividualsDashboard,
-		destructured: false,
-		exact: false,
-		path: Routes.CONTACTS_INDIVIDUALS
-	},
+
 	{
 		data: SegmentsList,
 		path: Routes.CONTACTS_LIST_SEGMENT
@@ -293,6 +283,7 @@ const ROUTES = [
 @withSidebar
 @withOnboarding
 @withUnassignedSegments
+@withLDPEnabled
 @connect((store, {groupId}) => ({
 	project: store.getIn(['projects', groupId, 'data'])
 }))
@@ -300,7 +291,7 @@ export default class AppSidebarRoutes extends React.PureComponent {
 	static contextType = ChannelContext;
 
 	render() {
-		const {currentUser, groupId} = this.props;
+		const {currentUser, groupId, LDPEnabled} = this.props;
 		const {selectedChannel} = this.context;
 
 		return (
@@ -313,6 +304,36 @@ export default class AppSidebarRoutes extends React.PureComponent {
 								data={NoPropertiesAvailable}
 								exact={false}
 								path={Routes.WORKSPACE_WITH_ID}
+							/>
+						)}
+
+						{LDPEnabled ? (
+							<BundleRouter
+								data={IndividualProfileRoutesCDP}
+								exact={false}
+								path={Routes.CONTACTS_INDIVIDUAL}
+							/>
+						) : (
+							<BundleRouter
+								data={IndividualProfileRoutes}
+								exact={false}
+								path={Routes.CONTACTS_INDIVIDUAL}
+							/>
+						)}
+
+						{LDPEnabled ? (
+							<BundleRouter
+								data={IndividualsDashboardCDP}
+								destructured={false}
+								exact={false}
+								path={Routes.CONTACTS_INDIVIDUALS}
+							/>
+						) : (
+							<BundleRouter
+								data={IndividualsDashboard}
+								destructured={false}
+								exact={false}
+								path={Routes.CONTACTS_INDIVIDUALS}
 							/>
 						)}
 
