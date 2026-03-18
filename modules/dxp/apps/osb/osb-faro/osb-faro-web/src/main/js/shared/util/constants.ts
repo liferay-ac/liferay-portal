@@ -103,6 +103,7 @@ export enum DataSourceStatuses {
 
 export enum DataSourceTypes {
 	Csv = 'CSV',
+	Demandbase = 'DEMANDBASE',
 	Liferay = 'LIFERAY',
 	Salesforce = 'SALESFORCE'
 }
