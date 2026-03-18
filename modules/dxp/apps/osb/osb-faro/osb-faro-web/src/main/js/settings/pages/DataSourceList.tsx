@@ -249,6 +249,18 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 							})
 						);
 					}
+				},
+				{
+					label: Liferay.Language.get('demandbase'),
+
+					onClick: () => {
+						history.push(
+							toRoute(Routes.SETTINGS_DATA_SOURCE_ONBOARDING, {
+								groupId,
+								id: DataSourceTypes.Demandbase
+							})
+						);
+					}
 				}
 			]}
 			trigger={
