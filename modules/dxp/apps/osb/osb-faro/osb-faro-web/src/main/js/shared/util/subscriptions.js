@@ -15,7 +15,6 @@ export const PLAN_TYPES = {
 	['Liferay Analytics Cloud Enterprise']: 'enterprise',
 	['Liferay Analytics Cloud Enterprise Contacts']: INDIVIDUALS,
 	['Liferay Analytics Cloud Enterprise Tracked Pages']: PAGEVIEWS,
-	['Liferay Data Platform']: 'dataPlatform',
 	['Liferay SaaS - Business Plan']: 'lxcBusiness',
 	['Liferay SaaS - CSP - Custom User Tier']: 'lxcCspCustomUserTier',
 	['Liferay SaaS - CSP - Custom User Tier - Extra User']:
@@ -170,9 +169,6 @@ export function getPlanLabel(name) {
 		case PLANS.enterprise.name:
 			return Liferay.Language.get('enterprise-plan');
 
-		case PLANS.dataPlatform.name:
-			return Liferay.Language.get('liferay-data-platform');
-
 		case PLANS.lxcCspCustomUserTier.name:
 			return Liferay.Language.get('lxc-csp-custom-user-tier');
 
@@ -246,9 +242,6 @@ export function getPropLabel(name) {
 
 		case PLANS.enterprise.name:
 			return Liferay.Language.get('enterprise');
-
-		case PLANS.dataPlatform.name:
-			return Liferay.Language.get('liferay-data-platform');
 
 		case PLANS.lxcCspCustomUserTier.name:
 			return Liferay.Language.get('lxc-csp-custom-user-tier');
