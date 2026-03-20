@@ -6,6 +6,7 @@ import {ChannelContext} from 'shared/context/channel';
 import {connect} from 'react-redux';
 import {DEVELOPER_MODE, ENABLE_ACCOUNTS} from 'shared/util/constants';
 import {DownloadReportProvider} from 'shared/components/download-report/DownloadReportContext';
+import {ENABLE_ASSET_OBJECT_ENTRY} from 'shared/util/constants';
 import {Routes} from 'shared/util/router';
 import {Switch, withRouter} from 'react-router-dom';
 import {withOnboarding, withUnassignedSegments} from 'shared/hoc';
@@ -108,6 +109,10 @@ const TouchpointRoutes = lazy(() =>
 );
 
 /* Assets */
+
+const NewAssetsList = lazy(() =>
+	import(/* webpackChunkName: "NewAssetsList" */ 'assets/object-entry/List')
+);
 
 const AssetsList = lazy(() =>
 	import(/* webpackChunkName: "AssetsList" */ 'assets/pages')
@@ -244,7 +249,7 @@ const ROUTES = [
 		path: Routes.TESTS_OVERVIEW
 	},
 	{
-		data: AssetsList,
+		data: ENABLE_ASSET_OBJECT_ENTRY ? NewAssetsList : AssetsList,
 		destructured: false,
 		exact: false,
 		path: Routes.ASSETS
