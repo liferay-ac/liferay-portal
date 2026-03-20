@@ -1,26 +1,13 @@
-import * as data from 'test/data';
 import AssociatedSegmentsList from '../AssociatedSegmentsList';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {fromJS} from 'immutable';
-import {Project} from 'shared/util/records';
-import {Provider} from 'react-redux';
 import {render} from '@testing-library/react';
 import {StaticRouter} from 'react-router';
 
 jest.unmock('react-dom');
 
-const defaultProps = {
-	project: new Project(
-		data.mockProject(23, {
-			faroSubscription: fromJS(data.mockSubscription())
-		})
-	)
-};
-
-const WrappedComponent = () => (
-	<Provider store={mockStore()}>
-		<StaticRouter>
+describe('AssociatedSegmentsList', () => {
+	it('should render', () => {
+		const {container} = render(
 			<StaticRouter>
 				<AssociatedSegmentsList
 					channelId='123123'
@@ -30,13 +17,7 @@ const WrappedComponent = () => (
 					total={2}
 				/>
 			</StaticRouter>
-		</StaticRouter>
-	</Provider>
-);
-
-describe('AssociatedSegmentsList', () => {
-	it('should render', () => {
-		const {container} = render(<WrappedComponent {...defaultProps} />);
+		);
 
 		expect(container).toMatchSnapshot();
 	});
