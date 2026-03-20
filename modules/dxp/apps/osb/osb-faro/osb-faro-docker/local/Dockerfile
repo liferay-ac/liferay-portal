@@ -31,6 +31,9 @@ COPY ./common/resources/portal-ext.properties $LIFERAY_HOME
 COPY ./common/resources/rewrite.config $LIFERAY_HOME/tomcat/webapps/ROOT/WEB-INF
 COPY ./common/resources/setenv.sh $LIFERAY_HOME/tomcat/bin
 COPY ./common/resources/system-ext.properties $LIFERAY_HOME/tomcat/webapps/ROOT/WEB-INF/classes
+COPY ./common/resources/com.liferay.frontend.data.set.impl.jar $LIFERAY_HOME/osgi/modules/
+COPY ./common/resources/com.liferay.frontend.js.importmaps.extender.jar $LIFERAY_HOME/osgi/modules/
+
 
 # Configs
 
