@@ -82,7 +82,7 @@ export const Routes = buildRoutes({
 								path: '/assets',
 								routes: {
 									ASSETS_BLOGS: {
-										path: '/blogs',
+										path: '/:assetType(blogs)?',
 										routes: {
 											ASSETS_BLOGS_KNOWN_INDIVIDUALS:
 												'/:assetId/known-individuals/:touchpoint/:title?',
@@ -119,13 +119,6 @@ export const Routes = buildRoutes({
 												'/:assetId/page/:touchpoint/:title?',
 											ASSETS_FORMS_ROUTES:
 												'/:assetId/:tabId(page|known-individuals)/:touchpoint/:title?'
-										}
-									},
-									ASSETS_OBJECT_ENTRY: {
-										path: '/object-entry',
-										routes: {
-											ASSETS_OBJECT_ENTRY_OVERVIEW:
-												'/:assetId/page/:touchpoint/:title?'
 										}
 									},
 									ASSETS_WEB_CONTENT: {
