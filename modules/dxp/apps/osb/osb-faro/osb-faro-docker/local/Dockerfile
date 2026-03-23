@@ -34,6 +34,7 @@ COPY ./common/resources/system-ext.properties $LIFERAY_HOME/tomcat/webapps/ROOT/
 COPY ./common/resources/com.liferay.frontend.data.set.impl.jar $LIFERAY_HOME/osgi/modules/
 COPY ./common/resources/com.liferay.frontend.js.importmaps.extender.jar $LIFERAY_HOME/osgi/modules/
 
+
 # Configs
 
 COPY ./common/resources/configs $LIFERAY_HOME/osgi/configs/
