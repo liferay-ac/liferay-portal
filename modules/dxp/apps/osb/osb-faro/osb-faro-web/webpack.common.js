@@ -15,6 +15,25 @@ function resolveModule(name = '') {
 const include = [resolveModule(), path.resolve(__dirname, 'node_modules')];
 
 const config = {
+	experiments: {
+		outputModule: true
+	},
+	externalsType: 'module',
+	externals: [
+		({request}, callback) => {
+			if (
+				request?.startsWith('@clayui/') &&
+				!request?.startsWith('@clayui/css')
+			) {
+				return callback(null, request);
+			}
+			callback();
+		},
+		{
+			react: 'react',
+			'react-dom': 'react-dom'
+		}
+	],
 	entry: [
 		'core-js/fn/array/fill',
 		'core-js/fn/string/code-point-at',
@@ -140,6 +159,7 @@ const config = {
 		]
 	},
 	output: {
+		module: true,
 		filename: 'main.js',
 		path: path.resolve('src/main/resources/META-INF/resources/dist'),
 		pathinfo: false,
