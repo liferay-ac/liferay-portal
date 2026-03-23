@@ -5,9 +5,6 @@ COPY --chown=liferay:liferay license /home/liferay/deploy
 COPY --chown=liferay:liferay modules /home/liferay/modules
 COPY --chown=liferay:liferay resources /home/liferay/resources
 COPY --chown=liferay:liferay 100_liferay_image_setup.sh /usr/local/liferay/scripts/pre-configure/100_liferay_image_setup.sh
-COPY --chown=liferay:liferay ./resources/com.liferay.frontend.data.set.impl.jar /home/liferay/osgi/modules/
-COPY --chown=liferay:liferay ./resources/com.liferay.frontend.js.importmaps.extender.jar /home/liferay/osgi/modules/
-
 
 RUN cd /opt/liferay/tomcat/lib && \
     curl -O https://repo1.maven.org/maven2/co/elastic/logging/jul-ecs-formatter/1.6.0/jul-ecs-formatter-1.6.0.jar && \
