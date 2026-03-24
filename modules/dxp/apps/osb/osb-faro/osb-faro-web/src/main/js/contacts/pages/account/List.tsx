@@ -2,6 +2,7 @@ import * as breadcrumbs from 'shared/util/breadcrumbs';
 import BasePage from 'shared/components/base-page';
 import Card from 'shared/components/Card';
 import React from 'react';
+import {pagination} from 'shared/util/frontend-data-set';
 import {useChannelContext} from 'shared/context/channel';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useFrontendDataSet} from 'shared/hooks/useFrontendDataSet';
@@ -95,11 +96,7 @@ const List: React.FC<IListProps> = ({channelId, groupId, ...otherProps}) => {
 									type: 'selection'
 								}
 							]}
-							pagination={{
-								deltas: [{label: 10}, {label: 20}, {label: 50}],
-								initialDelta: 20,
-								initialPageNumber: 1
-							}}
+							pagination={pagination}
 							showPagination
 							snapshotsEnabled
 							sort={[
