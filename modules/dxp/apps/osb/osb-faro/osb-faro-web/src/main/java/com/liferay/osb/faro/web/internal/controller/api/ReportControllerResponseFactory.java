@@ -58,6 +58,13 @@ public class ReportControllerResponseFactory {
 		if (!Validator.isBlank(message)) {
 			stringMap.put("message", message);
 		}
+		else if ((status != null) && status.equals("ERROR")) {
+			stringMap.put(
+				"message",
+				"The last data export for this date range and type failed. A " +
+					"new data export file will be created. Please come back " +
+						"later.");
+		}
 		else if ((status != null) && status.equals("PENDING")) {
 			String previousStatus = MapUtil.getString(
 				responseMap, "previousStatus");
@@ -91,13 +98,6 @@ public class ReportControllerResponseFactory {
 				"message",
 				"The data export file for this date range and type is being " +
 					"created. Please come back later.");
-		}
-		else if ((status != null) && status.equals("ERROR")) {
-			stringMap.put(
-				"message",
-				"The last data export for this date range and type failed. A " +
-					"new data export file will be created. Please come back " +
-						"later.");
 		}
 
 		String toDateString = MapUtil.getString(responseMap, "toDate");
