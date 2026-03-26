@@ -477,6 +477,15 @@ public abstract class BaseMockContactsEngineClientImpl
 	}
 
 	@Override
+	public Results<AssetSummaryType> getAssetSummaryTypes(
+		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
+		String rangeStart, int cur, int delta) {
+
+		return contactsEngineClient.getAssetSummaryTypes(
+			faroProject, channelId, rangeEnd, rangeKey, rangeStart, cur, delta);
+	}
+
+	@Override
 	public DataSource getAvailableTokenDataSource(FaroProject faroProject) {
 		return contactsEngineClient.getAvailableTokenDataSource(faroProject);
 	}
