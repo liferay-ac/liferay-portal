@@ -73,41 +73,53 @@ const List = () => {
 					{FrontendDataSet && (
 						<FrontendDataSet
 							apiURL={apiURL}
+							configInURLBehavior='off'
 							customDataRenderers={{
 								assetMetricRenderer: ({value}) => (
 									<span>{toThousands(value.value)}</span>
 								),
 								assetTitleRenderer: ({itemData, value}) => {
 									const assetTitle = value || itemData.id;
-									const route = mapRoutes[itemData.assetType];
+									const route =
+										mapRoutes?.[itemData.assetType] ??
+										Routes.ASSETS_OBJECT_ENTRY_OVERVIEW;
 
-									if (route) {
-										return (
-											<ClayLink
-												href={toRoute(
-													`${route}?rangeKey=0`,
-													{
-														assetId: itemData.id,
-														channelId,
-														groupId,
-														touchpoint: 'Any',
-														...(assetTitle && {
-															title: encodeURIComponent(
-																assetTitle
-															)
-														})
-													}
-												)}
-												style={{color: '#000'}}
-											>
-												{value || itemData.id}
-											</ClayLink>
-										);
-									}
-
-									return <span>{value || itemData.id}</span>;
+									return (
+										<ClayLink
+											href={toRoute(
+												`${route}?rangeKey=0`,
+												{
+													assetId: itemData.id,
+													channelId,
+													groupId,
+													touchpoint: 'Any',
+													...(assetTitle && {
+														title: encodeURIComponent(
+															assetTitle
+														)
+													})
+												}
+											)}
+											style={{color: '#000'}}
+										>
+											{value || itemData.id}
+										</ClayLink>
+									);
 								}
 							}}
+							filters={[
+								{
+									apiURL: `/o/faro/contacts/${groupId}/asset-summary-types?channelId=${channelId}&rangeKey=${rangeSelectors.rangeKey}`,
+									entityFieldType: 'string',
+									id: 'assetType',
+									itemKey: 'name',
+									itemLabel: 'name',
+									label: Liferay.Language.get('type'),
+									multiple: true,
+									type: 'selection'
+								}
+							]}
+							id='assetTable'
 							pagination={pagination}
 							showPagination
 							views={[
@@ -165,7 +177,10 @@ const List = () => {
 											}
 										]
 									},
-									thumbnail: 'table'
+									thumbnail: 'table',
+									visibleFieldNames: {
+										downloadsMetric: false
+									}
 								}
 							]}
 						/>

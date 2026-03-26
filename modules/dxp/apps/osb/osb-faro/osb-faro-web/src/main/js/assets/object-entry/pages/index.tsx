@@ -21,12 +21,13 @@ import {useDataSource} from 'shared/hooks/useDataSource';
 import {useQueryRangeSelectors} from 'shared/hooks/useQueryRangeSelectors';
 
 const Overview = lazy(
-	() => import(/* webpackChunkName: "WebContentOverview" */ './Overview')
+	() => import(/* webpackChunkName: "ObjectEntryOverview" */ './Overview')
 );
+
 const KnownIndividuals = lazy(
 	() =>
 		import(
-			/* webpackChunkName: "WebContentKnownIndividuals" */ './KnownIndividuals'
+			/* webpackChunkName: "ObjectEntryKnownIndividuals" */ './KnownIndividualsListCard'
 		)
 );
 
@@ -34,16 +35,16 @@ const NAV_ITEMS = [
 	{
 		exact: true,
 		label: Liferay.Language.get('overview'),
-		route: Routes.ASSETS_WEB_CONTENT_OVERVIEW
+		route: Routes.ASSETS_OBJECT_ENTRY_OVERVIEW
 	},
 	{
 		exact: true,
 		label: Liferay.Language.get('known-individuals'),
-		route: Routes.ASSETS_WEB_CONTENT_KNOWN_INDIVIDUALS
+		route: Routes.ASSETS_OBJECT_ENTRY_KNOWN_INDIVIDUALS
 	}
 ];
 
-const WebContent: React.FC<{
+const ObjectEntry: React.FC<{
 	className: string;
 	router: Router;
 }> = ({className, router}) => {
@@ -94,7 +95,7 @@ const WebContent: React.FC<{
 			</BasePage.Header>
 
 			{getMatchedRoute(NAV_ITEMS) ===
-				Routes.ASSETS_WEB_CONTENT_OVERVIEW && (
+				Routes.ASSETS_OBJECT_ENTRY_OVERVIEW && (
 				<BasePage.SubHeader>
 					<div className='d-flex justify-content-end w-100'>
 						<DownloadPDFReport
@@ -111,12 +112,12 @@ const WebContent: React.FC<{
 			)}
 
 			{getMatchedRoute(NAV_ITEMS) ===
-				Routes.ASSETS_WEB_CONTENT_KNOWN_INDIVIDUALS && (
+				Routes.ASSETS_OBJECT_ENTRY_KNOWN_INDIVIDUALS && (
 				<BasePage.SubHeader>
 					<div className='d-flex justify-content-end w-100'>
 						<DownloadCSVReport
 							assetId={assetId}
-							assetType='journal'
+							assetType='objectEntry'
 							disabled={dataSourceStates.empty}
 							type={CSVType.Individual}
 							typeLang={Liferay.Language.get('known-individuals')}
@@ -125,7 +126,12 @@ const WebContent: React.FC<{
 				</BasePage.SubHeader>
 			)}
 
-			<BasePage.Context.Provider value={{filters, router}}>
+			<BasePage.Context.Provider
+				value={{
+					filters,
+					router
+				}}
+			>
 				{ENABLE_GLOBAL_FILTER && (
 					<BasePage.SubHeader>
 						<Filter onChange={setFilters} />
@@ -133,13 +139,13 @@ const WebContent: React.FC<{
 				)}
 
 				<BasePage.Body>
-					<Suspense fallback={<Loading />}>
+					<Suspense fallback={<Loading center />}>
 						<Switch>
 							<BundleRouter
 								data={Overview}
 								destructured={false}
 								exact
-								path={Routes.ASSETS_WEB_CONTENT_OVERVIEW}
+								path={Routes.ASSETS_OBJECT_ENTRY_OVERVIEW}
 							/>
 
 							<BundleRouter
@@ -147,7 +153,7 @@ const WebContent: React.FC<{
 								destructured={false}
 								exact
 								path={
-									Routes.ASSETS_WEB_CONTENT_KNOWN_INDIVIDUALS
+									Routes.ASSETS_OBJECT_ENTRY_KNOWN_INDIVIDUALS
 								}
 							/>
 
@@ -160,4 +166,4 @@ const WebContent: React.FC<{
 	);
 };
 
-export default WebContent;
+export default ObjectEntry;

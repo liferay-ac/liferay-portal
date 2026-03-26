@@ -104,7 +104,7 @@ exports[`Sidebar should render 1`] = `
           >
             <a
               class="link btn btn-unstyled"
-              href="/workspace/23/123/assets"
+              href="/workspace/23/123/assets?rangeKey=0"
             >
               <span
                 class="link-content-wrapper"
