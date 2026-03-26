@@ -207,8 +207,8 @@ public interface ContactsEngineClient {
 		String assetType, int cur, int delta, List<OrderByField> orderByFields);
 
 	public Results<AssetSummary> getAssetSummaries(
-		FaroProject faroProject, long channelId, String keywords, int rangeKey,
-		int cur, int delta, String sort);
+		FaroProject faroProject, long channelId, String filterString,
+		String keywords, int rangeKey, int cur, int delta, String sort);
 
 	public DataSource getAvailableTokenDataSource(FaroProject faroProject);
 
