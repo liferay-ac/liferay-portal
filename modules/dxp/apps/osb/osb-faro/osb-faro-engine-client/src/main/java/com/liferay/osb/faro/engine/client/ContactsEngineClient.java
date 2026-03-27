@@ -244,6 +244,10 @@ public interface ContactsEngineClient {
 		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
 		String rangeStart, int cur, int delta);
 
+	public Results<AssetSummaryTag> getAssetSummaryTags(
+		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
+		String rangeStart, int cur, int delta);
+
 	public Results<AssetSummaryType> getAssetSummaryTypes(
 		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
 		String rangeStart, int cur, int delta);
