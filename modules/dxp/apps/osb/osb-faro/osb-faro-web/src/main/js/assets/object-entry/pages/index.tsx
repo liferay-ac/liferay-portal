@@ -1,14 +1,12 @@
 import * as breadcrumbs from 'shared/util/breadcrumbs';
 import BasePage from 'shared/components/base-page';
 import BundleRouter from 'route-middleware/BundleRouter';
-import DownloadCSVReport from 'shared/components/download-report/DownloadCSVReport';
 import DownloadPDFReport from 'shared/components/download-report/DownloadPDFReport';
 import Filter from '../hocs/Filter';
 import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
 import React, {lazy, Suspense, useState} from 'react';
 import RouteNotFound from 'shared/components/RouteNotFound';
-import {CSVType} from 'shared/components/download-report/utils';
 import {ENABLE_GLOBAL_FILTER} from 'shared/util/constants';
 import {getMatchedRoute, Routes} from 'shared/util/router';
 import {getSafeDecodedURIComponent} from 'shared/util/util';
@@ -106,21 +104,6 @@ const ObjectEntry: React.FC<{
 									decodedTitle
 								]) as string
 							}
-						/>
-					</div>
-				</BasePage.SubHeader>
-			)}
-
-			{getMatchedRoute(NAV_ITEMS) ===
-				Routes.ASSETS_OBJECT_ENTRY_KNOWN_INDIVIDUALS && (
-				<BasePage.SubHeader>
-					<div className='d-flex justify-content-end w-100'>
-						<DownloadCSVReport
-							assetId={assetId}
-							assetType='objectEntry'
-							disabled={dataSourceStates.empty}
-							type={CSVType.Individual}
-							typeLang={Liferay.Language.get('known-individuals')}
 						/>
 					</div>
 				</BasePage.SubHeader>

@@ -48,7 +48,7 @@ const Sidebar: React.FC<ISidebarProps> = ({
 					icon: 'ac_assets',
 					label: Liferay.Language.get('assets'),
 					route: Routes.ASSETS,
-					url: toRoute(`${Routes.ASSETS}?rangeKey=0`, {
+					url: toRoute(Routes.ASSETS, {
 						channelId,
 						groupId
 					})

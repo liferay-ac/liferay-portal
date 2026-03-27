@@ -86,20 +86,17 @@ const List = () => {
 
 									return (
 										<ClayLink
-											href={toRoute(
-												`${route}?rangeKey=0`,
-												{
-													assetId: itemData.id,
-													channelId,
-													groupId,
-													touchpoint: 'Any',
-													...(assetTitle && {
-														title: encodeURIComponent(
-															assetTitle
-														)
-													})
-												}
-											)}
+											href={toRoute(route, {
+												assetId: itemData.id,
+												channelId,
+												groupId,
+												touchpoint: 'Any',
+												...(assetTitle && {
+													title: encodeURIComponent(
+														assetTitle
+													)
+												})
+											})}
 											style={{color: '#000'}}
 										>
 											{value || itemData.id}

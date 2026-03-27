@@ -99,7 +99,7 @@ const AssetAppearsOnStateRenderer = ({
 			assetId,
 			assetType:
 				assetType === AssetTypes.ObjectEntry
-					? 'OBEJCT_ENTRY'
+					? 'OBJECT_ENTRY'
 					: assetType.toUpperCase(),
 			selectedMetrics: accessors,
 			...(assetType !== AssetTypes.ObjectEntry && {

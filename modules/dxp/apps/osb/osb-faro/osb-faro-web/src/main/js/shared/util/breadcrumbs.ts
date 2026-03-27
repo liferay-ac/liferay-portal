@@ -101,7 +101,7 @@ export const getTests = ({channelId, groupId}: IBasicSidebarRouteArgs) => ({
  * Assets
  */
 export const getAssets = ({channelId, groupId}: IBasicSidebarRouteArgs) => ({
-	href: `${toRoute(Routes.ASSETS, {channelId, groupId})}?rangeKey=0`,
+	href: toRoute(Routes.ASSETS, {channelId, groupId}),
 	label: Liferay.Language.get('assets')
 });
 
