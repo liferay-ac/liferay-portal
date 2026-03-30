@@ -28,6 +28,30 @@ function getObjectEntryPayload({
 		objectDefinitionName: dataset.analyticsObjectDefinitionName.trim(),
 	};
 
+	if (dataset.analyticsAssetCategories) {
+		Object.assign(payload, {
+			assetCategories: dataset.analyticsAssetCategories.trim(),
+		});
+	}
+
+	if (dataset.analyticsObjectDefinitionDisplayName) {
+		Object.assign(payload, {
+			objectDefinitionDisplayName:
+				dataset.analyticsObjectDefinitionDisplayName.trim(),
+		});
+	}
+
+	if (dataset.analyticsObjectDefinitionMimeType) {
+		Object.assign(payload, {
+			objectDefinitionMimeType:
+				dataset.analyticsObjectDefinitionMimeType.trim(),
+		});
+	}
+
+	if (dataset.analyticsAssetTags) {
+		Object.assign(payload, {assetTags: dataset.analyticsAssetTags.trim()});
+	}
+
 	if (dataset.analyticsAssetTitle) {
 		Object.assign(payload, {title: dataset.analyticsAssetTitle.trim()});
 	}

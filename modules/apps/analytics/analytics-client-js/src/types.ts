@@ -97,23 +97,32 @@ export namespace Analytics {
 		dataset: {
 			[Analytics.DataSetList
 				.AnalyticsAssetAction]: Analytics.ElementAction;
+			[Analytics.DataSetList
+				.AnalyticsObjectDefinitionDisplayName]?: string;
+			[Analytics.DataSetList.AnalyticsAssetCategories]?: string;
+			[Analytics.DataSetList.AnalyticsAssetTags]?: string;
 			[Analytics.DataSetList.AnalyticsAssetTitle]?: string;
 			[Analytics.DataSetList.AnalyticsAssetType]: Analytics.ElementType;
 			[Analytics.DataSetList.AnalyticsExternalReferenceCode]: string;
+			[Analytics.DataSetList.AnalyticsObjectDefinitionMimeType]: string;
 			[Analytics.DataSetList.AnalyticsObjectDefinitionName]: string;
 		};
 		innerText: string;
 	}
 
 	export enum DataSetList {
+		AnalyticsObjectDefinitionMimeType = 'analyticsObjectDefinitionMimeType',
 		AnalyticsAssetAction = 'analyticsAssetAction',
+		AnalyticsAssetCategories = 'analyticsAssetCategories',
 		AnalyticsAssetCategory = 'analyticsAssetCategory',
-		AnalyticsExternalReferenceCode = 'analyticsExternalReferenceCode',
 		AnalyticsAssetId = 'analyticsAssetId',
 		AnalyticsAssetSubtype = 'analyticsAssetSubtype',
+		AnalyticsAssetTags = 'analyticsAssetTags',
 		AnalyticsAssetTitle = 'analyticsAssetTitle',
 		AnalyticsAssetType = 'analyticsAssetType',
 		AnalyticsAssetVersion = 'analyticsAssetVersion',
+		AnalyticsExternalReferenceCode = 'analyticsExternalReferenceCode',
+		AnalyticsObjectDefinitionDisplayName = 'analyticsObjectDefinitionDisplayName',
 		AnalyticsObjectDefinitionName = 'analyticsObjectDefinitionName',
 		AnalyticsWebContentResourcePk = 'analyticsWebContentResourcePk',
 	}
