@@ -187,6 +187,199 @@ describe('ObjectEntry Plugin', () => {
 		});
 	});
 
+	describe('ObjectEntry optional payload fields', () => {
+		const createObjectEntryLinkElementWithOptions = (options: {
+			analyticsAssetCategories?: string;
+			analyticsAssetTags?: string;
+			analyticsObjectDefinitionDisplayName?: string;
+			analyticsObjectDefinitionMimeType?: string;
+		}) => {
+			const element = document.createElement('a');
+
+			element.href = '#';
+			element.dataset.analyticsAssetAction =
+				AnalyticsTypes.ElementAction.Download;
+			element.dataset.analyticsExternalReferenceCode =
+				'a66d047e-3203-401a-890c-b881a9c54648';
+			element.dataset.analyticsObjectDefinitionName =
+				'my-custom-object-definition-name';
+			element.dataset.analyticsAssetType =
+				AnalyticsTypes.ElementType.ObjectEntry;
+			element.innerText =
+				'Lorem ipsum dolor, sit amet consectetur adipisicing elit.';
+
+			if (options.analyticsAssetCategories !== undefined) {
+				element.dataset.analyticsAssetCategories =
+					options.analyticsAssetCategories;
+			}
+
+			if (options.analyticsAssetTags !== undefined) {
+				element.dataset.analyticsAssetTags = options.analyticsAssetTags;
+			}
+
+			if (options.analyticsObjectDefinitionDisplayName !== undefined) {
+				element.dataset.analyticsObjectDefinitionDisplayName =
+					options.analyticsObjectDefinitionDisplayName;
+			}
+
+			if (options.analyticsObjectDefinitionMimeType !== undefined) {
+				element.dataset.analyticsObjectDefinitionMimeType =
+					options.analyticsObjectDefinitionMimeType;
+			}
+
+			document.body.appendChild(element);
+
+			return element;
+		};
+
+		it('includes assetCategories in the payload when set', async () => {
+			const element = createObjectEntryLinkElementWithOptions({
+				analyticsAssetCategories: 'category1,category2',
+			});
+
+			await userEvent.click(element);
+
+			expect(Analytics.getEvents()).toEqual([
+				expect.objectContaining({
+					applicationId: AnalyticsTypes.ApplicationId.ObjectEntry,
+					eventId: AnalyticsTypes.EventId.ObjectEntryDownloaded,
+					properties: expect.objectContaining({
+						assetCategories: 'category1,category2',
+					}),
+				}),
+			]);
+
+			document.body.removeChild(element);
+		});
+
+		it('does not include assetCategories in the payload when not set', async () => {
+			const element = createObjectEntryLinkElementWithOptions({});
+
+			await userEvent.click(element);
+
+			expect(Analytics.getEvents()[0].properties).not.toHaveProperty(
+				'assetCategories'
+			);
+
+			document.body.removeChild(element);
+		});
+
+		it('includes assetTags in the payload when set', async () => {
+			const element = createObjectEntryLinkElementWithOptions({
+				analyticsAssetTags: 'tag1,tag2',
+			});
+
+			await userEvent.click(element);
+
+			expect(Analytics.getEvents()).toEqual([
+				expect.objectContaining({
+					applicationId: AnalyticsTypes.ApplicationId.ObjectEntry,
+					eventId: AnalyticsTypes.EventId.ObjectEntryDownloaded,
+					properties: expect.objectContaining({
+						assetTags: 'tag1,tag2',
+					}),
+				}),
+			]);
+
+			document.body.removeChild(element);
+		});
+
+		it('does not include assetTags in the payload when not set', async () => {
+			const element = createObjectEntryLinkElementWithOptions({});
+
+			await userEvent.click(element);
+
+			expect(Analytics.getEvents()[0].properties).not.toHaveProperty(
+				'assetTags'
+			);
+
+			document.body.removeChild(element);
+		});
+
+		it('includes objectDefinitionDisplayName in the payload when analyticsObjectDefinitionDisplayName is set', async () => {
+			const element = createObjectEntryLinkElementWithOptions({
+				analyticsObjectDefinitionDisplayName: 'My Object Definition',
+			});
+
+			await userEvent.click(element);
+
+			expect(Analytics.getEvents()).toEqual([
+				expect.objectContaining({
+					applicationId: AnalyticsTypes.ApplicationId.ObjectEntry,
+					eventId: AnalyticsTypes.EventId.ObjectEntryDownloaded,
+					properties: expect.objectContaining({
+						objectDefinitionDisplayName: 'My Object Definition',
+					}),
+				}),
+			]);
+
+			document.body.removeChild(element);
+		});
+
+		it('includes objectDefinitionMimeType from analyticsObjectDefinitionMimeType when set', async () => {
+			const element = createObjectEntryLinkElementWithOptions({
+				analyticsObjectDefinitionMimeType: 'application/pdf',
+			});
+
+			await userEvent.click(element);
+
+			expect(Analytics.getEvents()).toEqual([
+				expect.objectContaining({
+					applicationId: AnalyticsTypes.ApplicationId.ObjectEntry,
+					eventId: AnalyticsTypes.EventId.ObjectEntryDownloaded,
+					properties: expect.objectContaining({
+						objectDefinitionMimeType: 'application/pdf',
+					}),
+				}),
+			]);
+
+			document.body.removeChild(element);
+		});
+
+		it('includes both objectDefinitionMimeType and objectDefinitionDisplayName when both are set', async () => {
+			const element = createObjectEntryLinkElementWithOptions({
+				analyticsObjectDefinitionDisplayName: 'My Object Definition',
+				analyticsObjectDefinitionMimeType: 'application/pdf',
+			});
+
+			await userEvent.click(element);
+
+			expect(Analytics.getEvents()).toEqual([
+				expect.objectContaining({
+					properties: expect.objectContaining({
+						objectDefinitionDisplayName: 'My Object Definition',
+						objectDefinitionMimeType: 'application/pdf',
+					}),
+				}),
+			]);
+
+			document.body.removeChild(element);
+		});
+
+		it('trims whitespace from optional fields', async () => {
+			const element = createObjectEntryLinkElementWithOptions({
+				analyticsAssetCategories: '  category1  ',
+				analyticsAssetTags: '  tag1  ',
+				analyticsObjectDefinitionDisplayName:
+					'  My Object Definition  ',
+			});
+
+			await userEvent.click(element);
+
+			expect(Analytics.getEvents()).toEqual([
+				expect.objectContaining({
+					properties: expect.objectContaining({
+						assetCategories: 'category1',
+						assetTags: 'tag1',
+						objectDefinitionDisplayName: 'My Object Definition',
+					}),
+				}),
+			]);
+
+			document.body.removeChild(element);
+		});
+	});
+
 	describe('ObjectEntry events with actions', () => {
 		const createObjectEntryElementWithAction = (
 			action: AnalyticsTypes.ElementAction
