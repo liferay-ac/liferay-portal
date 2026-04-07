@@ -202,8 +202,12 @@ class Analytics {
 			});
 		}
 
+		const {emailAddressHashed} = this.config.identity;
+
+		const individualId = emailAddressHashed || this._getUserId();
+
 		return fetch(
-			`${this.config.faroBackendUrl}/api/1.0/segment-memberships/${this._getUserId()}/batch-segment-ids`,
+			`${this.config.faroBackendUrl}/api/1.0/segment-memberships/${individualId}/batch-segment-ids`,
 			{
 				cache: 'default',
 				credentials: 'same-origin',
