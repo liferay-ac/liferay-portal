@@ -7,7 +7,7 @@ package com.liferay.osb.faro.web.internal.exception;
 
 import com.liferay.osb.faro.engine.client.exception.FaroEngineClientException;
 import com.liferay.osb.faro.engine.client.model.ErrorResponse;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.log.Log;

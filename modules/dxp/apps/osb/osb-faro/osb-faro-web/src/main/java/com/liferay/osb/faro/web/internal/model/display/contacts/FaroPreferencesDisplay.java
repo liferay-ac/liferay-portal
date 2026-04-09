@@ -5,9 +5,9 @@
 
 package com.liferay.osb.faro.web.internal.model.display.contacts;
 
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.model.FaroPreferences;
 import com.liferay.osb.faro.web.internal.model.preferences.WorkspacePreferences;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 
 /**
  * @author Matthew Kong

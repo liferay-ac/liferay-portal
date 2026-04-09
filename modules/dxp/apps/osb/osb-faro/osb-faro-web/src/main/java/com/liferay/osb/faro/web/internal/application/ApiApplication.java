@@ -7,12 +7,12 @@ package com.liferay.osb.faro.web.internal.application;
 
 import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.web.internal.context.GroupInfoContextProvider;
 import com.liferay.osb.faro.web.internal.controller.api.DemandbaseAccountController;
 import com.liferay.osb.faro.web.internal.controller.api.GraphQLController;
 import com.liferay.osb.faro.web.internal.controller.api.RecommendationController;
 import com.liferay.osb.faro.web.internal.controller.api.ReportController;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 
 import jakarta.ws.rs.core.Application;
 

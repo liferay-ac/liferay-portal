@@ -12,7 +12,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.liferay.osb.faro.engine.client.constants.ActivityConstants;
 import com.liferay.osb.faro.engine.client.model.Activity;
 import com.liferay.osb.faro.engine.client.model.ActivityGroup;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 

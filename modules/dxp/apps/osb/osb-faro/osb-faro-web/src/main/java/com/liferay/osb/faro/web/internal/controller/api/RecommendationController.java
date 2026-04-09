@@ -6,10 +6,10 @@
 package com.liferay.osb.faro.web.internal.controller.api;
 
 import com.liferay.oauth2.provider.scope.RequiresNoScope;
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.web.internal.context.GroupInfo;
 import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 
 import jakarta.ws.rs.Consumes;

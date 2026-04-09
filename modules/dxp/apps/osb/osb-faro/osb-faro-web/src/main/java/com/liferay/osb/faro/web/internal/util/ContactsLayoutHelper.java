@@ -7,6 +7,7 @@ package com.liferay.osb.faro.web.internal.util;
 
 import com.liferay.osb.faro.contacts.model.ContactsCardTemplate;
 import com.liferay.osb.faro.contacts.service.ContactsCardTemplateLocalService;
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.web.internal.card.template.ContactsCardTemplateManagerHelper;
 import com.liferay.osb.faro.web.internal.model.display.contacts.card.template.ContactsLayoutTemplateSettingDisplay;
 import com.liferay.petra.string.StringBundler;

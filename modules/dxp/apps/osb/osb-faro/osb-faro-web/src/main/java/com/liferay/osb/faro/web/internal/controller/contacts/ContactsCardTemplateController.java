@@ -9,6 +9,7 @@ import com.liferay.osb.faro.contacts.model.ContactsCardTemplate;
 import com.liferay.osb.faro.contacts.model.constants.ContactsCardTemplateConstants;
 import com.liferay.osb.faro.contacts.model.constants.JSONConstants;
 import com.liferay.osb.faro.contacts.service.ContactsCardTemplateLocalService;
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.web.internal.card.template.ContactsCardTemplateManagerHelper;
 import com.liferay.osb.faro.web.internal.card.template.type.ContactsCardTemplateType;
 import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
@@ -16,7 +17,6 @@ import com.liferay.osb.faro.web.internal.controller.FaroController;
 import com.liferay.osb.faro.web.internal.exception.FaroException;
 import com.liferay.osb.faro.web.internal.model.display.contacts.card.template.ContactsCardTemplateDisplay;
 import com.liferay.osb.faro.web.internal.param.FaroParam;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 

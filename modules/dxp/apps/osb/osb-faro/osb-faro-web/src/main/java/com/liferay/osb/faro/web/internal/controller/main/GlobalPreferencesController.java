@@ -5,13 +5,13 @@
 
 package com.liferay.osb.faro.web.internal.controller.main;
 
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.model.FaroPreferences;
 import com.liferay.osb.faro.service.FaroPreferencesLocalService;
 import com.liferay.osb.faro.web.internal.constants.FaroPreferencesConstants;
 import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
 import com.liferay.osb.faro.web.internal.model.display.contacts.FaroGlobalPreferencesDisplay;
 import com.liferay.osb.faro.web.internal.param.FaroParam;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.portal.kernel.model.RoleConstants;
 
 import jakarta.annotation.security.RolesAllowed;

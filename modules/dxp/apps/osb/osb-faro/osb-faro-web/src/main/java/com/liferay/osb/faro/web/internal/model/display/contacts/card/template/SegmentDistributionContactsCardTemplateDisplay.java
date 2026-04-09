@@ -12,12 +12,12 @@ import com.liferay.osb.faro.contacts.model.constants.ContactsCardTemplateConstan
 import com.liferay.osb.faro.engine.client.ContactsEngineClient;
 import com.liferay.osb.faro.engine.client.constants.FieldMappingConstants;
 import com.liferay.osb.faro.engine.client.model.FieldMapping;
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.web.internal.constants.FaroPaginationConstants;
 import com.liferay.osb.faro.web.internal.model.display.contacts.FieldMappingDisplay;
 import com.liferay.osb.faro.web.internal.model.display.main.FaroEntityDisplay;
 import com.liferay.osb.faro.web.internal.util.IndividualSegmentUtil;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.osb.faro.web.internal.util.SchemaOrgUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;

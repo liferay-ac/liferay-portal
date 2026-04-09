@@ -5,8 +5,8 @@
 
 package com.liferay.osb.faro.web.internal.param.converter;
 
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.web.internal.param.FaroParam;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.model.Group;

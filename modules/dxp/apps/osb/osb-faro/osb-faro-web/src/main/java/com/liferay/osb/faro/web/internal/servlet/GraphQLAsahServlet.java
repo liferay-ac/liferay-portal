@@ -6,12 +6,12 @@
 package com.liferay.osb.faro.web.internal.servlet;
 
 import com.liferay.osb.faro.engine.client.constants.OSBAsahHeaderConstants;
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.model.FaroChannel;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.service.FaroChannelLocalService;
 import com.liferay.osb.faro.util.FaroPermissionChecker;
 import com.liferay.osb.faro.web.internal.util.FaroProjectThreadLocal;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;

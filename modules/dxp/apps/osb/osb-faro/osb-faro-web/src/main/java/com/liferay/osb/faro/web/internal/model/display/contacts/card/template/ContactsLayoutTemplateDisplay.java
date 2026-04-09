@@ -11,11 +11,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.liferay.osb.faro.contacts.model.ContactsLayoutTemplate;
 import com.liferay.osb.faro.contacts.service.ContactsCardTemplateLocalServiceUtil;
 import com.liferay.osb.faro.engine.client.ContactsEngineClient;
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.web.internal.card.template.ContactsCardTemplateManagerHelper;
 import com.liferay.osb.faro.web.internal.model.display.FaroModelDisplay;
 import com.liferay.osb.faro.web.internal.model.display.main.FaroEntityDisplay;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 

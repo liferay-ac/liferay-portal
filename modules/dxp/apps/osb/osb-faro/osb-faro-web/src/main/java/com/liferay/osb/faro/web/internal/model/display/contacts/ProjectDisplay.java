@@ -7,12 +7,12 @@ package com.liferay.osb.faro.web.internal.model.display.contacts;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import com.liferay.osb.faro.engine.client.util.JSONUtil;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.model.FaroUser;
 import com.liferay.osb.faro.provisioning.client.model.OSBAccountEntry;
+import com.liferay.osb.faro.provisioning.client.model.display.main.FaroSubscriptionDisplay;
 import com.liferay.osb.faro.service.FaroUserLocalServiceUtil;
-import com.liferay.osb.faro.web.internal.model.display.main.FaroSubscriptionDisplay;
-import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.osb.faro.web.internal.util.TimeZoneUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
