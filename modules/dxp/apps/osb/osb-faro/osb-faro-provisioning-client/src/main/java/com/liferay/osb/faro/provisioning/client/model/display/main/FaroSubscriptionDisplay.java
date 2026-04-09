@@ -22,11 +22,14 @@ import com.liferay.portal.kernel.util.DateUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import org.apache.commons.lang3.time.DateUtils;
 
 /**
  * @author Matthew Kong
@@ -361,19 +364,30 @@ public class FaroSubscriptionDisplay {
 	private Date _getLastAnniversaryDate(
 		boolean basicSubscription, Date startDate) {
 
-		if (basicSubscription) {
-			return new Date(startDate.getTime() / Time.DAY * Time.DAY);
+		Instant instant = startDate.toInstant();
+
+		ZonedDateTime startZonedDateTime = instant.atZone(
+			ZoneId.systemDefault());
+
+		LocalDate startLocalDate = startZonedDateTime.toLocalDate();
+
+		LocalDate lastAnniversaryLocalDate = startLocalDate;
+
+		if (!basicSubscription) {
+			LocalDate today = LocalDate.now();
+
+			lastAnniversaryLocalDate = startLocalDate.withYear(today.getYear());
+
+			if (lastAnniversaryLocalDate.isAfter(today)) {
+				lastAnniversaryLocalDate = lastAnniversaryLocalDate.minusYears(
+					1);
+			}
 		}
 
-		Date lastAnniversaryDate = DateUtils.setYears(
-			startDate, DateUtil.getYear(new Date()));
+		ZonedDateTime lastAnniversaryZonedDateTime =
+			lastAnniversaryLocalDate.atStartOfDay(ZoneId.systemDefault());
 
-		if (DateUtil.compareTo(new Date(), lastAnniversaryDate) <= 0) {
-			lastAnniversaryDate = DateUtils.setYears(
-				startDate, DateUtil.getYear(new Date()) - 1);
-		}
-
-		return new Date(lastAnniversaryDate.getTime() / Time.DAY * Time.DAY);
+		return Date.from(lastAnniversaryZonedDateTime.toInstant());
 	}
 
 	private boolean _isAfter(
