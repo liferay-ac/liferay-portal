@@ -30,7 +30,6 @@ import jakarta.ws.rs.core.MediaType;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import org.osgi.service.component.annotations.Component;
