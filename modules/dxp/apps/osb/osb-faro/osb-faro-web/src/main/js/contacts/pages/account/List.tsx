@@ -214,7 +214,7 @@ const List: React.FC<IListProps> = ({channelId, groupId}) => {
 										{
 											apiURL: `/o/faro/contacts/${groupId}/account/fds_field_values?channelId=${channelId}&fieldMappingFieldName=industry`,
 											entityFieldType: 'string',
-											id: 'industry',
+											id: 'name',
 											itemKey: 'name',
 											itemLabel: 'name',
 											label: Liferay.Language.get(
@@ -226,7 +226,7 @@ const List: React.FC<IListProps> = ({channelId, groupId}) => {
 										{
 											apiURL: `/o/faro/contacts/${groupId}/account/fds_field_values?channelId=${channelId}&fieldMappingFieldName=country`,
 											entityFieldType: 'string',
-											id: 'country',
+											id: 'name',
 											itemKey: 'name',
 											itemLabel: 'name',
 											label: Liferay.Language.get(
