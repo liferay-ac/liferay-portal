@@ -41,6 +41,7 @@ import com.liferay.osb.faro.engine.client.model.IndividualSegmentMembershipChang
 import com.liferay.osb.faro.engine.client.model.IndividualSegmentMembershipChangeAggregation;
 import com.liferay.osb.faro.engine.client.model.IndividualTransformation;
 import com.liferay.osb.faro.engine.client.model.Interest;
+import com.liferay.osb.faro.engine.client.model.PageExperience;
 import com.liferay.osb.faro.engine.client.model.PageVisited;
 import com.liferay.osb.faro.engine.client.model.Provider;
 import com.liferay.osb.faro.engine.client.model.Results;
@@ -915,6 +916,18 @@ public abstract class BaseMockContactsEngineClientImpl
 		return contactsEngineClient.getInterests(
 			faroProject, channelId, ownerId, ownerType, name, query, expand,
 			cur, delta, orderByFields);
+	}
+
+	@Override
+	public Results<PageExperience> getPageExperiences(
+			FaroProject faroProject, String canonicalUrl, String channelId,
+			String keywords, int page, String pageTitle, int size,
+			String sortString)
+		throws Exception {
+
+		return contactsEngineClient.getPageExperiences(
+			faroProject, canonicalUrl, channelId, keywords, page, pageTitle,
+			size, sortString);
 	}
 
 	@Override
