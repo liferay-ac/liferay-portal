@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-package com.liferay.osb.faro.web.internal.util;
+package com.liferay.osb.faro.engine.client.util;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -15,18 +15,18 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.cfg.MapperConfig;
 import com.fasterxml.jackson.databind.introspect.AnnotatedField;
 
+import com.liferay.osb.faro.engine.client.internal.model.display.contacts.BaseMixin;
+import com.liferay.osb.faro.engine.client.internal.model.display.contacts.CredentialsMixin;
+import com.liferay.osb.faro.engine.client.internal.model.display.contacts.OAuth1CredentialsMixin;
+import com.liferay.osb.faro.engine.client.internal.model.display.contacts.OAuth2CredentialsMixin;
+import com.liferay.osb.faro.engine.client.internal.model.display.contacts.PageVisitMixin;
+import com.liferay.osb.faro.engine.client.internal.model.display.contacts.TokenCredentialsMixin;
 import com.liferay.osb.faro.engine.client.model.Credentials;
 import com.liferay.osb.faro.engine.client.model.Interest;
 import com.liferay.osb.faro.engine.client.model.PageVisited;
 import com.liferay.osb.faro.engine.client.model.credentials.OAuth1Credentials;
 import com.liferay.osb.faro.engine.client.model.credentials.OAuth2Credentials;
 import com.liferay.osb.faro.engine.client.model.credentials.TokenCredentials;
-import com.liferay.osb.faro.web.internal.model.display.contacts.mixin.BaseMixin;
-import com.liferay.osb.faro.web.internal.model.display.contacts.mixin.CredentialsMixin;
-import com.liferay.osb.faro.web.internal.model.display.contacts.mixin.OAuth1CredentialsMixin;
-import com.liferay.osb.faro.web.internal.model.display.contacts.mixin.OAuth2CredentialsMixin;
-import com.liferay.osb.faro.web.internal.model.display.contacts.mixin.PageVisitMixin;
-import com.liferay.osb.faro.web.internal.model.display.contacts.mixin.TokenCredentialsMixin;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 
