@@ -1,6 +1,9 @@
 import FaroConstants from 'shared/util/constants';
 import Label from '@clayui/label';
+import Link from '@clayui/link';
 import React, {useEffect, useState} from 'react';
+import {CUSTOM_DATE_FORMAT, formatUTCDate} from 'shared/util/date';
+import {Routes, toRoute} from './router';
 
 const {cur, delta, deltaValues} = FaroConstants.pagination;
 
@@ -24,7 +27,25 @@ export const columns = {
 		>
 			{label}
 		</Label>
-	)
+	),
+	dateRenderer: ({value}) => (
+		<div>{value && formatUTCDate(value, CUSTOM_DATE_FORMAT)}</div>
+	),
+	nameAndLinkRenderer: ({groupId, itemData, value}) => {
+		const itemTitle = value || itemData.id;
+
+		return (
+			<Link
+				className='font-weight-semi-bold text-dark'
+				href={toRoute(Routes.CONTACTS_ACCOUNT, {
+					groupId,
+					id: itemData.id
+				})}
+			>
+				{itemTitle}
+			</Link>
+		);
+	}
 };
 
 export function useSnapshots(fdsName: string) {
