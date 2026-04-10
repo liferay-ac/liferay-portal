@@ -2425,7 +2425,7 @@ public class ContactsEngineClientImpl
 	@Override
 	public Results<PageExperience> getPageExperiences(
 			FaroProject faroProject, String canonicalUrl, String channelId,
-			String keywords, int page, String pageTitle, int size,
+			int page, String pageTitle, String search, int size,
 			String sortString)
 		throws Exception {
 
@@ -2435,8 +2435,8 @@ public class ContactsEngineClientImpl
 		uriVariables.put("canonicalUrl", canonicalUrl);
 		uriVariables.put("channelId", channelId);
 
-		if (Validator.isNotNull(keywords)) {
-			uriVariables.put("keywords", keywords);
+		if (Validator.isNotNull(search)) {
+			uriVariables.put("keywords", search);
 		}
 
 		uriVariables.put("pageTitle", pageTitle);
