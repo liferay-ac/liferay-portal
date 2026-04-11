@@ -36,14 +36,14 @@ export function fetchFieldValues({
 			query: escapeSingleQuotes(query)
 		},
 		method: 'GET',
-		path: `contacts/${groupId}/account/field_values`
+		path: `faro/contacts/${groupId}/account/field_values`
 	});
 }
 
 export function fetchMetrics({groupId}) {
 	return sendRequest({
 		method: 'GET',
-		path: `contacts/${groupId}/account/metrics`
+		path: `faro/contacts/${groupId}/account/metrics`
 	});
 }
 
