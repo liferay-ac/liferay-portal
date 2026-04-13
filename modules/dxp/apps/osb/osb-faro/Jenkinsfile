@@ -62,8 +62,6 @@ pipeline {
 
 						ant setup-profile-dxp
 
-						ant compile install-portal-snapshots
-
 						cd modules/dxp/apps/osb/osb-faro
 
 						../../../../../gradlew copyCloudResources -Dliferay.ci=true
