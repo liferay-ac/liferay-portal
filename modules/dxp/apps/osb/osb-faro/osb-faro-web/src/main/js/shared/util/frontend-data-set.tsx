@@ -2,7 +2,7 @@ import FaroConstants from 'shared/util/constants';
 import Label from '@clayui/label';
 import React, {useEffect, useState} from 'react';
 import {CUSTOM_DATE_FORMAT, formatUTCDate} from 'shared/util/date';
-import {Routes, toRoute} from './router';
+import {toRoute} from './router';
 
 const {cur, delta, deltaValues} = FaroConstants.pagination;
 
