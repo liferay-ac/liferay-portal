@@ -1,3 +1,4 @@
+import ClayLink from '@clayui/link';
 import FaroConstants from 'shared/util/constants';
 import Label from '@clayui/label';
 import React, {useEffect, useState} from 'react';
