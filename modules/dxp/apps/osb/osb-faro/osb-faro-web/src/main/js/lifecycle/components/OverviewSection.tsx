@@ -37,10 +37,14 @@ const OverviewSection: React.FC<IOverviewSectionProps> = ({
 				<div className={cardContainerClassName}>
 					<MetricCard
 						bodyClassName={bodyClassName}
-						description='Accounts...'
+						description={Liferay.Language.get(
+							'total-new-accounts-that-entered-the-pipeline-stage-within-the-selected-timeframe,-excluding-cross-sells,-upsells,-and-renewals.'
+						)}
 						loading={loading}
 						renderTrendLabel={renderTrendLabel}
-						title={Liferay.Language.get('progressed-accounts')}
+						title={Liferay.Language.get(
+							'net-new-pipeline-generated'
+						)}
 						trend={progressedAccounts?.trend}
 						trendClassName='text-lowercase'
 						value={progressedAccounts?.value ?? 0}
@@ -50,11 +54,11 @@ const OverviewSection: React.FC<IOverviewSectionProps> = ({
 					<MetricCard
 						bodyClassName={bodyClassName}
 						description={Liferay.Language.get(
-							'accounts-without-activities-for-the-past-three-months'
+							'the-total-number-of-accounts-specifically-stuck-in-the-engaged-stage-that-have-exceeded-their-designated-time-in-stage-threshold-(>-90-days)'
 						)}
 						loading={loading}
 						renderTrendLabel={renderTrendLabel}
-						title={Liferay.Language.get('static-accounts')}
+						title={Liferay.Language.get('stalled-accounts')}
 						trend={staticAccounts?.trend}
 						trendClassName='text-lowercase'
 						value={staticAccounts?.value ?? 0}
@@ -64,11 +68,11 @@ const OverviewSection: React.FC<IOverviewSectionProps> = ({
 					<MetricCard
 						bodyClassName={bodyClassName}
 						description={Liferay.Language.get(
-							'early-warning-system.-triggers-immediate-csm-rescue-before-the-client-asks-to-cancel'
+							'customers-showing-a-drop-in-product-usage-or-warning-signs-of-churn.-requires-immediate-intervention.'
 						)}
 						loading={loading}
 						renderTrendLabel={renderTrendLabel}
-						title={Liferay.Language.get('at-risk')}
+						title={Liferay.Language.get('at-risk-accounts')}
 						trend={atRiskAccounts?.trend}
 						trendClassName='text-lowercase'
 						value={atRiskAccounts?.value ?? 0}
