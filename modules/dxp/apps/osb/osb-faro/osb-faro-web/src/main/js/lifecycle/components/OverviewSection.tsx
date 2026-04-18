@@ -24,7 +24,7 @@ const OverviewSection: React.FC<IOverviewSectionProps> = ({
 	const progressedAccounts = metrics?.progressedAccounts;
 	const staticAccounts = metrics?.staticAccounts;
 
-	const cardContainerClassName = 'col-12 col-md-4 d-flex';
+	const cardContainerClassName = 'col-12 col-lg-4 d-flex';
 	const bodyClassName = 'd-flex flex-column justify-content-around';
 
 	return (

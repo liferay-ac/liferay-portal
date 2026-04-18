@@ -21,8 +21,6 @@ const BaseLifecycle = () => {
 		}
 	});
 
-	console.log({overviewData});
-
 	return (
 		<LifecycleContextProvider>
 			<BasePage documentTitle={Liferay.Language.get('lifecycles')}>
@@ -49,7 +47,10 @@ const BaseLifecycle = () => {
 					</div>
 				</BasePage.SubHeader>
 				<BasePage.Body>
-					<OverviewSection metrics={overviewData} />
+					<OverviewSection
+						loading={overviewLoading}
+						metrics={overviewData}
+					/>
 				</BasePage.Body>
 			</BasePage>
 		</LifecycleContextProvider>
