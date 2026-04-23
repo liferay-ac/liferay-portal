@@ -11,6 +11,7 @@ import RealTimePeriodInput, {
 	DEFAULT_OPTIONS
 } from './components/RealTimePeriodInput';
 import SelectEntityFromModal from './components/SelectEntityFromModal';
+import TagInput from './components/TagInput';
 import {
 	ACTIVITY_KEY,
 	FunctionalOperators,
@@ -524,10 +525,16 @@ export class BehaviorInput extends React.Component<
 							onChange={this.handleRealTimePeriodChange}
 						/>
 					) : (
-						<DateFilterConjunctionInput
-							conjunctionCriterion={conjunctionCriterion}
-							onChange={this.handleDateFilterConjunctionChange}
-						/>
+						<>
+							<DateFilterConjunctionInput
+								conjunctionCriterion={conjunctionCriterion}
+								onChange={
+									this.handleDateFilterConjunctionChange
+								}
+							/>
+
+							{!isPageViewed && <TagInput />}
+						</>
 					)}
 				</Form.Group>
 
