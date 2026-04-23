@@ -35,51 +35,22 @@ exports[`BehaviorInput should render 1`] = `
         <b />
       </div>
       <div
-        class="form-group-item"
+        class="form-group-item form-group-item-shrink"
       >
-        <div
-          class="input-group select-entity-group"
+        <button
+          class="add-asset-button btn btn-secondary"
+          type="button"
         >
-          <div
-            class="input-group-item"
+          <svg
+            class="lexicon-icon lexicon-icon-plus icon-root mr-2"
+            role="presentation"
           >
-            <div
-              class="input-group select-input-root"
-            >
-              <div
-                class="input-group-item"
-              >
-                <input
-                  class="input-root form-control"
-                  type="text"
-                  value=""
-                />
-              </div>
-              <div
-                class="selected-item-container"
-              >
-                <div
-                  class="asset-display-root"
-                  title=""
-                >
-                  <div
-                    class="asset-name text-truncate"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div
-            class="input-group-item input-group-item-shrink input-group-append"
-          >
-            <button
-              class="btn btn-secondary"
-              type="button"
-            >
-              Select
-            </button>
-          </div>
-        </div>
+            <use
+              href="#plus"
+            />
+          </svg>
+          Add Asset
+        </button>
       </div>
     </div>
     <div
@@ -151,6 +122,50 @@ exports[`BehaviorInput should render 1`] = `
         class="form-group-item form-group-item-shrink"
         data-aria-hidden="true"
       />
+      <div
+        aria-hidden="true"
+        class="form-group-item form-group-item-shrink"
+        data-aria-hidden="true"
+      >
+        <button
+          class="add-tag-button btn btn-secondary"
+          type="button"
+        >
+          <svg
+            class="lexicon-icon lexicon-icon-plus icon-root mr-2"
+            role="presentation"
+          >
+            <use
+              href="#plus"
+            />
+          </svg>
+          Add Tag
+        </button>
+      </div>
+    </div>
+    <div
+      aria-hidden="true"
+      class="form-group form-group-autofit"
+      data-aria-hidden="true"
+    >
+      <div
+        class="form-group-item form-group-item-shrink"
+      >
+        <button
+          class="add-categorization-button btn btn-secondary"
+          type="button"
+        >
+          <svg
+            class="lexicon-icon lexicon-icon-plus icon-root mr-2"
+            role="presentation"
+          >
+            <use
+              href="#plus"
+            />
+          </svg>
+          Add Categorization
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -258,24 +273,58 @@ exports[`BehaviorInput should render w/ data 1`] = `
         time(s)
       </div>
       <div
-        class="form-group-item form-group-item-shrink"
+        class="form-group form-group-autofit"
       >
+        <div
+          class="form-group-item unit form-group-item-label form-group-item-shrink"
+        >
+          in the last
+        </div>
         <button
           aria-activedescendant=""
           aria-expanded="false"
           aria-haspopup="listbox"
-          class="form-control form-control-select form-control-select-secondary conjunction-input"
-          data-testid="conjunction-input"
+          class="form-control form-control-select form-control-select-secondary form-control-shrink operator-input"
           role="combobox"
           tabindex="0"
           type="button"
         >
-          ever
+          1
+        </button>
+        <button
+          aria-activedescendant=""
+          aria-expanded="false"
+          aria-haspopup="listbox"
+          class="form-control form-control-select form-control-select-secondary form-control-shrink operator-input ml-2"
+          role="combobox"
+          tabindex="0"
+          type="button"
+        >
+          days
         </button>
       </div>
+    </div>
+    <div
+      class="form-group form-group-autofit"
+    >
       <div
         class="form-group-item form-group-item-shrink"
-      />
+      >
+        <button
+          class="add-categorization-button btn btn-secondary"
+          type="button"
+        >
+          <svg
+            class="lexicon-icon lexicon-icon-plus icon-root mr-2"
+            role="presentation"
+          >
+            <use
+              href="#plus"
+            />
+          </svg>
+          Add Categorization
+        </button>
+      </div>
     </div>
   </div>
 </div>

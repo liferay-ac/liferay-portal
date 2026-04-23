@@ -2,6 +2,7 @@ import BehaviorInput, {AssetItem} from '../BehaviorInput';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ACTIVITY_KEY, RelationalOperators} from '../../utils/constants';
+import {AssetNames, SegmentTypes} from 'shared/util/constants';
 import {cleanup, fireEvent, render} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {Map} from 'immutable';
@@ -83,12 +84,97 @@ describe('BehaviorInput', () => {
 						assets: new Map({'123_title': 'test'})
 					})
 				}
+				segmentType={SegmentTypes.RealTime}
 				valid={{asset: true, occurenceCount: true}}
 				value={mockValue.set('value', 123)}
 			/>
 		);
 
 		expect(container).toMatchSnapshot();
+	});
+
+	describe('add-asset button', () => {
+		it('should show add-asset button for batch when no asset is selected', () => {
+			const {container, queryByText} = render(
+				<DefaultComponent segmentType={SegmentTypes.Batch} />
+			);
+
+			expect(container.querySelector('.add-asset-button')).toBeTruthy();
+			expect(queryByText('select')).toBeNull();
+		});
+
+		it('should show SelectEntityFromModal after clicking add-asset button', () => {
+			const {container, getByText} = render(
+				<DefaultComponent segmentType={SegmentTypes.Batch} />
+			);
+
+			fireEvent.click(container.querySelector('.add-asset-button'));
+
+			expect(getByText('Select')).toBeTruthy();
+		});
+
+		it('should not show add-asset button when touched.asset is true', () => {
+			const {container, getByText} = render(
+				<DefaultComponent
+					segmentType={SegmentTypes.Batch}
+					touched={{asset: true, occurenceCount: false}}
+				/>
+			);
+
+			expect(container.querySelector('.add-asset-button')).toBeNull();
+			expect(getByText('Select')).toBeTruthy();
+		});
+
+		it('should not show add-asset button when asset exists in context', () => {
+			const {container, getByText} = render(
+				<Provider store={mockStore()}>
+					<ReferencedObjectsProvider
+						segment={
+							new Segment({
+								referencedObjects: new Map({
+									assets: new Map({
+										'123123123_title': new Map({
+											id: '123123123',
+											name: 'Test Asset'
+										})
+									})
+								})
+							})
+						}
+					>
+						<BehaviorInput
+							{...defaultProps}
+							segmentType={SegmentTypes.Batch}
+							valid={{asset: true, occurenceCount: false}}
+						/>
+					</ReferencedObjectsProvider>
+				</Provider>
+			);
+
+			expect(container.querySelector('.add-asset-button')).toBeNull();
+			expect(getByText('Select')).toBeTruthy();
+		});
+
+		it('should show SelectEntityFromModal directly for real-time segments', () => {
+			const {container, getByText} = render(
+				<DefaultComponent segmentType={SegmentTypes.RealTime} />
+			);
+
+			expect(getByText('Select')).toBeTruthy();
+			expect(container.querySelector('.add-asset-button')).toBeNull();
+		});
+
+		it('should not show add-asset button for pageViewed property', () => {
+			const {container, getByText} = render(
+				<DefaultComponent
+					property={new Property({name: AssetNames.PageViewed})}
+					segmentType={SegmentTypes.Batch}
+				/>
+			);
+
+			expect(container.querySelector('.add-asset-button')).toBeNull();
+			expect(getByText('Select')).toBeTruthy();
+		});
 	});
 
 	it('should render with has-error for asset', () => {
