@@ -1,5 +1,7 @@
 import * as API from 'shared/api';
 import autobind from 'autobind-decorator';
+import ClayButton from '@clayui/button';
+import ClayIcon from '@clayui/icon';
 import DateFilterConjunctionInput from './components/DateFilterConjunctionInput';
 import Form from 'shared/components/form';
 import OccurenceConjunctionInput from './components/OccurenceConjunctionInput';
@@ -98,10 +100,15 @@ interface IBehaviorInputProps extends ISegmentEditorCustomInputBase {
 	valid: Valid;
 }
 
-export class BehaviorInput extends React.Component<IBehaviorInputProps> {
+export class BehaviorInput extends React.Component<
+	IBehaviorInputProps,
+	{showAssetSelect: boolean}
+> {
 	static contextType = ReferencedObjectsContext;
 
 	_completedAnalytics = false;
+
+	state = {showAssetSelect: false};
 
 	componentDidMount() {
 		this.initializeRealTimeDefaults();
@@ -429,6 +436,17 @@ export class BehaviorInput extends React.Component<IBehaviorInputProps> {
 
 		const initialPeriod = this.getRealTimePeriodFromCriterion();
 
+		const assetFromContext = this.getAssetFromContext();
+
+		const isPageViewed = property.name === AssetNames.PageViewed;
+
+		const showAddAssetButton =
+			!isRealTime &&
+			!isPageViewed &&
+			!assetFromContext &&
+			!this.state.showAssetSelect &&
+			!touched.asset;
+
 		return (
 			<div className='criteria-statement'>
 				<Form.Group autoFit>
@@ -442,29 +460,48 @@ export class BehaviorInput extends React.Component<IBehaviorInputProps> {
 						<b>{displayValue}</b>
 					</Form.GroupItem>
 
-					<SelectEntityFromModal
-						columns={[
-							activityAssetsListColumns.nameUrl,
-							...columns
-						]}
-						dataSourceFn={this.assetsDataFn}
-						entity={this.getAssetFromContext()}
-						error={touched.asset && !valid.asset}
-						groupId={groupId}
-						initialOrderIOMap={createOrderIOMap(COUNT)}
-						noResultsIcon='web-content'
-						onSubmit={this.handleAssetSelect}
-						orderByOptions={[
-							{
-								label,
-								value: COUNT
-							}
-						]}
-						renderEntity={asset => (
-							<AssetItem {...asset} title={label} />
-						)}
-						title={property.label}
-					/>
+					{showAddAssetButton ? (
+						<Form.GroupItem shrink>
+							<ClayButton
+								className='add-asset-button'
+								displayType='secondary'
+								onClick={() =>
+									this.setState({showAssetSelect: true})
+								}
+							>
+								<ClayIcon
+									className='icon-root mr-2'
+									symbol='plus'
+								/>
+
+								{Liferay.Language.get('add-asset')}
+							</ClayButton>
+						</Form.GroupItem>
+					) : (
+						<SelectEntityFromModal
+							columns={[
+								activityAssetsListColumns.nameUrl,
+								...columns
+							]}
+							dataSourceFn={this.assetsDataFn}
+							entity={assetFromContext}
+							error={touched.asset && !valid.asset}
+							groupId={groupId}
+							initialOrderIOMap={createOrderIOMap(COUNT)}
+							noResultsIcon='web-content'
+							onSubmit={this.handleAssetSelect}
+							orderByOptions={[
+								{
+									label,
+									value: COUNT
+								}
+							]}
+							renderEntity={asset => (
+								<AssetItem {...asset} title={label} />
+							)}
+							title={property.label}
+						/>
+					)}
 				</Form.Group>
 
 				<Form.Group autoFit>
