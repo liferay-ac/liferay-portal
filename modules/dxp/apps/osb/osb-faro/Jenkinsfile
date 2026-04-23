@@ -41,6 +41,7 @@ spec:
 				]) {
 					sh '''
 						export FARO_ENVIRONMENT_NAME=$FARO_ENVIRONMENT
+						export NODE_OPTIONS="--max-old-space-size=3072"
 
 						touch ~/.ssh/known_hosts
 
