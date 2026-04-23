@@ -1,5 +1,6 @@
 import * as API from 'shared/api';
 import autobind from 'autobind-decorator';
+import CategorizationInput from './components/CategorizationInput';
 import ClayButton from '@clayui/button';
 import ClayIcon from '@clayui/icon';
 import DateFilterConjunctionInput from './components/DateFilterConjunctionInput';
@@ -529,6 +530,12 @@ export class BehaviorInput extends React.Component<
 						/>
 					)}
 				</Form.Group>
+
+				{!isPageViewed && (
+					<Form.Group autoFit>
+						<CategorizationInput />
+					</Form.Group>
+				)}
 			</div>
 		);
 	}
