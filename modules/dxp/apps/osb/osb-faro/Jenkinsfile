@@ -6,6 +6,16 @@ pipeline {
 	agent {
 		kubernetes {
 			label "java"
+			yaml """
+spec:
+  containers:
+  - name: jnlp
+    resources:
+      requests:
+        memory: "10Gi"
+      limits:
+        memory: "12Gi"
+"""
 		}
 	}
 
@@ -61,6 +71,8 @@ pipeline {
 						ant setup-sdk
 
 						ant setup-profile-dxp
+
+						ant compile install-portal-snapshots
 
 						cd modules/dxp/apps/osb/osb-faro
 
