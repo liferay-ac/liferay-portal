@@ -77,7 +77,7 @@ spec:
 
 						cd modules/dxp/apps/osb/osb-faro
 
-						../../../../../gradlew copyCloudResources -Dliferay.ci=true
+						../../../../../gradlew copyCloudResources -Dliferay.ci=true --max-workers=1
 
 						mkdir -p osb-faro-docker/cloud/license
 
