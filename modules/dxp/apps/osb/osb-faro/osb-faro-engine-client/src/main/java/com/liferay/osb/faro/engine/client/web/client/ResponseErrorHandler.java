@@ -13,8 +13,6 @@ import com.liferay.portal.kernel.util.FileUtil;
 
 import java.io.IOException;
 
-import org.apache.http.HttpStatus;
-
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 
@@ -27,7 +25,7 @@ public class ResponseErrorHandler extends DefaultResponseErrorHandler {
 	public void handleError(ClientHttpResponse clientHttpResponse)
 		throws IOException {
 
-		int statusCode = clientHttpResponse.getRawStatusCode();
+		int statusCode = clientHttpResponse.getStatusCode().value();
 
 		if (statusCode < 400) {
 			super.handleError(clientHttpResponse);
@@ -38,15 +36,15 @@ public class ResponseErrorHandler extends DefaultResponseErrorHandler {
 		String response = new String(
 			FileUtil.getBytes(clientHttpResponse.getBody()));
 
-		if (statusCode == HttpStatus.SC_CONFLICT) {
+		if (statusCode == 409) {
 			throw new DuplicateEntryException(response);
 		}
 
-		if (statusCode == HttpStatus.SC_NOT_FOUND) {
+		if (statusCode == 404) {
 			throw new NoSuchEntryException(response);
 		}
 
-		if (statusCode == HttpStatus.SC_UNPROCESSABLE_ENTITY) {
+		if (statusCode == 422) {
 			throw new InvalidFilterException(response);
 		}
 

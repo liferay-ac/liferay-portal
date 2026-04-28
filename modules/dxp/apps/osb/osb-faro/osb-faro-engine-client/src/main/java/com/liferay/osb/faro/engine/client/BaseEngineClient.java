@@ -48,9 +48,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.core5.http.ClassicHttpRequest;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cache.Cache;
@@ -325,13 +324,17 @@ public abstract class BaseEngineClient {
 			return null;
 		}
 
-		Cache cache = (Cache)FaroThreadLocal.getCache();
+		Object obj = FaroThreadLocal.getCache();
 
-		if (cache != null) {
+		if (obj instanceof Cache cache) {
 			return cache;
 		}
 
-		cache = new FaroCache();
+		if (obj != null) {
+			FaroThreadLocal.setCache(null);
+		}
+
+		Cache cache = new FaroCache();
 
 		FaroThreadLocal.setCache(cache);
 
@@ -403,21 +406,12 @@ public abstract class BaseEngineClient {
 			new HttpComponentsClientHttpRequestFactory() {
 
 				@Override
-				protected HttpUriRequest createHttpUriRequest(
+				protected ClassicHttpRequest createHttpUriRequest(
 					HttpMethod httpMethod, URI uri) {
 
 					if (httpMethod == HttpMethod.GET) {
-						return new HttpEntityEnclosingRequestBase() {
-							{
-								setURI(uri);
-							}
-
-							@Override
-							public String getMethod() {
-								return HttpMethod.GET.name();
-							}
-
-						};
+						return new HttpUriRequestBase(
+							HttpMethod.GET.name(), uri);
 					}
 
 					return super.createHttpUriRequest(httpMethod, uri);
@@ -443,7 +437,7 @@ public abstract class BaseEngineClient {
 			},
 			getUriVariables(faroProject));
 
-		if (responseEntity.getStatusCodeValue() != HttpStatus.SC_OK) {
+		if (responseEntity.getStatusCode().value() != 200) {
 			throw new IllegalStateException("Invalid url: " + engineURL);
 		}
 

@@ -14,8 +14,6 @@ import java.io.IOException;
 
 import java.util.List;
 
-import org.apache.http.HttpStatus;
-
 import org.springframework.cache.Cache;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -67,7 +65,7 @@ public class CacheClientHttpRequestInterceptor
 		ClientHttpResponse clientHttpResponse =
 			clientHttpRequestExecution.execute(httpRequest, bytes);
 
-		if (clientHttpResponse.getRawStatusCode() != HttpStatus.SC_OK) {
+		if (clientHttpResponse.getStatusCode().value() != 200) {
 			return clientHttpResponse;
 		}
 
