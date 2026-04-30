@@ -535,6 +535,16 @@ exports[`DataSourceList should render 1`] = `
                         <th
                           class="table-head-title"
                         >
+                          Individuals Data
+                        </th>
+                        <th
+                          class="table-head-title"
+                        >
+                          Analytics Data
+                        </th>
+                        <th
+                          class="table-head-title"
+                        >
                           <a
                             class="button-root w-100 btn btn-unstyled"
                             href="/?field=createDate&page=1&sortOrder=DESC"
@@ -602,6 +612,21 @@ exports[`DataSourceList should render 1`] = `
                             </span>
                           </div>
                         </td>
+                        <td
+                          class="text-center"
+                        >
+                          <svg
+                            class="lexicon-icon lexicon-icon-check icon-root"
+                            role="presentation"
+                          >
+                            <use
+                              href="#check"
+                            />
+                          </svg>
+                        </td>
+                        <td
+                          class="text-center"
+                        />
                         <td>
                           Jul 8, 2018
                         </td>
