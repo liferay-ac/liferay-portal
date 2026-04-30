@@ -79,10 +79,11 @@ describe('List', () => {
 		useHistory.mockReturnValue({push: mockHistoryPush});
 
 		const useRequest = require('shared/hooks/useRequest');
-		useRequest.useRequest = jest
-			.fn()
-			.mockReturnValueOnce({data: {total: 1}})
-			.mockReturnValue({data: []});
+		useRequest.useRequest = jest.fn(() => ({
+			data: {
+				total: 1
+			}
+		}));
 	});
 
 	afterEach(cleanup);
