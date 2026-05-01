@@ -35,7 +35,6 @@ generateJSPJava {
 	enabled = false
 }
 
-
 node {
 	global = false
 	nodeVersion = "18.18.0"
