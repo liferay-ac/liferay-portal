@@ -1,0 +1,337 @@
+import * as API from 'shared/api';
+import autobind from 'autobind-decorator';
+import CriteriaBuilder from './criteria-builder';
+import CriteriaSidebar from './criteria-sidebar';
+import DndProvider from 'shared/components/DndProvider';
+import EmbeddedAlertList from 'shared/components/EmbeddedAlertList';
+import Form, {withField} from 'shared/components/form';
+import NavigationWarning from 'shared/components/NavigationWarning';
+import React from 'react';
+import Toolbar from './Toolbar';
+import {AlertTypes} from 'shared/components/Alert';
+import {
+	buildQueryString,
+	translateQueryToCriteria,
+	wrapInCriteriaGroup
+} from './utils/odata';
+import {Criteria, CriterionGroup} from './utils/types';
+import {HTML5Backend} from 'react-dnd-html5-backend';
+import {
+	invalidateCriterionWithMissingProperty,
+	validateSegmentInputs
+} from './utils/utils';
+import {List} from 'immutable';
+import {PropertyGroup, Segment} from 'shared/util/records';
+import {
+	ReferencedObjectsContext,
+	withReferencedObjectsProvider
+} from './context/referencedObjects';
+import {SegmentEnabledSequentialCard} from 'segment/components/SegmentEnabledSequentialCard';
+import {SegmentStates, SegmentTypes} from 'shared/util/constants';
+
+/**
+ * Returns an error message if the criteria contains an invalid row.
+ */
+export function validateSegmentEditor(criteria: CriterionGroup | null) {
+	let error;
+
+	if (
+		!criteria ||
+		!criteria.items.length ||
+		!validateSegmentInputs(criteria)
+	) {
+		error = Liferay.Language.get('empty-fields');
+	}
+
+	return error;
+}
+
+const CriteriaBuilderForm = withField(
+	({
+		channelId,
+		field: {name, value},
+		groupId,
+		segmentType,
+		sequential,
+		...fieldProps
+	}: {
+		channelId: string;
+		field: {name: string; value: any};
+		groupId: string;
+		segmentType: SegmentTypes;
+		[key: string]: any;
+	}) => {
+		const handleChange = (criteria: Criteria) => {
+			const {
+				form: {setFieldValue}
+			} = fieldProps;
+
+			setFieldValue(name, criteria);
+		};
+
+		return (
+			<CriteriaBuilder
+				{...fieldProps}
+				channelId={channelId}
+				criteria={value}
+				groupId={groupId}
+				onChange={handleChange}
+				segmentType={segmentType}
+				sequential={sequential}
+			/>
+		);
+	}
+);
+
+type FormValues = {
+	criteria: CriterionGroup;
+	includeAnonymousUsers: boolean;
+	name: string;
+	sequential: boolean;
+};
+
+interface ISegmentEditorProps {
+	channelId: string;
+	groupId: string;
+	id?: string;
+	onDelete: boolean;
+	onSubmit: (
+		form: FormValues,
+		ref: React.RefObject<any>,
+		requestFn: (params: FormValues) => Promise<any>
+	) => void;
+	propertyGroupsIList: List<PropertyGroup>;
+	segment: Segment;
+	type: SegmentTypes;
+}
+
+class SegmentEditor extends React.Component<ISegmentEditorProps> {
+	static contextType = ReferencedObjectsContext;
+	declare context: React.ContextType<typeof ReferencedObjectsContext>;
+
+	static defaultProps = {
+		segment: new Segment()
+	};
+
+	state = {
+		enabledSequentialSegment: false
+	};
+
+	_formRef = React.createRef<any>();
+
+	@autobind
+	createSegment({
+		criteria,
+		includeAnonymousUsers,
+		name,
+		sequential
+	}: FormValues) {
+		const {
+			channelId,
+			groupId,
+			segment: {id},
+			type
+		} = this.props;
+
+		const request = id
+			? API.individualSegment.update
+			: API.individualSegment.create;
+
+		const requestData = {
+			channelId,
+			criteriaString: buildQueryString([criteria]),
+			description: '',
+			groupId,
+			id,
+			includeAnonymousUsers,
+			name: name.trim(),
+			segmentType: type,
+			sequential
+		};
+
+		return request({...requestData});
+	}
+
+	@autobind
+	hasChanges(
+		newIncludeAnonymousUsers: boolean,
+		newName: string,
+		newCriteriaString: string,
+		newSequential: boolean
+	) {
+		const {
+			segment: {criteriaString, includeAnonymousUsers, name, sequential}
+		} = this.props;
+
+		return (
+			newIncludeAnonymousUsers !== includeAnonymousUsers ||
+			name !== newName ||
+			criteriaString !== newCriteriaString ||
+			sequential !== newSequential
+		);
+	}
+
+	@autobind
+	handleSubmit(form: FormValues) {
+		const {onSubmit} = this.props;
+
+		onSubmit(form, this._formRef, this.createSegment);
+	}
+
+	render() {
+		const {
+			context: {referencedProperties},
+			props: {
+				channelId,
+				groupId,
+				id,
+				onDelete,
+				propertyGroupsIList,
+				segment: {
+					criteriaString,
+					includeAnonymousUsers,
+					name,
+					sequential,
+					state: segmentState
+				},
+				type
+			}
+		} = this;
+
+		return (
+			<DndProvider backend={HTML5Backend}>
+				<div className='segment-edit-page-root'>
+					<Form
+						initialValues={{
+							criteria:
+								id && criteriaString
+									? (invalidateCriterionWithMissingProperty(
+											translateQueryToCriteria(
+												criteriaString
+											),
+											referencedProperties as any
+									  ) as CriterionGroup)
+									: wrapInCriteriaGroup([]),
+							includeAnonymousUsers,
+							name,
+							sequential
+						}}
+						innerRef={this._formRef as any}
+						onSubmit={this.handleSubmit}
+					>
+						{({
+							handleSubmit,
+							isSubmitting,
+							isValid,
+							values: {
+								criteria,
+								includeAnonymousUsers,
+								name,
+								sequential
+							}
+						}) => {
+							const newCriteriaString = buildQueryString([
+								criteria
+							]);
+							const hasChanges = this.hasChanges(
+								includeAnonymousUsers,
+								name,
+								newCriteriaString,
+								sequential
+							);
+
+							return (
+								<Form.Form
+									className='contributor-builder-root editing'
+									onSubmit={handleSubmit}
+								>
+									<NavigationWarning
+										when={
+											hasChanges &&
+											!isSubmitting &&
+											!onDelete
+										}
+									/>
+
+									<Toolbar
+										channelId={channelId}
+										criteria={criteria}
+										criteriaString={newCriteriaString}
+										groupId={groupId}
+										id={id ?? ''}
+										includeAnonymousUsers={
+											includeAnonymousUsers
+										}
+										segmentType={type}
+										valid={isValid && hasChanges}
+									/>
+
+									<div className='form-body'>
+										<div className='criteria-builder-section-sidebar'>
+											<CriteriaSidebar
+												propertyGroupsIList={
+													propertyGroupsIList
+												}
+											/>
+										</div>
+
+										<div className='criteria-builder-section-main'>
+											<div className='contributor-container'>
+												<div className='container-fluid container-fluid-max-xl'>
+													<div className='content-wrapper'>
+														{type ===
+															SegmentTypes.RealTime && (
+															<SegmentEnabledSequentialCard />
+														)}
+
+														{segmentState ===
+															SegmentStates.Disabled && (
+															<EmbeddedAlertList
+																alerts={[
+																	{
+																		iconSymbol:
+																			'exclamation-full',
+																		message:
+																			Liferay.Language.get(
+																				'some-criteria-are-empty-please-update-to-continue-using-this-segment'
+																			),
+																		title: Liferay.Language.get(
+																			'error'
+																		),
+																		type: AlertTypes.Danger
+																	}
+																]}
+															/>
+														)}
+
+														<CriteriaBuilderForm
+															channelId={
+																channelId
+															}
+															groupId={groupId}
+															id={id}
+															name='criteria'
+															segmentType={type}
+															sequential={
+																sequential
+															}
+															validate={
+																validateSegmentEditor
+															}
+														/>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</Form.Form>
+							);
+						}}
+					</Form>
+				</div>
+			</DndProvider>
+		);
+	}
+}
+
+export default withReferencedObjectsProvider(SegmentEditor);

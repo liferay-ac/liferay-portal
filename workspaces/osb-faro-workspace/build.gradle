@@ -1,0 +1,67 @@
+ext.faroEnvironmentName = System.getenv().get("FARO_ENVIRONMENT_NAME") ?: "local"
+ext.faroImageTag = project.findProperty("docker.image.tag") ?: "latest"
+
+task buildTheme(type: Exec) {
+	commandLine "npm", "run", "build"
+	workingDir "modules/osb/osb-faro/osb-faro-theme"
+}
+
+buildDockerImage {
+	def tag = faroEnvironmentName == "prd" ? "prd-" + new Date().format("yyyyMMdd") : faroImageTag
+
+	buildArgs = ["FARO_ENVIRONMENT_NAME": faroEnvironmentName]
+	images = ["liferay/com-liferay-osb-faro:${tag}"]
+}
+
+dockerDeploy {
+	dependsOn buildTheme
+
+	doLast {
+		copy {
+			from "modules/osb/osb-faro/osb-faro-theme/dist"
+			include "*.war"
+			into "${buildDir}/docker/deploy"
+		}
+
+		copy {
+			from "docker"
+			exclude "cloud"
+			exclude "100_liferay_image_setup.sh"
+			into "${buildDir}/docker/docker"
+		}
+
+		copy {
+			from "docker/100_liferay_image_setup.sh"
+			into "${buildDir}/docker"
+		}
+
+		if (faroEnvironmentName != "local") {
+			copy {
+				from "docker/cloud"
+				into "${buildDir}/docker/docker"
+			}
+		}
+	}
+}
+
+allprojects {
+	repositories {
+		maven {
+			url new File(rootProject.projectDir, "../../.m2-tmp")
+		}
+
+		mavenCentral()
+	}
+}
+
+subprojects {
+	tasks.all { Task task ->
+		if (task.name == "baseline") {
+			enabled = false
+		}
+	}
+
+	tasks.withType(Test) {
+		maxHeapSize = "4096m"
+	}
+}
