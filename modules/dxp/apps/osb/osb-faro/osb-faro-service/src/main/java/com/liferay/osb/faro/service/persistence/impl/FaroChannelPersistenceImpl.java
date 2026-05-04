@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,9 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -41,6 +39,8 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -61,8 +61,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = FaroChannelPersistence.class)
 public class FaroChannelPersistenceImpl
-	extends BasePersistenceImpl<FaroChannel, NoSuchFaroChannelException>
-	implements FaroChannelPersistence {
+	extends BasePersistenceImpl<FaroChannel> implements FaroChannelPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -84,8 +83,6 @@ public class FaroChannelPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<FaroChannel>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the faro channels where groupId = &#63;.
@@ -157,9 +154,93 @@ public class FaroChannelPersistenceImpl
 		OrderByComparator<FaroChannel> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			finderCache, new Object[] {groupId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<FaroChannel> list = null;
+
+		if (useFinderCache) {
+			list = (List<FaroChannel>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (FaroChannel faroChannel : list) {
+					if (groupId != faroChannel.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_FAROCHANNEL_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(FaroChannelModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<FaroChannel>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -182,9 +263,16 @@ public class FaroChannelPersistenceImpl
 			return faroChannel;
 		}
 
-		throw new NoSuchFaroChannelException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchFaroChannelException(sb.toString());
 	}
 
 	/**
@@ -198,8 +286,14 @@ public class FaroChannelPersistenceImpl
 	public FaroChannel fetchByGroupId_First(
 		long groupId, OrderByComparator<FaroChannel> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			finderCache, new Object[] {groupId}, orderByComparator);
+		List<FaroChannel> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -209,8 +303,12 @@ public class FaroChannelPersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			finderCache, new Object[] {groupId});
+		for (FaroChannel faroChannel :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(faroChannel);
+		}
 	}
 
 	/**
@@ -221,15 +319,53 @@ public class FaroChannelPersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			finderCache, new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_FAROCHANNEL_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"faroChannel.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByWorkspaceGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByWorkspaceGroupId;
 	private FinderPath _finderPathCountByWorkspaceGroupId;
-	private CollectionPersistenceFinder<FaroChannel>
-		_collectionPersistenceFinderByWorkspaceGroupId;
 
 	/**
 	 * Returns all the faro channels where workspaceGroupId = &#63;.
@@ -304,9 +440,95 @@ public class FaroChannelPersistenceImpl
 		OrderByComparator<FaroChannel> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByWorkspaceGroupId.find(
-			finderCache, new Object[] {workspaceGroupId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByWorkspaceGroupId;
+				finderArgs = new Object[] {workspaceGroupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByWorkspaceGroupId;
+			finderArgs = new Object[] {
+				workspaceGroupId, start, end, orderByComparator
+			};
+		}
+
+		List<FaroChannel> list = null;
+
+		if (useFinderCache) {
+			list = (List<FaroChannel>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (FaroChannel faroChannel : list) {
+					if (workspaceGroupId != faroChannel.getWorkspaceGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_FAROCHANNEL_WHERE);
+
+			sb.append(_FINDER_COLUMN_WORKSPACEGROUPID_WORKSPACEGROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(FaroChannelModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(workspaceGroupId);
+
+				list = (List<FaroChannel>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -330,10 +552,16 @@ public class FaroChannelPersistenceImpl
 			return faroChannel;
 		}
 
-		throw new NoSuchFaroChannelException(
-			_collectionPersistenceFinderByWorkspaceGroupId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {workspaceGroupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("workspaceGroupId=");
+		sb.append(workspaceGroupId);
+
+		sb.append("}");
+
+		throw new NoSuchFaroChannelException(sb.toString());
 	}
 
 	/**
@@ -348,8 +576,14 @@ public class FaroChannelPersistenceImpl
 		long workspaceGroupId,
 		OrderByComparator<FaroChannel> orderByComparator) {
 
-		return _collectionPersistenceFinderByWorkspaceGroupId.fetchFirst(
-			finderCache, new Object[] {workspaceGroupId}, orderByComparator);
+		List<FaroChannel> list = findByWorkspaceGroupId(
+			workspaceGroupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -359,8 +593,13 @@ public class FaroChannelPersistenceImpl
 	 */
 	@Override
 	public void removeByWorkspaceGroupId(long workspaceGroupId) {
-		_collectionPersistenceFinderByWorkspaceGroupId.remove(
-			finderCache, new Object[] {workspaceGroupId});
+		for (FaroChannel faroChannel :
+				findByWorkspaceGroupId(
+					workspaceGroupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(faroChannel);
+		}
 	}
 
 	/**
@@ -371,15 +610,54 @@ public class FaroChannelPersistenceImpl
 	 */
 	@Override
 	public int countByWorkspaceGroupId(long workspaceGroupId) {
-		return _collectionPersistenceFinderByWorkspaceGroupId.count(
-			finderCache, new Object[] {workspaceGroupId});
+		FinderPath finderPath = _finderPathCountByWorkspaceGroupId;
+
+		Object[] finderArgs = new Object[] {workspaceGroupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_FAROCHANNEL_WHERE);
+
+			sb.append(_FINDER_COLUMN_WORKSPACEGROUPID_WORKSPACEGROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(workspaceGroupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_WORKSPACEGROUPID_WORKSPACEGROUPID_2 =
+			"faroChannel.workspaceGroupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_U;
 	private FinderPath _finderPathWithoutPaginationFindByG_U;
 	private FinderPath _finderPathCountByG_U;
-	private CollectionPersistenceFinder<FaroChannel>
-		_collectionPersistenceFinderByG_U;
 
 	/**
 	 * Returns all the faro channels where groupId = &#63; and userId = &#63;.
@@ -457,9 +735,101 @@ public class FaroChannelPersistenceImpl
 		OrderByComparator<FaroChannel> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByG_U.find(
-			finderCache, new Object[] {groupId, userId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByG_U;
+				finderArgs = new Object[] {groupId, userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByG_U;
+			finderArgs = new Object[] {
+				groupId, userId, start, end, orderByComparator
+			};
+		}
+
+		List<FaroChannel> list = null;
+
+		if (useFinderCache) {
+			list = (List<FaroChannel>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (FaroChannel faroChannel : list) {
+					if ((groupId != faroChannel.getGroupId()) ||
+						(userId != faroChannel.getUserId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_FAROCHANNEL_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_U_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_U_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(FaroChannelModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(userId);
+
+				list = (List<FaroChannel>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -484,9 +854,19 @@ public class FaroChannelPersistenceImpl
 			return faroChannel;
 		}
 
-		throw new NoSuchFaroChannelException(
-			_collectionPersistenceFinderByG_U.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, userId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchFaroChannelException(sb.toString());
 	}
 
 	/**
@@ -502,8 +882,14 @@ public class FaroChannelPersistenceImpl
 		long groupId, long userId,
 		OrderByComparator<FaroChannel> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_U.fetchFirst(
-			finderCache, new Object[] {groupId, userId}, orderByComparator);
+		List<FaroChannel> list = findByG_U(
+			groupId, userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -514,8 +900,13 @@ public class FaroChannelPersistenceImpl
 	 */
 	@Override
 	public void removeByG_U(long groupId, long userId) {
-		_collectionPersistenceFinderByG_U.remove(
-			finderCache, new Object[] {groupId, userId});
+		for (FaroChannel faroChannel :
+				findByG_U(
+					groupId, userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(faroChannel);
+		}
 	}
 
 	/**
@@ -527,12 +918,58 @@ public class FaroChannelPersistenceImpl
 	 */
 	@Override
 	public int countByG_U(long groupId, long userId) {
-		return _collectionPersistenceFinderByG_U.count(
-			finderCache, new Object[] {groupId, userId});
+		FinderPath finderPath = _finderPathCountByG_U;
+
+		Object[] finderArgs = new Object[] {groupId, userId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_FAROCHANNEL_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_U_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_U_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_G_U_GROUPID_2 =
+		"faroChannel.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_U_USERID_2 =
+		"faroChannel.userId = ?";
+
 	private FinderPath _finderPathFetchByC_W;
-	private UniquePersistenceFinder<FaroChannel> _uniquePersistenceFinderByC_W;
 
 	/**
 	 * Returns the faro channel where channelId = &#63; and workspaceGroupId = &#63; or throws a <code>NoSuchFaroChannelException</code> if it could not be found.
@@ -549,16 +986,23 @@ public class FaroChannelPersistenceImpl
 		FaroChannel faroChannel = fetchByC_W(channelId, workspaceGroupId);
 
 		if (faroChannel == null) {
-			String message =
-				_uniquePersistenceFinderByC_W.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {channelId, workspaceGroupId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("channelId=");
+			sb.append(channelId);
+
+			sb.append(", workspaceGroupId=");
+			sb.append(workspaceGroupId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchFaroChannelException(message);
+			throw new NoSuchFaroChannelException(sb.toString());
 		}
 
 		return faroChannel;
@@ -588,9 +1032,96 @@ public class FaroChannelPersistenceImpl
 	public FaroChannel fetchByC_W(
 		String channelId, long workspaceGroupId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_W.fetch(
-			finderCache, new Object[] {channelId, workspaceGroupId},
-			useFinderCache);
+		channelId = Objects.toString(channelId, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {channelId, workspaceGroupId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByC_W, finderArgs, this);
+		}
+
+		if (result instanceof FaroChannel) {
+			FaroChannel faroChannel = (FaroChannel)result;
+
+			if (!Objects.equals(channelId, faroChannel.getChannelId()) ||
+				(workspaceGroupId != faroChannel.getWorkspaceGroupId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_FAROCHANNEL_WHERE);
+
+			boolean bindChannelId = false;
+
+			if (channelId.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_W_CHANNELID_3);
+			}
+			else {
+				bindChannelId = true;
+
+				sb.append(_FINDER_COLUMN_C_W_CHANNELID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_C_W_WORKSPACEGROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindChannelId) {
+					queryPos.add(channelId);
+				}
+
+				queryPos.add(workspaceGroupId);
+
+				List<FaroChannel> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByC_W, finderArgs, list);
+					}
+				}
+				else {
+					FaroChannel faroChannel = list.get(0);
+
+					result = faroChannel;
+
+					cacheResult(faroChannel);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (FaroChannel)result;
+		}
 	}
 
 	/**
@@ -618,9 +1149,23 @@ public class FaroChannelPersistenceImpl
 	 */
 	@Override
 	public int countByC_W(String channelId, long workspaceGroupId) {
-		return _uniquePersistenceFinderByC_W.count(
-			finderCache, new Object[] {channelId, workspaceGroupId});
+		FaroChannel faroChannel = fetchByC_W(channelId, workspaceGroupId);
+
+		if (faroChannel == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_W_CHANNELID_2 =
+		"faroChannel.channelId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_W_CHANNELID_3 =
+		"(faroChannel.channelId IS NULL OR faroChannel.channelId = '') AND ";
+
+	private static final String _FINDER_COLUMN_C_W_WORKSPACEGROUPID_2 =
+		"faroChannel.workspaceGroupId = ?";
 
 	public FaroChannelPersistenceImpl() {
 		setModelClass(FaroChannel.class);
@@ -675,6 +1220,48 @@ public class FaroChannelPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all faro channels.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(FaroChannelImpl.class);
+
+		finderCache.clearCache(FaroChannelImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the faro channel.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(FaroChannel faroChannel) {
+		entityCache.removeResult(FaroChannelImpl.class, faroChannel);
+	}
+
+	@Override
+	public void clearCache(List<FaroChannel> faroChannels) {
+		for (FaroChannel faroChannel : faroChannels) {
+			entityCache.removeResult(FaroChannelImpl.class, faroChannel);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(FaroChannelImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(FaroChannelImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		FaroChannelModelImpl faroChannelModelImpl) {
 
@@ -717,6 +1304,47 @@ public class FaroChannelPersistenceImpl
 		throws NoSuchFaroChannelException {
 
 		return remove((Serializable)faroChannelId);
+	}
+
+	/**
+	 * Removes the faro channel with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the faro channel
+	 * @return the faro channel that was removed
+	 * @throws NoSuchFaroChannelException if a faro channel with the primary key could not be found
+	 */
+	@Override
+	public FaroChannel remove(Serializable primaryKey)
+		throws NoSuchFaroChannelException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			FaroChannel faroChannel = (FaroChannel)session.get(
+				FaroChannelImpl.class, primaryKey);
+
+			if (faroChannel == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchFaroChannelException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(faroChannel);
+		}
+		catch (NoSuchFaroChannelException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -801,6 +1429,31 @@ public class FaroChannelPersistenceImpl
 		}
 
 		faroChannel.resetOriginalValues();
+
+		return faroChannel;
+	}
+
+	/**
+	 * Returns the faro channel with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the faro channel
+	 * @return the faro channel
+	 * @throws NoSuchFaroChannelException if a faro channel with the primary key could not be found
+	 */
+	@Override
+	public FaroChannel findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchFaroChannelException {
+
+		FaroChannel faroChannel = fetchByPrimaryKey(primaryKey);
+
+		if (faroChannel == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchFaroChannelException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return faroChannel;
 	}
@@ -1067,17 +1720,6 @@ public class FaroChannelPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId, _SQL_SELECT_FAROCHANNEL_WHERE,
-				_SQL_COUNT_FAROCHANNEL_WHERE,
-				FaroChannelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"faroChannel.", "groupId", FinderColumn.Type.LONG, "=",
-					true, true, FaroChannel::getGroupId));
-
 		_finderPathWithPaginationFindByWorkspaceGroupId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByWorkspaceGroupId",
 			new String[] {
@@ -1095,17 +1737,6 @@ public class FaroChannelPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
 			"countByWorkspaceGroupId", new String[] {Long.class.getName()},
 			new String[] {"workspaceGroupId"}, false);
-
-		_collectionPersistenceFinderByWorkspaceGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByWorkspaceGroupId,
-				_finderPathWithoutPaginationFindByWorkspaceGroupId,
-				_finderPathCountByWorkspaceGroupId,
-				_SQL_SELECT_FAROCHANNEL_WHERE, _SQL_COUNT_FAROCHANNEL_WHERE,
-				FaroChannelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"faroChannel.", "workspaceGroupId", FinderColumn.Type.LONG,
-					"=", true, true, FaroChannel::getWorkspaceGroupId));
 
 		_finderPathWithPaginationFindByG_U = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_U",
@@ -1126,31 +1757,10 @@ public class FaroChannelPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"groupId", "userId"}, false);
 
-		_collectionPersistenceFinderByG_U = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_U,
-			_finderPathWithoutPaginationFindByG_U, _finderPathCountByG_U,
-			_SQL_SELECT_FAROCHANNEL_WHERE, _SQL_COUNT_FAROCHANNEL_WHERE,
-			FaroChannelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"faroChannel.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, FaroChannel::getGroupId),
-			new FinderColumn<>(
-				"faroChannel.", "userId", FinderColumn.Type.LONG, "=", true,
-				true, FaroChannel::getUserId));
-
 		_finderPathFetchByC_W = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_W",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"channelId", "workspaceGroupId"}, true);
-
-		_uniquePersistenceFinderByC_W = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_W, _SQL_SELECT_FAROCHANNEL_WHERE,
-			new FinderColumn<>(
-				"faroChannel.", "channelId", FinderColumn.Type.STRING, "=",
-				true, false, FaroChannel::getChannelId),
-			new FinderColumn<>(
-				"faroChannel.", "workspaceGroupId", FinderColumn.Type.LONG, "=",
-				true, true, FaroChannel::getWorkspaceGroupId));
 
 		FaroChannelUtil.setPersistence(this);
 	}
@@ -1208,6 +1818,9 @@ public class FaroChannelPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "faroChannel.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No FaroChannel exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No FaroChannel exists with the key {";
 
@@ -1220,4 +1833,4 @@ public class FaroChannelPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1843664826
+// LIFERAY-SERVICE-BUILDER-HASH:1305518653

@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,9 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -41,6 +39,7 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -61,7 +60,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = FaroPreferencesPersistence.class)
 public class FaroPreferencesPersistenceImpl
-	extends BasePersistenceImpl<FaroPreferences, NoSuchFaroPreferencesException>
+	extends BasePersistenceImpl<FaroPreferences>
 	implements FaroPreferencesPersistence {
 
 	/*
@@ -84,8 +83,6 @@ public class FaroPreferencesPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<FaroPreferences>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the faro preferenceses where groupId = &#63;.
@@ -159,9 +156,93 @@ public class FaroPreferencesPersistenceImpl
 		OrderByComparator<FaroPreferences> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			finderCache, new Object[] {groupId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<FaroPreferences> list = null;
+
+		if (useFinderCache) {
+			list = (List<FaroPreferences>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (FaroPreferences faroPreferences : list) {
+					if (groupId != faroPreferences.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_FAROPREFERENCES_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(FaroPreferencesModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<FaroPreferences>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -184,9 +265,16 @@ public class FaroPreferencesPersistenceImpl
 			return faroPreferences;
 		}
 
-		throw new NoSuchFaroPreferencesException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchFaroPreferencesException(sb.toString());
 	}
 
 	/**
@@ -200,8 +288,14 @@ public class FaroPreferencesPersistenceImpl
 	public FaroPreferences fetchByGroupId_First(
 		long groupId, OrderByComparator<FaroPreferences> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			finderCache, new Object[] {groupId}, orderByComparator);
+		List<FaroPreferences> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -211,8 +305,12 @@ public class FaroPreferencesPersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			finderCache, new Object[] {groupId});
+		for (FaroPreferences faroPreferences :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(faroPreferences);
+		}
 	}
 
 	/**
@@ -223,13 +321,51 @@ public class FaroPreferencesPersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			finderCache, new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_FAROPREFERENCES_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"faroPreferences.groupId = ?";
+
 	private FinderPath _finderPathFetchByG_O;
-	private UniquePersistenceFinder<FaroPreferences>
-		_uniquePersistenceFinderByG_O;
 
 	/**
 	 * Returns the faro preferences where groupId = &#63; and ownerId = &#63; or throws a <code>NoSuchFaroPreferencesException</code> if it could not be found.
@@ -246,15 +382,23 @@ public class FaroPreferencesPersistenceImpl
 		FaroPreferences faroPreferences = fetchByG_O(groupId, ownerId);
 
 		if (faroPreferences == null) {
-			String message =
-				_uniquePersistenceFinderByG_O.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, ownerId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append(", ownerId=");
+			sb.append(ownerId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchFaroPreferencesException(message);
+			throw new NoSuchFaroPreferencesException(sb.toString());
 		}
 
 		return faroPreferences;
@@ -284,8 +428,83 @@ public class FaroPreferencesPersistenceImpl
 	public FaroPreferences fetchByG_O(
 		long groupId, long ownerId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByG_O.fetch(
-			finderCache, new Object[] {groupId, ownerId}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {groupId, ownerId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByG_O, finderArgs, this);
+		}
+
+		if (result instanceof FaroPreferences) {
+			FaroPreferences faroPreferences = (FaroPreferences)result;
+
+			if ((groupId != faroPreferences.getGroupId()) ||
+				(ownerId != faroPreferences.getOwnerId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_FAROPREFERENCES_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_O_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_O_OWNERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(ownerId);
+
+				List<FaroPreferences> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByG_O, finderArgs, list);
+					}
+				}
+				else {
+					FaroPreferences faroPreferences = list.get(0);
+
+					result = faroPreferences;
+
+					cacheResult(faroPreferences);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (FaroPreferences)result;
+		}
 	}
 
 	/**
@@ -313,9 +532,20 @@ public class FaroPreferencesPersistenceImpl
 	 */
 	@Override
 	public int countByG_O(long groupId, long ownerId) {
-		return _uniquePersistenceFinderByG_O.count(
-			finderCache, new Object[] {groupId, ownerId});
+		FaroPreferences faroPreferences = fetchByG_O(groupId, ownerId);
+
+		if (faroPreferences == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_G_O_GROUPID_2 =
+		"faroPreferences.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_O_OWNERID_2 =
+		"faroPreferences.ownerId = ?";
 
 	public FaroPreferencesPersistenceImpl() {
 		setModelClass(FaroPreferences.class);
@@ -372,6 +602,49 @@ public class FaroPreferencesPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all faro preferenceses.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(FaroPreferencesImpl.class);
+
+		finderCache.clearCache(FaroPreferencesImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the faro preferences.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(FaroPreferences faroPreferences) {
+		entityCache.removeResult(FaroPreferencesImpl.class, faroPreferences);
+	}
+
+	@Override
+	public void clearCache(List<FaroPreferences> faroPreferenceses) {
+		for (FaroPreferences faroPreferences : faroPreferenceses) {
+			entityCache.removeResult(
+				FaroPreferencesImpl.class, faroPreferences);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(FaroPreferencesImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(FaroPreferencesImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		FaroPreferencesModelImpl faroPreferencesModelImpl) {
 
@@ -414,6 +687,47 @@ public class FaroPreferencesPersistenceImpl
 		throws NoSuchFaroPreferencesException {
 
 		return remove((Serializable)faroPreferencesId);
+	}
+
+	/**
+	 * Removes the faro preferences with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the faro preferences
+	 * @return the faro preferences that was removed
+	 * @throws NoSuchFaroPreferencesException if a faro preferences with the primary key could not be found
+	 */
+	@Override
+	public FaroPreferences remove(Serializable primaryKey)
+		throws NoSuchFaroPreferencesException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			FaroPreferences faroPreferences = (FaroPreferences)session.get(
+				FaroPreferencesImpl.class, primaryKey);
+
+			if (faroPreferences == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchFaroPreferencesException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(faroPreferences);
+		}
+		catch (NoSuchFaroPreferencesException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -501,6 +815,31 @@ public class FaroPreferencesPersistenceImpl
 		}
 
 		faroPreferences.resetOriginalValues();
+
+		return faroPreferences;
+	}
+
+	/**
+	 * Returns the faro preferences with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the faro preferences
+	 * @return the faro preferences
+	 * @throws NoSuchFaroPreferencesException if a faro preferences with the primary key could not be found
+	 */
+	@Override
+	public FaroPreferences findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchFaroPreferencesException {
+
+		FaroPreferences faroPreferences = fetchByPrimaryKey(primaryKey);
+
+		if (faroPreferences == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchFaroPreferencesException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return faroPreferences;
 	}
@@ -769,30 +1108,10 @@ public class FaroPreferencesPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId, _SQL_SELECT_FAROPREFERENCES_WHERE,
-				_SQL_COUNT_FAROPREFERENCES_WHERE,
-				FaroPreferencesModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"faroPreferences.", "groupId", FinderColumn.Type.LONG, "=",
-					true, true, FaroPreferences::getGroupId));
-
 		_finderPathFetchByG_O = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByG_O",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"groupId", "ownerId"}, true);
-
-		_uniquePersistenceFinderByG_O = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByG_O, _SQL_SELECT_FAROPREFERENCES_WHERE,
-			new FinderColumn<>(
-				"faroPreferences.", "groupId", FinderColumn.Type.LONG, "=",
-				true, false, FaroPreferences::getGroupId),
-			new FinderColumn<>(
-				"faroPreferences.", "ownerId", FinderColumn.Type.LONG, "=",
-				true, true, FaroPreferences::getOwnerId));
 
 		FaroPreferencesUtil.setPersistence(this);
 	}
@@ -850,6 +1169,9 @@ public class FaroPreferencesPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "faroPreferences.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No FaroPreferences exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No FaroPreferences exists with the key {";
 
@@ -862,4 +1184,4 @@ public class FaroPreferencesPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1407508905
+// LIFERAY-SERVICE-BUILDER-HASH:-1627002075

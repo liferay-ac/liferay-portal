@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,8 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -63,8 +62,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = ContactsLayoutTemplatePersistence.class)
 public class ContactsLayoutTemplatePersistenceImpl
-	extends BasePersistenceImpl
-		<ContactsLayoutTemplate, NoSuchContactsLayoutTemplateException>
+	extends BasePersistenceImpl<ContactsLayoutTemplate>
 	implements ContactsLayoutTemplatePersistence {
 
 	/*
@@ -87,8 +85,6 @@ public class ContactsLayoutTemplatePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<ContactsLayoutTemplate>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the contacts layout templates where groupId = &#63;.
@@ -162,9 +158,93 @@ public class ContactsLayoutTemplatePersistenceImpl
 		OrderByComparator<ContactsLayoutTemplate> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			finderCache, new Object[] {groupId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<ContactsLayoutTemplate> list = null;
+
+		if (useFinderCache) {
+			list = (List<ContactsLayoutTemplate>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ContactsLayoutTemplate contactsLayoutTemplate : list) {
+					if (groupId != contactsLayoutTemplate.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CONTACTSLAYOUTTEMPLATE_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ContactsLayoutTemplateModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<ContactsLayoutTemplate>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -188,9 +268,16 @@ public class ContactsLayoutTemplatePersistenceImpl
 			return contactsLayoutTemplate;
 		}
 
-		throw new NoSuchContactsLayoutTemplateException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchContactsLayoutTemplateException(sb.toString());
 	}
 
 	/**
@@ -205,8 +292,14 @@ public class ContactsLayoutTemplatePersistenceImpl
 		long groupId,
 		OrderByComparator<ContactsLayoutTemplate> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			finderCache, new Object[] {groupId}, orderByComparator);
+		List<ContactsLayoutTemplate> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -216,8 +309,12 @@ public class ContactsLayoutTemplatePersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			finderCache, new Object[] {groupId});
+		for (ContactsLayoutTemplate contactsLayoutTemplate :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(contactsLayoutTemplate);
+		}
 	}
 
 	/**
@@ -228,15 +325,53 @@ public class ContactsLayoutTemplatePersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			finderCache, new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CONTACTSLAYOUTTEMPLATE_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"contactsLayoutTemplate.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_T;
 	private FinderPath _finderPathWithoutPaginationFindByG_T;
 	private FinderPath _finderPathCountByG_T;
-	private CollectionPersistenceFinder<ContactsLayoutTemplate>
-		_collectionPersistenceFinderByG_T;
 
 	/**
 	 * Returns all the contacts layout templates where groupId = &#63; and type = &#63;.
@@ -314,9 +449,101 @@ public class ContactsLayoutTemplatePersistenceImpl
 		OrderByComparator<ContactsLayoutTemplate> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByG_T.find(
-			finderCache, new Object[] {groupId, type}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByG_T;
+				finderArgs = new Object[] {groupId, type};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByG_T;
+			finderArgs = new Object[] {
+				groupId, type, start, end, orderByComparator
+			};
+		}
+
+		List<ContactsLayoutTemplate> list = null;
+
+		if (useFinderCache) {
+			list = (List<ContactsLayoutTemplate>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ContactsLayoutTemplate contactsLayoutTemplate : list) {
+					if ((groupId != contactsLayoutTemplate.getGroupId()) ||
+						(type != contactsLayoutTemplate.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_CONTACTSLAYOUTTEMPLATE_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_T_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_T_TYPE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ContactsLayoutTemplateModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(type);
+
+				list = (List<ContactsLayoutTemplate>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -341,9 +568,19 @@ public class ContactsLayoutTemplatePersistenceImpl
 			return contactsLayoutTemplate;
 		}
 
-		throw new NoSuchContactsLayoutTemplateException(
-			_collectionPersistenceFinderByG_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, type}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchContactsLayoutTemplateException(sb.toString());
 	}
 
 	/**
@@ -359,8 +596,14 @@ public class ContactsLayoutTemplatePersistenceImpl
 		long groupId, int type,
 		OrderByComparator<ContactsLayoutTemplate> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_T.fetchFirst(
-			finderCache, new Object[] {groupId, type}, orderByComparator);
+		List<ContactsLayoutTemplate> list = findByG_T(
+			groupId, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -371,8 +614,13 @@ public class ContactsLayoutTemplatePersistenceImpl
 	 */
 	@Override
 	public void removeByG_T(long groupId, int type) {
-		_collectionPersistenceFinderByG_T.remove(
-			finderCache, new Object[] {groupId, type});
+		for (ContactsLayoutTemplate contactsLayoutTemplate :
+				findByG_T(
+					groupId, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(contactsLayoutTemplate);
+		}
 	}
 
 	/**
@@ -384,9 +632,56 @@ public class ContactsLayoutTemplatePersistenceImpl
 	 */
 	@Override
 	public int countByG_T(long groupId, int type) {
-		return _collectionPersistenceFinderByG_T.count(
-			finderCache, new Object[] {groupId, type});
+		FinderPath finderPath = _finderPathCountByG_T;
+
+		Object[] finderArgs = new Object[] {groupId, type};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_CONTACTSLAYOUTTEMPLATE_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_T_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_T_TYPE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(type);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_G_T_GROUPID_2 =
+		"contactsLayoutTemplate.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_T_TYPE_2 =
+		"contactsLayoutTemplate.type = ?";
 
 	public ContactsLayoutTemplatePersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -448,6 +743,55 @@ public class ContactsLayoutTemplatePersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all contacts layout templates.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(ContactsLayoutTemplateImpl.class);
+
+		finderCache.clearCache(ContactsLayoutTemplateImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the contacts layout template.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(ContactsLayoutTemplate contactsLayoutTemplate) {
+		entityCache.removeResult(
+			ContactsLayoutTemplateImpl.class, contactsLayoutTemplate);
+	}
+
+	@Override
+	public void clearCache(
+		List<ContactsLayoutTemplate> contactsLayoutTemplates) {
+
+		for (ContactsLayoutTemplate contactsLayoutTemplate :
+				contactsLayoutTemplates) {
+
+			entityCache.removeResult(
+				ContactsLayoutTemplateImpl.class, contactsLayoutTemplate);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(ContactsLayoutTemplateImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				ContactsLayoutTemplateImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new contacts layout template with the primary key. Does not add the contacts layout template to the database.
 	 *
 	 * @param contactsLayoutTemplateId the primary key for the new contacts layout template
@@ -478,6 +822,48 @@ public class ContactsLayoutTemplatePersistenceImpl
 		throws NoSuchContactsLayoutTemplateException {
 
 		return remove((Serializable)contactsLayoutTemplateId);
+	}
+
+	/**
+	 * Removes the contacts layout template with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the contacts layout template
+	 * @return the contacts layout template that was removed
+	 * @throws NoSuchContactsLayoutTemplateException if a contacts layout template with the primary key could not be found
+	 */
+	@Override
+	public ContactsLayoutTemplate remove(Serializable primaryKey)
+		throws NoSuchContactsLayoutTemplateException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ContactsLayoutTemplate contactsLayoutTemplate =
+				(ContactsLayoutTemplate)session.get(
+					ContactsLayoutTemplateImpl.class, primaryKey);
+
+			if (contactsLayoutTemplate == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchContactsLayoutTemplateException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(contactsLayoutTemplate);
+		}
+		catch (NoSuchContactsLayoutTemplateException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -570,6 +956,32 @@ public class ContactsLayoutTemplatePersistenceImpl
 		}
 
 		contactsLayoutTemplate.resetOriginalValues();
+
+		return contactsLayoutTemplate;
+	}
+
+	/**
+	 * Returns the contacts layout template with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the contacts layout template
+	 * @return the contacts layout template
+	 * @throws NoSuchContactsLayoutTemplateException if a contacts layout template with the primary key could not be found
+	 */
+	@Override
+	public ContactsLayoutTemplate findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchContactsLayoutTemplateException {
+
+		ContactsLayoutTemplate contactsLayoutTemplate = fetchByPrimaryKey(
+			primaryKey);
+
+		if (contactsLayoutTemplate == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchContactsLayoutTemplateException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return contactsLayoutTemplate;
 	}
@@ -847,20 +1259,6 @@ public class ContactsLayoutTemplatePersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId,
-				_SQL_SELECT_CONTACTSLAYOUTTEMPLATE_WHERE,
-				_SQL_COUNT_CONTACTSLAYOUTTEMPLATE_WHERE,
-				ContactsLayoutTemplateModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"contactsLayoutTemplate.", "groupId",
-					FinderColumn.Type.LONG, "=", true, true,
-					ContactsLayoutTemplate::getGroupId));
-
 		_finderPathWithPaginationFindByG_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_T",
 			new String[] {
@@ -879,20 +1277,6 @@ public class ContactsLayoutTemplatePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByG_T",
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"groupId", "type_"}, false);
-
-		_collectionPersistenceFinderByG_T = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_T,
-			_finderPathWithoutPaginationFindByG_T, _finderPathCountByG_T,
-			_SQL_SELECT_CONTACTSLAYOUTTEMPLATE_WHERE,
-			_SQL_COUNT_CONTACTSLAYOUTTEMPLATE_WHERE,
-			ContactsLayoutTemplateModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"contactsLayoutTemplate.", "groupId", FinderColumn.Type.LONG,
-				"=", true, false, ContactsLayoutTemplate::getGroupId),
-			new FinderColumn<>(
-				"contactsLayoutTemplate.", "type", FinderColumn.Type.INTEGER,
-				"=", true, true, ContactsLayoutTemplate::getType));
 
 		ContactsLayoutTemplateUtil.setPersistence(this);
 	}
@@ -951,6 +1335,9 @@ public class ContactsLayoutTemplatePersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"contactsLayoutTemplate.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No ContactsLayoutTemplate exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No ContactsLayoutTemplate exists with the key {";
 
@@ -966,4 +1353,4 @@ public class ContactsLayoutTemplatePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:373887896
+// LIFERAY-SERVICE-BUILDER-HASH:750708907

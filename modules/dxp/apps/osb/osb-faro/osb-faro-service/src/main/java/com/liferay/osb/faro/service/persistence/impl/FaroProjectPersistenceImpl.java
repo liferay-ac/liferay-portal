@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,9 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -43,6 +41,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -64,8 +63,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = FaroProjectPersistence.class)
 public class FaroProjectPersistenceImpl
-	extends BasePersistenceImpl<FaroProject, NoSuchFaroProjectException>
-	implements FaroProjectPersistence {
+	extends BasePersistenceImpl<FaroProject> implements FaroProjectPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -85,8 +83,6 @@ public class FaroProjectPersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByGroupId;
-	private UniquePersistenceFinder<FaroProject>
-		_uniquePersistenceFinderByGroupId;
 
 	/**
 	 * Returns the faro project where groupId = &#63; or throws a <code>NoSuchFaroProjectException</code> if it could not be found.
@@ -102,15 +98,20 @@ public class FaroProjectPersistenceImpl
 		FaroProject faroProject = fetchByGroupId(groupId);
 
 		if (faroProject == null) {
-			String message =
-				_uniquePersistenceFinderByGroupId.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchFaroProjectException(message);
+			throw new NoSuchFaroProjectException(sb.toString());
 		}
 
 		return faroProject;
@@ -136,8 +137,77 @@ public class FaroProjectPersistenceImpl
 	 */
 	@Override
 	public FaroProject fetchByGroupId(long groupId, boolean useFinderCache) {
-		return _uniquePersistenceFinderByGroupId.fetch(
-			finderCache, new Object[] {groupId}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {groupId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByGroupId, finderArgs, this);
+		}
+
+		if (result instanceof FaroProject) {
+			FaroProject faroProject = (FaroProject)result;
+
+			if (groupId != faroProject.getGroupId()) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_FAROPROJECT_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				List<FaroProject> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByGroupId, finderArgs, list);
+					}
+				}
+				else {
+					FaroProject faroProject = list.get(0);
+
+					result = faroProject;
+
+					cacheResult(faroProject);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (FaroProject)result;
+		}
 	}
 
 	/**
@@ -163,15 +233,21 @@ public class FaroProjectPersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _uniquePersistenceFinderByGroupId.count(
-			finderCache, new Object[] {groupId});
+		FaroProject faroProject = fetchByGroupId(groupId);
+
+		if (faroProject == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"faroProject.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUserId;
 	private FinderPath _finderPathWithoutPaginationFindByUserId;
 	private FinderPath _finderPathCountByUserId;
-	private CollectionPersistenceFinder<FaroProject>
-		_collectionPersistenceFinderByUserId;
 
 	/**
 	 * Returns all the faro projects where userId = &#63;.
@@ -242,9 +318,93 @@ public class FaroProjectPersistenceImpl
 		OrderByComparator<FaroProject> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUserId.find(
-			finderCache, new Object[] {userId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUserId;
+				finderArgs = new Object[] {userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUserId;
+			finderArgs = new Object[] {userId, start, end, orderByComparator};
+		}
+
+		List<FaroProject> list = null;
+
+		if (useFinderCache) {
+			list = (List<FaroProject>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (FaroProject faroProject : list) {
+					if (userId != faroProject.getUserId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_FAROPROJECT_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(FaroProjectModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				list = (List<FaroProject>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -267,9 +427,16 @@ public class FaroProjectPersistenceImpl
 			return faroProject;
 		}
 
-		throw new NoSuchFaroProjectException(
-			_collectionPersistenceFinderByUserId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {userId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchFaroProjectException(sb.toString());
 	}
 
 	/**
@@ -283,8 +450,13 @@ public class FaroProjectPersistenceImpl
 	public FaroProject fetchByUserId_First(
 		long userId, OrderByComparator<FaroProject> orderByComparator) {
 
-		return _collectionPersistenceFinderByUserId.fetchFirst(
-			finderCache, new Object[] {userId}, orderByComparator);
+		List<FaroProject> list = findByUserId(userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -294,8 +466,12 @@ public class FaroProjectPersistenceImpl
 	 */
 	@Override
 	public void removeByUserId(long userId) {
-		_collectionPersistenceFinderByUserId.remove(
-			finderCache, new Object[] {userId});
+		for (FaroProject faroProject :
+				findByUserId(
+					userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(faroProject);
+		}
 	}
 
 	/**
@@ -306,13 +482,51 @@ public class FaroProjectPersistenceImpl
 	 */
 	@Override
 	public int countByUserId(long userId) {
-		return _collectionPersistenceFinderByUserId.count(
-			finderCache, new Object[] {userId});
+		FinderPath finderPath = _finderPathCountByUserId;
+
+		Object[] finderArgs = new Object[] {userId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_FAROPROJECT_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_USERID_USERID_2 =
+		"faroProject.userId = ?";
+
 	private FinderPath _finderPathFetchByCorpProjectUuid;
-	private UniquePersistenceFinder<FaroProject>
-		_uniquePersistenceFinderByCorpProjectUuid;
 
 	/**
 	 * Returns the faro project where corpProjectUuid = &#63; or throws a <code>NoSuchFaroProjectException</code> if it could not be found.
@@ -328,15 +542,20 @@ public class FaroProjectPersistenceImpl
 		FaroProject faroProject = fetchByCorpProjectUuid(corpProjectUuid);
 
 		if (faroProject == null) {
-			String message =
-				_uniquePersistenceFinderByCorpProjectUuid.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {corpProjectUuid});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("corpProjectUuid=");
+			sb.append(corpProjectUuid);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchFaroProjectException(message);
+			throw new NoSuchFaroProjectException(sb.toString());
 		}
 
 		return faroProject;
@@ -364,8 +583,93 @@ public class FaroProjectPersistenceImpl
 	public FaroProject fetchByCorpProjectUuid(
 		String corpProjectUuid, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByCorpProjectUuid.fetch(
-			finderCache, new Object[] {corpProjectUuid}, useFinderCache);
+		corpProjectUuid = Objects.toString(corpProjectUuid, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {corpProjectUuid};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByCorpProjectUuid, finderArgs, this);
+		}
+
+		if (result instanceof FaroProject) {
+			FaroProject faroProject = (FaroProject)result;
+
+			if (!Objects.equals(
+					corpProjectUuid, faroProject.getCorpProjectUuid())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_FAROPROJECT_WHERE);
+
+			boolean bindCorpProjectUuid = false;
+
+			if (corpProjectUuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_CORPPROJECTUUID_CORPPROJECTUUID_3);
+			}
+			else {
+				bindCorpProjectUuid = true;
+
+				sb.append(_FINDER_COLUMN_CORPPROJECTUUID_CORPPROJECTUUID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindCorpProjectUuid) {
+					queryPos.add(corpProjectUuid);
+				}
+
+				List<FaroProject> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByCorpProjectUuid, finderArgs,
+							list);
+					}
+				}
+				else {
+					FaroProject faroProject = list.get(0);
+
+					result = faroProject;
+
+					cacheResult(faroProject);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (FaroProject)result;
+		}
 	}
 
 	/**
@@ -391,15 +695,26 @@ public class FaroProjectPersistenceImpl
 	 */
 	@Override
 	public int countByCorpProjectUuid(String corpProjectUuid) {
-		return _uniquePersistenceFinderByCorpProjectUuid.count(
-			finderCache, new Object[] {corpProjectUuid});
+		FaroProject faroProject = fetchByCorpProjectUuid(corpProjectUuid);
+
+		if (faroProject == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_CORPPROJECTUUID_CORPPROJECTUUID_2 =
+			"faroProject.corpProjectUuid = ?";
+
+	private static final String
+		_FINDER_COLUMN_CORPPROJECTUUID_CORPPROJECTUUID_3 =
+			"(faroProject.corpProjectUuid IS NULL OR faroProject.corpProjectUuid = '')";
 
 	private FinderPath _finderPathWithPaginationFindByServerLocation;
 	private FinderPath _finderPathWithoutPaginationFindByServerLocation;
 	private FinderPath _finderPathCountByServerLocation;
-	private CollectionPersistenceFinder<FaroProject>
-		_collectionPersistenceFinderByServerLocation;
 
 	/**
 	 * Returns all the faro projects where serverLocation = &#63;.
@@ -474,9 +789,110 @@ public class FaroProjectPersistenceImpl
 		OrderByComparator<FaroProject> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByServerLocation.find(
-			finderCache, new Object[] {serverLocation}, start, end,
-			orderByComparator, useFinderCache);
+		serverLocation = Objects.toString(serverLocation, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByServerLocation;
+				finderArgs = new Object[] {serverLocation};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByServerLocation;
+			finderArgs = new Object[] {
+				serverLocation, start, end, orderByComparator
+			};
+		}
+
+		List<FaroProject> list = null;
+
+		if (useFinderCache) {
+			list = (List<FaroProject>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (FaroProject faroProject : list) {
+					if (!serverLocation.equals(
+							faroProject.getServerLocation())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_FAROPROJECT_WHERE);
+
+			boolean bindServerLocation = false;
+
+			if (serverLocation.isEmpty()) {
+				sb.append(_FINDER_COLUMN_SERVERLOCATION_SERVERLOCATION_3);
+			}
+			else {
+				bindServerLocation = true;
+
+				sb.append(_FINDER_COLUMN_SERVERLOCATION_SERVERLOCATION_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(FaroProjectModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindServerLocation) {
+					queryPos.add(serverLocation);
+				}
+
+				list = (List<FaroProject>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -500,9 +916,16 @@ public class FaroProjectPersistenceImpl
 			return faroProject;
 		}
 
-		throw new NoSuchFaroProjectException(
-			_collectionPersistenceFinderByServerLocation.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {serverLocation}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("serverLocation=");
+		sb.append(serverLocation);
+
+		sb.append("}");
+
+		throw new NoSuchFaroProjectException(sb.toString());
 	}
 
 	/**
@@ -517,8 +940,14 @@ public class FaroProjectPersistenceImpl
 		String serverLocation,
 		OrderByComparator<FaroProject> orderByComparator) {
 
-		return _collectionPersistenceFinderByServerLocation.fetchFirst(
-			finderCache, new Object[] {serverLocation}, orderByComparator);
+		List<FaroProject> list = findByServerLocation(
+			serverLocation, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -528,8 +957,13 @@ public class FaroProjectPersistenceImpl
 	 */
 	@Override
 	public void removeByServerLocation(String serverLocation) {
-		_collectionPersistenceFinderByServerLocation.remove(
-			finderCache, new Object[] {serverLocation});
+		for (FaroProject faroProject :
+				findByServerLocation(
+					serverLocation, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(faroProject);
+		}
 	}
 
 	/**
@@ -540,13 +974,67 @@ public class FaroProjectPersistenceImpl
 	 */
 	@Override
 	public int countByServerLocation(String serverLocation) {
-		return _collectionPersistenceFinderByServerLocation.count(
-			finderCache, new Object[] {serverLocation});
+		serverLocation = Objects.toString(serverLocation, "");
+
+		FinderPath finderPath = _finderPathCountByServerLocation;
+
+		Object[] finderArgs = new Object[] {serverLocation};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_FAROPROJECT_WHERE);
+
+			boolean bindServerLocation = false;
+
+			if (serverLocation.isEmpty()) {
+				sb.append(_FINDER_COLUMN_SERVERLOCATION_SERVERLOCATION_3);
+			}
+			else {
+				bindServerLocation = true;
+
+				sb.append(_FINDER_COLUMN_SERVERLOCATION_SERVERLOCATION_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindServerLocation) {
+					queryPos.add(serverLocation);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_SERVERLOCATION_SERVERLOCATION_2 =
+		"faroProject.serverLocation = ?";
+
+	private static final String _FINDER_COLUMN_SERVERLOCATION_SERVERLOCATION_3 =
+		"(faroProject.serverLocation IS NULL OR faroProject.serverLocation = '')";
+
 	private FinderPath _finderPathFetchByWeDeployKey;
-	private UniquePersistenceFinder<FaroProject>
-		_uniquePersistenceFinderByWeDeployKey;
 
 	/**
 	 * Returns the faro project where weDeployKey = &#63; or throws a <code>NoSuchFaroProjectException</code> if it could not be found.
@@ -562,15 +1050,20 @@ public class FaroProjectPersistenceImpl
 		FaroProject faroProject = fetchByWeDeployKey(weDeployKey);
 
 		if (faroProject == null) {
-			String message =
-				_uniquePersistenceFinderByWeDeployKey.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {weDeployKey});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("weDeployKey=");
+			sb.append(weDeployKey);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchFaroProjectException(message);
+			throw new NoSuchFaroProjectException(sb.toString());
 		}
 
 		return faroProject;
@@ -598,8 +1091,90 @@ public class FaroProjectPersistenceImpl
 	public FaroProject fetchByWeDeployKey(
 		String weDeployKey, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByWeDeployKey.fetch(
-			finderCache, new Object[] {weDeployKey}, useFinderCache);
+		weDeployKey = Objects.toString(weDeployKey, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {weDeployKey};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByWeDeployKey, finderArgs, this);
+		}
+
+		if (result instanceof FaroProject) {
+			FaroProject faroProject = (FaroProject)result;
+
+			if (!Objects.equals(weDeployKey, faroProject.getWeDeployKey())) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_FAROPROJECT_WHERE);
+
+			boolean bindWeDeployKey = false;
+
+			if (weDeployKey.isEmpty()) {
+				sb.append(_FINDER_COLUMN_WEDEPLOYKEY_WEDEPLOYKEY_3);
+			}
+			else {
+				bindWeDeployKey = true;
+
+				sb.append(_FINDER_COLUMN_WEDEPLOYKEY_WEDEPLOYKEY_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindWeDeployKey) {
+					queryPos.add(weDeployKey);
+				}
+
+				List<FaroProject> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByWeDeployKey, finderArgs, list);
+					}
+				}
+				else {
+					FaroProject faroProject = list.get(0);
+
+					result = faroProject;
+
+					cacheResult(faroProject);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (FaroProject)result;
+		}
 	}
 
 	/**
@@ -625,9 +1200,20 @@ public class FaroProjectPersistenceImpl
 	 */
 	@Override
 	public int countByWeDeployKey(String weDeployKey) {
-		return _uniquePersistenceFinderByWeDeployKey.count(
-			finderCache, new Object[] {weDeployKey});
+		FaroProject faroProject = fetchByWeDeployKey(weDeployKey);
+
+		if (faroProject == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_WEDEPLOYKEY_WEDEPLOYKEY_2 =
+		"faroProject.weDeployKey = ?";
+
+	private static final String _FINDER_COLUMN_WEDEPLOYKEY_WEDEPLOYKEY_3 =
+		"(faroProject.weDeployKey IS NULL OR faroProject.weDeployKey = '')";
 
 	public FaroProjectPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -693,6 +1279,48 @@ public class FaroProjectPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all faro projects.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(FaroProjectImpl.class);
+
+		finderCache.clearCache(FaroProjectImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the faro project.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(FaroProject faroProject) {
+		entityCache.removeResult(FaroProjectImpl.class, faroProject);
+	}
+
+	@Override
+	public void clearCache(List<FaroProject> faroProjects) {
+		for (FaroProject faroProject : faroProjects) {
+			entityCache.removeResult(FaroProjectImpl.class, faroProject);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(FaroProjectImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(FaroProjectImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		FaroProjectModelImpl faroProjectModelImpl) {
 
@@ -742,6 +1370,47 @@ public class FaroProjectPersistenceImpl
 		throws NoSuchFaroProjectException {
 
 		return remove((Serializable)faroProjectId);
+	}
+
+	/**
+	 * Removes the faro project with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the faro project
+	 * @return the faro project that was removed
+	 * @throws NoSuchFaroProjectException if a faro project with the primary key could not be found
+	 */
+	@Override
+	public FaroProject remove(Serializable primaryKey)
+		throws NoSuchFaroProjectException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			FaroProject faroProject = (FaroProject)session.get(
+				FaroProjectImpl.class, primaryKey);
+
+			if (faroProject == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchFaroProjectException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(faroProject);
+		}
+		catch (NoSuchFaroProjectException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -826,6 +1495,31 @@ public class FaroProjectPersistenceImpl
 		}
 
 		faroProject.resetOriginalValues();
+
+		return faroProject;
+	}
+
+	/**
+	 * Returns the faro project with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the faro project
+	 * @return the faro project
+	 * @throws NoSuchFaroProjectException if a faro project with the primary key could not be found
+	 */
+	@Override
+	public FaroProject findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchFaroProjectException {
+
+		FaroProject faroProject = fetchByPrimaryKey(primaryKey);
+
+		if (faroProject == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchFaroProjectException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return faroProject;
 	}
@@ -1084,12 +1778,6 @@ public class FaroProjectPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			true);
 
-		_uniquePersistenceFinderByGroupId = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByGroupId, _SQL_SELECT_FAROPROJECT_WHERE,
-			new FinderColumn<>(
-				"faroProject.", "groupId", FinderColumn.Type.LONG, "=", true,
-				true, FaroProject::getGroupId));
-
 		_finderPathWithPaginationFindByUserId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUserId",
 			new String[] {
@@ -1107,29 +1795,10 @@ public class FaroProjectPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"userId"},
 			false);
 
-		_collectionPersistenceFinderByUserId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUserId,
-				_finderPathWithoutPaginationFindByUserId,
-				_finderPathCountByUserId, _SQL_SELECT_FAROPROJECT_WHERE,
-				_SQL_COUNT_FAROPROJECT_WHERE,
-				FaroProjectModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"faroProject.", "userId", FinderColumn.Type.LONG, "=", true,
-					true, FaroProject::getUserId));
-
 		_finderPathFetchByCorpProjectUuid = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByCorpProjectUuid",
 			new String[] {String.class.getName()},
 			new String[] {"corpProjectUuid"}, true);
-
-		_uniquePersistenceFinderByCorpProjectUuid =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByCorpProjectUuid,
-				_SQL_SELECT_FAROPROJECT_WHERE,
-				new FinderColumn<>(
-					"faroProject.", "corpProjectUuid", FinderColumn.Type.STRING,
-					"=", true, true, FaroProject::getCorpProjectUuid));
 
 		_finderPathWithPaginationFindByServerLocation = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByServerLocation",
@@ -1149,27 +1818,10 @@ public class FaroProjectPersistenceImpl
 			new String[] {String.class.getName()},
 			new String[] {"serverLocation"}, false);
 
-		_collectionPersistenceFinderByServerLocation =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByServerLocation,
-				_finderPathWithoutPaginationFindByServerLocation,
-				_finderPathCountByServerLocation, _SQL_SELECT_FAROPROJECT_WHERE,
-				_SQL_COUNT_FAROPROJECT_WHERE,
-				FaroProjectModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"faroProject.", "serverLocation", FinderColumn.Type.STRING,
-					"=", true, true, FaroProject::getServerLocation));
-
 		_finderPathFetchByWeDeployKey = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByWeDeployKey",
 			new String[] {String.class.getName()}, new String[] {"weDeployKey"},
 			true);
-
-		_uniquePersistenceFinderByWeDeployKey = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByWeDeployKey, _SQL_SELECT_FAROPROJECT_WHERE,
-			new FinderColumn<>(
-				"faroProject.", "weDeployKey", FinderColumn.Type.STRING, "=",
-				true, true, FaroProject::getWeDeployKey));
 
 		FaroProjectUtil.setPersistence(this);
 	}
@@ -1227,6 +1879,9 @@ public class FaroProjectPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "faroProject.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No FaroProject exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No FaroProject exists with the key {";
 
@@ -1242,4 +1897,4 @@ public class FaroProjectPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1530644714
+// LIFERAY-SERVICE-BUILDER-HASH:1095797706

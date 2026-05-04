@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,8 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -63,8 +62,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = ContactsCardTemplatePersistence.class)
 public class ContactsCardTemplatePersistenceImpl
-	extends BasePersistenceImpl
-		<ContactsCardTemplate, NoSuchContactsCardTemplateException>
+	extends BasePersistenceImpl<ContactsCardTemplate>
 	implements ContactsCardTemplatePersistence {
 
 	/*
@@ -87,8 +85,6 @@ public class ContactsCardTemplatePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<ContactsCardTemplate>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the contacts card templates where groupId = &#63;.
@@ -162,9 +158,93 @@ public class ContactsCardTemplatePersistenceImpl
 		OrderByComparator<ContactsCardTemplate> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			finderCache, new Object[] {groupId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<ContactsCardTemplate> list = null;
+
+		if (useFinderCache) {
+			list = (List<ContactsCardTemplate>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ContactsCardTemplate contactsCardTemplate : list) {
+					if (groupId != contactsCardTemplate.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CONTACTSCARDTEMPLATE_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ContactsCardTemplateModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<ContactsCardTemplate>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -188,9 +268,16 @@ public class ContactsCardTemplatePersistenceImpl
 			return contactsCardTemplate;
 		}
 
-		throw new NoSuchContactsCardTemplateException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchContactsCardTemplateException(sb.toString());
 	}
 
 	/**
@@ -205,8 +292,14 @@ public class ContactsCardTemplatePersistenceImpl
 		long groupId,
 		OrderByComparator<ContactsCardTemplate> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			finderCache, new Object[] {groupId}, orderByComparator);
+		List<ContactsCardTemplate> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -216,8 +309,12 @@ public class ContactsCardTemplatePersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			finderCache, new Object[] {groupId});
+		for (ContactsCardTemplate contactsCardTemplate :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(contactsCardTemplate);
+		}
 	}
 
 	/**
@@ -228,9 +325,49 @@ public class ContactsCardTemplatePersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			finderCache, new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CONTACTSCARDTEMPLATE_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"contactsCardTemplate.groupId = ?";
 
 	public ContactsCardTemplatePersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -290,6 +427,53 @@ public class ContactsCardTemplatePersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all contacts card templates.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(ContactsCardTemplateImpl.class);
+
+		finderCache.clearCache(ContactsCardTemplateImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the contacts card template.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(ContactsCardTemplate contactsCardTemplate) {
+		entityCache.removeResult(
+			ContactsCardTemplateImpl.class, contactsCardTemplate);
+	}
+
+	@Override
+	public void clearCache(List<ContactsCardTemplate> contactsCardTemplates) {
+		for (ContactsCardTemplate contactsCardTemplate :
+				contactsCardTemplates) {
+
+			entityCache.removeResult(
+				ContactsCardTemplateImpl.class, contactsCardTemplate);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(ContactsCardTemplateImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				ContactsCardTemplateImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new contacts card template with the primary key. Does not add the contacts card template to the database.
 	 *
 	 * @param contactsCardTemplateId the primary key for the new contacts card template
@@ -320,6 +504,48 @@ public class ContactsCardTemplatePersistenceImpl
 		throws NoSuchContactsCardTemplateException {
 
 		return remove((Serializable)contactsCardTemplateId);
+	}
+
+	/**
+	 * Removes the contacts card template with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the contacts card template
+	 * @return the contacts card template that was removed
+	 * @throws NoSuchContactsCardTemplateException if a contacts card template with the primary key could not be found
+	 */
+	@Override
+	public ContactsCardTemplate remove(Serializable primaryKey)
+		throws NoSuchContactsCardTemplateException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ContactsCardTemplate contactsCardTemplate =
+				(ContactsCardTemplate)session.get(
+					ContactsCardTemplateImpl.class, primaryKey);
+
+			if (contactsCardTemplate == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchContactsCardTemplateException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(contactsCardTemplate);
+		}
+		catch (NoSuchContactsCardTemplateException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -410,6 +636,32 @@ public class ContactsCardTemplatePersistenceImpl
 		}
 
 		contactsCardTemplate.resetOriginalValues();
+
+		return contactsCardTemplate;
+	}
+
+	/**
+	 * Returns the contacts card template with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the contacts card template
+	 * @return the contacts card template
+	 * @throws NoSuchContactsCardTemplateException if a contacts card template with the primary key could not be found
+	 */
+	@Override
+	public ContactsCardTemplate findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchContactsCardTemplateException {
+
+		ContactsCardTemplate contactsCardTemplate = fetchByPrimaryKey(
+			primaryKey);
+
+		if (contactsCardTemplate == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchContactsCardTemplateException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return contactsCardTemplate;
 	}
@@ -684,19 +936,6 @@ public class ContactsCardTemplatePersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId,
-				_SQL_SELECT_CONTACTSCARDTEMPLATE_WHERE,
-				_SQL_COUNT_CONTACTSCARDTEMPLATE_WHERE,
-				ContactsCardTemplateModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"contactsCardTemplate.", "groupId", FinderColumn.Type.LONG,
-					"=", true, true, ContactsCardTemplate::getGroupId));
-
 		ContactsCardTemplateUtil.setPersistence(this);
 	}
 
@@ -754,6 +993,9 @@ public class ContactsCardTemplatePersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"contactsCardTemplate.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No ContactsCardTemplate exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No ContactsCardTemplate exists with the key {";
 
@@ -769,4 +1011,4 @@ public class ContactsCardTemplatePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1428407365
+// LIFERAY-SERVICE-BUILDER-HASH:943673855
