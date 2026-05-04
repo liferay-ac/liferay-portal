@@ -1054,13 +1054,18 @@ public class ContactsEngineClientImpl
 
 	@Override
 	public Results<AssetSummaryCategory> getAssetSummaryCategories(
-		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
-		String rangeStart, int cur, int delta) {
+		FaroProject faroProject, long channelId, String keywords,
+		String rangeEnd, int rangeKey, String rangeStart, String sort, int cur,
+		int delta) {
 
 		Map<String, Object> uriVariables = getUriVariables(
 			faroProject, cur, delta, null);
 
 		uriVariables.put("channelId", channelId);
+
+		if (Validator.isNotNull(keywords)) {
+			uriVariables.put("keywords", keywords);
+		}
 
 		if ((rangeEnd != null) && (rangeStart != null)) {
 			uriVariables.put("rangeEnd", rangeEnd);
@@ -1068,6 +1073,13 @@ public class ContactsEngineClientImpl
 		}
 		else {
 			uriVariables.put("rangeKey", rangeKey);
+		}
+
+		if (Validator.isNotNull(sort)) {
+			uriVariables.put(
+				"sort",
+				Arrays.asList(
+					StringUtil.replace(sort, CharPool.COLON, CharPool.COMMA)));
 		}
 
 		PagedModel<?, AssetSummaryCategory> pagedModel = get(
@@ -1110,13 +1122,18 @@ public class ContactsEngineClientImpl
 
 	@Override
 	public Results<AssetSummaryTag> getAssetSummaryTags(
-		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
-		String rangeStart, int cur, int delta) {
+		FaroProject faroProject, long channelId, String keywords,
+		String rangeEnd, int rangeKey, String rangeStart, String sort, int cur,
+		int delta) {
 
 		Map<String, Object> uriVariables = getUriVariables(
 			faroProject, cur, delta, null);
 
 		uriVariables.put("channelId", channelId);
+
+		if (Validator.isNotNull(keywords)) {
+			uriVariables.put("keywords", keywords);
+		}
 
 		if ((rangeEnd != null) && (rangeStart != null)) {
 			uriVariables.put("rangeEnd", rangeEnd);
@@ -1124,6 +1141,13 @@ public class ContactsEngineClientImpl
 		}
 		else {
 			uriVariables.put("rangeKey", rangeKey);
+		}
+
+		if (Validator.isNotNull(sort)) {
+			uriVariables.put(
+				"sort",
+				Arrays.asList(
+					StringUtil.replace(sort, CharPool.COLON, CharPool.COMMA)));
 		}
 
 		PagedModel<?, AssetSummaryTag> pagedModel = get(
@@ -1166,13 +1190,18 @@ public class ContactsEngineClientImpl
 
 	@Override
 	public Results<AssetSummaryVocabulary> getAssetSummaryVocabularies(
-		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
-		String rangeStart, int cur, int delta) {
+		FaroProject faroProject, long channelId, String keywords,
+		String rangeEnd, int rangeKey, String rangeStart, String sort, int cur,
+		int delta) {
 
 		Map<String, Object> uriVariables = getUriVariables(
 			faroProject, cur, delta, null);
 
 		uriVariables.put("channelId", channelId);
+
+		if (Validator.isNotNull(keywords)) {
+			uriVariables.put("keywords", keywords);
+		}
 
 		if ((rangeEnd != null) && (rangeStart != null)) {
 			uriVariables.put("rangeEnd", rangeEnd);
@@ -1180,6 +1209,13 @@ public class ContactsEngineClientImpl
 		}
 		else {
 			uriVariables.put("rangeKey", rangeKey);
+		}
+
+		if (Validator.isNotNull(sort)) {
+			uriVariables.put(
+				"sort",
+				Arrays.asList(
+					StringUtil.replace(sort, CharPool.COLON, CharPool.COMMA)));
 		}
 
 		PagedModel<?, AssetSummaryVocabulary> pagedModel = get(
