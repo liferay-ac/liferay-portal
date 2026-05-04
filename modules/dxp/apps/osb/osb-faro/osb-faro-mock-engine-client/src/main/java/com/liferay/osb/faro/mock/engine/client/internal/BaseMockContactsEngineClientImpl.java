@@ -21,6 +21,7 @@ import com.liferay.osb.faro.engine.client.model.AssetSummaryCategory;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryMimeType;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryTag;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryType;
+import com.liferay.osb.faro.engine.client.model.AssetSummaryVocabulary;
 import com.liferay.osb.faro.engine.client.model.Author;
 import com.liferay.osb.faro.engine.client.model.BlockedKeyword;
 import com.liferay.osb.faro.engine.client.model.Channel;
@@ -485,29 +486,11 @@ public abstract class BaseMockContactsEngineClientImpl
 	}
 
 	@Override
-	public Results<AssetSummaryCategory> getAssetSummaryCategories(
+	public Results<AssetSummaryVocabulary> getAssetSummaryVocabularies(
 		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
 		String rangeStart, int cur, int delta) {
 
-		return contactsEngineClient.getAssetSummaryCategories(
-			faroProject, channelId, rangeEnd, rangeKey, rangeStart, cur, delta);
-	}
-
-	@Override
-	public Results<AssetSummaryTag> getAssetSummaryTags(
-		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
-		String rangeStart, int cur, int delta) {
-
-		return contactsEngineClient.getAssetSummaryTags(
-			faroProject, channelId, rangeEnd, rangeKey, rangeStart, cur, delta);
-	}
-
-	@Override
-	public Results<AssetSummaryType> getAssetSummaryTypes(
-		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
-		String rangeStart, int cur, int delta) {
-
-		return contactsEngineClient.getAssetSummaryTypes(
+		return contactsEngineClient.getAssetSummaryVocabularies(
 			faroProject, channelId, rangeEnd, rangeKey, rangeStart, cur, delta);
 	}
 
