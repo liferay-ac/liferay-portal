@@ -33,6 +33,7 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextFactory;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 
 import jakarta.annotation.security.RolesAllowed;
@@ -274,7 +275,7 @@ public class OAuth2Controller extends BaseFaroController {
 		String clientId = user.getEmailAddress();
 
 		if (Validator.isNotNull(type)) {
-			clientId = type + "-" + clientId;
+			clientId = StringUtil.upperCase(type);
 		}
 
 		OAuth2Application oAuth2Application =
