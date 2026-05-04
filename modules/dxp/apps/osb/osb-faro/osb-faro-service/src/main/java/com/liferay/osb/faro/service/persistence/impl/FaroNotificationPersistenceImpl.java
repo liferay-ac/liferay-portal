@@ -27,8 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -64,8 +62,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = FaroNotificationPersistence.class)
 public class FaroNotificationPersistenceImpl
-	extends BasePersistenceImpl
-		<FaroNotification, NoSuchFaroNotificationException>
+	extends BasePersistenceImpl<FaroNotification>
 	implements FaroNotificationPersistence {
 
 	/*
@@ -87,8 +84,6 @@ public class FaroNotificationPersistenceImpl
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathWithPaginationFindByLtCreateTime;
 	private FinderPath _finderPathWithPaginationCountByLtCreateTime;
-	private CollectionPersistenceFinder<FaroNotification>
-		_collectionPersistenceFinderByLtCreateTime;
 
 	/**
 	 * Returns all the faro notifications where createTime &lt; &#63;.
@@ -163,9 +158,83 @@ public class FaroNotificationPersistenceImpl
 		OrderByComparator<FaroNotification> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLtCreateTime.find(
-			finderCache, new Object[] {createTime}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		finderPath = _finderPathWithPaginationFindByLtCreateTime;
+		finderArgs = new Object[] {createTime, start, end, orderByComparator};
+
+		List<FaroNotification> list = null;
+
+		if (useFinderCache) {
+			list = (List<FaroNotification>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (FaroNotification faroNotification : list) {
+					if (createTime <= faroNotification.getCreateTime()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_FARONOTIFICATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LTCREATETIME_CREATETIME_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(FaroNotificationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(createTime);
+
+				list = (List<FaroNotification>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -189,9 +258,16 @@ public class FaroNotificationPersistenceImpl
 			return faroNotification;
 		}
 
-		throw new NoSuchFaroNotificationException(
-			_collectionPersistenceFinderByLtCreateTime.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {createTime}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("createTime<");
+		sb.append(createTime);
+
+		sb.append("}");
+
+		throw new NoSuchFaroNotificationException(sb.toString());
 	}
 
 	/**
@@ -206,8 +282,14 @@ public class FaroNotificationPersistenceImpl
 		long createTime,
 		OrderByComparator<FaroNotification> orderByComparator) {
 
-		return _collectionPersistenceFinderByLtCreateTime.fetchFirst(
-			finderCache, new Object[] {createTime}, orderByComparator);
+		List<FaroNotification> list = findByLtCreateTime(
+			createTime, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -217,8 +299,12 @@ public class FaroNotificationPersistenceImpl
 	 */
 	@Override
 	public void removeByLtCreateTime(long createTime) {
-		_collectionPersistenceFinderByLtCreateTime.remove(
-			finderCache, new Object[] {createTime});
+		for (FaroNotification faroNotification :
+				findByLtCreateTime(
+					createTime, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(faroNotification);
+		}
 	}
 
 	/**
@@ -229,9 +315,49 @@ public class FaroNotificationPersistenceImpl
 	 */
 	@Override
 	public int countByLtCreateTime(long createTime) {
-		return _collectionPersistenceFinderByLtCreateTime.count(
-			finderCache, new Object[] {createTime});
+		FinderPath finderPath = _finderPathWithPaginationCountByLtCreateTime;
+
+		Object[] finderArgs = new Object[] {createTime};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_FARONOTIFICATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LTCREATETIME_CREATETIME_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(createTime);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_LTCREATETIME_CREATETIME_2 =
+		"faroNotification.createTime < ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_GtC_O_T;
 	private FinderPath _finderPathWithPaginationCountByG_GtC_O_T;
@@ -2729,6 +2855,49 @@ public class FaroNotificationPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all faro notifications.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(FaroNotificationImpl.class);
+
+		finderCache.clearCache(FaroNotificationImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the faro notification.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(FaroNotification faroNotification) {
+		entityCache.removeResult(FaroNotificationImpl.class, faroNotification);
+	}
+
+	@Override
+	public void clearCache(List<FaroNotification> faroNotifications) {
+		for (FaroNotification faroNotification : faroNotifications) {
+			entityCache.removeResult(
+				FaroNotificationImpl.class, faroNotification);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(FaroNotificationImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(FaroNotificationImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new faro notification with the primary key. Does not add the faro notification to the database.
 	 *
 	 * @param faroNotificationId the primary key for the new faro notification
@@ -2758,6 +2927,47 @@ public class FaroNotificationPersistenceImpl
 		throws NoSuchFaroNotificationException {
 
 		return remove((Serializable)faroNotificationId);
+	}
+
+	/**
+	 * Removes the faro notification with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the faro notification
+	 * @return the faro notification that was removed
+	 * @throws NoSuchFaroNotificationException if a faro notification with the primary key could not be found
+	 */
+	@Override
+	public FaroNotification remove(Serializable primaryKey)
+		throws NoSuchFaroNotificationException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			FaroNotification faroNotification = (FaroNotification)session.get(
+				FaroNotificationImpl.class, primaryKey);
+
+			if (faroNotification == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchFaroNotificationException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(faroNotification);
+		}
+		catch (NoSuchFaroNotificationException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -2823,6 +3033,31 @@ public class FaroNotificationPersistenceImpl
 		}
 
 		faroNotification.resetOriginalValues();
+
+		return faroNotification;
+	}
+
+	/**
+	 * Returns the faro notification with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the faro notification
+	 * @return the faro notification
+	 * @throws NoSuchFaroNotificationException if a faro notification with the primary key could not be found
+	 */
+	@Override
+	public FaroNotification findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchFaroNotificationException {
+
+		FaroNotification faroNotification = fetchByPrimaryKey(primaryKey);
+
+		if (faroNotification == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchFaroNotificationException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return faroNotification;
 	}
@@ -3091,17 +3326,6 @@ public class FaroNotificationPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"createTime"},
 			false);
 
-		_collectionPersistenceFinderByLtCreateTime =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLtCreateTime, null,
-				_finderPathWithPaginationCountByLtCreateTime,
-				_SQL_SELECT_FARONOTIFICATION_WHERE,
-				_SQL_COUNT_FARONOTIFICATION_WHERE,
-				FaroNotificationModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"faroNotification.", "createTime", FinderColumn.Type.LONG,
-					"<", true, true, FaroNotification::getCreateTime));
-
 		_finderPathWithPaginationFindByG_GtC_O_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_GtC_O_T",
 			new String[] {
@@ -3227,6 +3451,9 @@ public class FaroNotificationPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "faroNotification.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No FaroNotification exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No FaroNotification exists with the key {";
 
@@ -3242,4 +3469,4 @@ public class FaroNotificationPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1216848604
+// LIFERAY-SERVICE-BUILDER-HASH:-550140555
