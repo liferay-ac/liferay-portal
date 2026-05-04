@@ -10,14 +10,12 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -38,6 +36,8 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * The persistence implementation for the localized entry localization service.
@@ -50,8 +50,7 @@ import java.util.Map;
  * @generated
  */
 public class LocalizedEntryLocalizationPersistenceImpl
-	extends BasePersistenceImpl
-		<LocalizedEntryLocalization, NoSuchLocalizedEntryLocalizationException>
+	extends BasePersistenceImpl<LocalizedEntryLocalization>
 	implements LocalizedEntryLocalizationPersistence {
 
 	/*
@@ -74,8 +73,6 @@ public class LocalizedEntryLocalizationPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByLocalizedEntryId;
 	private FinderPath _finderPathWithoutPaginationFindByLocalizedEntryId;
 	private FinderPath _finderPathCountByLocalizedEntryId;
-	private CollectionPersistenceFinder<LocalizedEntryLocalization>
-		_collectionPersistenceFinderByLocalizedEntryId;
 
 	/**
 	 * Returns all the localized entry localizations where localizedEntryId = &#63;.
@@ -152,9 +149,99 @@ public class LocalizedEntryLocalizationPersistenceImpl
 		OrderByComparator<LocalizedEntryLocalization> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLocalizedEntryId.find(
-			finderCache, new Object[] {localizedEntryId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByLocalizedEntryId;
+				finderArgs = new Object[] {localizedEntryId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByLocalizedEntryId;
+			finderArgs = new Object[] {
+				localizedEntryId, start, end, orderByComparator
+			};
+		}
+
+		List<LocalizedEntryLocalization> list = null;
+
+		if (useFinderCache) {
+			list = (List<LocalizedEntryLocalization>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LocalizedEntryLocalization localizedEntryLocalization :
+						list) {
+
+					if (localizedEntryId !=
+							localizedEntryLocalization.getLocalizedEntryId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_LOCALIZEDENTRYLOCALIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LOCALIZEDENTRYID_LOCALIZEDENTRYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LocalizedEntryLocalizationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(localizedEntryId);
+
+				list = (List<LocalizedEntryLocalization>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -178,10 +265,16 @@ public class LocalizedEntryLocalizationPersistenceImpl
 			return localizedEntryLocalization;
 		}
 
-		throw new NoSuchLocalizedEntryLocalizationException(
-			_collectionPersistenceFinderByLocalizedEntryId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {localizedEntryId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("localizedEntryId=");
+		sb.append(localizedEntryId);
+
+		sb.append("}");
+
+		throw new NoSuchLocalizedEntryLocalizationException(sb.toString());
 	}
 
 	/**
@@ -196,8 +289,14 @@ public class LocalizedEntryLocalizationPersistenceImpl
 		long localizedEntryId,
 		OrderByComparator<LocalizedEntryLocalization> orderByComparator) {
 
-		return _collectionPersistenceFinderByLocalizedEntryId.fetchFirst(
-			finderCache, new Object[] {localizedEntryId}, orderByComparator);
+		List<LocalizedEntryLocalization> list = findByLocalizedEntryId(
+			localizedEntryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -207,8 +306,13 @@ public class LocalizedEntryLocalizationPersistenceImpl
 	 */
 	@Override
 	public void removeByLocalizedEntryId(long localizedEntryId) {
-		_collectionPersistenceFinderByLocalizedEntryId.remove(
-			finderCache, new Object[] {localizedEntryId});
+		for (LocalizedEntryLocalization localizedEntryLocalization :
+				findByLocalizedEntryId(
+					localizedEntryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(localizedEntryLocalization);
+		}
 	}
 
 	/**
@@ -219,13 +323,52 @@ public class LocalizedEntryLocalizationPersistenceImpl
 	 */
 	@Override
 	public int countByLocalizedEntryId(long localizedEntryId) {
-		return _collectionPersistenceFinderByLocalizedEntryId.count(
-			finderCache, new Object[] {localizedEntryId});
+		FinderPath finderPath = _finderPathCountByLocalizedEntryId;
+
+		Object[] finderArgs = new Object[] {localizedEntryId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_LOCALIZEDENTRYLOCALIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LOCALIZEDENTRYID_LOCALIZEDENTRYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(localizedEntryId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String
+		_FINDER_COLUMN_LOCALIZEDENTRYID_LOCALIZEDENTRYID_2 =
+			"localizedEntryLocalization.localizedEntryId = ?";
+
 	private FinderPath _finderPathFetchByLocalizedEntryId_LanguageId;
-	private UniquePersistenceFinder<LocalizedEntryLocalization>
-		_uniquePersistenceFinderByLocalizedEntryId_LanguageId;
 
 	/**
 	 * Returns the localized entry localization where localizedEntryId = &#63; and languageId = &#63; or throws a <code>NoSuchLocalizedEntryLocalizationException</code> if it could not be found.
@@ -244,17 +387,23 @@ public class LocalizedEntryLocalizationPersistenceImpl
 			fetchByLocalizedEntryId_LanguageId(localizedEntryId, languageId);
 
 		if (localizedEntryLocalization == null) {
-			String message =
-				_uniquePersistenceFinderByLocalizedEntryId_LanguageId.
-					buildNoSuchKeyMessage(
-						_NO_SUCH_ENTITY_WITH_KEY,
-						new Object[] {localizedEntryId, languageId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("localizedEntryId=");
+			sb.append(localizedEntryId);
+
+			sb.append(", languageId=");
+			sb.append(languageId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLocalizedEntryLocalizationException(message);
+			throw new NoSuchLocalizedEntryLocalizationException(sb.toString());
 		}
 
 		return localizedEntryLocalization;
@@ -287,9 +436,105 @@ public class LocalizedEntryLocalizationPersistenceImpl
 	public LocalizedEntryLocalization fetchByLocalizedEntryId_LanguageId(
 		long localizedEntryId, String languageId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByLocalizedEntryId_LanguageId.fetch(
-			finderCache, new Object[] {localizedEntryId, languageId},
-			useFinderCache);
+		languageId = Objects.toString(languageId, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {localizedEntryId, languageId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByLocalizedEntryId_LanguageId, finderArgs,
+				this);
+		}
+
+		if (result instanceof LocalizedEntryLocalization) {
+			LocalizedEntryLocalization localizedEntryLocalization =
+				(LocalizedEntryLocalization)result;
+
+			if ((localizedEntryId !=
+					localizedEntryLocalization.getLocalizedEntryId()) ||
+				!Objects.equals(
+					languageId, localizedEntryLocalization.getLanguageId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_LOCALIZEDENTRYLOCALIZATION_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_LOCALIZEDENTRYID_LANGUAGEID_LOCALIZEDENTRYID_2);
+
+			boolean bindLanguageId = false;
+
+			if (languageId.isEmpty()) {
+				sb.append(
+					_FINDER_COLUMN_LOCALIZEDENTRYID_LANGUAGEID_LANGUAGEID_3);
+			}
+			else {
+				bindLanguageId = true;
+
+				sb.append(
+					_FINDER_COLUMN_LOCALIZEDENTRYID_LANGUAGEID_LANGUAGEID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(localizedEntryId);
+
+				if (bindLanguageId) {
+					queryPos.add(languageId);
+				}
+
+				List<LocalizedEntryLocalization> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByLocalizedEntryId_LanguageId,
+							finderArgs, list);
+					}
+				}
+				else {
+					LocalizedEntryLocalization localizedEntryLocalization =
+						list.get(0);
+
+					result = localizedEntryLocalization;
+
+					cacheResult(localizedEntryLocalization);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (LocalizedEntryLocalization)result;
+		}
 	}
 
 	/**
@@ -321,9 +566,27 @@ public class LocalizedEntryLocalizationPersistenceImpl
 	public int countByLocalizedEntryId_LanguageId(
 		long localizedEntryId, String languageId) {
 
-		return _uniquePersistenceFinderByLocalizedEntryId_LanguageId.count(
-			finderCache, new Object[] {localizedEntryId, languageId});
+		LocalizedEntryLocalization localizedEntryLocalization =
+			fetchByLocalizedEntryId_LanguageId(localizedEntryId, languageId);
+
+		if (localizedEntryLocalization == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_LOCALIZEDENTRYID_LANGUAGEID_LOCALIZEDENTRYID_2 =
+			"localizedEntryLocalization.localizedEntryId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_LOCALIZEDENTRYID_LANGUAGEID_LANGUAGEID_2 =
+			"localizedEntryLocalization.languageId = ?";
+
+	private static final String
+		_FINDER_COLUMN_LOCALIZEDENTRYID_LANGUAGEID_LANGUAGEID_3 =
+			"(localizedEntryLocalization.languageId IS NULL OR localizedEntryLocalization.languageId = '')";
 
 	public LocalizedEntryLocalizationPersistenceImpl() {
 		setModelClass(LocalizedEntryLocalization.class);
@@ -388,6 +651,58 @@ public class LocalizedEntryLocalizationPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all localized entry localizations.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(LocalizedEntryLocalizationImpl.class);
+
+		finderCache.clearCache(LocalizedEntryLocalizationImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the localized entry localization.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		LocalizedEntryLocalization localizedEntryLocalization) {
+
+		entityCache.removeResult(
+			LocalizedEntryLocalizationImpl.class, localizedEntryLocalization);
+	}
+
+	@Override
+	public void clearCache(
+		List<LocalizedEntryLocalization> localizedEntryLocalizations) {
+
+		for (LocalizedEntryLocalization localizedEntryLocalization :
+				localizedEntryLocalizations) {
+
+			entityCache.removeResult(
+				LocalizedEntryLocalizationImpl.class,
+				localizedEntryLocalization);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(LocalizedEntryLocalizationImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				LocalizedEntryLocalizationImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		LocalizedEntryLocalizationModelImpl
 			localizedEntryLocalizationModelImpl) {
@@ -433,6 +748,50 @@ public class LocalizedEntryLocalizationPersistenceImpl
 		throws NoSuchLocalizedEntryLocalizationException {
 
 		return remove((Serializable)localizedEntryLocalizationId);
+	}
+
+	/**
+	 * Removes the localized entry localization with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the localized entry localization
+	 * @return the localized entry localization that was removed
+	 * @throws NoSuchLocalizedEntryLocalizationException if a localized entry localization with the primary key could not be found
+	 */
+	@Override
+	public LocalizedEntryLocalization remove(Serializable primaryKey)
+		throws NoSuchLocalizedEntryLocalizationException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			LocalizedEntryLocalization localizedEntryLocalization =
+				(LocalizedEntryLocalization)session.get(
+					LocalizedEntryLocalizationImpl.class, primaryKey);
+
+			if (localizedEntryLocalization == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchLocalizedEntryLocalizationException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(localizedEntryLocalization);
+		}
+		catch (NoSuchLocalizedEntryLocalizationException
+					noSuchEntityException) {
+
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -530,6 +889,32 @@ public class LocalizedEntryLocalizationPersistenceImpl
 		}
 
 		localizedEntryLocalization.resetOriginalValues();
+
+		return localizedEntryLocalization;
+	}
+
+	/**
+	 * Returns the localized entry localization with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the localized entry localization
+	 * @return the localized entry localization
+	 * @throws NoSuchLocalizedEntryLocalizationException if a localized entry localization with the primary key could not be found
+	 */
+	@Override
+	public LocalizedEntryLocalization findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchLocalizedEntryLocalizationException {
+
+		LocalizedEntryLocalization localizedEntryLocalization =
+			fetchByPrimaryKey(primaryKey);
+
+		if (localizedEntryLocalization == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchLocalizedEntryLocalizationException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return localizedEntryLocalization;
 	}
@@ -804,37 +1189,10 @@ public class LocalizedEntryLocalizationPersistenceImpl
 			"countByLocalizedEntryId", new String[] {Long.class.getName()},
 			new String[] {"localizedEntryId"}, false);
 
-		_collectionPersistenceFinderByLocalizedEntryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLocalizedEntryId,
-				_finderPathWithoutPaginationFindByLocalizedEntryId,
-				_finderPathCountByLocalizedEntryId,
-				_SQL_SELECT_LOCALIZEDENTRYLOCALIZATION_WHERE,
-				_SQL_COUNT_LOCALIZEDENTRYLOCALIZATION_WHERE,
-				LocalizedEntryLocalizationModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"localizedEntryLocalization.", "localizedEntryId",
-					FinderColumn.Type.LONG, "=", true, true,
-					LocalizedEntryLocalization::getLocalizedEntryId));
-
 		_finderPathFetchByLocalizedEntryId_LanguageId = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByLocalizedEntryId_LanguageId",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"localizedEntryId", "languageId"}, true);
-
-		_uniquePersistenceFinderByLocalizedEntryId_LanguageId =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByLocalizedEntryId_LanguageId,
-				_SQL_SELECT_LOCALIZEDENTRYLOCALIZATION_WHERE,
-				new FinderColumn<>(
-					"localizedEntryLocalization.", "localizedEntryId",
-					FinderColumn.Type.LONG, "=", true, false,
-					LocalizedEntryLocalization::getLocalizedEntryId),
-				new FinderColumn<>(
-					"localizedEntryLocalization.", "languageId",
-					FinderColumn.Type.STRING, "=", true, true,
-					LocalizedEntryLocalization::getLanguageId));
 
 		LocalizedEntryLocalizationUtil.setPersistence(this);
 	}
@@ -866,6 +1224,9 @@ public class LocalizedEntryLocalizationPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"localizedEntryLocalization.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No LocalizedEntryLocalization exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No LocalizedEntryLocalization exists with the key {";
 
@@ -878,4 +1239,4 @@ public class LocalizedEntryLocalizationPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:2096809921
+// LIFERAY-SERVICE-BUILDER-HASH:-1465488787

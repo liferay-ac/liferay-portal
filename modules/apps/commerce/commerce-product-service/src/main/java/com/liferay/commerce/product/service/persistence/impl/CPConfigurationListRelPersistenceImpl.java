@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -32,9 +33,6 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -49,7 +47,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,8 +73,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CPConfigurationListRelPersistence.class)
 public class CPConfigurationListRelPersistenceImpl
-	extends BasePersistenceImpl
-		<CPConfigurationListRel, NoSuchCPConfigurationListRelException>
+	extends BasePersistenceImpl<CPConfigurationListRel>
 	implements CPConfigurationListRelPersistence {
 
 	/*
@@ -97,8 +96,6 @@ public class CPConfigurationListRelPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCPConfigurationListId;
 	private FinderPath _finderPathWithoutPaginationFindByCPConfigurationListId;
 	private FinderPath _finderPathCountByCPConfigurationListId;
-	private CollectionPersistenceFinder<CPConfigurationListRel>
-		_collectionPersistenceFinderByCPConfigurationListId;
 
 	/**
 	 * Returns all the cp configuration list rels where CPConfigurationListId = &#63;.
@@ -180,9 +177,101 @@ public class CPConfigurationListRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPConfigurationListRel.class)) {
 
-			return _collectionPersistenceFinderByCPConfigurationListId.find(
-				finderCache, new Object[] {CPConfigurationListId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindByCPConfigurationListId;
+					finderArgs = new Object[] {CPConfigurationListId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath =
+					_finderPathWithPaginationFindByCPConfigurationListId;
+				finderArgs = new Object[] {
+					CPConfigurationListId, start, end, orderByComparator
+				};
+			}
+
+			List<CPConfigurationListRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<CPConfigurationListRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CPConfigurationListRel cpConfigurationListRel : list) {
+						if (CPConfigurationListId !=
+								cpConfigurationListRel.
+									getCPConfigurationListId()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_CPCONFIGURATIONLISTREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_CPCONFIGURATIONLISTID_CPCONFIGURATIONLISTID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CPConfigurationListRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(CPConfigurationListId);
+
+					list = (List<CPConfigurationListRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -208,11 +297,16 @@ public class CPConfigurationListRelPersistenceImpl
 			return cpConfigurationListRel;
 		}
 
-		throw new NoSuchCPConfigurationListRelException(
-			_collectionPersistenceFinderByCPConfigurationListId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {CPConfigurationListId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("CPConfigurationListId=");
+		sb.append(CPConfigurationListId);
+
+		sb.append("}");
+
+		throw new NoSuchCPConfigurationListRelException(sb.toString());
 	}
 
 	/**
@@ -227,9 +321,14 @@ public class CPConfigurationListRelPersistenceImpl
 		long CPConfigurationListId,
 		OrderByComparator<CPConfigurationListRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByCPConfigurationListId.fetchFirst(
-			finderCache, new Object[] {CPConfigurationListId},
-			orderByComparator);
+		List<CPConfigurationListRel> list = findByCPConfigurationListId(
+			CPConfigurationListId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -239,8 +338,13 @@ public class CPConfigurationListRelPersistenceImpl
 	 */
 	@Override
 	public void removeByCPConfigurationListId(long CPConfigurationListId) {
-		_collectionPersistenceFinderByCPConfigurationListId.remove(
-			finderCache, new Object[] {CPConfigurationListId});
+		for (CPConfigurationListRel cpConfigurationListRel :
+				findByCPConfigurationListId(
+					CPConfigurationListId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(cpConfigurationListRel);
+		}
 	}
 
 	/**
@@ -255,16 +359,57 @@ public class CPConfigurationListRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPConfigurationListRel.class)) {
 
-			return _collectionPersistenceFinderByCPConfigurationListId.count(
-				finderCache, new Object[] {CPConfigurationListId});
+			FinderPath finderPath = _finderPathCountByCPConfigurationListId;
+
+			Object[] finderArgs = new Object[] {CPConfigurationListId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_CPCONFIGURATIONLISTREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_CPCONFIGURATIONLISTID_CPCONFIGURATIONLISTID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(CPConfigurationListId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String
+		_FINDER_COLUMN_CPCONFIGURATIONLISTID_CPCONFIGURATIONLISTID_2 =
+			"cpConfigurationListRel.CPConfigurationListId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C;
 	private FinderPath _finderPathWithoutPaginationFindByC_C;
 	private FinderPath _finderPathCountByC_C;
-	private CollectionPersistenceFinder<CPConfigurationListRel>
-		_collectionPersistenceFinderByC_C;
 
 	/**
 	 * Returns all the cp configuration list rels where classNameId = &#63; and CPConfigurationListId = &#63;.
@@ -351,9 +496,107 @@ public class CPConfigurationListRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPConfigurationListRel.class)) {
 
-			return _collectionPersistenceFinderByC_C.find(
-				finderCache, new Object[] {classNameId, CPConfigurationListId},
-				start, end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_C;
+					finderArgs = new Object[] {
+						classNameId, CPConfigurationListId
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_C;
+				finderArgs = new Object[] {
+					classNameId, CPConfigurationListId, start, end,
+					orderByComparator
+				};
+			}
+
+			List<CPConfigurationListRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<CPConfigurationListRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CPConfigurationListRel cpConfigurationListRel : list) {
+						if ((classNameId !=
+								cpConfigurationListRel.getClassNameId()) ||
+							(CPConfigurationListId !=
+								cpConfigurationListRel.
+									getCPConfigurationListId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_CPCONFIGURATIONLISTREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_CPCONFIGURATIONLISTID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CPConfigurationListRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(CPConfigurationListId);
+
+					list = (List<CPConfigurationListRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -379,10 +622,19 @@ public class CPConfigurationListRelPersistenceImpl
 			return cpConfigurationListRel;
 		}
 
-		throw new NoSuchCPConfigurationListRelException(
-			_collectionPersistenceFinderByC_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {classNameId, CPConfigurationListId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", CPConfigurationListId=");
+		sb.append(CPConfigurationListId);
+
+		sb.append("}");
+
+		throw new NoSuchCPConfigurationListRelException(sb.toString());
 	}
 
 	/**
@@ -398,9 +650,14 @@ public class CPConfigurationListRelPersistenceImpl
 		long classNameId, long CPConfigurationListId,
 		OrderByComparator<CPConfigurationListRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C.fetchFirst(
-			finderCache, new Object[] {classNameId, CPConfigurationListId},
-			orderByComparator);
+		List<CPConfigurationListRel> list = findByC_C(
+			classNameId, CPConfigurationListId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -411,8 +668,13 @@ public class CPConfigurationListRelPersistenceImpl
 	 */
 	@Override
 	public void removeByC_C(long classNameId, long CPConfigurationListId) {
-		_collectionPersistenceFinderByC_C.remove(
-			finderCache, new Object[] {classNameId, CPConfigurationListId});
+		for (CPConfigurationListRel cpConfigurationListRel :
+				findByC_C(
+					classNameId, CPConfigurationListId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(cpConfigurationListRel);
+		}
 	}
 
 	/**
@@ -428,14 +690,62 @@ public class CPConfigurationListRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPConfigurationListRel.class)) {
 
-			return _collectionPersistenceFinderByC_C.count(
-				finderCache, new Object[] {classNameId, CPConfigurationListId});
+			FinderPath finderPath = _finderPathCountByC_C;
+
+			Object[] finderArgs = new Object[] {
+				classNameId, CPConfigurationListId
+			};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_CPCONFIGURATIONLISTREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_CPCONFIGURATIONLISTID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(CPConfigurationListId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_C_C_CLASSNAMEID_2 =
+		"cpConfigurationListRel.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_CPCONFIGURATIONLISTID_2 =
+		"cpConfigurationListRel.CPConfigurationListId = ?";
+
 	private FinderPath _finderPathFetchByC_C_C;
-	private UniquePersistenceFinder<CPConfigurationListRel>
-		_uniquePersistenceFinderByC_C_C;
 
 	/**
 	 * Returns the cp configuration list rel where classNameId = &#63; and classPK = &#63; and CPConfigurationListId = &#63; or throws a <code>NoSuchCPConfigurationListRelException</code> if it could not be found.
@@ -455,16 +765,26 @@ public class CPConfigurationListRelPersistenceImpl
 			classNameId, classPK, CPConfigurationListId);
 
 		if (cpConfigurationListRel == null) {
-			String message =
-				_uniquePersistenceFinderByC_C_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {classNameId, classPK, CPConfigurationListId});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("classNameId=");
+			sb.append(classNameId);
+
+			sb.append(", classPK=");
+			sb.append(classPK);
+
+			sb.append(", CPConfigurationListId=");
+			sb.append(CPConfigurationListId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchCPConfigurationListRelException(message);
+			throw new NoSuchCPConfigurationListRelException(sb.toString());
 		}
 
 		return cpConfigurationListRel;
@@ -503,10 +823,93 @@ public class CPConfigurationListRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPConfigurationListRel.class)) {
 
-			return _uniquePersistenceFinderByC_C_C.fetch(
-				finderCache,
-				new Object[] {classNameId, classPK, CPConfigurationListId},
-				useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {
+					classNameId, classPK, CPConfigurationListId
+				};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByC_C_C, finderArgs, this);
+			}
+
+			if (result instanceof CPConfigurationListRel) {
+				CPConfigurationListRel cpConfigurationListRel =
+					(CPConfigurationListRel)result;
+
+				if ((classNameId != cpConfigurationListRel.getClassNameId()) ||
+					(classPK != cpConfigurationListRel.getClassPK()) ||
+					(CPConfigurationListId !=
+						cpConfigurationListRel.getCPConfigurationListId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_SELECT_CPCONFIGURATIONLISTREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_CLASSPK_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_CPCONFIGURATIONLISTID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					queryPos.add(CPConfigurationListId);
+
+					List<CPConfigurationListRel> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByC_C_C, finderArgs, list);
+						}
+					}
+					else {
+						CPConfigurationListRel cpConfigurationListRel =
+							list.get(0);
+
+						result = cpConfigurationListRel;
+
+						cacheResult(cpConfigurationListRel);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (CPConfigurationListRel)result;
+			}
 		}
 	}
 
@@ -541,10 +944,24 @@ public class CPConfigurationListRelPersistenceImpl
 	public int countByC_C_C(
 		long classNameId, long classPK, long CPConfigurationListId) {
 
-		return _uniquePersistenceFinderByC_C_C.count(
-			finderCache,
-			new Object[] {classNameId, classPK, CPConfigurationListId});
+		CPConfigurationListRel cpConfigurationListRel = fetchByC_C_C(
+			classNameId, classPK, CPConfigurationListId);
+
+		if (cpConfigurationListRel == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_C_C_CLASSNAMEID_2 =
+		"cpConfigurationListRel.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_CLASSPK_2 =
+		"cpConfigurationListRel.classPK = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_CPCONFIGURATIONLISTID_2 =
+		"cpConfigurationListRel.CPConfigurationListId = ?";
 
 	public CPConfigurationListRelPersistenceImpl() {
 		setModelClass(CPConfigurationListRel.class);
@@ -617,6 +1034,55 @@ public class CPConfigurationListRelPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all cp configuration list rels.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CPConfigurationListRelImpl.class);
+
+		finderCache.clearCache(CPConfigurationListRelImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cp configuration list rel.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CPConfigurationListRel cpConfigurationListRel) {
+		entityCache.removeResult(
+			CPConfigurationListRelImpl.class, cpConfigurationListRel);
+	}
+
+	@Override
+	public void clearCache(
+		List<CPConfigurationListRel> cpConfigurationListRels) {
+
+		for (CPConfigurationListRel cpConfigurationListRel :
+				cpConfigurationListRels) {
+
+			entityCache.removeResult(
+				CPConfigurationListRelImpl.class, cpConfigurationListRel);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CPConfigurationListRelImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				CPConfigurationListRelImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CPConfigurationListRelModelImpl cpConfigurationListRelModelImpl) {
 
@@ -666,6 +1132,48 @@ public class CPConfigurationListRelPersistenceImpl
 		throws NoSuchCPConfigurationListRelException {
 
 		return remove((Serializable)CPConfigurationListRelId);
+	}
+
+	/**
+	 * Removes the cp configuration list rel with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cp configuration list rel
+	 * @return the cp configuration list rel that was removed
+	 * @throws NoSuchCPConfigurationListRelException if a cp configuration list rel with the primary key could not be found
+	 */
+	@Override
+	public CPConfigurationListRel remove(Serializable primaryKey)
+		throws NoSuchCPConfigurationListRelException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CPConfigurationListRel cpConfigurationListRel =
+				(CPConfigurationListRel)session.get(
+					CPConfigurationListRelImpl.class, primaryKey);
+
+			if (cpConfigurationListRel == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCPConfigurationListRelException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(cpConfigurationListRel);
+		}
+		catch (NoSuchCPConfigurationListRelException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -798,6 +1306,32 @@ public class CPConfigurationListRelPersistenceImpl
 	}
 
 	/**
+	 * Returns the cp configuration list rel with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cp configuration list rel
+	 * @return the cp configuration list rel
+	 * @throws NoSuchCPConfigurationListRelException if a cp configuration list rel with the primary key could not be found
+	 */
+	@Override
+	public CPConfigurationListRel findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCPConfigurationListRelException {
+
+		CPConfigurationListRel cpConfigurationListRel = fetchByPrimaryKey(
+			primaryKey);
+
+		if (cpConfigurationListRel == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCPConfigurationListRelException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return cpConfigurationListRel;
+	}
+
+	/**
 	 * Returns the cp configuration list rel with the primary key or throws a <code>NoSuchCPConfigurationListRelException</code> if it could not be found.
 	 *
 	 * @param CPConfigurationListRelId the primary key of the cp configuration list rel
@@ -812,9 +1346,53 @@ public class CPConfigurationListRelPersistenceImpl
 		return findByPrimaryKey((Serializable)CPConfigurationListRelId);
 	}
 
+	/**
+	 * Returns the cp configuration list rel with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cp configuration list rel
+	 * @return the cp configuration list rel, or <code>null</code> if a cp configuration list rel with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public CPConfigurationListRel fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				CPConfigurationListRel.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		CPConfigurationListRel cpConfigurationListRel =
+			(CPConfigurationListRel)entityCache.getResult(
+				CPConfigurationListRelImpl.class, primaryKey);
+
+		if (cpConfigurationListRel != null) {
+			return cpConfigurationListRel;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			cpConfigurationListRel = (CPConfigurationListRel)session.get(
+				CPConfigurationListRelImpl.class, primaryKey);
+
+			if (cpConfigurationListRel != null) {
+				cacheResult(cpConfigurationListRel);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return cpConfigurationListRel;
 	}
 
 	/**
@@ -828,6 +1406,137 @@ public class CPConfigurationListRelPersistenceImpl
 		long CPConfigurationListRelId) {
 
 		return fetchByPrimaryKey((Serializable)CPConfigurationListRelId);
+	}
+
+	@Override
+	public Map<Serializable, CPConfigurationListRel> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(
+				CPConfigurationListRel.class)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, CPConfigurationListRel> map =
+			new HashMap<Serializable, CPConfigurationListRel>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			CPConfigurationListRel cpConfigurationListRel = fetchByPrimaryKey(
+				primaryKey);
+
+			if (cpConfigurationListRel != null) {
+				map.put(primaryKey, cpConfigurationListRel);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						CPConfigurationListRel.class, primaryKey)) {
+
+				CPConfigurationListRel cpConfigurationListRel =
+					(CPConfigurationListRel)entityCache.getResult(
+						CPConfigurationListRelImpl.class, primaryKey);
+
+				if (cpConfigurationListRel == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, cpConfigurationListRel);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (CPConfigurationListRel cpConfigurationListRel :
+					(List<CPConfigurationListRel>)query.list()) {
+
+				map.put(
+					cpConfigurationListRel.getPrimaryKeyObj(),
+					cpConfigurationListRel);
+
+				cacheResult(cpConfigurationListRel);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1147,20 +1856,6 @@ public class CPConfigurationListRelPersistenceImpl
 			"countByCPConfigurationListId", new String[] {Long.class.getName()},
 			new String[] {"CPConfigurationListId"}, false);
 
-		_collectionPersistenceFinderByCPConfigurationListId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCPConfigurationListId,
-				_finderPathWithoutPaginationFindByCPConfigurationListId,
-				_finderPathCountByCPConfigurationListId,
-				_SQL_SELECT_CPCONFIGURATIONLISTREL_WHERE,
-				_SQL_COUNT_CPCONFIGURATIONLISTREL_WHERE,
-				CPConfigurationListRelModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"cpConfigurationListRel.", "CPConfigurationListId",
-					FinderColumn.Type.LONG, "=", true, true,
-					CPConfigurationListRel::getCPConfigurationListId));
-
 		_finderPathWithPaginationFindByC_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C",
 			new String[] {
@@ -1180,22 +1875,6 @@ public class CPConfigurationListRelPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"classNameId", "CPConfigurationListId"}, false);
 
-		_collectionPersistenceFinderByC_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_C,
-			_finderPathWithoutPaginationFindByC_C, _finderPathCountByC_C,
-			_SQL_SELECT_CPCONFIGURATIONLISTREL_WHERE,
-			_SQL_COUNT_CPCONFIGURATIONLISTREL_WHERE,
-			CPConfigurationListRelModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"cpConfigurationListRel.", "classNameId",
-				FinderColumn.Type.LONG, "=", true, false,
-				CPConfigurationListRel::getClassNameId),
-			new FinderColumn<>(
-				"cpConfigurationListRel.", "CPConfigurationListId",
-				FinderColumn.Type.LONG, "=", true, true,
-				CPConfigurationListRel::getCPConfigurationListId));
-
 		_finderPathFetchByC_C_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_C_C",
 			new String[] {
@@ -1203,21 +1882,6 @@ public class CPConfigurationListRelPersistenceImpl
 			},
 			new String[] {"classNameId", "classPK", "CPConfigurationListId"},
 			true);
-
-		_uniquePersistenceFinderByC_C_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_C_C,
-			_SQL_SELECT_CPCONFIGURATIONLISTREL_WHERE,
-			new FinderColumn<>(
-				"cpConfigurationListRel.", "classNameId",
-				FinderColumn.Type.LONG, "=", true, false,
-				CPConfigurationListRel::getClassNameId),
-			new FinderColumn<>(
-				"cpConfigurationListRel.", "classPK", FinderColumn.Type.LONG,
-				"=", true, false, CPConfigurationListRel::getClassPK),
-			new FinderColumn<>(
-				"cpConfigurationListRel.", "CPConfigurationListId",
-				FinderColumn.Type.LONG, "=", true, true,
-				CPConfigurationListRel::getCPConfigurationListId));
 
 		CPConfigurationListRelUtil.setPersistence(this);
 	}
@@ -1279,6 +1943,9 @@ public class CPConfigurationListRelPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"cpConfigurationListRel.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CPConfigurationListRel exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CPConfigurationListRel exists with the key {";
 
@@ -1291,4 +1958,4 @@ public class CPConfigurationListRelPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1256595154
+// LIFERAY-SERVICE-BUILDER-HASH:-1903142454

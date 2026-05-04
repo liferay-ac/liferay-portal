@@ -385,4 +385,4 @@ public interface RegionLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1658666474
+// LIFERAY-SERVICE-BUILDER-HASH:-1746834006

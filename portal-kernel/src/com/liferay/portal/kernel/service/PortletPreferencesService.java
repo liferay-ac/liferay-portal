@@ -74,4 +74,4 @@ public interface PortletPreferencesService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:352605453
+// LIFERAY-SERVICE-BUILDER-HASH:-1102569326

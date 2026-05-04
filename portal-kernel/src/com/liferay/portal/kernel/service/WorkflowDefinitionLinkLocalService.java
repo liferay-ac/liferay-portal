@@ -462,4 +462,4 @@ public interface WorkflowDefinitionLinkLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-335444463
+// LIFERAY-SERVICE-BUILDER-HASH:1579536961

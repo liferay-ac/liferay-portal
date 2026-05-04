@@ -15,6 +15,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchImageException;
@@ -27,11 +28,8 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.ImagePersistence;
 import com.liferay.portal.kernel.service.persistence.ImageUtil;
-import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelperUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -51,6 +49,7 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,8 +65,7 @@ import java.util.Set;
  * @generated
  */
 public class ImagePersistenceImpl
-	extends BasePersistenceImpl<Image, NoSuchImageException>
-	implements ImagePersistence {
+	extends BasePersistenceImpl<Image> implements ImagePersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -88,8 +86,6 @@ public class ImagePersistenceImpl
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathWithPaginationFindByLtSize;
 	private FinderPath _finderPathWithPaginationCountByLtSize;
-	private CollectionPersistenceFinder<Image>
-		_collectionPersistenceFinderByLtSize;
 
 	/**
 	 * Returns all the images where size &lt; &#63;.
@@ -163,9 +159,83 @@ public class ImagePersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Image.class)) {
 
-			return _collectionPersistenceFinderByLtSize.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {size}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			finderPath = _finderPathWithPaginationFindByLtSize;
+			finderArgs = new Object[] {size, start, end, orderByComparator};
+
+			List<Image> list = null;
+
+			if (useFinderCache) {
+				list = (List<Image>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Image image : list) {
+						if (size <= image.getSize()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_IMAGE_WHERE);
+
+				sb.append(_FINDER_COLUMN_LTSIZE_SIZE_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(ImageModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(size);
+
+					list = (List<Image>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -188,9 +258,16 @@ public class ImagePersistenceImpl
 			return image;
 		}
 
-		throw new NoSuchImageException(
-			_collectionPersistenceFinderByLtSize.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {size}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("size<");
+		sb.append(size);
+
+		sb.append("}");
+
+		throw new NoSuchImageException(sb.toString());
 	}
 
 	/**
@@ -204,9 +281,13 @@ public class ImagePersistenceImpl
 	public Image fetchByLtSize_First(
 		int size, OrderByComparator<Image> orderByComparator) {
 
-		return _collectionPersistenceFinderByLtSize.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {size},
-			orderByComparator);
+		List<Image> list = findByLtSize(size, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -216,8 +297,12 @@ public class ImagePersistenceImpl
 	 */
 	@Override
 	public void removeByLtSize(int size) {
-		_collectionPersistenceFinderByLtSize.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {size});
+		for (Image image :
+				findByLtSize(
+					size, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(image);
+		}
 	}
 
 	/**
@@ -232,10 +317,50 @@ public class ImagePersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Image.class)) {
 
-			return _collectionPersistenceFinderByLtSize.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {size});
+			FinderPath finderPath = _finderPathWithPaginationCountByLtSize;
+
+			Object[] finderArgs = new Object[] {size};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_IMAGE_WHERE);
+
+				sb.append(_FINDER_COLUMN_LTSIZE_SIZE_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(size);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_LTSIZE_SIZE_2 = "image.size < ?";
 
 	public ImagePersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -300,6 +425,48 @@ public class ImagePersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all images.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(ImageImpl.class);
+
+		FinderCacheUtil.clearCache(ImageImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the image.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(Image image) {
+		EntityCacheUtil.removeResult(ImageImpl.class, image);
+	}
+
+	@Override
+	public void clearCache(List<Image> images) {
+		for (Image image : images) {
+			EntityCacheUtil.removeResult(ImageImpl.class, image);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(ImageImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(ImageImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new image with the primary key. Does not add the image to the database.
 	 *
 	 * @param imageId the primary key for the new image
@@ -327,6 +494,44 @@ public class ImagePersistenceImpl
 	@Override
 	public Image remove(long imageId) throws NoSuchImageException {
 		return remove((Serializable)imageId);
+	}
+
+	/**
+	 * Removes the image with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the image
+	 * @return the image that was removed
+	 * @throws NoSuchImageException if a image with the primary key could not be found
+	 */
+	@Override
+	public Image remove(Serializable primaryKey) throws NoSuchImageException {
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Image image = (Image)session.get(ImageImpl.class, primaryKey);
+
+			if (image == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchImageException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(image);
+		}
+		catch (NoSuchImageException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -430,6 +635,31 @@ public class ImagePersistenceImpl
 	}
 
 	/**
+	 * Returns the image with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the image
+	 * @return the image
+	 * @throws NoSuchImageException if a image with the primary key could not be found
+	 */
+	@Override
+	public Image findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchImageException {
+
+		Image image = fetchByPrimaryKey(primaryKey);
+
+		if (image == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchImageException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return image;
+	}
+
+	/**
 	 * Returns the image with the primary key or throws a <code>NoSuchImageException</code> if it could not be found.
 	 *
 	 * @param imageId the primary key of the image
@@ -441,9 +671,49 @@ public class ImagePersistenceImpl
 		return findByPrimaryKey((Serializable)imageId);
 	}
 
+	/**
+	 * Returns the image with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the image
+	 * @return the image, or <code>null</code> if a image with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return CTPersistenceHelperUtil.getCTPersistenceHelper();
+	public Image fetchByPrimaryKey(Serializable primaryKey) {
+		if (CTPersistenceHelperUtil.isProductionMode(Image.class, primaryKey)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		Image image = (Image)EntityCacheUtil.getResult(
+			ImageImpl.class, primaryKey);
+
+		if (image != null) {
+			return image;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			image = (Image)session.get(ImageImpl.class, primaryKey);
+
+			if (image != null) {
+				cacheResult(image);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return image;
 	}
 
 	/**
@@ -455,6 +725,128 @@ public class ImagePersistenceImpl
 	@Override
 	public Image fetchByPrimaryKey(long imageId) {
 		return fetchByPrimaryKey((Serializable)imageId);
+	}
+
+	@Override
+	public Map<Serializable, Image> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (CTPersistenceHelperUtil.isProductionMode(Image.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, Image> map = new HashMap<Serializable, Image>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			Image image = fetchByPrimaryKey(primaryKey);
+
+			if (image != null) {
+				map.put(primaryKey, image);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
+						Image.class, primaryKey)) {
+
+				Image image = (Image)EntityCacheUtil.getResult(
+					ImageImpl.class, primaryKey);
+
+				if (image == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, image);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (Image image : (List<Image>)query.list()) {
+				map.put(image.getPrimaryKeyObj(), image);
+
+				cacheResult(image);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -760,16 +1152,6 @@ public class ImagePersistenceImpl
 			new String[] {Integer.class.getName()}, new String[] {"size_"},
 			false);
 
-		_collectionPersistenceFinderByLtSize =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLtSize, null,
-				_finderPathWithPaginationCountByLtSize, _SQL_SELECT_IMAGE_WHERE,
-				_SQL_COUNT_IMAGE_WHERE, ImageModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"image.", "size", FinderColumn.Type.INTEGER, "<", true,
-					true, Image::getSize));
-
 		ImageUtil.setPersistence(this);
 	}
 
@@ -793,6 +1175,9 @@ public class ImagePersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "image.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No Image exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No Image exists with the key {";
 
@@ -808,4 +1193,4 @@ public class ImagePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-2056560721
+// LIFERAY-SERVICE-BUILDER-HASH:916479105

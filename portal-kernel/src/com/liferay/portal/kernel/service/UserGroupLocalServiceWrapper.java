@@ -1143,4 +1143,4 @@ public class UserGroupLocalServiceWrapper
 	private UserGroupLocalService _userGroupLocalService;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1430494914
+// LIFERAY-SERVICE-BUILDER-HASH:-1614385933

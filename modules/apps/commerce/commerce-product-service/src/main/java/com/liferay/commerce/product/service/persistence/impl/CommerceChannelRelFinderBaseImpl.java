@@ -5,7 +5,6 @@
 
 package com.liferay.commerce.product.service.persistence.impl;
 
-import com.liferay.commerce.product.exception.NoSuchChannelRelException;
 import com.liferay.commerce.product.model.CommerceChannelRel;
 import com.liferay.commerce.product.service.persistence.CommerceChannelRelPersistence;
 import com.liferay.commerce.product.service.persistence.impl.constants.CommercePersistenceConstants;
@@ -22,7 +21,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class CommerceChannelRelFinderBaseImpl
-	extends BasePersistenceImpl<CommerceChannelRel, NoSuchChannelRelException> {
+	extends BasePersistenceImpl<CommerceChannelRel> {
 
 	public CommerceChannelRelFinderBaseImpl() {
 		setModelClass(CommerceChannelRel.class);
@@ -58,4 +57,4 @@ public abstract class CommerceChannelRelFinderBaseImpl
 	protected CommerceChannelRelPersistence commerceChannelRelPersistence;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-2042015004
+// LIFERAY-SERVICE-BUILDER-HASH:-1953106755

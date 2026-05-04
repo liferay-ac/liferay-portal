@@ -5,7 +5,6 @@
 
 package com.liferay.commerce.product.service.persistence.impl;
 
-import com.liferay.commerce.product.exception.NoSuchCPAttachmentFileEntryException;
 import com.liferay.commerce.product.model.CPAttachmentFileEntry;
 import com.liferay.commerce.product.service.persistence.CPAttachmentFileEntryPersistence;
 import com.liferay.commerce.product.service.persistence.impl.constants.CommercePersistenceConstants;
@@ -28,8 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class CPAttachmentFileEntryFinderBaseImpl
-	extends BasePersistenceImpl
-		<CPAttachmentFileEntry, NoSuchCPAttachmentFileEntryException> {
+	extends BasePersistenceImpl<CPAttachmentFileEntry> {
 
 	public CPAttachmentFileEntryFinderBaseImpl() {
 		setModelClass(CPAttachmentFileEntry.class);
@@ -80,4 +78,4 @@ public abstract class CPAttachmentFileEntryFinderBaseImpl
 		CPAttachmentFileEntryFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1415756632
+// LIFERAY-SERVICE-BUILDER-HASH:545005899

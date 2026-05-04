@@ -210,4 +210,4 @@ public interface AssetListEntryService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-680882728
+// LIFERAY-SERVICE-BUILDER-HASH:729782360

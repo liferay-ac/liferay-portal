@@ -10,7 +10,6 @@ import com.liferay.portal.kernel.dao.orm.SessionFactory;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.wiki.exception.NoSuchPageException;
 import com.liferay.wiki.model.WikiPage;
 import com.liferay.wiki.service.persistence.WikiPagePersistence;
 import com.liferay.wiki.service.persistence.impl.constants.WikiPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class WikiPageFinderBaseImpl
-	extends BasePersistenceImpl<WikiPage, NoSuchPageException> {
+	extends BasePersistenceImpl<WikiPage> {
 
 	public WikiPageFinderBaseImpl() {
 		setModelClass(WikiPage.class);
@@ -78,4 +77,4 @@ public abstract class WikiPageFinderBaseImpl
 		WikiPageFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-299134647
+// LIFERAY-SERVICE-BUILDER-HASH:-1878442666

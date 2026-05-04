@@ -441,4 +441,4 @@ public interface KaleoProcessLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:572957636
+// LIFERAY-SERVICE-BUILDER-HASH:606653000

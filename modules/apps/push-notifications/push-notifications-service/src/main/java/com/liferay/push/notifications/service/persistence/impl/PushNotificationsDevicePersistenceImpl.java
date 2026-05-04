@@ -21,8 +21,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -47,6 +45,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -67,7 +66,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = PushNotificationsDevicePersistence.class)
 public class PushNotificationsDevicePersistenceImpl
-	extends BasePersistenceImpl<PushNotificationsDevice, NoSuchDeviceException>
+	extends BasePersistenceImpl<PushNotificationsDevice>
 	implements PushNotificationsDevicePersistence {
 
 	/*
@@ -88,8 +87,6 @@ public class PushNotificationsDevicePersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByToken;
-	private UniquePersistenceFinder<PushNotificationsDevice>
-		_uniquePersistenceFinderByToken;
 
 	/**
 	 * Returns the push notifications device where token = &#63; or throws a <code>NoSuchDeviceException</code> if it could not be found.
@@ -105,15 +102,20 @@ public class PushNotificationsDevicePersistenceImpl
 		PushNotificationsDevice pushNotificationsDevice = fetchByToken(token);
 
 		if (pushNotificationsDevice == null) {
-			String message =
-				_uniquePersistenceFinderByToken.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {token});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("token=");
+			sb.append(token);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchDeviceException(message);
+			throw new NoSuchDeviceException(sb.toString());
 		}
 
 		return pushNotificationsDevice;
@@ -141,8 +143,92 @@ public class PushNotificationsDevicePersistenceImpl
 	public PushNotificationsDevice fetchByToken(
 		String token, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByToken.fetch(
-			finderCache, new Object[] {token}, useFinderCache);
+		token = Objects.toString(token, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {token};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByToken, finderArgs, this);
+		}
+
+		if (result instanceof PushNotificationsDevice) {
+			PushNotificationsDevice pushNotificationsDevice =
+				(PushNotificationsDevice)result;
+
+			if (!Objects.equals(token, pushNotificationsDevice.getToken())) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_PUSHNOTIFICATIONSDEVICE_WHERE);
+
+			boolean bindToken = false;
+
+			if (token.isEmpty()) {
+				sb.append(_FINDER_COLUMN_TOKEN_TOKEN_3);
+			}
+			else {
+				bindToken = true;
+
+				sb.append(_FINDER_COLUMN_TOKEN_TOKEN_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindToken) {
+					queryPos.add(token);
+				}
+
+				List<PushNotificationsDevice> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByToken, finderArgs, list);
+					}
+				}
+				else {
+					PushNotificationsDevice pushNotificationsDevice = list.get(
+						0);
+
+					result = pushNotificationsDevice;
+
+					cacheResult(pushNotificationsDevice);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (PushNotificationsDevice)result;
+		}
 	}
 
 	/**
@@ -168,9 +254,20 @@ public class PushNotificationsDevicePersistenceImpl
 	 */
 	@Override
 	public int countByToken(String token) {
-		return _uniquePersistenceFinderByToken.count(
-			finderCache, new Object[] {token});
+		PushNotificationsDevice pushNotificationsDevice = fetchByToken(token);
+
+		if (pushNotificationsDevice == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_TOKEN_TOKEN_2 =
+		"pushNotificationsDevice.token = ?";
+
+	private static final String _FINDER_COLUMN_TOKEN_TOKEN_3 =
+		"(pushNotificationsDevice.token IS NULL OR pushNotificationsDevice.token = '')";
 
 	private FinderPath _finderPathWithPaginationFindByU_P;
 	private FinderPath _finderPathWithoutPaginationFindByU_P;
@@ -879,6 +976,55 @@ public class PushNotificationsDevicePersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all push notifications devices.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(PushNotificationsDeviceImpl.class);
+
+		finderCache.clearCache(PushNotificationsDeviceImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the push notifications device.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(PushNotificationsDevice pushNotificationsDevice) {
+		entityCache.removeResult(
+			PushNotificationsDeviceImpl.class, pushNotificationsDevice);
+	}
+
+	@Override
+	public void clearCache(
+		List<PushNotificationsDevice> pushNotificationsDevices) {
+
+		for (PushNotificationsDevice pushNotificationsDevice :
+				pushNotificationsDevices) {
+
+			entityCache.removeResult(
+				PushNotificationsDeviceImpl.class, pushNotificationsDevice);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(PushNotificationsDeviceImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				PushNotificationsDeviceImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		PushNotificationsDeviceModelImpl pushNotificationsDeviceModelImpl) {
 
@@ -921,6 +1067,48 @@ public class PushNotificationsDevicePersistenceImpl
 		throws NoSuchDeviceException {
 
 		return remove((Serializable)pushNotificationsDeviceId);
+	}
+
+	/**
+	 * Removes the push notifications device with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the push notifications device
+	 * @return the push notifications device that was removed
+	 * @throws NoSuchDeviceException if a push notifications device with the primary key could not be found
+	 */
+	@Override
+	public PushNotificationsDevice remove(Serializable primaryKey)
+		throws NoSuchDeviceException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			PushNotificationsDevice pushNotificationsDevice =
+				(PushNotificationsDevice)session.get(
+					PushNotificationsDeviceImpl.class, primaryKey);
+
+			if (pushNotificationsDevice == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchDeviceException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(pushNotificationsDevice);
+		}
+		catch (NoSuchDeviceException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1031,6 +1219,32 @@ public class PushNotificationsDevicePersistenceImpl
 		}
 
 		pushNotificationsDevice.resetOriginalValues();
+
+		return pushNotificationsDevice;
+	}
+
+	/**
+	 * Returns the push notifications device with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the push notifications device
+	 * @return the push notifications device
+	 * @throws NoSuchDeviceException if a push notifications device with the primary key could not be found
+	 */
+	@Override
+	public PushNotificationsDevice findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchDeviceException {
+
+		PushNotificationsDevice pushNotificationsDevice = fetchByPrimaryKey(
+			primaryKey);
+
+		if (pushNotificationsDevice == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchDeviceException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return pushNotificationsDevice;
 	}
@@ -1291,13 +1505,6 @@ public class PushNotificationsDevicePersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"token"},
 			true);
 
-		_uniquePersistenceFinderByToken = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByToken,
-			_SQL_SELECT_PUSHNOTIFICATIONSDEVICE_WHERE,
-			new FinderColumn<>(
-				"pushNotificationsDevice.", "token", FinderColumn.Type.STRING,
-				"=", true, true, PushNotificationsDevice::getToken));
-
 		_finderPathWithPaginationFindByU_P = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByU_P",
 			new String[] {
@@ -1379,6 +1586,9 @@ public class PushNotificationsDevicePersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"pushNotificationsDevice.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No PushNotificationsDevice exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No PushNotificationsDevice exists with the key {";
 
@@ -1391,4 +1601,4 @@ public class PushNotificationsDevicePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1290785535
+// LIFERAY-SERVICE-BUILDER-HASH:-667427602

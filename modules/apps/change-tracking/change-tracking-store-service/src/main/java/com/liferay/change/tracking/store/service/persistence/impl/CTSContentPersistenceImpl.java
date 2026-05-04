@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -30,15 +31,13 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.SetUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 
 import java.io.Serializable;
 
@@ -49,8 +48,10 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -72,8 +73,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTSContentPersistence.class)
 public class CTSContentPersistenceImpl
-	extends BasePersistenceImpl<CTSContent, NoSuchContentException>
-	implements CTSContentPersistence {
+	extends BasePersistenceImpl<CTSContent> implements CTSContentPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -95,8 +95,6 @@ public class CTSContentPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByR_P;
 	private FinderPath _finderPathWithoutPaginationFindByR_P;
 	private FinderPath _finderPathCountByR_P;
-	private CollectionPersistenceFinder<CTSContent>
-		_collectionPersistenceFinderByR_P;
 
 	/**
 	 * Returns all the cts contents where repositoryId = &#63; and path = &#63;.
@@ -179,9 +177,114 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _collectionPersistenceFinderByR_P.find(
-				finderCache, new Object[] {repositoryId, path}, start, end,
-				orderByComparator, useFinderCache);
+			path = Objects.toString(path, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByR_P;
+					finderArgs = new Object[] {repositoryId, path};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByR_P;
+				finderArgs = new Object[] {
+					repositoryId, path, start, end, orderByComparator
+				};
+			}
+
+			List<CTSContent> list = null;
+
+			if (useFinderCache) {
+				list = (List<CTSContent>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CTSContent ctsContent : list) {
+						if ((repositoryId != ctsContent.getRepositoryId()) ||
+							!path.equals(ctsContent.getPath())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_R_P_REPOSITORYID_2);
+
+				boolean bindPath = false;
+
+				if (path.isEmpty()) {
+					sb.append(_FINDER_COLUMN_R_P_PATH_3);
+				}
+				else {
+					bindPath = true;
+
+					sb.append(_FINDER_COLUMN_R_P_PATH_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CTSContentModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(repositoryId);
+
+					if (bindPath) {
+						queryPos.add(path);
+					}
+
+					list = (List<CTSContent>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -207,9 +310,19 @@ public class CTSContentPersistenceImpl
 			return ctsContent;
 		}
 
-		throw new NoSuchContentException(
-			_collectionPersistenceFinderByR_P.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {repositoryId, path}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("repositoryId=");
+		sb.append(repositoryId);
+
+		sb.append(", path=");
+		sb.append(path);
+
+		sb.append("}");
+
+		throw new NoSuchContentException(sb.toString());
 	}
 
 	/**
@@ -225,8 +338,14 @@ public class CTSContentPersistenceImpl
 		long repositoryId, String path,
 		OrderByComparator<CTSContent> orderByComparator) {
 
-		return _collectionPersistenceFinderByR_P.fetchFirst(
-			finderCache, new Object[] {repositoryId, path}, orderByComparator);
+		List<CTSContent> list = findByR_P(
+			repositoryId, path, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -237,8 +356,13 @@ public class CTSContentPersistenceImpl
 	 */
 	@Override
 	public void removeByR_P(long repositoryId, String path) {
-		_collectionPersistenceFinderByR_P.remove(
-			finderCache, new Object[] {repositoryId, path});
+		for (CTSContent ctsContent :
+				findByR_P(
+					repositoryId, path, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(ctsContent);
+		}
 	}
 
 	/**
@@ -254,16 +378,78 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _collectionPersistenceFinderByR_P.count(
-				finderCache, new Object[] {repositoryId, path});
+			path = Objects.toString(path, "");
+
+			FinderPath finderPath = _finderPathCountByR_P;
+
+			Object[] finderArgs = new Object[] {repositoryId, path};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_R_P_REPOSITORYID_2);
+
+				boolean bindPath = false;
+
+				if (path.isEmpty()) {
+					sb.append(_FINDER_COLUMN_R_P_PATH_3);
+				}
+				else {
+					bindPath = true;
+
+					sb.append(_FINDER_COLUMN_R_P_PATH_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(repositoryId);
+
+					if (bindPath) {
+						queryPos.add(path);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_R_P_REPOSITORYID_2 =
+		"ctsContent.repositoryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_R_P_PATH_2 =
+		"ctsContent.path = ?";
+
+	private static final String _FINDER_COLUMN_R_P_PATH_3 =
+		"(ctsContent.path IS NULL OR ctsContent.path = '')";
 
 	private FinderPath _finderPathWithPaginationFindByC_R_S;
 	private FinderPath _finderPathWithoutPaginationFindByC_R_S;
 	private FinderPath _finderPathCountByC_R_S;
-	private CollectionPersistenceFinder<CTSContent>
-		_collectionPersistenceFinderByC_R_S;
 
 	/**
 	 * Returns all the cts contents where companyId = &#63; and repositoryId = &#63; and storeType = &#63;.
@@ -356,9 +542,122 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _collectionPersistenceFinderByC_R_S.find(
-				finderCache, new Object[] {companyId, repositoryId, storeType},
-				start, end, orderByComparator, useFinderCache);
+			storeType = Objects.toString(storeType, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_R_S;
+					finderArgs = new Object[] {
+						companyId, repositoryId, storeType
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_R_S;
+				finderArgs = new Object[] {
+					companyId, repositoryId, storeType, start, end,
+					orderByComparator
+				};
+			}
+
+			List<CTSContent> list = null;
+
+			if (useFinderCache) {
+				list = (List<CTSContent>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CTSContent ctsContent : list) {
+						if ((companyId != ctsContent.getCompanyId()) ||
+							(repositoryId != ctsContent.getRepositoryId()) ||
+							!storeType.equals(ctsContent.getStoreType())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_R_S_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_R_S_REPOSITORYID_2);
+
+				boolean bindStoreType = false;
+
+				if (storeType.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_S_STORETYPE_3);
+				}
+				else {
+					bindStoreType = true;
+
+					sb.append(_FINDER_COLUMN_C_R_S_STORETYPE_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CTSContentModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(repositoryId);
+
+					if (bindStoreType) {
+						queryPos.add(storeType);
+					}
+
+					list = (List<CTSContent>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -385,10 +684,22 @@ public class CTSContentPersistenceImpl
 			return ctsContent;
 		}
 
-		throw new NoSuchContentException(
-			_collectionPersistenceFinderByC_R_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, repositoryId, storeType}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", repositoryId=");
+		sb.append(repositoryId);
+
+		sb.append(", storeType=");
+		sb.append(storeType);
+
+		sb.append("}");
+
+		throw new NoSuchContentException(sb.toString());
 	}
 
 	/**
@@ -405,9 +716,14 @@ public class CTSContentPersistenceImpl
 		long companyId, long repositoryId, String storeType,
 		OrderByComparator<CTSContent> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_R_S.fetchFirst(
-			finderCache, new Object[] {companyId, repositoryId, storeType},
-			orderByComparator);
+		List<CTSContent> list = findByC_R_S(
+			companyId, repositoryId, storeType, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -421,8 +737,13 @@ public class CTSContentPersistenceImpl
 	public void removeByC_R_S(
 		long companyId, long repositoryId, String storeType) {
 
-		_collectionPersistenceFinderByC_R_S.remove(
-			finderCache, new Object[] {companyId, repositoryId, storeType});
+		for (CTSContent ctsContent :
+				findByC_R_S(
+					companyId, repositoryId, storeType, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(ctsContent);
+		}
 	}
 
 	/**
@@ -441,16 +762,87 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _collectionPersistenceFinderByC_R_S.count(
-				finderCache, new Object[] {companyId, repositoryId, storeType});
+			storeType = Objects.toString(storeType, "");
+
+			FinderPath finderPath = _finderPathCountByC_R_S;
+
+			Object[] finderArgs = new Object[] {
+				companyId, repositoryId, storeType
+			};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_R_S_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_R_S_REPOSITORYID_2);
+
+				boolean bindStoreType = false;
+
+				if (storeType.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_S_STORETYPE_3);
+				}
+				else {
+					bindStoreType = true;
+
+					sb.append(_FINDER_COLUMN_C_R_S_STORETYPE_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(repositoryId);
+
+					if (bindStoreType) {
+						queryPos.add(storeType);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_C_R_S_COMPANYID_2 =
+		"ctsContent.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_S_REPOSITORYID_2 =
+		"ctsContent.repositoryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_S_STORETYPE_2 =
+		"ctsContent.storeType = ?";
+
+	private static final String _FINDER_COLUMN_C_R_S_STORETYPE_3 =
+		"(ctsContent.storeType IS NULL OR ctsContent.storeType = '')";
 
 	private FinderPath _finderPathWithPaginationFindByC_R_P_S;
 	private FinderPath _finderPathWithoutPaginationFindByC_R_P_S;
 	private FinderPath _finderPathCountByC_R_P_S;
-	private CollectionPersistenceFinder<CTSContent>
-		_collectionPersistenceFinderByC_R_P_S;
 
 	/**
 	 * Returns all the cts contents where companyId = &#63; and repositoryId = &#63; and path = &#63; and storeType = &#63;.
@@ -547,10 +939,139 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _collectionPersistenceFinderByC_R_P_S.find(
-				finderCache,
-				new Object[] {companyId, repositoryId, path, storeType}, start,
-				end, orderByComparator, useFinderCache);
+			path = Objects.toString(path, "");
+			storeType = Objects.toString(storeType, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_R_P_S;
+					finderArgs = new Object[] {
+						companyId, repositoryId, path, storeType
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_R_P_S;
+				finderArgs = new Object[] {
+					companyId, repositoryId, path, storeType, start, end,
+					orderByComparator
+				};
+			}
+
+			List<CTSContent> list = null;
+
+			if (useFinderCache) {
+				list = (List<CTSContent>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CTSContent ctsContent : list) {
+						if ((companyId != ctsContent.getCompanyId()) ||
+							(repositoryId != ctsContent.getRepositoryId()) ||
+							!path.equals(ctsContent.getPath()) ||
+							!storeType.equals(ctsContent.getStoreType())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						6 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(6);
+				}
+
+				sb.append(_SQL_SELECT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_R_P_S_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_R_P_S_REPOSITORYID_2);
+
+				boolean bindPath = false;
+
+				if (path.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_P_S_PATH_3);
+				}
+				else {
+					bindPath = true;
+
+					sb.append(_FINDER_COLUMN_C_R_P_S_PATH_2);
+				}
+
+				boolean bindStoreType = false;
+
+				if (storeType.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_P_S_STORETYPE_3);
+				}
+				else {
+					bindStoreType = true;
+
+					sb.append(_FINDER_COLUMN_C_R_P_S_STORETYPE_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CTSContentModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(repositoryId);
+
+					if (bindPath) {
+						queryPos.add(path);
+					}
+
+					if (bindStoreType) {
+						queryPos.add(storeType);
+					}
+
+					list = (List<CTSContent>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -578,10 +1099,25 @@ public class CTSContentPersistenceImpl
 			return ctsContent;
 		}
 
-		throw new NoSuchContentException(
-			_collectionPersistenceFinderByC_R_P_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, repositoryId, path, storeType}));
+		StringBundler sb = new StringBundler(10);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", repositoryId=");
+		sb.append(repositoryId);
+
+		sb.append(", path=");
+		sb.append(path);
+
+		sb.append(", storeType=");
+		sb.append(storeType);
+
+		sb.append("}");
+
+		throw new NoSuchContentException(sb.toString());
 	}
 
 	/**
@@ -599,10 +1135,14 @@ public class CTSContentPersistenceImpl
 		long companyId, long repositoryId, String path, String storeType,
 		OrderByComparator<CTSContent> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_R_P_S.fetchFirst(
-			finderCache,
-			new Object[] {companyId, repositoryId, path, storeType},
-			orderByComparator);
+		List<CTSContent> list = findByC_R_P_S(
+			companyId, repositoryId, path, storeType, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -617,9 +1157,13 @@ public class CTSContentPersistenceImpl
 	public void removeByC_R_P_S(
 		long companyId, long repositoryId, String path, String storeType) {
 
-		_collectionPersistenceFinderByC_R_P_S.remove(
-			finderCache,
-			new Object[] {companyId, repositoryId, path, storeType});
+		for (CTSContent ctsContent :
+				findByC_R_P_S(
+					companyId, repositoryId, path, storeType, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(ctsContent);
+		}
 	}
 
 	/**
@@ -639,16 +1183,108 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _collectionPersistenceFinderByC_R_P_S.count(
-				finderCache,
-				new Object[] {companyId, repositoryId, path, storeType});
+			path = Objects.toString(path, "");
+			storeType = Objects.toString(storeType, "");
+
+			FinderPath finderPath = _finderPathCountByC_R_P_S;
+
+			Object[] finderArgs = new Object[] {
+				companyId, repositoryId, path, storeType
+			};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_COUNT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_R_P_S_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_R_P_S_REPOSITORYID_2);
+
+				boolean bindPath = false;
+
+				if (path.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_P_S_PATH_3);
+				}
+				else {
+					bindPath = true;
+
+					sb.append(_FINDER_COLUMN_C_R_P_S_PATH_2);
+				}
+
+				boolean bindStoreType = false;
+
+				if (storeType.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_P_S_STORETYPE_3);
+				}
+				else {
+					bindStoreType = true;
+
+					sb.append(_FINDER_COLUMN_C_R_P_S_STORETYPE_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(repositoryId);
+
+					if (bindPath) {
+						queryPos.add(path);
+					}
+
+					if (bindStoreType) {
+						queryPos.add(storeType);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_C_R_P_S_COMPANYID_2 =
+		"ctsContent.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_S_REPOSITORYID_2 =
+		"ctsContent.repositoryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_S_PATH_2 =
+		"ctsContent.path = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_S_PATH_3 =
+		"(ctsContent.path IS NULL OR ctsContent.path = '') AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_S_STORETYPE_2 =
+		"ctsContent.storeType = ?";
+
+	private static final String _FINDER_COLUMN_C_R_P_S_STORETYPE_3 =
+		"(ctsContent.storeType IS NULL OR ctsContent.storeType = '')";
+
 	private FinderPath _finderPathWithPaginationFindByC_R_LikeP_S;
 	private FinderPath _finderPathWithPaginationCountByC_R_LikeP_S;
-	private CollectionPersistenceFinder<CTSContent>
-		_collectionPersistenceFinderByC_R_LikeP_S;
 
 	/**
 	 * Returns all the cts contents where companyId = &#63; and repositoryId = &#63; and path LIKE &#63; and storeType = &#63;.
@@ -745,10 +1381,129 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _collectionPersistenceFinderByC_R_LikeP_S.find(
-				finderCache,
-				new Object[] {companyId, repositoryId, path, storeType}, start,
-				end, orderByComparator, useFinderCache);
+			path = Objects.toString(path, "");
+			storeType = Objects.toString(storeType, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			finderPath = _finderPathWithPaginationFindByC_R_LikeP_S;
+			finderArgs = new Object[] {
+				companyId, repositoryId, path, storeType, start, end,
+				orderByComparator
+			};
+
+			List<CTSContent> list = null;
+
+			if (useFinderCache) {
+				list = (List<CTSContent>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CTSContent ctsContent : list) {
+						if ((companyId != ctsContent.getCompanyId()) ||
+							(repositoryId != ctsContent.getRepositoryId()) ||
+							!StringUtil.wildcardMatches(
+								ctsContent.getPath(), path, '_', '%', '\\',
+								true) ||
+							!storeType.equals(ctsContent.getStoreType())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						6 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(6);
+				}
+
+				sb.append(_SQL_SELECT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_R_LIKEP_S_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_R_LIKEP_S_REPOSITORYID_2);
+
+				boolean bindPath = false;
+
+				if (path.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_LIKEP_S_PATH_3);
+				}
+				else {
+					bindPath = true;
+
+					sb.append(_FINDER_COLUMN_C_R_LIKEP_S_PATH_2);
+				}
+
+				boolean bindStoreType = false;
+
+				if (storeType.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_LIKEP_S_STORETYPE_3);
+				}
+				else {
+					bindStoreType = true;
+
+					sb.append(_FINDER_COLUMN_C_R_LIKEP_S_STORETYPE_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CTSContentModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(repositoryId);
+
+					if (bindPath) {
+						queryPos.add(path);
+					}
+
+					if (bindStoreType) {
+						queryPos.add(storeType);
+					}
+
+					list = (List<CTSContent>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -776,10 +1531,25 @@ public class CTSContentPersistenceImpl
 			return ctsContent;
 		}
 
-		throw new NoSuchContentException(
-			_collectionPersistenceFinderByC_R_LikeP_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, repositoryId, path, storeType}));
+		StringBundler sb = new StringBundler(10);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", repositoryId=");
+		sb.append(repositoryId);
+
+		sb.append(", pathLIKE");
+		sb.append(path);
+
+		sb.append(", storeType=");
+		sb.append(storeType);
+
+		sb.append("}");
+
+		throw new NoSuchContentException(sb.toString());
 	}
 
 	/**
@@ -797,10 +1567,14 @@ public class CTSContentPersistenceImpl
 		long companyId, long repositoryId, String path, String storeType,
 		OrderByComparator<CTSContent> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_R_LikeP_S.fetchFirst(
-			finderCache,
-			new Object[] {companyId, repositoryId, path, storeType},
-			orderByComparator);
+		List<CTSContent> list = findByC_R_LikeP_S(
+			companyId, repositoryId, path, storeType, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -815,9 +1589,13 @@ public class CTSContentPersistenceImpl
 	public void removeByC_R_LikeP_S(
 		long companyId, long repositoryId, String path, String storeType) {
 
-		_collectionPersistenceFinderByC_R_LikeP_S.remove(
-			finderCache,
-			new Object[] {companyId, repositoryId, path, storeType});
+		for (CTSContent ctsContent :
+				findByC_R_LikeP_S(
+					companyId, repositoryId, path, storeType, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(ctsContent);
+		}
 	}
 
 	/**
@@ -837,15 +1615,107 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _collectionPersistenceFinderByC_R_LikeP_S.count(
-				finderCache,
-				new Object[] {companyId, repositoryId, path, storeType});
+			path = Objects.toString(path, "");
+			storeType = Objects.toString(storeType, "");
+
+			FinderPath finderPath = _finderPathWithPaginationCountByC_R_LikeP_S;
+
+			Object[] finderArgs = new Object[] {
+				companyId, repositoryId, path, storeType
+			};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_COUNT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_R_LIKEP_S_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_R_LIKEP_S_REPOSITORYID_2);
+
+				boolean bindPath = false;
+
+				if (path.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_LIKEP_S_PATH_3);
+				}
+				else {
+					bindPath = true;
+
+					sb.append(_FINDER_COLUMN_C_R_LIKEP_S_PATH_2);
+				}
+
+				boolean bindStoreType = false;
+
+				if (storeType.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_LIKEP_S_STORETYPE_3);
+				}
+				else {
+					bindStoreType = true;
+
+					sb.append(_FINDER_COLUMN_C_R_LIKEP_S_STORETYPE_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(repositoryId);
+
+					if (bindPath) {
+						queryPos.add(path);
+					}
+
+					if (bindStoreType) {
+						queryPos.add(storeType);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_C_R_LIKEP_S_COMPANYID_2 =
+		"ctsContent.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_LIKEP_S_REPOSITORYID_2 =
+		"ctsContent.repositoryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_LIKEP_S_PATH_2 =
+		"ctsContent.path LIKE ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_LIKEP_S_PATH_3 =
+		"(ctsContent.path IS NULL OR ctsContent.path LIKE '') AND ";
+
+	private static final String _FINDER_COLUMN_C_R_LIKEP_S_STORETYPE_2 =
+		"ctsContent.storeType = ?";
+
+	private static final String _FINDER_COLUMN_C_R_LIKEP_S_STORETYPE_3 =
+		"(ctsContent.storeType IS NULL OR ctsContent.storeType = '')";
+
 	private FinderPath _finderPathFetchByC_R_P_V_S;
-	private UniquePersistenceFinder<CTSContent>
-		_uniquePersistenceFinderByC_R_P_V_S;
 
 	/**
 	 * Returns the cts content where companyId = &#63; and repositoryId = &#63; and path = &#63; and version = &#63; and storeType = &#63; or throws a <code>NoSuchContentException</code> if it could not be found.
@@ -868,18 +1738,32 @@ public class CTSContentPersistenceImpl
 			companyId, repositoryId, path, version, storeType);
 
 		if (ctsContent == null) {
-			String message =
-				_uniquePersistenceFinderByC_R_P_V_S.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {
-						companyId, repositoryId, path, version, storeType
-					});
+			StringBundler sb = new StringBundler(12);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append(", repositoryId=");
+			sb.append(repositoryId);
+
+			sb.append(", path=");
+			sb.append(path);
+
+			sb.append(", version=");
+			sb.append(version);
+
+			sb.append(", storeType=");
+			sb.append(storeType);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchContentException(message);
+			throw new NoSuchContentException(sb.toString());
 		}
 
 		return ctsContent;
@@ -924,12 +1808,137 @@ public class CTSContentPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSContent.class)) {
 
-			return _uniquePersistenceFinderByC_R_P_V_S.fetch(
-				finderCache,
-				new Object[] {
+			path = Objects.toString(path, "");
+			version = Objects.toString(version, "");
+			storeType = Objects.toString(storeType, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {
 					companyId, repositoryId, path, version, storeType
-				},
-				useFinderCache);
+				};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByC_R_P_V_S, finderArgs, this);
+			}
+
+			if (result instanceof CTSContent) {
+				CTSContent ctsContent = (CTSContent)result;
+
+				if ((companyId != ctsContent.getCompanyId()) ||
+					(repositoryId != ctsContent.getRepositoryId()) ||
+					!Objects.equals(path, ctsContent.getPath()) ||
+					!Objects.equals(version, ctsContent.getVersion()) ||
+					!Objects.equals(storeType, ctsContent.getStoreType())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(7);
+
+				sb.append(_SQL_SELECT_CTSCONTENT_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_R_P_V_S_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_R_P_V_S_REPOSITORYID_2);
+
+				boolean bindPath = false;
+
+				if (path.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_P_V_S_PATH_3);
+				}
+				else {
+					bindPath = true;
+
+					sb.append(_FINDER_COLUMN_C_R_P_V_S_PATH_2);
+				}
+
+				boolean bindVersion = false;
+
+				if (version.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_P_V_S_VERSION_3);
+				}
+				else {
+					bindVersion = true;
+
+					sb.append(_FINDER_COLUMN_C_R_P_V_S_VERSION_2);
+				}
+
+				boolean bindStoreType = false;
+
+				if (storeType.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_R_P_V_S_STORETYPE_3);
+				}
+				else {
+					bindStoreType = true;
+
+					sb.append(_FINDER_COLUMN_C_R_P_V_S_STORETYPE_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(repositoryId);
+
+					if (bindPath) {
+						queryPos.add(path);
+					}
+
+					if (bindVersion) {
+						queryPos.add(version);
+					}
+
+					if (bindStoreType) {
+						queryPos.add(storeType);
+					}
+
+					List<CTSContent> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByC_R_P_V_S, finderArgs, list);
+						}
+					}
+					else {
+						CTSContent ctsContent = list.get(0);
+
+						result = ctsContent;
+
+						cacheResult(ctsContent);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (CTSContent)result;
+			}
 		}
 	}
 
@@ -970,10 +1979,39 @@ public class CTSContentPersistenceImpl
 		long companyId, long repositoryId, String path, String version,
 		String storeType) {
 
-		return _uniquePersistenceFinderByC_R_P_V_S.count(
-			finderCache,
-			new Object[] {companyId, repositoryId, path, version, storeType});
+		CTSContent ctsContent = fetchByC_R_P_V_S(
+			companyId, repositoryId, path, version, storeType);
+
+		if (ctsContent == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_R_P_V_S_COMPANYID_2 =
+		"ctsContent.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_V_S_REPOSITORYID_2 =
+		"ctsContent.repositoryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_V_S_PATH_2 =
+		"ctsContent.path = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_V_S_PATH_3 =
+		"(ctsContent.path IS NULL OR ctsContent.path = '') AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_V_S_VERSION_2 =
+		"ctsContent.version = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_V_S_VERSION_3 =
+		"(ctsContent.version IS NULL OR ctsContent.version = '') AND ";
+
+	private static final String _FINDER_COLUMN_C_R_P_V_S_STORETYPE_2 =
+		"ctsContent.storeType = ?";
+
+	private static final String _FINDER_COLUMN_C_R_P_V_S_STORETYPE_3 =
+		"(ctsContent.storeType IS NULL OR ctsContent.storeType = '')";
 
 	public CTSContentPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -1048,6 +2086,48 @@ public class CTSContentPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all cts contents.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTSContentImpl.class);
+
+		finderCache.clearCache(CTSContentImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cts content.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTSContent ctsContent) {
+		entityCache.removeResult(CTSContentImpl.class, ctsContent);
+	}
+
+	@Override
+	public void clearCache(List<CTSContent> ctsContents) {
+		for (CTSContent ctsContent : ctsContents) {
+			entityCache.removeResult(CTSContentImpl.class, ctsContent);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTSContentImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CTSContentImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CTSContentModelImpl ctsContentModelImpl) {
 
@@ -1095,6 +2175,47 @@ public class CTSContentPersistenceImpl
 	@Override
 	public CTSContent remove(long ctsContentId) throws NoSuchContentException {
 		return remove((Serializable)ctsContentId);
+	}
+
+	/**
+	 * Removes the cts content with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cts content
+	 * @return the cts content that was removed
+	 * @throws NoSuchContentException if a cts content with the primary key could not be found
+	 */
+	@Override
+	public CTSContent remove(Serializable primaryKey)
+		throws NoSuchContentException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTSContent ctsContent = (CTSContent)session.get(
+				CTSContentImpl.class, primaryKey);
+
+			if (ctsContent == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchContentException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctsContent);
+		}
+		catch (NoSuchContentException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1197,6 +2318,31 @@ public class CTSContentPersistenceImpl
 	}
 
 	/**
+	 * Returns the cts content with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cts content
+	 * @return the cts content
+	 * @throws NoSuchContentException if a cts content with the primary key could not be found
+	 */
+	@Override
+	public CTSContent findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchContentException {
+
+		CTSContent ctsContent = fetchByPrimaryKey(primaryKey);
+
+		if (ctsContent == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchContentException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return ctsContent;
+	}
+
+	/**
 	 * Returns the cts content with the primary key or throws a <code>NoSuchContentException</code> if it could not be found.
 	 *
 	 * @param ctsContentId the primary key of the cts content
@@ -1210,9 +2356,52 @@ public class CTSContentPersistenceImpl
 		return findByPrimaryKey((Serializable)ctsContentId);
 	}
 
+	/**
+	 * Returns the cts content with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cts content
+	 * @return the cts content, or <code>null</code> if a cts content with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public CTSContent fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				CTSContent.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		CTSContent ctsContent = (CTSContent)entityCache.getResult(
+			CTSContentImpl.class, primaryKey);
+
+		if (ctsContent != null) {
+			return ctsContent;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ctsContent = (CTSContent)session.get(
+				CTSContentImpl.class, primaryKey);
+
+			if (ctsContent != null) {
+				cacheResult(ctsContent);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return ctsContent;
 	}
 
 	/**
@@ -1224,6 +2413,129 @@ public class CTSContentPersistenceImpl
 	@Override
 	public CTSContent fetchByPrimaryKey(long ctsContentId) {
 		return fetchByPrimaryKey((Serializable)ctsContentId);
+	}
+
+	@Override
+	public Map<Serializable, CTSContent> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(CTSContent.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, CTSContent> map =
+			new HashMap<Serializable, CTSContent>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			CTSContent ctsContent = fetchByPrimaryKey(primaryKey);
+
+			if (ctsContent != null) {
+				map.put(primaryKey, ctsContent);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						CTSContent.class, primaryKey)) {
+
+				CTSContent ctsContent = (CTSContent)entityCache.getResult(
+					CTSContentImpl.class, primaryKey);
+
+				if (ctsContent == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, ctsContent);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (CTSContent ctsContent : (List<CTSContent>)query.list()) {
+				map.put(ctsContent.getPrimaryKeyObj(), ctsContent);
+
+				cacheResult(ctsContent);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1539,18 +2851,6 @@ public class CTSContentPersistenceImpl
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"repositoryId", "path_"}, false);
 
-		_collectionPersistenceFinderByR_P = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByR_P,
-			_finderPathWithoutPaginationFindByR_P, _finderPathCountByR_P,
-			_SQL_SELECT_CTSCONTENT_WHERE, _SQL_COUNT_CTSCONTENT_WHERE,
-			CTSContentModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"ctsContent.", "repositoryId", FinderColumn.Type.LONG, "=",
-				true, false, CTSContent::getRepositoryId),
-			new FinderColumn<>(
-				"ctsContent.", "path", FinderColumn.Type.STRING, "=", true,
-				true, CTSContent::getPath));
-
 		_finderPathWithPaginationFindByC_R_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_R_S",
 			new String[] {
@@ -1575,21 +2875,6 @@ public class CTSContentPersistenceImpl
 				String.class.getName()
 			},
 			new String[] {"companyId", "repositoryId", "storeType"}, false);
-
-		_collectionPersistenceFinderByC_R_S = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_R_S,
-			_finderPathWithoutPaginationFindByC_R_S, _finderPathCountByC_R_S,
-			_SQL_SELECT_CTSCONTENT_WHERE, _SQL_COUNT_CTSCONTENT_WHERE,
-			CTSContentModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"ctsContent.", "companyId", FinderColumn.Type.LONG, "=", true,
-				false, CTSContent::getCompanyId),
-			new FinderColumn<>(
-				"ctsContent.", "repositoryId", FinderColumn.Type.LONG, "=",
-				true, false, CTSContent::getRepositoryId),
-			new FinderColumn<>(
-				"ctsContent.", "storeType", FinderColumn.Type.STRING, "=", true,
-				true, CTSContent::getStoreType));
 
 		_finderPathWithPaginationFindByC_R_P_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_R_P_S",
@@ -1620,26 +2905,6 @@ public class CTSContentPersistenceImpl
 			new String[] {"companyId", "repositoryId", "path_", "storeType"},
 			false);
 
-		_collectionPersistenceFinderByC_R_P_S =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_R_P_S,
-				_finderPathWithoutPaginationFindByC_R_P_S,
-				_finderPathCountByC_R_P_S, _SQL_SELECT_CTSCONTENT_WHERE,
-				_SQL_COUNT_CTSCONTENT_WHERE, CTSContentModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctsContent.", "companyId", FinderColumn.Type.LONG, "=",
-					true, false, CTSContent::getCompanyId),
-				new FinderColumn<>(
-					"ctsContent.", "repositoryId", FinderColumn.Type.LONG, "=",
-					true, false, CTSContent::getRepositoryId),
-				new FinderColumn<>(
-					"ctsContent.", "path", FinderColumn.Type.STRING, "=", true,
-					false, CTSContent::getPath),
-				new FinderColumn<>(
-					"ctsContent.", "storeType", FinderColumn.Type.STRING, "=",
-					true, true, CTSContent::getStoreType));
-
 		_finderPathWithPaginationFindByC_R_LikeP_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_R_LikeP_S",
 			new String[] {
@@ -1660,25 +2925,6 @@ public class CTSContentPersistenceImpl
 			new String[] {"companyId", "repositoryId", "path_", "storeType"},
 			false);
 
-		_collectionPersistenceFinderByC_R_LikeP_S =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_R_LikeP_S, null,
-				_finderPathWithPaginationCountByC_R_LikeP_S,
-				_SQL_SELECT_CTSCONTENT_WHERE, _SQL_COUNT_CTSCONTENT_WHERE,
-				CTSContentModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctsContent.", "companyId", FinderColumn.Type.LONG, "=",
-					true, false, CTSContent::getCompanyId),
-				new FinderColumn<>(
-					"ctsContent.", "repositoryId", FinderColumn.Type.LONG, "=",
-					true, false, CTSContent::getRepositoryId),
-				new FinderColumn<>(
-					"ctsContent.", "path", FinderColumn.Type.STRING, "LIKE",
-					true, false, CTSContent::getPath),
-				new FinderColumn<>(
-					"ctsContent.", "storeType", FinderColumn.Type.STRING, "=",
-					true, true, CTSContent::getStoreType));
-
 		_finderPathFetchByC_R_P_V_S = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_R_P_V_S",
 			new String[] {
@@ -1690,24 +2936,6 @@ public class CTSContentPersistenceImpl
 				"companyId", "repositoryId", "path_", "version", "storeType"
 			},
 			true);
-
-		_uniquePersistenceFinderByC_R_P_V_S = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_R_P_V_S, _SQL_SELECT_CTSCONTENT_WHERE,
-			new FinderColumn<>(
-				"ctsContent.", "companyId", FinderColumn.Type.LONG, "=", true,
-				false, CTSContent::getCompanyId),
-			new FinderColumn<>(
-				"ctsContent.", "repositoryId", FinderColumn.Type.LONG, "=",
-				true, false, CTSContent::getRepositoryId),
-			new FinderColumn<>(
-				"ctsContent.", "path", FinderColumn.Type.STRING, "=", true,
-				false, CTSContent::getPath),
-			new FinderColumn<>(
-				"ctsContent.", "version", FinderColumn.Type.STRING, "=", true,
-				false, CTSContent::getVersion),
-			new FinderColumn<>(
-				"ctsContent.", "storeType", FinderColumn.Type.STRING, "=", true,
-				true, CTSContent::getStoreType));
 
 		CTSContentUtil.setPersistence(this);
 	}
@@ -1768,6 +2996,9 @@ public class CTSContentPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ctsContent.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTSContent exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTSContent exists with the key {";
 
@@ -1783,4 +3014,4 @@ public class CTSContentPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:811361746
+// LIFERAY-SERVICE-BUILDER-HASH:-237182154

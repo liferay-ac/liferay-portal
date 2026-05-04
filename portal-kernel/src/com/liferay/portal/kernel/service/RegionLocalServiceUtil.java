@@ -446,4 +446,4 @@ public class RegionLocalServiceUtil {
 	private static volatile RegionLocalService _service;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:25106432
+// LIFERAY-SERVICE-BUILDER-HASH:270221003

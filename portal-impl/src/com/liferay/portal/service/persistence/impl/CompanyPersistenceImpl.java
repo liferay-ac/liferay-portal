@@ -12,6 +12,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchCompanyException;
@@ -24,9 +25,6 @@ import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.CompanyPersistence;
 import com.liferay.portal.kernel.service.persistence.CompanyUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -44,6 +42,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -57,8 +56,7 @@ import java.util.Set;
  * @generated
  */
 public class CompanyPersistenceImpl
-	extends BasePersistenceImpl<Company, NoSuchCompanyException>
-	implements CompanyPersistence {
+	extends BasePersistenceImpl<Company> implements CompanyPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -78,7 +76,6 @@ public class CompanyPersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByWebId;
-	private UniquePersistenceFinder<Company> _uniquePersistenceFinderByWebId;
 
 	/**
 	 * Returns the company where webId = &#63; or throws a <code>NoSuchCompanyException</code> if it could not be found.
@@ -92,15 +89,20 @@ public class CompanyPersistenceImpl
 		Company company = fetchByWebId(webId);
 
 		if (company == null) {
-			String message =
-				_uniquePersistenceFinderByWebId.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {webId});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("webId=");
+			sb.append(webId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchCompanyException(message);
+			throw new NoSuchCompanyException(sb.toString());
 		}
 
 		return company;
@@ -126,9 +128,90 @@ public class CompanyPersistenceImpl
 	 */
 	@Override
 	public Company fetchByWebId(String webId, boolean useFinderCache) {
-		return _uniquePersistenceFinderByWebId.fetch(
-			FinderCacheUtil.getFinderCache(), new Object[] {webId},
-			useFinderCache);
+		webId = Objects.toString(webId, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {webId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = FinderCacheUtil.getResult(
+				_finderPathFetchByWebId, finderArgs, this);
+		}
+
+		if (result instanceof Company) {
+			Company company = (Company)result;
+
+			if (!Objects.equals(webId, company.getWebId())) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_COMPANY_WHERE);
+
+			boolean bindWebId = false;
+
+			if (webId.isEmpty()) {
+				sb.append(_FINDER_COLUMN_WEBID_WEBID_3);
+			}
+			else {
+				bindWebId = true;
+
+				sb.append(_FINDER_COLUMN_WEBID_WEBID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindWebId) {
+					queryPos.add(webId);
+				}
+
+				List<Company> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(
+							_finderPathFetchByWebId, finderArgs, list);
+					}
+				}
+				else {
+					Company company = list.get(0);
+
+					result = company;
+
+					cacheResult(company);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (Company)result;
+		}
 	}
 
 	/**
@@ -152,15 +235,24 @@ public class CompanyPersistenceImpl
 	 */
 	@Override
 	public int countByWebId(String webId) {
-		return _uniquePersistenceFinderByWebId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {webId});
+		Company company = fetchByWebId(webId);
+
+		if (company == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_WEBID_WEBID_2 =
+		"company.webId = ?";
+
+	private static final String _FINDER_COLUMN_WEBID_WEBID_3 =
+		"(company.webId IS NULL OR company.webId = '')";
 
 	private FinderPath _finderPathWithPaginationFindByLogoId;
 	private FinderPath _finderPathWithoutPaginationFindByLogoId;
 	private FinderPath _finderPathCountByLogoId;
-	private CollectionPersistenceFinder<Company>
-		_collectionPersistenceFinderByLogoId;
 
 	/**
 	 * Returns all the companies where logoId = &#63;.
@@ -230,9 +322,93 @@ public class CompanyPersistenceImpl
 		long logoId, int start, int end,
 		OrderByComparator<Company> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLogoId.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {logoId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByLogoId;
+				finderArgs = new Object[] {logoId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByLogoId;
+			finderArgs = new Object[] {logoId, start, end, orderByComparator};
+		}
+
+		List<Company> list = null;
+
+		if (useFinderCache) {
+			list = (List<Company>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Company company : list) {
+					if (logoId != company.getLogoId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_COMPANY_WHERE);
+
+			sb.append(_FINDER_COLUMN_LOGOID_LOGOID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CompanyModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(logoId);
+
+				list = (List<Company>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -254,9 +430,16 @@ public class CompanyPersistenceImpl
 			return company;
 		}
 
-		throw new NoSuchCompanyException(
-			_collectionPersistenceFinderByLogoId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {logoId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("logoId=");
+		sb.append(logoId);
+
+		sb.append("}");
+
+		throw new NoSuchCompanyException(sb.toString());
 	}
 
 	/**
@@ -270,9 +453,13 @@ public class CompanyPersistenceImpl
 	public Company fetchByLogoId_First(
 		long logoId, OrderByComparator<Company> orderByComparator) {
 
-		return _collectionPersistenceFinderByLogoId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {logoId},
-			orderByComparator);
+		List<Company> list = findByLogoId(logoId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -282,8 +469,12 @@ public class CompanyPersistenceImpl
 	 */
 	@Override
 	public void removeByLogoId(long logoId) {
-		_collectionPersistenceFinderByLogoId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {logoId});
+		for (Company company :
+				findByLogoId(
+					logoId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(company);
+		}
 	}
 
 	/**
@@ -294,9 +485,50 @@ public class CompanyPersistenceImpl
 	 */
 	@Override
 	public int countByLogoId(long logoId) {
-		return _collectionPersistenceFinderByLogoId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {logoId});
+		FinderPath finderPath = _finderPathCountByLogoId;
+
+		Object[] finderArgs = new Object[] {logoId};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_COMPANY_WHERE);
+
+			sb.append(_FINDER_COLUMN_LOGOID_LOGOID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(logoId);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_LOGOID_LOGOID_2 =
+		"company.logoId = ?";
 
 	public CompanyPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -367,6 +599,48 @@ public class CompanyPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all companies.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(CompanyImpl.class);
+
+		FinderCacheUtil.clearCache(CompanyImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the company.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(Company company) {
+		EntityCacheUtil.removeResult(CompanyImpl.class, company);
+	}
+
+	@Override
+	public void clearCache(List<Company> companies) {
+		for (Company company : companies) {
+			EntityCacheUtil.removeResult(CompanyImpl.class, company);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(CompanyImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(CompanyImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(CompanyModelImpl companyModelImpl) {
 		Object[] args = new Object[] {companyModelImpl.getWebId()};
 
@@ -400,6 +674,47 @@ public class CompanyPersistenceImpl
 	@Override
 	public Company remove(long companyId) throws NoSuchCompanyException {
 		return remove((Serializable)companyId);
+	}
+
+	/**
+	 * Removes the company with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the company
+	 * @return the company that was removed
+	 * @throws NoSuchCompanyException if a company with the primary key could not be found
+	 */
+	@Override
+	public Company remove(Serializable primaryKey)
+		throws NoSuchCompanyException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Company company = (Company)session.get(
+				CompanyImpl.class, primaryKey);
+
+			if (company == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCompanyException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(company);
+		}
+		catch (NoSuchCompanyException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -506,6 +821,31 @@ public class CompanyPersistenceImpl
 		}
 
 		company.resetOriginalValues();
+
+		return company;
+	}
+
+	/**
+	 * Returns the company with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the company
+	 * @return the company
+	 * @throws NoSuchCompanyException if a company with the primary key could not be found
+	 */
+	@Override
+	public Company findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCompanyException {
+
+		Company company = fetchByPrimaryKey(primaryKey);
+
+		if (company == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCompanyException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return company;
 	}
@@ -763,12 +1103,6 @@ public class CompanyPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"webId"},
 			true);
 
-		_uniquePersistenceFinderByWebId = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByWebId, _SQL_SELECT_COMPANY_WHERE,
-			new FinderColumn<>(
-				"company.", "webId", FinderColumn.Type.STRING, "=", true, true,
-				Company::getWebId));
-
 		_finderPathWithPaginationFindByLogoId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLogoId",
 			new String[] {
@@ -785,17 +1119,6 @@ public class CompanyPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByLogoId",
 			new String[] {Long.class.getName()}, new String[] {"logoId"},
 			false);
-
-		_collectionPersistenceFinderByLogoId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLogoId,
-				_finderPathWithoutPaginationFindByLogoId,
-				_finderPathCountByLogoId, _SQL_SELECT_COMPANY_WHERE,
-				_SQL_COUNT_COMPANY_WHERE, CompanyModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"company.", "logoId", FinderColumn.Type.LONG, "=", true,
-					true, Company::getLogoId));
 
 		CompanyUtil.setPersistence(this);
 	}
@@ -820,6 +1143,9 @@ public class CompanyPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "company.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No Company exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No Company exists with the key {";
 
@@ -835,4 +1161,4 @@ public class CompanyPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-611865837
+// LIFERAY-SERVICE-BUILDER-HASH:-1451198161

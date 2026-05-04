@@ -570,4 +570,4 @@ public class OrganizationServiceWrapper
 	private OrganizationService _organizationService;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1102244177
+// LIFERAY-SERVICE-BUILDER-HASH:958100657

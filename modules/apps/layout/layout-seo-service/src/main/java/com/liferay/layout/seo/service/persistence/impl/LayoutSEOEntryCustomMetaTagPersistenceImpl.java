@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -30,8 +31,6 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -45,7 +44,9 @@ import java.lang.reflect.InvocationHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,8 +70,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = LayoutSEOEntryCustomMetaTagPersistence.class)
 public class LayoutSEOEntryCustomMetaTagPersistenceImpl
-	extends BasePersistenceImpl
-		<LayoutSEOEntryCustomMetaTag, NoSuchEntryCustomMetaTagException>
+	extends BasePersistenceImpl<LayoutSEOEntryCustomMetaTag>
 	implements LayoutSEOEntryCustomMetaTagPersistence {
 
 	/*
@@ -93,8 +93,6 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_L;
 	private FinderPath _finderPathWithoutPaginationFindByG_L;
 	private FinderPath _finderPathCountByG_L;
-	private CollectionPersistenceFinder<LayoutSEOEntryCustomMetaTag>
-		_collectionPersistenceFinderByG_L;
 
 	/**
 	 * Returns all the layout seo entry custom meta tags where groupId = &#63; and layoutSEOEntryId = &#63;.
@@ -180,9 +178,107 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					LayoutSEOEntryCustomMetaTag.class)) {
 
-			return _collectionPersistenceFinderByG_L.find(
-				finderCache, new Object[] {groupId, layoutSEOEntryId}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_L;
+					finderArgs = new Object[] {groupId, layoutSEOEntryId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_L;
+				finderArgs = new Object[] {
+					groupId, layoutSEOEntryId, start, end, orderByComparator
+				};
+			}
+
+			List<LayoutSEOEntryCustomMetaTag> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutSEOEntryCustomMetaTag>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutSEOEntryCustomMetaTag
+							layoutSEOEntryCustomMetaTag : list) {
+
+						if ((groupId !=
+								layoutSEOEntryCustomMetaTag.getGroupId()) ||
+							(layoutSEOEntryId !=
+								layoutSEOEntryCustomMetaTag.
+									getLayoutSEOEntryId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTSEOENTRYCUSTOMMETATAG_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_L_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_L_LAYOUTSEOENTRYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(
+						LayoutSEOEntryCustomMetaTagModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(layoutSEOEntryId);
+
+					list = (List<LayoutSEOEntryCustomMetaTag>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -208,10 +304,19 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 			return layoutSEOEntryCustomMetaTag;
 		}
 
-		throw new NoSuchEntryCustomMetaTagException(
-			_collectionPersistenceFinderByG_L.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, layoutSEOEntryId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", layoutSEOEntryId=");
+		sb.append(layoutSEOEntryId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryCustomMetaTagException(sb.toString());
 	}
 
 	/**
@@ -227,9 +332,14 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 		long groupId, long layoutSEOEntryId,
 		OrderByComparator<LayoutSEOEntryCustomMetaTag> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_L.fetchFirst(
-			finderCache, new Object[] {groupId, layoutSEOEntryId},
-			orderByComparator);
+		List<LayoutSEOEntryCustomMetaTag> list = findByG_L(
+			groupId, layoutSEOEntryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -240,8 +350,13 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 	 */
 	@Override
 	public void removeByG_L(long groupId, long layoutSEOEntryId) {
-		_collectionPersistenceFinderByG_L.remove(
-			finderCache, new Object[] {groupId, layoutSEOEntryId});
+		for (LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag :
+				findByG_L(
+					groupId, layoutSEOEntryId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(layoutSEOEntryCustomMetaTag);
+		}
 	}
 
 	/**
@@ -257,10 +372,58 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					LayoutSEOEntryCustomMetaTag.class)) {
 
-			return _collectionPersistenceFinderByG_L.count(
-				finderCache, new Object[] {groupId, layoutSEOEntryId});
+			FinderPath finderPath = _finderPathCountByG_L;
+
+			Object[] finderArgs = new Object[] {groupId, layoutSEOEntryId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_LAYOUTSEOENTRYCUSTOMMETATAG_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_L_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_L_LAYOUTSEOENTRYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(layoutSEOEntryId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_G_L_GROUPID_2 =
+		"layoutSEOEntryCustomMetaTag.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_L_LAYOUTSEOENTRYID_2 =
+		"layoutSEOEntryCustomMetaTag.layoutSEOEntryId = ?";
 
 	public LayoutSEOEntryCustomMetaTagPersistenceImpl() {
 		setModelClass(LayoutSEOEntryCustomMetaTag.class);
@@ -328,6 +491,58 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all layout seo entry custom meta tags.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(LayoutSEOEntryCustomMetaTagImpl.class);
+
+		finderCache.clearCache(LayoutSEOEntryCustomMetaTagImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the layout seo entry custom meta tag.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag) {
+
+		entityCache.removeResult(
+			LayoutSEOEntryCustomMetaTagImpl.class, layoutSEOEntryCustomMetaTag);
+	}
+
+	@Override
+	public void clearCache(
+		List<LayoutSEOEntryCustomMetaTag> layoutSEOEntryCustomMetaTags) {
+
+		for (LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag :
+				layoutSEOEntryCustomMetaTags) {
+
+			entityCache.removeResult(
+				LayoutSEOEntryCustomMetaTagImpl.class,
+				layoutSEOEntryCustomMetaTag);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(LayoutSEOEntryCustomMetaTagImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				LayoutSEOEntryCustomMetaTagImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new layout seo entry custom meta tag with the primary key. Does not add the layout seo entry custom meta tag to the database.
 	 *
 	 * @param layoutSEOEntryCustomMetaTagId the primary key for the new layout seo entry custom meta tag
@@ -363,6 +578,48 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 		throws NoSuchEntryCustomMetaTagException {
 
 		return remove((Serializable)layoutSEOEntryCustomMetaTagId);
+	}
+
+	/**
+	 * Removes the layout seo entry custom meta tag with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the layout seo entry custom meta tag
+	 * @return the layout seo entry custom meta tag that was removed
+	 * @throws NoSuchEntryCustomMetaTagException if a layout seo entry custom meta tag with the primary key could not be found
+	 */
+	@Override
+	public LayoutSEOEntryCustomMetaTag remove(Serializable primaryKey)
+		throws NoSuchEntryCustomMetaTagException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag =
+				(LayoutSEOEntryCustomMetaTag)session.get(
+					LayoutSEOEntryCustomMetaTagImpl.class, primaryKey);
+
+			if (layoutSEOEntryCustomMetaTag == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchEntryCustomMetaTagException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(layoutSEOEntryCustomMetaTag);
+		}
+		catch (NoSuchEntryCustomMetaTagException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -474,6 +731,32 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 	}
 
 	/**
+	 * Returns the layout seo entry custom meta tag with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the layout seo entry custom meta tag
+	 * @return the layout seo entry custom meta tag
+	 * @throws NoSuchEntryCustomMetaTagException if a layout seo entry custom meta tag with the primary key could not be found
+	 */
+	@Override
+	public LayoutSEOEntryCustomMetaTag findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchEntryCustomMetaTagException {
+
+		LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag =
+			fetchByPrimaryKey(primaryKey);
+
+		if (layoutSEOEntryCustomMetaTag == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchEntryCustomMetaTagException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return layoutSEOEntryCustomMetaTag;
+	}
+
+	/**
 	 * Returns the layout seo entry custom meta tag with the primary key or throws a <code>NoSuchEntryCustomMetaTagException</code> if it could not be found.
 	 *
 	 * @param layoutSEOEntryCustomMetaTagId the primary key of the layout seo entry custom meta tag
@@ -488,9 +771,56 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 		return findByPrimaryKey((Serializable)layoutSEOEntryCustomMetaTagId);
 	}
 
+	/**
+	 * Returns the layout seo entry custom meta tag with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the layout seo entry custom meta tag
+	 * @return the layout seo entry custom meta tag, or <code>null</code> if a layout seo entry custom meta tag with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public LayoutSEOEntryCustomMetaTag fetchByPrimaryKey(
+		Serializable primaryKey) {
+
+		if (ctPersistenceHelper.isProductionMode(
+				LayoutSEOEntryCustomMetaTag.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag =
+			(LayoutSEOEntryCustomMetaTag)entityCache.getResult(
+				LayoutSEOEntryCustomMetaTagImpl.class, primaryKey);
+
+		if (layoutSEOEntryCustomMetaTag != null) {
+			return layoutSEOEntryCustomMetaTag;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			layoutSEOEntryCustomMetaTag =
+				(LayoutSEOEntryCustomMetaTag)session.get(
+					LayoutSEOEntryCustomMetaTagImpl.class, primaryKey);
+
+			if (layoutSEOEntryCustomMetaTag != null) {
+				cacheResult(layoutSEOEntryCustomMetaTag);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return layoutSEOEntryCustomMetaTag;
 	}
 
 	/**
@@ -504,6 +834,137 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 		long layoutSEOEntryCustomMetaTagId) {
 
 		return fetchByPrimaryKey((Serializable)layoutSEOEntryCustomMetaTagId);
+	}
+
+	@Override
+	public Map<Serializable, LayoutSEOEntryCustomMetaTag> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(
+				LayoutSEOEntryCustomMetaTag.class)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, LayoutSEOEntryCustomMetaTag> map =
+			new HashMap<Serializable, LayoutSEOEntryCustomMetaTag>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag =
+				fetchByPrimaryKey(primaryKey);
+
+			if (layoutSEOEntryCustomMetaTag != null) {
+				map.put(primaryKey, layoutSEOEntryCustomMetaTag);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						LayoutSEOEntryCustomMetaTag.class, primaryKey)) {
+
+				LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag =
+					(LayoutSEOEntryCustomMetaTag)entityCache.getResult(
+						LayoutSEOEntryCustomMetaTagImpl.class, primaryKey);
+
+				if (layoutSEOEntryCustomMetaTag == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, layoutSEOEntryCustomMetaTag);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (LayoutSEOEntryCustomMetaTag layoutSEOEntryCustomMetaTag :
+					(List<LayoutSEOEntryCustomMetaTag>)query.list()) {
+
+				map.put(
+					layoutSEOEntryCustomMetaTag.getPrimaryKeyObj(),
+					layoutSEOEntryCustomMetaTag);
+
+				cacheResult(layoutSEOEntryCustomMetaTag);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -814,22 +1275,6 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"groupId", "layoutSEOEntryId"}, false);
 
-		_collectionPersistenceFinderByG_L = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_L,
-			_finderPathWithoutPaginationFindByG_L, _finderPathCountByG_L,
-			_SQL_SELECT_LAYOUTSEOENTRYCUSTOMMETATAG_WHERE,
-			_SQL_COUNT_LAYOUTSEOENTRYCUSTOMMETATAG_WHERE,
-			LayoutSEOEntryCustomMetaTagModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"layoutSEOEntryCustomMetaTag.", "groupId",
-				FinderColumn.Type.LONG, "=", true, false,
-				LayoutSEOEntryCustomMetaTag::getGroupId),
-			new FinderColumn<>(
-				"layoutSEOEntryCustomMetaTag.", "layoutSEOEntryId",
-				FinderColumn.Type.LONG, "=", true, true,
-				LayoutSEOEntryCustomMetaTag::getLayoutSEOEntryId));
-
 		LayoutSEOEntryCustomMetaTagUtil.setPersistence(this);
 	}
 
@@ -891,6 +1336,9 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"layoutSEOEntryCustomMetaTag.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No LayoutSEOEntryCustomMetaTag exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No LayoutSEOEntryCustomMetaTag exists with the key {";
 
@@ -903,4 +1351,4 @@ public class LayoutSEOEntryCustomMetaTagPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:834345193
+// LIFERAY-SERVICE-BUILDER-HASH:504932636

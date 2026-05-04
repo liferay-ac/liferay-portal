@@ -55,4 +55,4 @@ public interface ERAssetCategoryLocalService extends BaseLocalService {
 	public String getOSGiServiceIdentifier();
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1535744339
+// LIFERAY-SERVICE-BUILDER-HASH:648443795

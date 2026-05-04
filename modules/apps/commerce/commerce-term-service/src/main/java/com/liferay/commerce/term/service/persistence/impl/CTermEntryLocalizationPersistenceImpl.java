@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -31,9 +32,6 @@ import com.liferay.portal.kernel.sanitizer.SanitizerUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -47,6 +45,8 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -67,8 +67,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTermEntryLocalizationPersistence.class)
 public class CTermEntryLocalizationPersistenceImpl
-	extends BasePersistenceImpl
-		<CTermEntryLocalization, NoSuchCTermEntryLocalizationException>
+	extends BasePersistenceImpl<CTermEntryLocalization>
 	implements CTermEntryLocalizationPersistence {
 
 	/*
@@ -91,8 +90,6 @@ public class CTermEntryLocalizationPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCommerceTermEntryId;
 	private FinderPath _finderPathWithoutPaginationFindByCommerceTermEntryId;
 	private FinderPath _finderPathCountByCommerceTermEntryId;
-	private CollectionPersistenceFinder<CTermEntryLocalization>
-		_collectionPersistenceFinderByCommerceTermEntryId;
 
 	/**
 	 * Returns all the c term entry localizations where commerceTermEntryId = &#63;.
@@ -169,9 +166,98 @@ public class CTermEntryLocalizationPersistenceImpl
 		OrderByComparator<CTermEntryLocalization> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCommerceTermEntryId.find(
-			finderCache, new Object[] {commerceTermEntryId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByCommerceTermEntryId;
+				finderArgs = new Object[] {commerceTermEntryId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCommerceTermEntryId;
+			finderArgs = new Object[] {
+				commerceTermEntryId, start, end, orderByComparator
+			};
+		}
+
+		List<CTermEntryLocalization> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTermEntryLocalization>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTermEntryLocalization cTermEntryLocalization : list) {
+					if (commerceTermEntryId !=
+							cTermEntryLocalization.getCommerceTermEntryId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTERMENTRYLOCALIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMMERCETERMENTRYID_COMMERCETERMENTRYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTermEntryLocalizationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(commerceTermEntryId);
+
+				list = (List<CTermEntryLocalization>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -196,11 +282,16 @@ public class CTermEntryLocalizationPersistenceImpl
 			return cTermEntryLocalization;
 		}
 
-		throw new NoSuchCTermEntryLocalizationException(
-			_collectionPersistenceFinderByCommerceTermEntryId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {commerceTermEntryId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("commerceTermEntryId=");
+		sb.append(commerceTermEntryId);
+
+		sb.append("}");
+
+		throw new NoSuchCTermEntryLocalizationException(sb.toString());
 	}
 
 	/**
@@ -215,8 +306,14 @@ public class CTermEntryLocalizationPersistenceImpl
 		long commerceTermEntryId,
 		OrderByComparator<CTermEntryLocalization> orderByComparator) {
 
-		return _collectionPersistenceFinderByCommerceTermEntryId.fetchFirst(
-			finderCache, new Object[] {commerceTermEntryId}, orderByComparator);
+		List<CTermEntryLocalization> list = findByCommerceTermEntryId(
+			commerceTermEntryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -226,8 +323,13 @@ public class CTermEntryLocalizationPersistenceImpl
 	 */
 	@Override
 	public void removeByCommerceTermEntryId(long commerceTermEntryId) {
-		_collectionPersistenceFinderByCommerceTermEntryId.remove(
-			finderCache, new Object[] {commerceTermEntryId});
+		for (CTermEntryLocalization cTermEntryLocalization :
+				findByCommerceTermEntryId(
+					commerceTermEntryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(cTermEntryLocalization);
+		}
 	}
 
 	/**
@@ -238,13 +340,52 @@ public class CTermEntryLocalizationPersistenceImpl
 	 */
 	@Override
 	public int countByCommerceTermEntryId(long commerceTermEntryId) {
-		return _collectionPersistenceFinderByCommerceTermEntryId.count(
-			finderCache, new Object[] {commerceTermEntryId});
+		FinderPath finderPath = _finderPathCountByCommerceTermEntryId;
+
+		Object[] finderArgs = new Object[] {commerceTermEntryId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTERMENTRYLOCALIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMMERCETERMENTRYID_COMMERCETERMENTRYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(commerceTermEntryId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String
+		_FINDER_COLUMN_COMMERCETERMENTRYID_COMMERCETERMENTRYID_2 =
+			"cTermEntryLocalization.commerceTermEntryId = ?";
+
 	private FinderPath _finderPathFetchByCommerceTermEntryId_LanguageId;
-	private UniquePersistenceFinder<CTermEntryLocalization>
-		_uniquePersistenceFinderByCommerceTermEntryId_LanguageId;
 
 	/**
 	 * Returns the c term entry localization where commerceTermEntryId = &#63; and languageId = &#63; or throws a <code>NoSuchCTermEntryLocalizationException</code> if it could not be found.
@@ -264,17 +405,23 @@ public class CTermEntryLocalizationPersistenceImpl
 				commerceTermEntryId, languageId);
 
 		if (cTermEntryLocalization == null) {
-			String message =
-				_uniquePersistenceFinderByCommerceTermEntryId_LanguageId.
-					buildNoSuchKeyMessage(
-						_NO_SUCH_ENTITY_WITH_KEY,
-						new Object[] {commerceTermEntryId, languageId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("commerceTermEntryId=");
+			sb.append(commerceTermEntryId);
+
+			sb.append(", languageId=");
+			sb.append(languageId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchCTermEntryLocalizationException(message);
+			throw new NoSuchCTermEntryLocalizationException(sb.toString());
 		}
 
 		return cTermEntryLocalization;
@@ -307,9 +454,104 @@ public class CTermEntryLocalizationPersistenceImpl
 	public CTermEntryLocalization fetchByCommerceTermEntryId_LanguageId(
 		long commerceTermEntryId, String languageId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByCommerceTermEntryId_LanguageId.fetch(
-			finderCache, new Object[] {commerceTermEntryId, languageId},
-			useFinderCache);
+		languageId = Objects.toString(languageId, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {commerceTermEntryId, languageId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByCommerceTermEntryId_LanguageId, finderArgs,
+				this);
+		}
+
+		if (result instanceof CTermEntryLocalization) {
+			CTermEntryLocalization cTermEntryLocalization =
+				(CTermEntryLocalization)result;
+
+			if ((commerceTermEntryId !=
+					cTermEntryLocalization.getCommerceTermEntryId()) ||
+				!Objects.equals(
+					languageId, cTermEntryLocalization.getLanguageId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_CTERMENTRYLOCALIZATION_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_COMMERCETERMENTRYID_LANGUAGEID_COMMERCETERMENTRYID_2);
+
+			boolean bindLanguageId = false;
+
+			if (languageId.isEmpty()) {
+				sb.append(
+					_FINDER_COLUMN_COMMERCETERMENTRYID_LANGUAGEID_LANGUAGEID_3);
+			}
+			else {
+				bindLanguageId = true;
+
+				sb.append(
+					_FINDER_COLUMN_COMMERCETERMENTRYID_LANGUAGEID_LANGUAGEID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(commerceTermEntryId);
+
+				if (bindLanguageId) {
+					queryPos.add(languageId);
+				}
+
+				List<CTermEntryLocalization> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByCommerceTermEntryId_LanguageId,
+							finderArgs, list);
+					}
+				}
+				else {
+					CTermEntryLocalization cTermEntryLocalization = list.get(0);
+
+					result = cTermEntryLocalization;
+
+					cacheResult(cTermEntryLocalization);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CTermEntryLocalization)result;
+		}
 	}
 
 	/**
@@ -342,9 +584,28 @@ public class CTermEntryLocalizationPersistenceImpl
 	public int countByCommerceTermEntryId_LanguageId(
 		long commerceTermEntryId, String languageId) {
 
-		return _uniquePersistenceFinderByCommerceTermEntryId_LanguageId.count(
-			finderCache, new Object[] {commerceTermEntryId, languageId});
+		CTermEntryLocalization cTermEntryLocalization =
+			fetchByCommerceTermEntryId_LanguageId(
+				commerceTermEntryId, languageId);
+
+		if (cTermEntryLocalization == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_COMMERCETERMENTRYID_LANGUAGEID_COMMERCETERMENTRYID_2 =
+			"cTermEntryLocalization.commerceTermEntryId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_COMMERCETERMENTRYID_LANGUAGEID_LANGUAGEID_2 =
+			"cTermEntryLocalization.languageId = ?";
+
+	private static final String
+		_FINDER_COLUMN_COMMERCETERMENTRYID_LANGUAGEID_LANGUAGEID_3 =
+			"(cTermEntryLocalization.languageId IS NULL OR cTermEntryLocalization.languageId = '')";
 
 	public CTermEntryLocalizationPersistenceImpl() {
 		setModelClass(CTermEntryLocalization.class);
@@ -406,6 +667,55 @@ public class CTermEntryLocalizationPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all c term entry localizations.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTermEntryLocalizationImpl.class);
+
+		finderCache.clearCache(CTermEntryLocalizationImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the c term entry localization.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTermEntryLocalization cTermEntryLocalization) {
+		entityCache.removeResult(
+			CTermEntryLocalizationImpl.class, cTermEntryLocalization);
+	}
+
+	@Override
+	public void clearCache(
+		List<CTermEntryLocalization> cTermEntryLocalizations) {
+
+		for (CTermEntryLocalization cTermEntryLocalization :
+				cTermEntryLocalizations) {
+
+			entityCache.removeResult(
+				CTermEntryLocalizationImpl.class, cTermEntryLocalization);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTermEntryLocalizationImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				CTermEntryLocalizationImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CTermEntryLocalizationModelImpl cTermEntryLocalizationModelImpl) {
 
@@ -450,6 +760,48 @@ public class CTermEntryLocalizationPersistenceImpl
 		throws NoSuchCTermEntryLocalizationException {
 
 		return remove((Serializable)cTermEntryLocalizationId);
+	}
+
+	/**
+	 * Removes the c term entry localization with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the c term entry localization
+	 * @return the c term entry localization that was removed
+	 * @throws NoSuchCTermEntryLocalizationException if a c term entry localization with the primary key could not be found
+	 */
+	@Override
+	public CTermEntryLocalization remove(Serializable primaryKey)
+		throws NoSuchCTermEntryLocalizationException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTermEntryLocalization cTermEntryLocalization =
+				(CTermEntryLocalization)session.get(
+					CTermEntryLocalizationImpl.class, primaryKey);
+
+			if (cTermEntryLocalization == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCTermEntryLocalizationException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(cTermEntryLocalization);
+		}
+		catch (NoSuchCTermEntryLocalizationException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -580,6 +932,32 @@ public class CTermEntryLocalizationPersistenceImpl
 		}
 
 		cTermEntryLocalization.resetOriginalValues();
+
+		return cTermEntryLocalization;
+	}
+
+	/**
+	 * Returns the c term entry localization with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the c term entry localization
+	 * @return the c term entry localization
+	 * @throws NoSuchCTermEntryLocalizationException if a c term entry localization with the primary key could not be found
+	 */
+	@Override
+	public CTermEntryLocalization findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCTermEntryLocalizationException {
+
+		CTermEntryLocalization cTermEntryLocalization = fetchByPrimaryKey(
+			primaryKey);
+
+		if (cTermEntryLocalization == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCTermEntryLocalizationException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return cTermEntryLocalization;
 	}
@@ -852,37 +1230,10 @@ public class CTermEntryLocalizationPersistenceImpl
 			"countByCommerceTermEntryId", new String[] {Long.class.getName()},
 			new String[] {"commerceTermEntryId"}, false);
 
-		_collectionPersistenceFinderByCommerceTermEntryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCommerceTermEntryId,
-				_finderPathWithoutPaginationFindByCommerceTermEntryId,
-				_finderPathCountByCommerceTermEntryId,
-				_SQL_SELECT_CTERMENTRYLOCALIZATION_WHERE,
-				_SQL_COUNT_CTERMENTRYLOCALIZATION_WHERE,
-				CTermEntryLocalizationModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"cTermEntryLocalization.", "commerceTermEntryId",
-					FinderColumn.Type.LONG, "=", true, true,
-					CTermEntryLocalization::getCommerceTermEntryId));
-
 		_finderPathFetchByCommerceTermEntryId_LanguageId = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByCommerceTermEntryId_LanguageId",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"commerceTermEntryId", "languageId"}, true);
-
-		_uniquePersistenceFinderByCommerceTermEntryId_LanguageId =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByCommerceTermEntryId_LanguageId,
-				_SQL_SELECT_CTERMENTRYLOCALIZATION_WHERE,
-				new FinderColumn<>(
-					"cTermEntryLocalization.", "commerceTermEntryId",
-					FinderColumn.Type.LONG, "=", true, false,
-					CTermEntryLocalization::getCommerceTermEntryId),
-				new FinderColumn<>(
-					"cTermEntryLocalization.", "languageId",
-					FinderColumn.Type.STRING, "=", true, true,
-					CTermEntryLocalization::getLanguageId));
 
 		CTermEntryLocalizationUtil.setPersistence(this);
 	}
@@ -941,6 +1292,9 @@ public class CTermEntryLocalizationPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"cTermEntryLocalization.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTermEntryLocalization exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTermEntryLocalization exists with the key {";
 
@@ -953,4 +1307,4 @@ public class CTermEntryLocalizationPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-237957373
+// LIFERAY-SERVICE-BUILDER-HASH:1227256571

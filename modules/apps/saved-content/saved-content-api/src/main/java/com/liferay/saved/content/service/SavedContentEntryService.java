@@ -87,4 +87,4 @@ public interface SavedContentEntryService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:731484033
+// LIFERAY-SERVICE-BUILDER-HASH:229691391

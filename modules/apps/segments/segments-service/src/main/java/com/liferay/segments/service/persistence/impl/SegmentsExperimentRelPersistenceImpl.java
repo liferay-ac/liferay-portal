@@ -14,6 +14,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -24,9 +25,6 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -49,7 +47,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,8 +73,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = SegmentsExperimentRelPersistence.class)
 public class SegmentsExperimentRelPersistenceImpl
-	extends BasePersistenceImpl
-		<SegmentsExperimentRel, NoSuchExperimentRelException>
+	extends BasePersistenceImpl<SegmentsExperimentRel>
 	implements SegmentsExperimentRelPersistence {
 
 	/*
@@ -97,8 +96,6 @@ public class SegmentsExperimentRelPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindBySegmentsExperimentId;
 	private FinderPath _finderPathWithoutPaginationFindBySegmentsExperimentId;
 	private FinderPath _finderPathCountBySegmentsExperimentId;
-	private CollectionPersistenceFinder<SegmentsExperimentRel>
-		_collectionPersistenceFinderBySegmentsExperimentId;
 
 	/**
 	 * Returns all the segments experiment rels where segmentsExperimentId = &#63;.
@@ -180,9 +177,101 @@ public class SegmentsExperimentRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					SegmentsExperimentRel.class)) {
 
-			return _collectionPersistenceFinderBySegmentsExperimentId.find(
-				finderCache, new Object[] {segmentsExperimentId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindBySegmentsExperimentId;
+					finderArgs = new Object[] {segmentsExperimentId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath =
+					_finderPathWithPaginationFindBySegmentsExperimentId;
+				finderArgs = new Object[] {
+					segmentsExperimentId, start, end, orderByComparator
+				};
+			}
+
+			List<SegmentsExperimentRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<SegmentsExperimentRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (SegmentsExperimentRel segmentsExperimentRel : list) {
+						if (segmentsExperimentId !=
+								segmentsExperimentRel.
+									getSegmentsExperimentId()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_SEGMENTSEXPERIMENTREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_SEGMENTSEXPERIMENTID_SEGMENTSEXPERIMENTID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(SegmentsExperimentRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(segmentsExperimentId);
+
+					list = (List<SegmentsExperimentRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -208,11 +297,16 @@ public class SegmentsExperimentRelPersistenceImpl
 			return segmentsExperimentRel;
 		}
 
-		throw new NoSuchExperimentRelException(
-			_collectionPersistenceFinderBySegmentsExperimentId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {segmentsExperimentId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("segmentsExperimentId=");
+		sb.append(segmentsExperimentId);
+
+		sb.append("}");
+
+		throw new NoSuchExperimentRelException(sb.toString());
 	}
 
 	/**
@@ -227,9 +321,14 @@ public class SegmentsExperimentRelPersistenceImpl
 		long segmentsExperimentId,
 		OrderByComparator<SegmentsExperimentRel> orderByComparator) {
 
-		return _collectionPersistenceFinderBySegmentsExperimentId.fetchFirst(
-			finderCache, new Object[] {segmentsExperimentId},
-			orderByComparator);
+		List<SegmentsExperimentRel> list = findBySegmentsExperimentId(
+			segmentsExperimentId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -239,8 +338,13 @@ public class SegmentsExperimentRelPersistenceImpl
 	 */
 	@Override
 	public void removeBySegmentsExperimentId(long segmentsExperimentId) {
-		_collectionPersistenceFinderBySegmentsExperimentId.remove(
-			finderCache, new Object[] {segmentsExperimentId});
+		for (SegmentsExperimentRel segmentsExperimentRel :
+				findBySegmentsExperimentId(
+					segmentsExperimentId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(segmentsExperimentRel);
+		}
 	}
 
 	/**
@@ -255,16 +359,57 @@ public class SegmentsExperimentRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					SegmentsExperimentRel.class)) {
 
-			return _collectionPersistenceFinderBySegmentsExperimentId.count(
-				finderCache, new Object[] {segmentsExperimentId});
+			FinderPath finderPath = _finderPathCountBySegmentsExperimentId;
+
+			Object[] finderArgs = new Object[] {segmentsExperimentId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_SEGMENTSEXPERIMENTREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_SEGMENTSEXPERIMENTID_SEGMENTSEXPERIMENTID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(segmentsExperimentId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String
+		_FINDER_COLUMN_SEGMENTSEXPERIMENTID_SEGMENTSEXPERIMENTID_2 =
+			"segmentsExperimentRel.segmentsExperimentId = ?";
 
 	private FinderPath _finderPathWithPaginationFindBySegmentsExperienceId;
 	private FinderPath _finderPathWithoutPaginationFindBySegmentsExperienceId;
 	private FinderPath _finderPathCountBySegmentsExperienceId;
-	private CollectionPersistenceFinder<SegmentsExperimentRel>
-		_collectionPersistenceFinderBySegmentsExperienceId;
 
 	/**
 	 * Returns all the segments experiment rels where segmentsExperienceId = &#63;.
@@ -346,9 +491,101 @@ public class SegmentsExperimentRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					SegmentsExperimentRel.class)) {
 
-			return _collectionPersistenceFinderBySegmentsExperienceId.find(
-				finderCache, new Object[] {segmentsExperienceId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindBySegmentsExperienceId;
+					finderArgs = new Object[] {segmentsExperienceId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath =
+					_finderPathWithPaginationFindBySegmentsExperienceId;
+				finderArgs = new Object[] {
+					segmentsExperienceId, start, end, orderByComparator
+				};
+			}
+
+			List<SegmentsExperimentRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<SegmentsExperimentRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (SegmentsExperimentRel segmentsExperimentRel : list) {
+						if (segmentsExperienceId !=
+								segmentsExperimentRel.
+									getSegmentsExperienceId()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_SEGMENTSEXPERIMENTREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_SEGMENTSEXPERIENCEID_SEGMENTSEXPERIENCEID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(SegmentsExperimentRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(segmentsExperienceId);
+
+					list = (List<SegmentsExperimentRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -374,11 +611,16 @@ public class SegmentsExperimentRelPersistenceImpl
 			return segmentsExperimentRel;
 		}
 
-		throw new NoSuchExperimentRelException(
-			_collectionPersistenceFinderBySegmentsExperienceId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {segmentsExperienceId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("segmentsExperienceId=");
+		sb.append(segmentsExperienceId);
+
+		sb.append("}");
+
+		throw new NoSuchExperimentRelException(sb.toString());
 	}
 
 	/**
@@ -393,9 +635,14 @@ public class SegmentsExperimentRelPersistenceImpl
 		long segmentsExperienceId,
 		OrderByComparator<SegmentsExperimentRel> orderByComparator) {
 
-		return _collectionPersistenceFinderBySegmentsExperienceId.fetchFirst(
-			finderCache, new Object[] {segmentsExperienceId},
-			orderByComparator);
+		List<SegmentsExperimentRel> list = findBySegmentsExperienceId(
+			segmentsExperienceId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -405,8 +652,13 @@ public class SegmentsExperimentRelPersistenceImpl
 	 */
 	@Override
 	public void removeBySegmentsExperienceId(long segmentsExperienceId) {
-		_collectionPersistenceFinderBySegmentsExperienceId.remove(
-			finderCache, new Object[] {segmentsExperienceId});
+		for (SegmentsExperimentRel segmentsExperimentRel :
+				findBySegmentsExperienceId(
+					segmentsExperienceId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(segmentsExperimentRel);
+		}
 	}
 
 	/**
@@ -421,14 +673,55 @@ public class SegmentsExperimentRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					SegmentsExperimentRel.class)) {
 
-			return _collectionPersistenceFinderBySegmentsExperienceId.count(
-				finderCache, new Object[] {segmentsExperienceId});
+			FinderPath finderPath = _finderPathCountBySegmentsExperienceId;
+
+			Object[] finderArgs = new Object[] {segmentsExperienceId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_SEGMENTSEXPERIMENTREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_SEGMENTSEXPERIENCEID_SEGMENTSEXPERIENCEID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(segmentsExperienceId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String
+		_FINDER_COLUMN_SEGMENTSEXPERIENCEID_SEGMENTSEXPERIENCEID_2 =
+			"segmentsExperimentRel.segmentsExperienceId = ?";
+
 	private FinderPath _finderPathFetchByS_S;
-	private UniquePersistenceFinder<SegmentsExperimentRel>
-		_uniquePersistenceFinderByS_S;
 
 	/**
 	 * Returns the segments experiment rel where segmentsExperimentId = &#63; and segmentsExperienceId = &#63; or throws a <code>NoSuchExperimentRelException</code> if it could not be found.
@@ -447,16 +740,23 @@ public class SegmentsExperimentRelPersistenceImpl
 			segmentsExperimentId, segmentsExperienceId);
 
 		if (segmentsExperimentRel == null) {
-			String message =
-				_uniquePersistenceFinderByS_S.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {segmentsExperimentId, segmentsExperienceId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("segmentsExperimentId=");
+			sb.append(segmentsExperimentId);
+
+			sb.append(", segmentsExperienceId=");
+			sb.append(segmentsExperienceId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchExperimentRelException(message);
+			throw new NoSuchExperimentRelException(sb.toString());
 		}
 
 		return segmentsExperimentRel;
@@ -493,10 +793,89 @@ public class SegmentsExperimentRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					SegmentsExperimentRel.class)) {
 
-			return _uniquePersistenceFinderByS_S.fetch(
-				finderCache,
-				new Object[] {segmentsExperimentId, segmentsExperienceId},
-				useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {
+					segmentsExperimentId, segmentsExperienceId
+				};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByS_S, finderArgs, this);
+			}
+
+			if (result instanceof SegmentsExperimentRel) {
+				SegmentsExperimentRel segmentsExperimentRel =
+					(SegmentsExperimentRel)result;
+
+				if ((segmentsExperimentId !=
+						segmentsExperimentRel.getSegmentsExperimentId()) ||
+					(segmentsExperienceId !=
+						segmentsExperimentRel.getSegmentsExperienceId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_SEGMENTSEXPERIMENTREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_S_S_SEGMENTSEXPERIMENTID_2);
+
+				sb.append(_FINDER_COLUMN_S_S_SEGMENTSEXPERIENCEID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(segmentsExperimentId);
+
+					queryPos.add(segmentsExperienceId);
+
+					List<SegmentsExperimentRel> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByS_S, finderArgs, list);
+						}
+					}
+					else {
+						SegmentsExperimentRel segmentsExperimentRel = list.get(
+							0);
+
+						result = segmentsExperimentRel;
+
+						cacheResult(segmentsExperimentRel);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (SegmentsExperimentRel)result;
+			}
 		}
 	}
 
@@ -529,10 +908,21 @@ public class SegmentsExperimentRelPersistenceImpl
 	public int countByS_S(
 		long segmentsExperimentId, long segmentsExperienceId) {
 
-		return _uniquePersistenceFinderByS_S.count(
-			finderCache,
-			new Object[] {segmentsExperimentId, segmentsExperienceId});
+		SegmentsExperimentRel segmentsExperimentRel = fetchByS_S(
+			segmentsExperimentId, segmentsExperienceId);
+
+		if (segmentsExperimentRel == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_S_S_SEGMENTSEXPERIMENTID_2 =
+		"segmentsExperimentRel.segmentsExperimentId = ? AND ";
+
+	private static final String _FINDER_COLUMN_S_S_SEGMENTSEXPERIENCEID_2 =
+		"segmentsExperimentRel.segmentsExperienceId = ?";
 
 	public SegmentsExperimentRelPersistenceImpl() {
 		setModelClass(SegmentsExperimentRel.class);
@@ -604,6 +994,53 @@ public class SegmentsExperimentRelPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all segments experiment rels.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(SegmentsExperimentRelImpl.class);
+
+		finderCache.clearCache(SegmentsExperimentRelImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the segments experiment rel.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(SegmentsExperimentRel segmentsExperimentRel) {
+		entityCache.removeResult(
+			SegmentsExperimentRelImpl.class, segmentsExperimentRel);
+	}
+
+	@Override
+	public void clearCache(List<SegmentsExperimentRel> segmentsExperimentRels) {
+		for (SegmentsExperimentRel segmentsExperimentRel :
+				segmentsExperimentRels) {
+
+			entityCache.removeResult(
+				SegmentsExperimentRelImpl.class, segmentsExperimentRel);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(SegmentsExperimentRelImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				SegmentsExperimentRelImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		SegmentsExperimentRelModelImpl segmentsExperimentRelModelImpl) {
 
@@ -652,6 +1089,48 @@ public class SegmentsExperimentRelPersistenceImpl
 		throws NoSuchExperimentRelException {
 
 		return remove((Serializable)segmentsExperimentRelId);
+	}
+
+	/**
+	 * Removes the segments experiment rel with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the segments experiment rel
+	 * @return the segments experiment rel that was removed
+	 * @throws NoSuchExperimentRelException if a segments experiment rel with the primary key could not be found
+	 */
+	@Override
+	public SegmentsExperimentRel remove(Serializable primaryKey)
+		throws NoSuchExperimentRelException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			SegmentsExperimentRel segmentsExperimentRel =
+				(SegmentsExperimentRel)session.get(
+					SegmentsExperimentRelImpl.class, primaryKey);
+
+			if (segmentsExperimentRel == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchExperimentRelException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(segmentsExperimentRel);
+		}
+		catch (NoSuchExperimentRelException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -784,6 +1263,32 @@ public class SegmentsExperimentRelPersistenceImpl
 	}
 
 	/**
+	 * Returns the segments experiment rel with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the segments experiment rel
+	 * @return the segments experiment rel
+	 * @throws NoSuchExperimentRelException if a segments experiment rel with the primary key could not be found
+	 */
+	@Override
+	public SegmentsExperimentRel findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchExperimentRelException {
+
+		SegmentsExperimentRel segmentsExperimentRel = fetchByPrimaryKey(
+			primaryKey);
+
+		if (segmentsExperimentRel == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchExperimentRelException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return segmentsExperimentRel;
+	}
+
+	/**
 	 * Returns the segments experiment rel with the primary key or throws a <code>NoSuchExperimentRelException</code> if it could not be found.
 	 *
 	 * @param segmentsExperimentRelId the primary key of the segments experiment rel
@@ -797,9 +1302,53 @@ public class SegmentsExperimentRelPersistenceImpl
 		return findByPrimaryKey((Serializable)segmentsExperimentRelId);
 	}
 
+	/**
+	 * Returns the segments experiment rel with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the segments experiment rel
+	 * @return the segments experiment rel, or <code>null</code> if a segments experiment rel with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public SegmentsExperimentRel fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				SegmentsExperimentRel.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		SegmentsExperimentRel segmentsExperimentRel =
+			(SegmentsExperimentRel)entityCache.getResult(
+				SegmentsExperimentRelImpl.class, primaryKey);
+
+		if (segmentsExperimentRel != null) {
+			return segmentsExperimentRel;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			segmentsExperimentRel = (SegmentsExperimentRel)session.get(
+				SegmentsExperimentRelImpl.class, primaryKey);
+
+			if (segmentsExperimentRel != null) {
+				cacheResult(segmentsExperimentRel);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return segmentsExperimentRel;
 	}
 
 	/**
@@ -813,6 +1362,135 @@ public class SegmentsExperimentRelPersistenceImpl
 		long segmentsExperimentRelId) {
 
 		return fetchByPrimaryKey((Serializable)segmentsExperimentRelId);
+	}
+
+	@Override
+	public Map<Serializable, SegmentsExperimentRel> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(SegmentsExperimentRel.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, SegmentsExperimentRel> map =
+			new HashMap<Serializable, SegmentsExperimentRel>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			SegmentsExperimentRel segmentsExperimentRel = fetchByPrimaryKey(
+				primaryKey);
+
+			if (segmentsExperimentRel != null) {
+				map.put(primaryKey, segmentsExperimentRel);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						SegmentsExperimentRel.class, primaryKey)) {
+
+				SegmentsExperimentRel segmentsExperimentRel =
+					(SegmentsExperimentRel)entityCache.getResult(
+						SegmentsExperimentRelImpl.class, primaryKey);
+
+				if (segmentsExperimentRel == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, segmentsExperimentRel);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (SegmentsExperimentRel segmentsExperimentRel :
+					(List<SegmentsExperimentRel>)query.list()) {
+
+				map.put(
+					segmentsExperimentRel.getPrimaryKeyObj(),
+					segmentsExperimentRel);
+
+				cacheResult(segmentsExperimentRel);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1131,20 +1809,6 @@ public class SegmentsExperimentRelPersistenceImpl
 			"countBySegmentsExperimentId", new String[] {Long.class.getName()},
 			new String[] {"segmentsExperimentId"}, false);
 
-		_collectionPersistenceFinderBySegmentsExperimentId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindBySegmentsExperimentId,
-				_finderPathWithoutPaginationFindBySegmentsExperimentId,
-				_finderPathCountBySegmentsExperimentId,
-				_SQL_SELECT_SEGMENTSEXPERIMENTREL_WHERE,
-				_SQL_COUNT_SEGMENTSEXPERIMENTREL_WHERE,
-				SegmentsExperimentRelModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"segmentsExperimentRel.", "segmentsExperimentId",
-					FinderColumn.Type.LONG, "=", true, true,
-					SegmentsExperimentRel::getSegmentsExperimentId));
-
 		_finderPathWithPaginationFindBySegmentsExperienceId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
 			"findBySegmentsExperienceId",
@@ -1164,37 +1828,11 @@ public class SegmentsExperimentRelPersistenceImpl
 			"countBySegmentsExperienceId", new String[] {Long.class.getName()},
 			new String[] {"segmentsExperienceId"}, false);
 
-		_collectionPersistenceFinderBySegmentsExperienceId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindBySegmentsExperienceId,
-				_finderPathWithoutPaginationFindBySegmentsExperienceId,
-				_finderPathCountBySegmentsExperienceId,
-				_SQL_SELECT_SEGMENTSEXPERIMENTREL_WHERE,
-				_SQL_COUNT_SEGMENTSEXPERIMENTREL_WHERE,
-				SegmentsExperimentRelModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"segmentsExperimentRel.", "segmentsExperienceId",
-					FinderColumn.Type.LONG, "=", true, true,
-					SegmentsExperimentRel::getSegmentsExperienceId));
-
 		_finderPathFetchByS_S = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByS_S",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"segmentsExperimentId", "segmentsExperienceId"},
 			true);
-
-		_uniquePersistenceFinderByS_S = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByS_S,
-			_SQL_SELECT_SEGMENTSEXPERIMENTREL_WHERE,
-			new FinderColumn<>(
-				"segmentsExperimentRel.", "segmentsExperimentId",
-				FinderColumn.Type.LONG, "=", true, false,
-				SegmentsExperimentRel::getSegmentsExperimentId),
-			new FinderColumn<>(
-				"segmentsExperimentRel.", "segmentsExperienceId",
-				FinderColumn.Type.LONG, "=", true, true,
-				SegmentsExperimentRel::getSegmentsExperienceId));
 
 		SegmentsExperimentRelUtil.setPersistence(this);
 	}
@@ -1256,6 +1894,9 @@ public class SegmentsExperimentRelPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"segmentsExperimentRel.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No SegmentsExperimentRel exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No SegmentsExperimentRel exists with the key {";
 
@@ -1268,4 +1909,4 @@ public class SegmentsExperimentRelPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-173939253
+// LIFERAY-SERVICE-BUILDER-HASH:-63513518

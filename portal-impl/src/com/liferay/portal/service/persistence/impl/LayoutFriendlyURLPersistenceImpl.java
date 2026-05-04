@@ -28,12 +28,8 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.LayoutFriendlyURLPersistence;
 import com.liferay.portal.kernel.service.persistence.LayoutFriendlyURLUtil;
-import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelperUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -57,6 +53,7 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -73,8 +70,7 @@ import java.util.Set;
  * @generated
  */
 public class LayoutFriendlyURLPersistenceImpl
-	extends BasePersistenceImpl
-		<LayoutFriendlyURL, NoSuchLayoutFriendlyURLException>
+	extends BasePersistenceImpl<LayoutFriendlyURL>
 	implements LayoutFriendlyURLPersistence {
 
 	/*
@@ -97,8 +93,6 @@ public class LayoutFriendlyURLPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<LayoutFriendlyURL>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the layout friendly urls where uuid = &#63;.
@@ -173,9 +167,106 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByUuid.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {uuid}, start,
-				end, orderByComparator, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid;
+					finderArgs = new Object[] {uuid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid;
+				finderArgs = new Object[] {uuid, start, end, orderByComparator};
+			}
+
+			List<LayoutFriendlyURL> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutFriendlyURL>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutFriendlyURL layoutFriendlyURL : list) {
+						if (!uuid.equals(layoutFriendlyURL.getUuid())) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(LayoutFriendlyURLModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					list = (List<LayoutFriendlyURL>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -199,9 +290,16 @@ public class LayoutFriendlyURLPersistenceImpl
 			return layoutFriendlyURL;
 		}
 
-		throw new NoSuchLayoutFriendlyURLException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchLayoutFriendlyURLException(sb.toString());
 	}
 
 	/**
@@ -215,9 +313,14 @@ public class LayoutFriendlyURLPersistenceImpl
 	public LayoutFriendlyURL fetchByUuid_First(
 		String uuid, OrderByComparator<LayoutFriendlyURL> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid},
-			orderByComparator);
+		List<LayoutFriendlyURL> list = findByUuid(
+			uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -227,8 +330,11 @@ public class LayoutFriendlyURLPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid});
+		for (LayoutFriendlyURL layoutFriendlyURL :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(layoutFriendlyURL);
+		}
 	}
 
 	/**
@@ -243,14 +349,69 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByUuid.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {uuid});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid;
+
+			Object[] finderArgs = new Object[] {uuid};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"layoutFriendlyURL.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(layoutFriendlyURL.uuid IS NULL OR layoutFriendlyURL.uuid = '')";
+
 	private FinderPath _finderPathFetchByUUID_G;
-	private UniquePersistenceFinder<LayoutFriendlyURL>
-		_uniquePersistenceFinderByUUID_G;
 
 	/**
 	 * Returns the layout friendly url where uuid = &#63; and groupId = &#63; or throws a <code>NoSuchLayoutFriendlyURLException</code> if it could not be found.
@@ -267,15 +428,23 @@ public class LayoutFriendlyURLPersistenceImpl
 		LayoutFriendlyURL layoutFriendlyURL = fetchByUUID_G(uuid, groupId);
 
 		if (layoutFriendlyURL == null) {
-			String message =
-				_uniquePersistenceFinderByUUID_G.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, groupId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("uuid=");
+			sb.append(uuid);
+
+			sb.append(", groupId=");
+			sb.append(groupId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLayoutFriendlyURLException(message);
+			throw new NoSuchLayoutFriendlyURLException(sb.toString());
 		}
 
 		return layoutFriendlyURL;
@@ -309,9 +478,96 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _uniquePersistenceFinderByUUID_G.fetch(
-				FinderCacheUtil.getFinderCache(), new Object[] {uuid, groupId},
-				useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {uuid, groupId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = FinderCacheUtil.getResult(
+					_finderPathFetchByUUID_G, finderArgs, this);
+			}
+
+			if (result instanceof LayoutFriendlyURL) {
+				LayoutFriendlyURL layoutFriendlyURL = (LayoutFriendlyURL)result;
+
+				if (!Objects.equals(uuid, layoutFriendlyURL.getUuid()) ||
+					(groupId != layoutFriendlyURL.getGroupId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_G_GROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(groupId);
+
+					List<LayoutFriendlyURL> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							FinderCacheUtil.putResult(
+								_finderPathFetchByUUID_G, finderArgs, list);
+						}
+					}
+					else {
+						LayoutFriendlyURL layoutFriendlyURL = list.get(0);
+
+						result = layoutFriendlyURL;
+
+						cacheResult(layoutFriendlyURL);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (LayoutFriendlyURL)result;
+			}
 		}
 	}
 
@@ -340,15 +596,27 @@ public class LayoutFriendlyURLPersistenceImpl
 	 */
 	@Override
 	public int countByUUID_G(String uuid, long groupId) {
-		return _uniquePersistenceFinderByUUID_G.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid, groupId});
+		LayoutFriendlyURL layoutFriendlyURL = fetchByUUID_G(uuid, groupId);
+
+		if (layoutFriendlyURL == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_2 =
+		"layoutFriendlyURL.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_3 =
+		"(layoutFriendlyURL.uuid IS NULL OR layoutFriendlyURL.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_GROUPID_2 =
+		"layoutFriendlyURL.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<LayoutFriendlyURL>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the layout friendly urls where uuid = &#63; and companyId = &#63;.
@@ -431,10 +699,114 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {uuid, companyId}, start, end, orderByComparator,
-				useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid_C;
+					finderArgs = new Object[] {uuid, companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid_C;
+				finderArgs = new Object[] {
+					uuid, companyId, start, end, orderByComparator
+				};
+			}
+
+			List<LayoutFriendlyURL> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutFriendlyURL>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutFriendlyURL layoutFriendlyURL : list) {
+						if (!uuid.equals(layoutFriendlyURL.getUuid()) ||
+							(companyId != layoutFriendlyURL.getCompanyId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(LayoutFriendlyURLModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					list = (List<LayoutFriendlyURL>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -460,9 +832,19 @@ public class LayoutFriendlyURLPersistenceImpl
 			return layoutFriendlyURL;
 		}
 
-		throw new NoSuchLayoutFriendlyURLException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchLayoutFriendlyURLException(sb.toString());
 	}
 
 	/**
@@ -478,9 +860,14 @@ public class LayoutFriendlyURLPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<LayoutFriendlyURL> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid, companyId},
-			orderByComparator);
+		List<LayoutFriendlyURL> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -491,8 +878,13 @@ public class LayoutFriendlyURLPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid, companyId});
+		for (LayoutFriendlyURL layoutFriendlyURL :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(layoutFriendlyURL);
+		}
 	}
 
 	/**
@@ -508,17 +900,78 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {uuid, companyId});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid_C;
+
+			Object[] finderArgs = new Object[] {uuid, companyId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"layoutFriendlyURL.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(layoutFriendlyURL.uuid IS NULL OR layoutFriendlyURL.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"layoutFriendlyURL.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<LayoutFriendlyURL>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the layout friendly urls where groupId = &#63;.
@@ -596,9 +1049,95 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByGroupId.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {groupId}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByGroupId;
+					finderArgs = new Object[] {groupId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByGroupId;
+				finderArgs = new Object[] {
+					groupId, start, end, orderByComparator
+				};
+			}
+
+			List<LayoutFriendlyURL> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutFriendlyURL>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutFriendlyURL layoutFriendlyURL : list) {
+						if (groupId != layoutFriendlyURL.getGroupId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(LayoutFriendlyURLModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					list = (List<LayoutFriendlyURL>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -623,9 +1162,16 @@ public class LayoutFriendlyURLPersistenceImpl
 			return layoutFriendlyURL;
 		}
 
-		throw new NoSuchLayoutFriendlyURLException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchLayoutFriendlyURLException(sb.toString());
 	}
 
 	/**
@@ -639,9 +1185,14 @@ public class LayoutFriendlyURLPersistenceImpl
 	public LayoutFriendlyURL fetchByGroupId_First(
 		long groupId, OrderByComparator<LayoutFriendlyURL> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId},
-			orderByComparator);
+		List<LayoutFriendlyURL> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -651,8 +1202,12 @@ public class LayoutFriendlyURLPersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId});
+		for (LayoutFriendlyURL layoutFriendlyURL :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(layoutFriendlyURL);
+		}
 	}
 
 	/**
@@ -667,16 +1222,55 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByGroupId.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {groupId});
+			FinderPath finderPath = _finderPathCountByGroupId;
+
+			Object[] finderArgs = new Object[] {groupId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"layoutFriendlyURL.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<LayoutFriendlyURL>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the layout friendly urls where companyId = &#63;.
@@ -754,9 +1348,95 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {companyId},
-				start, end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByCompanyId;
+					finderArgs = new Object[] {companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByCompanyId;
+				finderArgs = new Object[] {
+					companyId, start, end, orderByComparator
+				};
+			}
+
+			List<LayoutFriendlyURL> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutFriendlyURL>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutFriendlyURL layoutFriendlyURL : list) {
+						if (companyId != layoutFriendlyURL.getCompanyId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(LayoutFriendlyURLModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					list = (List<LayoutFriendlyURL>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -781,9 +1461,16 @@ public class LayoutFriendlyURLPersistenceImpl
 			return layoutFriendlyURL;
 		}
 
-		throw new NoSuchLayoutFriendlyURLException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchLayoutFriendlyURLException(sb.toString());
 	}
 
 	/**
@@ -798,9 +1485,14 @@ public class LayoutFriendlyURLPersistenceImpl
 		long companyId,
 		OrderByComparator<LayoutFriendlyURL> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId},
-			orderByComparator);
+		List<LayoutFriendlyURL> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -810,8 +1502,12 @@ public class LayoutFriendlyURLPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		for (LayoutFriendlyURL layoutFriendlyURL :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(layoutFriendlyURL);
+		}
 	}
 
 	/**
@@ -826,16 +1522,55 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+			FinderPath finderPath = _finderPathCountByCompanyId;
+
+			Object[] finderArgs = new Object[] {companyId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"layoutFriendlyURL.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByPlid;
 	private FinderPath _finderPathWithoutPaginationFindByPlid;
 	private FinderPath _finderPathCountByPlid;
-	private CollectionPersistenceFinder<LayoutFriendlyURL>
-		_collectionPersistenceFinderByPlid;
 
 	/**
 	 * Returns all the layout friendly urls where plid = &#63;.
@@ -910,9 +1645,93 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByPlid.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {plid}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByPlid;
+					finderArgs = new Object[] {plid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByPlid;
+				finderArgs = new Object[] {plid, start, end, orderByComparator};
+			}
+
+			List<LayoutFriendlyURL> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutFriendlyURL>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutFriendlyURL layoutFriendlyURL : list) {
+						if (plid != layoutFriendlyURL.getPlid()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_PLID_PLID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(LayoutFriendlyURLModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(plid);
+
+					list = (List<LayoutFriendlyURL>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -936,9 +1755,16 @@ public class LayoutFriendlyURLPersistenceImpl
 			return layoutFriendlyURL;
 		}
 
-		throw new NoSuchLayoutFriendlyURLException(
-			_collectionPersistenceFinderByPlid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {plid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("plid=");
+		sb.append(plid);
+
+		sb.append("}");
+
+		throw new NoSuchLayoutFriendlyURLException(sb.toString());
 	}
 
 	/**
@@ -952,9 +1778,14 @@ public class LayoutFriendlyURLPersistenceImpl
 	public LayoutFriendlyURL fetchByPlid_First(
 		long plid, OrderByComparator<LayoutFriendlyURL> orderByComparator) {
 
-		return _collectionPersistenceFinderByPlid.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {plid},
-			orderByComparator);
+		List<LayoutFriendlyURL> list = findByPlid(
+			plid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -964,8 +1795,11 @@ public class LayoutFriendlyURLPersistenceImpl
 	 */
 	@Override
 	public void removeByPlid(long plid) {
-		_collectionPersistenceFinderByPlid.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {plid});
+		for (LayoutFriendlyURL layoutFriendlyURL :
+				findByPlid(plid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(layoutFriendlyURL);
+		}
 	}
 
 	/**
@@ -980,16 +1814,55 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByPlid.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {plid});
+			FinderPath finderPath = _finderPathCountByPlid;
+
+			Object[] finderArgs = new Object[] {plid};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_PLID_PLID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(plid);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_PLID_PLID_2 =
+		"layoutFriendlyURL.plid = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_F;
 	private FinderPath _finderPathWithoutPaginationFindByC_F;
 	private FinderPath _finderPathCountByC_F;
-	private CollectionPersistenceFinder<LayoutFriendlyURL>
-		_collectionPersistenceFinderByC_F;
 
 	/**
 	 * Returns all the layout friendly urls where companyId = &#63; and friendlyURL = &#63;.
@@ -1074,10 +1947,115 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByC_F.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, friendlyURL}, start, end,
-				orderByComparator, useFinderCache);
+			friendlyURL = Objects.toString(friendlyURL, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_F;
+					finderArgs = new Object[] {companyId, friendlyURL};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_F;
+				finderArgs = new Object[] {
+					companyId, friendlyURL, start, end, orderByComparator
+				};
+			}
+
+			List<LayoutFriendlyURL> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutFriendlyURL>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutFriendlyURL layoutFriendlyURL : list) {
+						if ((companyId != layoutFriendlyURL.getCompanyId()) ||
+							!friendlyURL.equals(
+								layoutFriendlyURL.getFriendlyURL())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_F_COMPANYID_2);
+
+				boolean bindFriendlyURL = false;
+
+				if (friendlyURL.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_F_FRIENDLYURL_3);
+				}
+				else {
+					bindFriendlyURL = true;
+
+					sb.append(_FINDER_COLUMN_C_F_FRIENDLYURL_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(LayoutFriendlyURLModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					if (bindFriendlyURL) {
+						queryPos.add(friendlyURL);
+					}
+
+					list = (List<LayoutFriendlyURL>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1103,10 +2081,19 @@ public class LayoutFriendlyURLPersistenceImpl
 			return layoutFriendlyURL;
 		}
 
-		throw new NoSuchLayoutFriendlyURLException(
-			_collectionPersistenceFinderByC_F.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, friendlyURL}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", friendlyURL=");
+		sb.append(friendlyURL);
+
+		sb.append("}");
+
+		throw new NoSuchLayoutFriendlyURLException(sb.toString());
 	}
 
 	/**
@@ -1122,9 +2109,14 @@ public class LayoutFriendlyURLPersistenceImpl
 		long companyId, String friendlyURL,
 		OrderByComparator<LayoutFriendlyURL> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_F.fetchFirst(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, friendlyURL}, orderByComparator);
+		List<LayoutFriendlyURL> list = findByC_F(
+			companyId, friendlyURL, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1135,9 +2127,13 @@ public class LayoutFriendlyURLPersistenceImpl
 	 */
 	@Override
 	public void removeByC_F(long companyId, String friendlyURL) {
-		_collectionPersistenceFinderByC_F.remove(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, friendlyURL});
+		for (LayoutFriendlyURL layoutFriendlyURL :
+				findByC_F(
+					companyId, friendlyURL, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(layoutFriendlyURL);
+		}
 	}
 
 	/**
@@ -1153,17 +2149,78 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByC_F.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, friendlyURL});
+			friendlyURL = Objects.toString(friendlyURL, "");
+
+			FinderPath finderPath = _finderPathCountByC_F;
+
+			Object[] finderArgs = new Object[] {companyId, friendlyURL};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_F_COMPANYID_2);
+
+				boolean bindFriendlyURL = false;
+
+				if (friendlyURL.isEmpty()) {
+					sb.append(_FINDER_COLUMN_C_F_FRIENDLYURL_3);
+				}
+				else {
+					bindFriendlyURL = true;
+
+					sb.append(_FINDER_COLUMN_C_F_FRIENDLYURL_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					if (bindFriendlyURL) {
+						queryPos.add(friendlyURL);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_C_F_COMPANYID_2 =
+		"layoutFriendlyURL.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_F_FRIENDLYURL_2 =
+		"layoutFriendlyURL.friendlyURL = ?";
+
+	private static final String _FINDER_COLUMN_C_F_FRIENDLYURL_3 =
+		"(layoutFriendlyURL.friendlyURL IS NULL OR layoutFriendlyURL.friendlyURL = '')";
 
 	private FinderPath _finderPathWithPaginationFindByP_F;
 	private FinderPath _finderPathWithoutPaginationFindByP_F;
 	private FinderPath _finderPathCountByP_F;
-	private CollectionPersistenceFinder<LayoutFriendlyURL>
-		_collectionPersistenceFinderByP_F;
 
 	/**
 	 * Returns all the layout friendly urls where plid = &#63; and friendlyURL = &#63;.
@@ -1246,10 +2303,115 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByP_F.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {plid, friendlyURL}, start, end, orderByComparator,
-				useFinderCache);
+			friendlyURL = Objects.toString(friendlyURL, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByP_F;
+					finderArgs = new Object[] {plid, friendlyURL};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByP_F;
+				finderArgs = new Object[] {
+					plid, friendlyURL, start, end, orderByComparator
+				};
+			}
+
+			List<LayoutFriendlyURL> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutFriendlyURL>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutFriendlyURL layoutFriendlyURL : list) {
+						if ((plid != layoutFriendlyURL.getPlid()) ||
+							!friendlyURL.equals(
+								layoutFriendlyURL.getFriendlyURL())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_P_F_PLID_2);
+
+				boolean bindFriendlyURL = false;
+
+				if (friendlyURL.isEmpty()) {
+					sb.append(_FINDER_COLUMN_P_F_FRIENDLYURL_3);
+				}
+				else {
+					bindFriendlyURL = true;
+
+					sb.append(_FINDER_COLUMN_P_F_FRIENDLYURL_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(LayoutFriendlyURLModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(plid);
+
+					if (bindFriendlyURL) {
+						queryPos.add(friendlyURL);
+					}
+
+					list = (List<LayoutFriendlyURL>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1275,9 +2437,19 @@ public class LayoutFriendlyURLPersistenceImpl
 			return layoutFriendlyURL;
 		}
 
-		throw new NoSuchLayoutFriendlyURLException(
-			_collectionPersistenceFinderByP_F.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {plid, friendlyURL}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("plid=");
+		sb.append(plid);
+
+		sb.append(", friendlyURL=");
+		sb.append(friendlyURL);
+
+		sb.append("}");
+
+		throw new NoSuchLayoutFriendlyURLException(sb.toString());
 	}
 
 	/**
@@ -1293,9 +2465,14 @@ public class LayoutFriendlyURLPersistenceImpl
 		long plid, String friendlyURL,
 		OrderByComparator<LayoutFriendlyURL> orderByComparator) {
 
-		return _collectionPersistenceFinderByP_F.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {plid, friendlyURL},
-			orderByComparator);
+		List<LayoutFriendlyURL> list = findByP_F(
+			plid, friendlyURL, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1306,8 +2483,13 @@ public class LayoutFriendlyURLPersistenceImpl
 	 */
 	@Override
 	public void removeByP_F(long plid, String friendlyURL) {
-		_collectionPersistenceFinderByP_F.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {plid, friendlyURL});
+		for (LayoutFriendlyURL layoutFriendlyURL :
+				findByP_F(
+					plid, friendlyURL, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(layoutFriendlyURL);
+		}
 	}
 
 	/**
@@ -1323,11 +2505,74 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByP_F.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {plid, friendlyURL});
+			friendlyURL = Objects.toString(friendlyURL, "");
+
+			FinderPath finderPath = _finderPathCountByP_F;
+
+			Object[] finderArgs = new Object[] {plid, friendlyURL};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_P_F_PLID_2);
+
+				boolean bindFriendlyURL = false;
+
+				if (friendlyURL.isEmpty()) {
+					sb.append(_FINDER_COLUMN_P_F_FRIENDLYURL_3);
+				}
+				else {
+					bindFriendlyURL = true;
+
+					sb.append(_FINDER_COLUMN_P_F_FRIENDLYURL_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(plid);
+
+					if (bindFriendlyURL) {
+						queryPos.add(friendlyURL);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_P_F_PLID_2 =
+		"layoutFriendlyURL.plid = ? AND ";
+
+	private static final String _FINDER_COLUMN_P_F_FRIENDLYURL_2 =
+		"layoutFriendlyURL.friendlyURL = ?";
+
+	private static final String _FINDER_COLUMN_P_F_FRIENDLYURL_3 =
+		"(layoutFriendlyURL.friendlyURL IS NULL OR layoutFriendlyURL.friendlyURL = '')";
 
 	private FinderPath _finderPathWithPaginationFindByP_L;
 	private FinderPath _finderPathWithoutPaginationFindByP_L;
@@ -1984,8 +3229,6 @@ public class LayoutFriendlyURLPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_P_F;
 	private FinderPath _finderPathWithoutPaginationFindByG_P_F;
 	private FinderPath _finderPathCountByG_P_F;
-	private CollectionPersistenceFinder<LayoutFriendlyURL>
-		_collectionPersistenceFinderByG_P_F;
 
 	/**
 	 * Returns all the layout friendly urls where groupId = &#63; and privateLayout = &#63; and friendlyURL = &#63;.
@@ -2078,10 +3321,124 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByG_P_F.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {groupId, privateLayout, friendlyURL}, start, end,
-				orderByComparator, useFinderCache);
+			friendlyURL = Objects.toString(friendlyURL, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_P_F;
+					finderArgs = new Object[] {
+						groupId, privateLayout, friendlyURL
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_P_F;
+				finderArgs = new Object[] {
+					groupId, privateLayout, friendlyURL, start, end,
+					orderByComparator
+				};
+			}
+
+			List<LayoutFriendlyURL> list = null;
+
+			if (useFinderCache) {
+				list = (List<LayoutFriendlyURL>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (LayoutFriendlyURL layoutFriendlyURL : list) {
+						if ((groupId != layoutFriendlyURL.getGroupId()) ||
+							(privateLayout !=
+								layoutFriendlyURL.isPrivateLayout()) ||
+							!friendlyURL.equals(
+								layoutFriendlyURL.getFriendlyURL())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_P_F_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_P_F_PRIVATELAYOUT_2);
+
+				boolean bindFriendlyURL = false;
+
+				if (friendlyURL.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_P_F_FRIENDLYURL_3);
+				}
+				else {
+					bindFriendlyURL = true;
+
+					sb.append(_FINDER_COLUMN_G_P_F_FRIENDLYURL_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(LayoutFriendlyURLModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(privateLayout);
+
+					if (bindFriendlyURL) {
+						queryPos.add(friendlyURL);
+					}
+
+					list = (List<LayoutFriendlyURL>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -2108,10 +3465,22 @@ public class LayoutFriendlyURLPersistenceImpl
 			return layoutFriendlyURL;
 		}
 
-		throw new NoSuchLayoutFriendlyURLException(
-			_collectionPersistenceFinderByG_P_F.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, privateLayout, friendlyURL}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", privateLayout=");
+		sb.append(privateLayout);
+
+		sb.append(", friendlyURL=");
+		sb.append(friendlyURL);
+
+		sb.append("}");
+
+		throw new NoSuchLayoutFriendlyURLException(sb.toString());
 	}
 
 	/**
@@ -2128,10 +3497,14 @@ public class LayoutFriendlyURLPersistenceImpl
 		long groupId, boolean privateLayout, String friendlyURL,
 		OrderByComparator<LayoutFriendlyURL> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_P_F.fetchFirst(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {groupId, privateLayout, friendlyURL},
-			orderByComparator);
+		List<LayoutFriendlyURL> list = findByG_P_F(
+			groupId, privateLayout, friendlyURL, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2145,9 +3518,13 @@ public class LayoutFriendlyURLPersistenceImpl
 	public void removeByG_P_F(
 		long groupId, boolean privateLayout, String friendlyURL) {
 
-		_collectionPersistenceFinderByG_P_F.remove(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {groupId, privateLayout, friendlyURL});
+		for (LayoutFriendlyURL layoutFriendlyURL :
+				findByG_P_F(
+					groupId, privateLayout, friendlyURL, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(layoutFriendlyURL);
+		}
 	}
 
 	/**
@@ -2166,15 +3543,85 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _collectionPersistenceFinderByG_P_F.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {groupId, privateLayout, friendlyURL});
+			friendlyURL = Objects.toString(friendlyURL, "");
+
+			FinderPath finderPath = _finderPathCountByG_P_F;
+
+			Object[] finderArgs = new Object[] {
+				groupId, privateLayout, friendlyURL
+			};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_P_F_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_P_F_PRIVATELAYOUT_2);
+
+				boolean bindFriendlyURL = false;
+
+				if (friendlyURL.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_P_F_FRIENDLYURL_3);
+				}
+				else {
+					bindFriendlyURL = true;
+
+					sb.append(_FINDER_COLUMN_G_P_F_FRIENDLYURL_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(privateLayout);
+
+					if (bindFriendlyURL) {
+						queryPos.add(friendlyURL);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_G_P_F_GROUPID_2 =
+		"layoutFriendlyURL.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_P_F_PRIVATELAYOUT_2 =
+		"layoutFriendlyURL.privateLayout = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_P_F_FRIENDLYURL_2 =
+		"layoutFriendlyURL.friendlyURL = ?";
+
+	private static final String _FINDER_COLUMN_G_P_F_FRIENDLYURL_3 =
+		"(layoutFriendlyURL.friendlyURL IS NULL OR layoutFriendlyURL.friendlyURL = '')";
+
 	private FinderPath _finderPathFetchByG_P_F_L;
-	private UniquePersistenceFinder<LayoutFriendlyURL>
-		_uniquePersistenceFinderByG_P_F_L;
 
 	/**
 	 * Returns the layout friendly url where groupId = &#63; and privateLayout = &#63; and friendlyURL = &#63; and languageId = &#63; or throws a <code>NoSuchLayoutFriendlyURLException</code> if it could not be found.
@@ -2196,18 +3643,29 @@ public class LayoutFriendlyURLPersistenceImpl
 			groupId, privateLayout, friendlyURL, languageId);
 
 		if (layoutFriendlyURL == null) {
-			String message =
-				_uniquePersistenceFinderByG_P_F_L.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {
-						groupId, privateLayout, friendlyURL, languageId
-					});
+			StringBundler sb = new StringBundler(10);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append(", privateLayout=");
+			sb.append(privateLayout);
+
+			sb.append(", friendlyURL=");
+			sb.append(friendlyURL);
+
+			sb.append(", languageId=");
+			sb.append(languageId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLayoutFriendlyURLException(message);
+			throw new NoSuchLayoutFriendlyURLException(sb.toString());
 		}
 
 		return layoutFriendlyURL;
@@ -2250,10 +3708,122 @@ public class LayoutFriendlyURLPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					LayoutFriendlyURL.class)) {
 
-			return _uniquePersistenceFinderByG_P_F_L.fetch(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {groupId, privateLayout, friendlyURL, languageId},
-				useFinderCache);
+			friendlyURL = Objects.toString(friendlyURL, "");
+			languageId = Objects.toString(languageId, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {
+					groupId, privateLayout, friendlyURL, languageId
+				};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = FinderCacheUtil.getResult(
+					_finderPathFetchByG_P_F_L, finderArgs, this);
+			}
+
+			if (result instanceof LayoutFriendlyURL) {
+				LayoutFriendlyURL layoutFriendlyURL = (LayoutFriendlyURL)result;
+
+				if ((groupId != layoutFriendlyURL.getGroupId()) ||
+					(privateLayout != layoutFriendlyURL.isPrivateLayout()) ||
+					!Objects.equals(
+						friendlyURL, layoutFriendlyURL.getFriendlyURL()) ||
+					!Objects.equals(
+						languageId, layoutFriendlyURL.getLanguageId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(6);
+
+				sb.append(_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_P_F_L_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_P_F_L_PRIVATELAYOUT_2);
+
+				boolean bindFriendlyURL = false;
+
+				if (friendlyURL.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_P_F_L_FRIENDLYURL_3);
+				}
+				else {
+					bindFriendlyURL = true;
+
+					sb.append(_FINDER_COLUMN_G_P_F_L_FRIENDLYURL_2);
+				}
+
+				boolean bindLanguageId = false;
+
+				if (languageId.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_P_F_L_LANGUAGEID_3);
+				}
+				else {
+					bindLanguageId = true;
+
+					sb.append(_FINDER_COLUMN_G_P_F_L_LANGUAGEID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(privateLayout);
+
+					if (bindFriendlyURL) {
+						queryPos.add(friendlyURL);
+					}
+
+					if (bindLanguageId) {
+						queryPos.add(languageId);
+					}
+
+					List<LayoutFriendlyURL> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							FinderCacheUtil.putResult(
+								_finderPathFetchByG_P_F_L, finderArgs, list);
+						}
+					}
+					else {
+						LayoutFriendlyURL layoutFriendlyURL = list.get(0);
+
+						result = layoutFriendlyURL;
+
+						cacheResult(layoutFriendlyURL);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (LayoutFriendlyURL)result;
+			}
 		}
 	}
 
@@ -2292,10 +3862,33 @@ public class LayoutFriendlyURLPersistenceImpl
 		long groupId, boolean privateLayout, String friendlyURL,
 		String languageId) {
 
-		return _uniquePersistenceFinderByG_P_F_L.count(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {groupId, privateLayout, friendlyURL, languageId});
+		LayoutFriendlyURL layoutFriendlyURL = fetchByG_P_F_L(
+			groupId, privateLayout, friendlyURL, languageId);
+
+		if (layoutFriendlyURL == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_G_P_F_L_GROUPID_2 =
+		"layoutFriendlyURL.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_P_F_L_PRIVATELAYOUT_2 =
+		"layoutFriendlyURL.privateLayout = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_P_F_L_FRIENDLYURL_2 =
+		"layoutFriendlyURL.friendlyURL = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_P_F_L_FRIENDLYURL_3 =
+		"(layoutFriendlyURL.friendlyURL IS NULL OR layoutFriendlyURL.friendlyURL = '') AND ";
+
+	private static final String _FINDER_COLUMN_G_P_F_L_LANGUAGEID_2 =
+		"layoutFriendlyURL.languageId = ?";
+
+	private static final String _FINDER_COLUMN_G_P_F_L_LANGUAGEID_3 =
+		"(layoutFriendlyURL.languageId IS NULL OR layoutFriendlyURL.languageId = '')";
 
 	public LayoutFriendlyURLPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -2386,6 +3979,51 @@ public class LayoutFriendlyURLPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all layout friendly urls.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(LayoutFriendlyURLImpl.class);
+
+		FinderCacheUtil.clearCache(LayoutFriendlyURLImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the layout friendly url.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(LayoutFriendlyURL layoutFriendlyURL) {
+		EntityCacheUtil.removeResult(
+			LayoutFriendlyURLImpl.class, layoutFriendlyURL);
+	}
+
+	@Override
+	public void clearCache(List<LayoutFriendlyURL> layoutFriendlyURLs) {
+		for (LayoutFriendlyURL layoutFriendlyURL : layoutFriendlyURLs) {
+			EntityCacheUtil.removeResult(
+				LayoutFriendlyURLImpl.class, layoutFriendlyURL);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(LayoutFriendlyURLImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(
+				LayoutFriendlyURLImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		LayoutFriendlyURLModelImpl layoutFriendlyURLModelImpl) {
 
@@ -2455,6 +4093,48 @@ public class LayoutFriendlyURLPersistenceImpl
 		throws NoSuchLayoutFriendlyURLException {
 
 		return remove((Serializable)layoutFriendlyURLId);
+	}
+
+	/**
+	 * Removes the layout friendly url with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the layout friendly url
+	 * @return the layout friendly url that was removed
+	 * @throws NoSuchLayoutFriendlyURLException if a layout friendly url with the primary key could not be found
+	 */
+	@Override
+	public LayoutFriendlyURL remove(Serializable primaryKey)
+		throws NoSuchLayoutFriendlyURLException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			LayoutFriendlyURL layoutFriendlyURL =
+				(LayoutFriendlyURL)session.get(
+					LayoutFriendlyURLImpl.class, primaryKey);
+
+			if (layoutFriendlyURL == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchLayoutFriendlyURLException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(layoutFriendlyURL);
+		}
+		catch (NoSuchLayoutFriendlyURLException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -2589,6 +4269,31 @@ public class LayoutFriendlyURLPersistenceImpl
 	}
 
 	/**
+	 * Returns the layout friendly url with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the layout friendly url
+	 * @return the layout friendly url
+	 * @throws NoSuchLayoutFriendlyURLException if a layout friendly url with the primary key could not be found
+	 */
+	@Override
+	public LayoutFriendlyURL findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchLayoutFriendlyURLException {
+
+		LayoutFriendlyURL layoutFriendlyURL = fetchByPrimaryKey(primaryKey);
+
+		if (layoutFriendlyURL == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchLayoutFriendlyURLException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return layoutFriendlyURL;
+	}
+
+	/**
 	 * Returns the layout friendly url with the primary key or throws a <code>NoSuchLayoutFriendlyURLException</code> if it could not be found.
 	 *
 	 * @param layoutFriendlyURLId the primary key of the layout friendly url
@@ -2602,9 +4307,53 @@ public class LayoutFriendlyURLPersistenceImpl
 		return findByPrimaryKey((Serializable)layoutFriendlyURLId);
 	}
 
+	/**
+	 * Returns the layout friendly url with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the layout friendly url
+	 * @return the layout friendly url, or <code>null</code> if a layout friendly url with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return CTPersistenceHelperUtil.getCTPersistenceHelper();
+	public LayoutFriendlyURL fetchByPrimaryKey(Serializable primaryKey) {
+		if (CTPersistenceHelperUtil.isProductionMode(
+				LayoutFriendlyURL.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		LayoutFriendlyURL layoutFriendlyURL =
+			(LayoutFriendlyURL)EntityCacheUtil.getResult(
+				LayoutFriendlyURLImpl.class, primaryKey);
+
+		if (layoutFriendlyURL != null) {
+			return layoutFriendlyURL;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			layoutFriendlyURL = (LayoutFriendlyURL)session.get(
+				LayoutFriendlyURLImpl.class, primaryKey);
+
+			if (layoutFriendlyURL != null) {
+				cacheResult(layoutFriendlyURL);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return layoutFriendlyURL;
 	}
 
 	/**
@@ -2616,6 +4365,133 @@ public class LayoutFriendlyURLPersistenceImpl
 	@Override
 	public LayoutFriendlyURL fetchByPrimaryKey(long layoutFriendlyURLId) {
 		return fetchByPrimaryKey((Serializable)layoutFriendlyURLId);
+	}
+
+	@Override
+	public Map<Serializable, LayoutFriendlyURL> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (CTPersistenceHelperUtil.isProductionMode(LayoutFriendlyURL.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, LayoutFriendlyURL> map =
+			new HashMap<Serializable, LayoutFriendlyURL>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			LayoutFriendlyURL layoutFriendlyURL = fetchByPrimaryKey(primaryKey);
+
+			if (layoutFriendlyURL != null) {
+				map.put(primaryKey, layoutFriendlyURL);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
+						LayoutFriendlyURL.class, primaryKey)) {
+
+				LayoutFriendlyURL layoutFriendlyURL =
+					(LayoutFriendlyURL)EntityCacheUtil.getResult(
+						LayoutFriendlyURLImpl.class, primaryKey);
+
+				if (layoutFriendlyURL == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, layoutFriendlyURL);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (LayoutFriendlyURL layoutFriendlyURL :
+					(List<LayoutFriendlyURL>)query.list()) {
+
+				map.put(
+					layoutFriendlyURL.getPrimaryKeyObj(), layoutFriendlyURL);
+
+				cacheResult(layoutFriendlyURL);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -2945,29 +4821,10 @@ public class LayoutFriendlyURLPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-			_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE,
-			LayoutFriendlyURLModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "uuid", FinderColumn.Type.STRING, "=",
-				true, true, LayoutFriendlyURL::getUuid));
-
 		_finderPathFetchByUUID_G = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByUUID_G",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "groupId"}, true);
-
-		_uniquePersistenceFinderByUUID_G = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByUUID_G, _SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "uuid", FinderColumn.Type.STRING, "=",
-				true, false, LayoutFriendlyURL::getUuid),
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "groupId", FinderColumn.Type.LONG, "=",
-				true, true, LayoutFriendlyURL::getGroupId));
 
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
@@ -2988,21 +4845,6 @@ public class LayoutFriendlyURLPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-				_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE,
-				LayoutFriendlyURLModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"layoutFriendlyURL.", "uuid", FinderColumn.Type.STRING, "=",
-					true, false, LayoutFriendlyURL::getUuid),
-				new FinderColumn<>(
-					"layoutFriendlyURL.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, LayoutFriendlyURL::getCompanyId));
-
 		_finderPathWithPaginationFindByGroupId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByGroupId",
 			new String[] {
@@ -3020,18 +4862,6 @@ public class LayoutFriendlyURLPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByGroupId",
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
-
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId, _SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-				_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE,
-				LayoutFriendlyURLModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"layoutFriendlyURL.", "groupId", FinderColumn.Type.LONG,
-					"=", true, true, LayoutFriendlyURL::getGroupId));
 
 		_finderPathWithPaginationFindByCompanyId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCompanyId",
@@ -3051,19 +4881,6 @@ public class LayoutFriendlyURLPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId,
-				_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-				_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE,
-				LayoutFriendlyURLModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"layoutFriendlyURL.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, LayoutFriendlyURL::getCompanyId));
-
 		_finderPathWithPaginationFindByPlid = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByPlid",
 			new String[] {
@@ -3079,16 +4896,6 @@ public class LayoutFriendlyURLPersistenceImpl
 		_finderPathCountByPlid = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByPlid",
 			new String[] {Long.class.getName()}, new String[] {"plid"}, false);
-
-		_collectionPersistenceFinderByPlid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByPlid,
-			_finderPathWithoutPaginationFindByPlid, _finderPathCountByPlid,
-			_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-			_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE,
-			LayoutFriendlyURLModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "plid", FinderColumn.Type.LONG, "=", true,
-				true, LayoutFriendlyURL::getPlid));
 
 		_finderPathWithPaginationFindByC_F = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_F",
@@ -3109,19 +4916,6 @@ public class LayoutFriendlyURLPersistenceImpl
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"companyId", "friendlyURL"}, false);
 
-		_collectionPersistenceFinderByC_F = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_F,
-			_finderPathWithoutPaginationFindByC_F, _finderPathCountByC_F,
-			_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-			_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE,
-			LayoutFriendlyURLModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, LayoutFriendlyURL::getCompanyId),
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "friendlyURL", FinderColumn.Type.STRING,
-				"=", true, true, LayoutFriendlyURL::getFriendlyURL));
-
 		_finderPathWithPaginationFindByP_F = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByP_F",
 			new String[] {
@@ -3140,19 +4934,6 @@ public class LayoutFriendlyURLPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByP_F",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"plid", "friendlyURL"}, false);
-
-		_collectionPersistenceFinderByP_F = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByP_F,
-			_finderPathWithoutPaginationFindByP_F, _finderPathCountByP_F,
-			_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-			_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE,
-			LayoutFriendlyURLModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "plid", FinderColumn.Type.LONG, "=", true,
-				false, LayoutFriendlyURL::getPlid),
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "friendlyURL", FinderColumn.Type.STRING,
-				"=", true, true, LayoutFriendlyURL::getFriendlyURL));
 
 		_finderPathWithPaginationFindByP_L = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByP_L",
@@ -3208,23 +4989,6 @@ public class LayoutFriendlyURLPersistenceImpl
 			},
 			new String[] {"groupId", "privateLayout", "friendlyURL"}, false);
 
-		_collectionPersistenceFinderByG_P_F = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_P_F,
-			_finderPathWithoutPaginationFindByG_P_F, _finderPathCountByG_P_F,
-			_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-			_SQL_COUNT_LAYOUTFRIENDLYURL_WHERE,
-			LayoutFriendlyURLModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "groupId", FinderColumn.Type.LONG, "=",
-				true, false, LayoutFriendlyURL::getGroupId),
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "privateLayout",
-				FinderColumn.Type.BOOLEAN, "=", true, false,
-				LayoutFriendlyURL::isPrivateLayout),
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "friendlyURL", FinderColumn.Type.STRING,
-				"=", true, true, LayoutFriendlyURL::getFriendlyURL));
-
 		_finderPathFetchByG_P_F_L = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByG_P_F_L",
 			new String[] {
@@ -3235,23 +4999,6 @@ public class LayoutFriendlyURLPersistenceImpl
 				"groupId", "privateLayout", "friendlyURL", "languageId"
 			},
 			true);
-
-		_uniquePersistenceFinderByG_P_F_L = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByG_P_F_L,
-			_SQL_SELECT_LAYOUTFRIENDLYURL_WHERE,
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "groupId", FinderColumn.Type.LONG, "=",
-				true, false, LayoutFriendlyURL::getGroupId),
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "privateLayout",
-				FinderColumn.Type.BOOLEAN, "=", true, false,
-				LayoutFriendlyURL::isPrivateLayout),
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "friendlyURL", FinderColumn.Type.STRING,
-				"=", true, false, LayoutFriendlyURL::getFriendlyURL),
-			new FinderColumn<>(
-				"layoutFriendlyURL.", "languageId", FinderColumn.Type.STRING,
-				"=", true, true, LayoutFriendlyURL::getLanguageId));
 
 		LayoutFriendlyURLUtil.setPersistence(this);
 	}
@@ -3276,6 +5023,9 @@ public class LayoutFriendlyURLPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "layoutFriendlyURL.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No LayoutFriendlyURL exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No LayoutFriendlyURL exists with the key {";
 
@@ -3291,4 +5041,4 @@ public class LayoutFriendlyURLPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1768174054
+// LIFERAY-SERVICE-BUILDER-HASH:-14446724

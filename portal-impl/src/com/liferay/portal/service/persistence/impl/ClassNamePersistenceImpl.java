@@ -12,6 +12,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchClassNameException;
@@ -22,8 +23,6 @@ import com.liferay.portal.kernel.model.ClassNameTable;
 import com.liferay.portal.kernel.service.persistence.ClassNamePersistence;
 import com.liferay.portal.kernel.service.persistence.ClassNameUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -38,6 +37,8 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * The persistence implementation for the class name service.
@@ -50,8 +51,7 @@ import java.util.Map;
  * @generated
  */
 public class ClassNamePersistenceImpl
-	extends BasePersistenceImpl<ClassName, NoSuchClassNameException>
-	implements ClassNamePersistence {
+	extends BasePersistenceImpl<ClassName> implements ClassNamePersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -71,7 +71,6 @@ public class ClassNamePersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByValue;
-	private UniquePersistenceFinder<ClassName> _uniquePersistenceFinderByValue;
 
 	/**
 	 * Returns the class name where value = &#63; or throws a <code>NoSuchClassNameException</code> if it could not be found.
@@ -85,15 +84,20 @@ public class ClassNamePersistenceImpl
 		ClassName className = fetchByValue(value);
 
 		if (className == null) {
-			String message =
-				_uniquePersistenceFinderByValue.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {value});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("value=");
+			sb.append(value);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchClassNameException(message);
+			throw new NoSuchClassNameException(sb.toString());
 		}
 
 		return className;
@@ -119,9 +123,90 @@ public class ClassNamePersistenceImpl
 	 */
 	@Override
 	public ClassName fetchByValue(String value, boolean useFinderCache) {
-		return _uniquePersistenceFinderByValue.fetch(
-			FinderCacheUtil.getFinderCache(), new Object[] {value},
-			useFinderCache);
+		value = Objects.toString(value, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {value};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = FinderCacheUtil.getResult(
+				_finderPathFetchByValue, finderArgs, this);
+		}
+
+		if (result instanceof ClassName) {
+			ClassName className = (ClassName)result;
+
+			if (!Objects.equals(value, className.getValue())) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_CLASSNAME_WHERE);
+
+			boolean bindValue = false;
+
+			if (value.isEmpty()) {
+				sb.append(_FINDER_COLUMN_VALUE_VALUE_3);
+			}
+			else {
+				bindValue = true;
+
+				sb.append(_FINDER_COLUMN_VALUE_VALUE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindValue) {
+					queryPos.add(value);
+				}
+
+				List<ClassName> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(
+							_finderPathFetchByValue, finderArgs, list);
+					}
+				}
+				else {
+					ClassName className = list.get(0);
+
+					result = className;
+
+					cacheResult(className);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (ClassName)result;
+		}
 	}
 
 	/**
@@ -147,9 +232,20 @@ public class ClassNamePersistenceImpl
 	 */
 	@Override
 	public int countByValue(String value) {
-		return _uniquePersistenceFinderByValue.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {value});
+		ClassName className = fetchByValue(value);
+
+		if (className == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_VALUE_VALUE_2 =
+		"className.value = ?";
+
+	private static final String _FINDER_COLUMN_VALUE_VALUE_3 =
+		"(className.value IS NULL OR className.value = '')";
 
 	public ClassNamePersistenceImpl() {
 		setModelClass(ClassName.class);
@@ -200,6 +296,48 @@ public class ClassNamePersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all class names.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(ClassNameImpl.class);
+
+		FinderCacheUtil.clearCache(ClassNameImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the class name.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(ClassName className) {
+		EntityCacheUtil.removeResult(ClassNameImpl.class, className);
+	}
+
+	@Override
+	public void clearCache(List<ClassName> classNames) {
+		for (ClassName className : classNames) {
+			EntityCacheUtil.removeResult(ClassNameImpl.class, className);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(ClassNameImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(ClassNameImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		ClassNameModelImpl classNameModelImpl) {
 
@@ -235,6 +373,47 @@ public class ClassNamePersistenceImpl
 	@Override
 	public ClassName remove(long classNameId) throws NoSuchClassNameException {
 		return remove((Serializable)classNameId);
+	}
+
+	/**
+	 * Removes the class name with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the class name
+	 * @return the class name that was removed
+	 * @throws NoSuchClassNameException if a class name with the primary key could not be found
+	 */
+	@Override
+	public ClassName remove(Serializable primaryKey)
+		throws NoSuchClassNameException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ClassName className = (ClassName)session.get(
+				ClassNameImpl.class, primaryKey);
+
+			if (className == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchClassNameException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(className);
+		}
+		catch (NoSuchClassNameException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -318,6 +497,31 @@ public class ClassNamePersistenceImpl
 		}
 
 		className.resetOriginalValues();
+
+		return className;
+	}
+
+	/**
+	 * Returns the class name with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the class name
+	 * @return the class name
+	 * @throws NoSuchClassNameException if a class name with the primary key could not be found
+	 */
+	@Override
+	public ClassName findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchClassNameException {
+
+		ClassName className = fetchByPrimaryKey(primaryKey);
+
+		if (className == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchClassNameException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return className;
 	}
@@ -570,12 +774,6 @@ public class ClassNamePersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"value"},
 			true);
 
-		_uniquePersistenceFinderByValue = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByValue, _SQL_SELECT_CLASSNAME_WHERE,
-			new FinderColumn<>(
-				"className.", "value", FinderColumn.Type.STRING, "=", true,
-				true, ClassName::getValue));
-
 		ClassNameUtil.setPersistence(this);
 	}
 
@@ -594,7 +792,13 @@ public class ClassNamePersistenceImpl
 	private static final String _SQL_COUNT_CLASSNAME =
 		"SELECT COUNT(className) FROM ClassName className";
 
+	private static final String _SQL_COUNT_CLASSNAME_WHERE =
+		"SELECT COUNT(className) FROM ClassName className WHERE ";
+
 	private static final String _ORDER_BY_ENTITY_ALIAS = "className.";
+
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No ClassName exists with the primary key ";
 
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No ClassName exists with the key {";
@@ -608,4 +812,4 @@ public class ClassNamePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1085197901
+// LIFERAY-SERVICE-BUILDER-HASH:1152174268

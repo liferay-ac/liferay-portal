@@ -6,7 +6,6 @@
 package com.liferay.portal.service.persistence.impl;
 
 import com.liferay.portal.kernel.bean.BeanReference;
-import com.liferay.portal.kernel.exception.NoSuchPortletPreferencesException;
 import com.liferay.portal.kernel.model.PortletPreferences;
 import com.liferay.portal.kernel.service.persistence.PortletPreferencesPersistence;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
@@ -16,8 +15,7 @@ import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
  * @generated
  */
 public class PortletPreferencesFinderBaseImpl
-	extends BasePersistenceImpl
-		<PortletPreferences, NoSuchPortletPreferencesException> {
+	extends BasePersistenceImpl<PortletPreferences> {
 
 	public PortletPreferencesFinderBaseImpl() {
 		setModelClass(PortletPreferences.class);
@@ -47,4 +45,4 @@ public class PortletPreferencesFinderBaseImpl
 	protected PortletPreferencesPersistence portletPreferencesPersistence;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-97567056
+// LIFERAY-SERVICE-BUILDER-HASH:1570801412

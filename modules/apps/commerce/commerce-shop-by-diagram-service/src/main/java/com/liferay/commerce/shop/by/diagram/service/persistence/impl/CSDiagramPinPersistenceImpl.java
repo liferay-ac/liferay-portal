@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -32,8 +33,6 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -48,7 +47,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,7 +73,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CSDiagramPinPersistence.class)
 public class CSDiagramPinPersistenceImpl
-	extends BasePersistenceImpl<CSDiagramPin, NoSuchCSDiagramPinException>
+	extends BasePersistenceImpl<CSDiagramPin>
 	implements CSDiagramPinPersistence {
 
 	/*
@@ -95,8 +96,6 @@ public class CSDiagramPinPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCPDefinitionId;
 	private FinderPath _finderPathWithoutPaginationFindByCPDefinitionId;
 	private FinderPath _finderPathCountByCPDefinitionId;
-	private CollectionPersistenceFinder<CSDiagramPin>
-		_collectionPersistenceFinderByCPDefinitionId;
 
 	/**
 	 * Returns all the cs diagram pins where CPDefinitionId = &#63;.
@@ -175,9 +174,98 @@ public class CSDiagramPinPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CSDiagramPin.class)) {
 
-			return _collectionPersistenceFinderByCPDefinitionId.find(
-				finderCache, new Object[] {CPDefinitionId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindByCPDefinitionId;
+					finderArgs = new Object[] {CPDefinitionId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByCPDefinitionId;
+				finderArgs = new Object[] {
+					CPDefinitionId, start, end, orderByComparator
+				};
+			}
+
+			List<CSDiagramPin> list = null;
+
+			if (useFinderCache) {
+				list = (List<CSDiagramPin>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CSDiagramPin csDiagramPin : list) {
+						if (CPDefinitionId !=
+								csDiagramPin.getCPDefinitionId()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_CSDIAGRAMPIN_WHERE);
+
+				sb.append(_FINDER_COLUMN_CPDEFINITIONID_CPDEFINITIONID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CSDiagramPinModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(CPDefinitionId);
+
+					list = (List<CSDiagramPin>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -202,9 +290,16 @@ public class CSDiagramPinPersistenceImpl
 			return csDiagramPin;
 		}
 
-		throw new NoSuchCSDiagramPinException(
-			_collectionPersistenceFinderByCPDefinitionId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {CPDefinitionId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("CPDefinitionId=");
+		sb.append(CPDefinitionId);
+
+		sb.append("}");
+
+		throw new NoSuchCSDiagramPinException(sb.toString());
 	}
 
 	/**
@@ -219,8 +314,14 @@ public class CSDiagramPinPersistenceImpl
 		long CPDefinitionId,
 		OrderByComparator<CSDiagramPin> orderByComparator) {
 
-		return _collectionPersistenceFinderByCPDefinitionId.fetchFirst(
-			finderCache, new Object[] {CPDefinitionId}, orderByComparator);
+		List<CSDiagramPin> list = findByCPDefinitionId(
+			CPDefinitionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -230,8 +331,13 @@ public class CSDiagramPinPersistenceImpl
 	 */
 	@Override
 	public void removeByCPDefinitionId(long CPDefinitionId) {
-		_collectionPersistenceFinderByCPDefinitionId.remove(
-			finderCache, new Object[] {CPDefinitionId});
+		for (CSDiagramPin csDiagramPin :
+				findByCPDefinitionId(
+					CPDefinitionId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(csDiagramPin);
+		}
 	}
 
 	/**
@@ -246,10 +352,51 @@ public class CSDiagramPinPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CSDiagramPin.class)) {
 
-			return _collectionPersistenceFinderByCPDefinitionId.count(
-				finderCache, new Object[] {CPDefinitionId});
+			FinderPath finderPath = _finderPathCountByCPDefinitionId;
+
+			Object[] finderArgs = new Object[] {CPDefinitionId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_CSDIAGRAMPIN_WHERE);
+
+				sb.append(_FINDER_COLUMN_CPDEFINITIONID_CPDEFINITIONID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(CPDefinitionId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_CPDEFINITIONID_CPDEFINITIONID_2 =
+		"csDiagramPin.CPDefinitionId = ?";
 
 	public CSDiagramPinPersistenceImpl() {
 		setModelClass(CSDiagramPin.class);
@@ -309,6 +456,48 @@ public class CSDiagramPinPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all cs diagram pins.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CSDiagramPinImpl.class);
+
+		finderCache.clearCache(CSDiagramPinImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cs diagram pin.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CSDiagramPin csDiagramPin) {
+		entityCache.removeResult(CSDiagramPinImpl.class, csDiagramPin);
+	}
+
+	@Override
+	public void clearCache(List<CSDiagramPin> csDiagramPins) {
+		for (CSDiagramPin csDiagramPin : csDiagramPins) {
+			entityCache.removeResult(CSDiagramPinImpl.class, csDiagramPin);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CSDiagramPinImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CSDiagramPinImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new cs diagram pin with the primary key. Does not add the cs diagram pin to the database.
 	 *
 	 * @param CSDiagramPinId the primary key for the new cs diagram pin
@@ -338,6 +527,47 @@ public class CSDiagramPinPersistenceImpl
 		throws NoSuchCSDiagramPinException {
 
 		return remove((Serializable)CSDiagramPinId);
+	}
+
+	/**
+	 * Removes the cs diagram pin with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cs diagram pin
+	 * @return the cs diagram pin that was removed
+	 * @throws NoSuchCSDiagramPinException if a cs diagram pin with the primary key could not be found
+	 */
+	@Override
+	public CSDiagramPin remove(Serializable primaryKey)
+		throws NoSuchCSDiagramPinException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CSDiagramPin csDiagramPin = (CSDiagramPin)session.get(
+				CSDiagramPinImpl.class, primaryKey);
+
+			if (csDiagramPin == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCSDiagramPinException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(csDiagramPin);
+		}
+		catch (NoSuchCSDiagramPinException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -458,6 +688,31 @@ public class CSDiagramPinPersistenceImpl
 	}
 
 	/**
+	 * Returns the cs diagram pin with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cs diagram pin
+	 * @return the cs diagram pin
+	 * @throws NoSuchCSDiagramPinException if a cs diagram pin with the primary key could not be found
+	 */
+	@Override
+	public CSDiagramPin findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCSDiagramPinException {
+
+		CSDiagramPin csDiagramPin = fetchByPrimaryKey(primaryKey);
+
+		if (csDiagramPin == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCSDiagramPinException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return csDiagramPin;
+	}
+
+	/**
 	 * Returns the cs diagram pin with the primary key or throws a <code>NoSuchCSDiagramPinException</code> if it could not be found.
 	 *
 	 * @param CSDiagramPinId the primary key of the cs diagram pin
@@ -471,9 +726,52 @@ public class CSDiagramPinPersistenceImpl
 		return findByPrimaryKey((Serializable)CSDiagramPinId);
 	}
 
+	/**
+	 * Returns the cs diagram pin with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cs diagram pin
+	 * @return the cs diagram pin, or <code>null</code> if a cs diagram pin with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public CSDiagramPin fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				CSDiagramPin.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		CSDiagramPin csDiagramPin = (CSDiagramPin)entityCache.getResult(
+			CSDiagramPinImpl.class, primaryKey);
+
+		if (csDiagramPin != null) {
+			return csDiagramPin;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			csDiagramPin = (CSDiagramPin)session.get(
+				CSDiagramPinImpl.class, primaryKey);
+
+			if (csDiagramPin != null) {
+				cacheResult(csDiagramPin);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return csDiagramPin;
 	}
 
 	/**
@@ -485,6 +783,129 @@ public class CSDiagramPinPersistenceImpl
 	@Override
 	public CSDiagramPin fetchByPrimaryKey(long CSDiagramPinId) {
 		return fetchByPrimaryKey((Serializable)CSDiagramPinId);
+	}
+
+	@Override
+	public Map<Serializable, CSDiagramPin> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(CSDiagramPin.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, CSDiagramPin> map =
+			new HashMap<Serializable, CSDiagramPin>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			CSDiagramPin csDiagramPin = fetchByPrimaryKey(primaryKey);
+
+			if (csDiagramPin != null) {
+				map.put(primaryKey, csDiagramPin);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						CSDiagramPin.class, primaryKey)) {
+
+				CSDiagramPin csDiagramPin = (CSDiagramPin)entityCache.getResult(
+					CSDiagramPinImpl.class, primaryKey);
+
+				if (csDiagramPin == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, csDiagramPin);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (CSDiagramPin csDiagramPin : (List<CSDiagramPin>)query.list()) {
+				map.put(csDiagramPin.getPrimaryKeyObj(), csDiagramPin);
+
+				cacheResult(csDiagramPin);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -794,17 +1215,6 @@ public class CSDiagramPinPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"CPDefinitionId"}, false);
 
-		_collectionPersistenceFinderByCPDefinitionId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCPDefinitionId,
-				_finderPathWithoutPaginationFindByCPDefinitionId,
-				_finderPathCountByCPDefinitionId,
-				_SQL_SELECT_CSDIAGRAMPIN_WHERE, _SQL_COUNT_CSDIAGRAMPIN_WHERE,
-				CSDiagramPinModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"csDiagramPin.", "CPDefinitionId", FinderColumn.Type.LONG,
-					"=", true, true, CSDiagramPin::getCPDefinitionId));
-
 		CSDiagramPinUtil.setPersistence(this);
 	}
 
@@ -864,6 +1274,9 @@ public class CSDiagramPinPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "csDiagramPin.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CSDiagramPin exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CSDiagramPin exists with the key {";
 
@@ -876,4 +1289,4 @@ public class CSDiagramPinPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1262172842
+// LIFERAY-SERVICE-BUILDER-HASH:1192755046

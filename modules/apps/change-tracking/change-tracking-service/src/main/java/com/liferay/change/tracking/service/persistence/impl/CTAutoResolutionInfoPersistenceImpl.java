@@ -29,8 +29,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -46,6 +44,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -66,8 +65,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTAutoResolutionInfoPersistence.class)
 public class CTAutoResolutionInfoPersistenceImpl
-	extends BasePersistenceImpl
-		<CTAutoResolutionInfo, NoSuchAutoResolutionInfoException>
+	extends BasePersistenceImpl<CTAutoResolutionInfo>
 	implements CTAutoResolutionInfoPersistence {
 
 	/*
@@ -90,8 +88,6 @@ public class CTAutoResolutionInfoPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCtCollectionId;
 	private FinderPath _finderPathWithoutPaginationFindByCtCollectionId;
 	private FinderPath _finderPathCountByCtCollectionId;
-	private CollectionPersistenceFinder<CTAutoResolutionInfo>
-		_collectionPersistenceFinderByCtCollectionId;
 
 	/**
 	 * Returns all the ct auto resolution infos where ctCollectionId = &#63;.
@@ -168,9 +164,97 @@ public class CTAutoResolutionInfoPersistenceImpl
 		OrderByComparator<CTAutoResolutionInfo> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCtCollectionId.find(
-			finderCache, new Object[] {ctCollectionId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCtCollectionId;
+				finderArgs = new Object[] {ctCollectionId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCtCollectionId;
+			finderArgs = new Object[] {
+				ctCollectionId, start, end, orderByComparator
+			};
+		}
+
+		List<CTAutoResolutionInfo> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTAutoResolutionInfo>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTAutoResolutionInfo ctAutoResolutionInfo : list) {
+					if (ctCollectionId !=
+							ctAutoResolutionInfo.getCtCollectionId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTAUTORESOLUTIONINFO_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTAutoResolutionInfoModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctCollectionId);
+
+				list = (List<CTAutoResolutionInfo>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -194,9 +278,16 @@ public class CTAutoResolutionInfoPersistenceImpl
 			return ctAutoResolutionInfo;
 		}
 
-		throw new NoSuchAutoResolutionInfoException(
-			_collectionPersistenceFinderByCtCollectionId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {ctCollectionId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("ctCollectionId=");
+		sb.append(ctCollectionId);
+
+		sb.append("}");
+
+		throw new NoSuchAutoResolutionInfoException(sb.toString());
 	}
 
 	/**
@@ -211,8 +302,14 @@ public class CTAutoResolutionInfoPersistenceImpl
 		long ctCollectionId,
 		OrderByComparator<CTAutoResolutionInfo> orderByComparator) {
 
-		return _collectionPersistenceFinderByCtCollectionId.fetchFirst(
-			finderCache, new Object[] {ctCollectionId}, orderByComparator);
+		List<CTAutoResolutionInfo> list = findByCtCollectionId(
+			ctCollectionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -222,8 +319,13 @@ public class CTAutoResolutionInfoPersistenceImpl
 	 */
 	@Override
 	public void removeByCtCollectionId(long ctCollectionId) {
-		_collectionPersistenceFinderByCtCollectionId.remove(
-			finderCache, new Object[] {ctCollectionId});
+		for (CTAutoResolutionInfo ctAutoResolutionInfo :
+				findByCtCollectionId(
+					ctCollectionId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(ctAutoResolutionInfo);
+		}
 	}
 
 	/**
@@ -234,9 +336,49 @@ public class CTAutoResolutionInfoPersistenceImpl
 	 */
 	@Override
 	public int countByCtCollectionId(long ctCollectionId) {
-		return _collectionPersistenceFinderByCtCollectionId.count(
-			finderCache, new Object[] {ctCollectionId});
+		FinderPath finderPath = _finderPathCountByCtCollectionId;
+
+		Object[] finderArgs = new Object[] {ctCollectionId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTAUTORESOLUTIONINFO_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctCollectionId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2 =
+		"ctAutoResolutionInfo.ctCollectionId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_MCNI_SMCPK;
 	private FinderPath _finderPathWithoutPaginationFindByC_MCNI_SMCPK;
@@ -961,6 +1103,53 @@ public class CTAutoResolutionInfoPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all ct auto resolution infos.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTAutoResolutionInfoImpl.class);
+
+		finderCache.clearCache(CTAutoResolutionInfoImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ct auto resolution info.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTAutoResolutionInfo ctAutoResolutionInfo) {
+		entityCache.removeResult(
+			CTAutoResolutionInfoImpl.class, ctAutoResolutionInfo);
+	}
+
+	@Override
+	public void clearCache(List<CTAutoResolutionInfo> ctAutoResolutionInfos) {
+		for (CTAutoResolutionInfo ctAutoResolutionInfo :
+				ctAutoResolutionInfos) {
+
+			entityCache.removeResult(
+				CTAutoResolutionInfoImpl.class, ctAutoResolutionInfo);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTAutoResolutionInfoImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				CTAutoResolutionInfoImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new ct auto resolution info with the primary key. Does not add the ct auto resolution info to the database.
 	 *
 	 * @param ctAutoResolutionInfoId the primary key for the new ct auto resolution info
@@ -991,6 +1180,48 @@ public class CTAutoResolutionInfoPersistenceImpl
 		throws NoSuchAutoResolutionInfoException {
 
 		return remove((Serializable)ctAutoResolutionInfoId);
+	}
+
+	/**
+	 * Removes the ct auto resolution info with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ct auto resolution info
+	 * @return the ct auto resolution info that was removed
+	 * @throws NoSuchAutoResolutionInfoException if a ct auto resolution info with the primary key could not be found
+	 */
+	@Override
+	public CTAutoResolutionInfo remove(Serializable primaryKey)
+		throws NoSuchAutoResolutionInfoException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTAutoResolutionInfo ctAutoResolutionInfo =
+				(CTAutoResolutionInfo)session.get(
+					CTAutoResolutionInfoImpl.class, primaryKey);
+
+			if (ctAutoResolutionInfo == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchAutoResolutionInfoException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctAutoResolutionInfo);
+		}
+		catch (NoSuchAutoResolutionInfoException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1096,6 +1327,32 @@ public class CTAutoResolutionInfoPersistenceImpl
 		}
 
 		ctAutoResolutionInfo.resetOriginalValues();
+
+		return ctAutoResolutionInfo;
+	}
+
+	/**
+	 * Returns the ct auto resolution info with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ct auto resolution info
+	 * @return the ct auto resolution info
+	 * @throws NoSuchAutoResolutionInfoException if a ct auto resolution info with the primary key could not be found
+	 */
+	@Override
+	public CTAutoResolutionInfo findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchAutoResolutionInfoException {
+
+		CTAutoResolutionInfo ctAutoResolutionInfo = fetchByPrimaryKey(
+			primaryKey);
+
+		if (ctAutoResolutionInfo == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchAutoResolutionInfoException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return ctAutoResolutionInfo;
 	}
@@ -1365,20 +1622,6 @@ public class CTAutoResolutionInfoPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"ctCollectionId"}, false);
 
-		_collectionPersistenceFinderByCtCollectionId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCtCollectionId,
-				_finderPathWithoutPaginationFindByCtCollectionId,
-				_finderPathCountByCtCollectionId,
-				_SQL_SELECT_CTAUTORESOLUTIONINFO_WHERE,
-				_SQL_COUNT_CTAUTORESOLUTIONINFO_WHERE,
-				CTAutoResolutionInfoModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctAutoResolutionInfo.", "ctCollectionId",
-					FinderColumn.Type.LONG, "=", true, true,
-					CTAutoResolutionInfo::getCtCollectionId));
-
 		_finderPathWithPaginationFindByC_MCNI_SMCPK = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_MCNI_SMCPK",
 			new String[] {
@@ -1478,6 +1721,9 @@ public class CTAutoResolutionInfoPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"ctAutoResolutionInfo.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTAutoResolutionInfo exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTAutoResolutionInfo exists with the key {";
 
@@ -1490,4 +1736,4 @@ public class CTAutoResolutionInfoPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:469246022
+// LIFERAY-SERVICE-BUILDER-HASH:-1469446170

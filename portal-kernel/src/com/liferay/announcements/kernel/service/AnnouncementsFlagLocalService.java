@@ -301,4 +301,4 @@ public interface AnnouncementsFlagLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:461625696
+// LIFERAY-SERVICE-BUILDER-HASH:58802592

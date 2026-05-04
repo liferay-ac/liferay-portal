@@ -5,7 +5,6 @@
 
 package com.liferay.portlet.documentlibrary.service.persistence.impl;
 
-import com.liferay.document.library.kernel.exception.NoSuchFileEntryTypeException;
 import com.liferay.document.library.kernel.model.DLFileEntryType;
 import com.liferay.document.library.kernel.service.persistence.DLFileEntryTypePersistence;
 import com.liferay.portal.kernel.bean.BeanReference;
@@ -22,7 +21,7 @@ import java.util.Set;
  * @generated
  */
 public class DLFileEntryTypeFinderBaseImpl
-	extends BasePersistenceImpl<DLFileEntryType, NoSuchFileEntryTypeException> {
+	extends BasePersistenceImpl<DLFileEntryType> {
 
 	public DLFileEntryTypeFinderBaseImpl() {
 		setModelClass(DLFileEntryType.class);
@@ -66,4 +65,4 @@ public class DLFileEntryTypeFinderBaseImpl
 		DLFileEntryTypeFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-124591633
+// LIFERAY-SERVICE-BUILDER-HASH:1597931189

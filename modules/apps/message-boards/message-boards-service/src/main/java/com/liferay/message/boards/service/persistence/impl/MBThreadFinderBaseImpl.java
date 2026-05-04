@@ -5,7 +5,6 @@
 
 package com.liferay.message.boards.service.persistence.impl;
 
-import com.liferay.message.boards.exception.NoSuchThreadException;
 import com.liferay.message.boards.model.MBThread;
 import com.liferay.message.boards.service.persistence.MBThreadPersistence;
 import com.liferay.message.boards.service.persistence.impl.constants.MBPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class MBThreadFinderBaseImpl
-	extends BasePersistenceImpl<MBThread, NoSuchThreadException> {
+	extends BasePersistenceImpl<MBThread> {
 
 	public MBThreadFinderBaseImpl() {
 		setModelClass(MBThread.class);
@@ -78,4 +77,4 @@ public abstract class MBThreadFinderBaseImpl
 		MBThreadFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-622546853
+// LIFERAY-SERVICE-BUILDER-HASH:618313388

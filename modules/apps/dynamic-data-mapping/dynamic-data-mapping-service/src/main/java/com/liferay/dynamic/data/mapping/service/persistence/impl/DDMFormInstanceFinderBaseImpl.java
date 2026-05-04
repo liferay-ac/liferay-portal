@@ -5,7 +5,6 @@
 
 package com.liferay.dynamic.data.mapping.service.persistence.impl;
 
-import com.liferay.dynamic.data.mapping.exception.NoSuchFormInstanceException;
 import com.liferay.dynamic.data.mapping.model.DDMFormInstance;
 import com.liferay.dynamic.data.mapping.service.persistence.DDMFormInstancePersistence;
 import com.liferay.dynamic.data.mapping.service.persistence.impl.constants.DDMPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class DDMFormInstanceFinderBaseImpl
-	extends BasePersistenceImpl<DDMFormInstance, NoSuchFormInstanceException> {
+	extends BasePersistenceImpl<DDMFormInstance> {
 
 	public DDMFormInstanceFinderBaseImpl() {
 		setModelClass(DDMFormInstance.class);
@@ -79,4 +78,4 @@ public abstract class DDMFormInstanceFinderBaseImpl
 		DDMFormInstanceFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:832229016
+// LIFERAY-SERVICE-BUILDER-HASH:-1847823756

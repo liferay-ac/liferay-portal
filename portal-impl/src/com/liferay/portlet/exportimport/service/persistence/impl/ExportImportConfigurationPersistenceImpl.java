@@ -17,6 +17,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.log.Log;
@@ -25,8 +26,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -57,8 +56,7 @@ import java.util.Set;
  * @generated
  */
 public class ExportImportConfigurationPersistenceImpl
-	extends BasePersistenceImpl
-		<ExportImportConfiguration, NoSuchConfigurationException>
+	extends BasePersistenceImpl<ExportImportConfiguration>
 	implements ExportImportConfigurationPersistence {
 
 	/*
@@ -81,8 +79,6 @@ public class ExportImportConfigurationPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<ExportImportConfiguration>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the export import configurations where groupId = &#63;.
@@ -156,9 +152,95 @@ public class ExportImportConfigurationPersistenceImpl
 		OrderByComparator<ExportImportConfiguration> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<ExportImportConfiguration> list = null;
+
+		if (useFinderCache) {
+			list = (List<ExportImportConfiguration>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ExportImportConfiguration exportImportConfiguration :
+						list) {
+
+					if (groupId != exportImportConfiguration.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ExportImportConfigurationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<ExportImportConfiguration>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -182,9 +264,16 @@ public class ExportImportConfigurationPersistenceImpl
 			return exportImportConfiguration;
 		}
 
-		throw new NoSuchConfigurationException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchConfigurationException(sb.toString());
 	}
 
 	/**
@@ -199,9 +288,14 @@ public class ExportImportConfigurationPersistenceImpl
 		long groupId,
 		OrderByComparator<ExportImportConfiguration> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId},
-			orderByComparator);
+		List<ExportImportConfiguration> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -211,8 +305,12 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId});
+		for (ExportImportConfiguration exportImportConfiguration :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(exportImportConfiguration);
+		}
 	}
 
 	/**
@@ -223,15 +321,54 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"exportImportConfiguration.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<ExportImportConfiguration>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the export import configurations where companyId = &#63;.
@@ -305,9 +442,97 @@ public class ExportImportConfigurationPersistenceImpl
 		OrderByComparator<ExportImportConfiguration> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<ExportImportConfiguration> list = null;
+
+		if (useFinderCache) {
+			list = (List<ExportImportConfiguration>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ExportImportConfiguration exportImportConfiguration :
+						list) {
+
+					if (companyId != exportImportConfiguration.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ExportImportConfigurationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<ExportImportConfiguration>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -331,9 +556,16 @@ public class ExportImportConfigurationPersistenceImpl
 			return exportImportConfiguration;
 		}
 
-		throw new NoSuchConfigurationException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchConfigurationException(sb.toString());
 	}
 
 	/**
@@ -348,9 +580,14 @@ public class ExportImportConfigurationPersistenceImpl
 		long companyId,
 		OrderByComparator<ExportImportConfiguration> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId},
-			orderByComparator);
+		List<ExportImportConfiguration> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -360,8 +597,12 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		for (ExportImportConfiguration exportImportConfiguration :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(exportImportConfiguration);
+		}
 	}
 
 	/**
@@ -372,15 +613,54 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"exportImportConfiguration.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_T;
 	private FinderPath _finderPathWithoutPaginationFindByG_T;
 	private FinderPath _finderPathCountByG_T;
-	private CollectionPersistenceFinder<ExportImportConfiguration>
-		_collectionPersistenceFinderByG_T;
 
 	/**
 	 * Returns all the export import configurations where groupId = &#63; and type = &#63;.
@@ -458,9 +738,103 @@ public class ExportImportConfigurationPersistenceImpl
 		OrderByComparator<ExportImportConfiguration> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByG_T.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId, type},
-			start, end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByG_T;
+				finderArgs = new Object[] {groupId, type};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByG_T;
+			finderArgs = new Object[] {
+				groupId, type, start, end, orderByComparator
+			};
+		}
+
+		List<ExportImportConfiguration> list = null;
+
+		if (useFinderCache) {
+			list = (List<ExportImportConfiguration>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ExportImportConfiguration exportImportConfiguration :
+						list) {
+
+					if ((groupId != exportImportConfiguration.getGroupId()) ||
+						(type != exportImportConfiguration.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_T_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_T_TYPE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ExportImportConfigurationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(type);
+
+				list = (List<ExportImportConfiguration>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -485,9 +859,19 @@ public class ExportImportConfigurationPersistenceImpl
 			return exportImportConfiguration;
 		}
 
-		throw new NoSuchConfigurationException(
-			_collectionPersistenceFinderByG_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, type}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchConfigurationException(sb.toString());
 	}
 
 	/**
@@ -503,9 +887,14 @@ public class ExportImportConfigurationPersistenceImpl
 		long groupId, int type,
 		OrderByComparator<ExportImportConfiguration> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_T.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId, type},
-			orderByComparator);
+		List<ExportImportConfiguration> list = findByG_T(
+			groupId, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -516,8 +905,13 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public void removeByG_T(long groupId, int type) {
-		_collectionPersistenceFinderByG_T.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId, type});
+		for (ExportImportConfiguration exportImportConfiguration :
+				findByG_T(
+					groupId, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(exportImportConfiguration);
+		}
 	}
 
 	/**
@@ -529,15 +923,61 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public int countByG_T(long groupId, int type) {
-		return _collectionPersistenceFinderByG_T.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId, type});
+		FinderPath finderPath = _finderPathCountByG_T;
+
+		Object[] finderArgs = new Object[] {groupId, type};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_T_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_T_TYPE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(type);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_G_T_GROUPID_2 =
+		"exportImportConfiguration.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_T_TYPE_2 =
+		"exportImportConfiguration.type = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_S;
 	private FinderPath _finderPathWithoutPaginationFindByG_S;
 	private FinderPath _finderPathCountByG_S;
-	private CollectionPersistenceFinder<ExportImportConfiguration>
-		_collectionPersistenceFinderByG_S;
 
 	/**
 	 * Returns all the export import configurations where groupId = &#63; and status = &#63;.
@@ -615,9 +1055,103 @@ public class ExportImportConfigurationPersistenceImpl
 		OrderByComparator<ExportImportConfiguration> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByG_S.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId, status},
-			start, end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByG_S;
+				finderArgs = new Object[] {groupId, status};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByG_S;
+			finderArgs = new Object[] {
+				groupId, status, start, end, orderByComparator
+			};
+		}
+
+		List<ExportImportConfiguration> list = null;
+
+		if (useFinderCache) {
+			list = (List<ExportImportConfiguration>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ExportImportConfiguration exportImportConfiguration :
+						list) {
+
+					if ((groupId != exportImportConfiguration.getGroupId()) ||
+						(status != exportImportConfiguration.getStatus())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_S_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_S_STATUS_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ExportImportConfigurationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(status);
+
+				list = (List<ExportImportConfiguration>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -642,9 +1176,19 @@ public class ExportImportConfigurationPersistenceImpl
 			return exportImportConfiguration;
 		}
 
-		throw new NoSuchConfigurationException(
-			_collectionPersistenceFinderByG_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, status}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchConfigurationException(sb.toString());
 	}
 
 	/**
@@ -660,9 +1204,14 @@ public class ExportImportConfigurationPersistenceImpl
 		long groupId, int status,
 		OrderByComparator<ExportImportConfiguration> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_S.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId, status},
-			orderByComparator);
+		List<ExportImportConfiguration> list = findByG_S(
+			groupId, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -673,8 +1222,13 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public void removeByG_S(long groupId, int status) {
-		_collectionPersistenceFinderByG_S.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId, status});
+		for (ExportImportConfiguration exportImportConfiguration :
+				findByG_S(
+					groupId, status, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(exportImportConfiguration);
+		}
 	}
 
 	/**
@@ -686,15 +1240,61 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public int countByG_S(long groupId, int status) {
-		return _collectionPersistenceFinderByG_S.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId, status});
+		FinderPath finderPath = _finderPathCountByG_S;
+
+		Object[] finderArgs = new Object[] {groupId, status};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_S_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_S_STATUS_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(status);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_G_S_GROUPID_2 =
+		"exportImportConfiguration.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_S_STATUS_2 =
+		"exportImportConfiguration.status = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_T_S;
 	private FinderPath _finderPathWithoutPaginationFindByG_T_S;
 	private FinderPath _finderPathCountByG_T_S;
-	private CollectionPersistenceFinder<ExportImportConfiguration>
-		_collectionPersistenceFinderByG_T_S;
 
 	/**
 	 * Returns all the export import configurations where groupId = &#63; and type = &#63; and status = &#63;.
@@ -779,10 +1379,108 @@ public class ExportImportConfigurationPersistenceImpl
 		OrderByComparator<ExportImportConfiguration> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByG_T_S.find(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {groupId, type, status}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByG_T_S;
+				finderArgs = new Object[] {groupId, type, status};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByG_T_S;
+			finderArgs = new Object[] {
+				groupId, type, status, start, end, orderByComparator
+			};
+		}
+
+		List<ExportImportConfiguration> list = null;
+
+		if (useFinderCache) {
+			list = (List<ExportImportConfiguration>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ExportImportConfiguration exportImportConfiguration :
+						list) {
+
+					if ((groupId != exportImportConfiguration.getGroupId()) ||
+						(type != exportImportConfiguration.getType()) ||
+						(status != exportImportConfiguration.getStatus())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_T_S_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_T_S_TYPE_2);
+
+			sb.append(_FINDER_COLUMN_G_T_S_STATUS_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ExportImportConfigurationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(type);
+
+				queryPos.add(status);
+
+				list = (List<ExportImportConfiguration>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -808,10 +1506,22 @@ public class ExportImportConfigurationPersistenceImpl
 			return exportImportConfiguration;
 		}
 
-		throw new NoSuchConfigurationException(
-			_collectionPersistenceFinderByG_T_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, type, status}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchConfigurationException(sb.toString());
 	}
 
 	/**
@@ -828,9 +1538,14 @@ public class ExportImportConfigurationPersistenceImpl
 		long groupId, int type, int status,
 		OrderByComparator<ExportImportConfiguration> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_T_S.fetchFirst(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {groupId, type, status}, orderByComparator);
+		List<ExportImportConfiguration> list = findByG_T_S(
+			groupId, type, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -842,9 +1557,13 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public void removeByG_T_S(long groupId, int type, int status) {
-		_collectionPersistenceFinderByG_T_S.remove(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {groupId, type, status});
+		for (ExportImportConfiguration exportImportConfiguration :
+				findByG_T_S(
+					groupId, type, status, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(exportImportConfiguration);
+		}
 	}
 
 	/**
@@ -857,10 +1576,64 @@ public class ExportImportConfigurationPersistenceImpl
 	 */
 	@Override
 	public int countByG_T_S(long groupId, int type, int status) {
-		return _collectionPersistenceFinderByG_T_S.count(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {groupId, type, status});
+		FinderPath finderPath = _finderPathCountByG_T_S;
+
+		Object[] finderArgs = new Object[] {groupId, type, status};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_T_S_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_T_S_TYPE_2);
+
+			sb.append(_FINDER_COLUMN_G_T_S_STATUS_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(type);
+
+				queryPos.add(status);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_G_T_S_GROUPID_2 =
+		"exportImportConfiguration.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_T_S_TYPE_2 =
+		"exportImportConfiguration.type = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_T_S_STATUS_2 =
+		"exportImportConfiguration.status = ?";
 
 	public ExportImportConfigurationPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -925,6 +1698,57 @@ public class ExportImportConfigurationPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all export import configurations.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(ExportImportConfigurationImpl.class);
+
+		FinderCacheUtil.clearCache(ExportImportConfigurationImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the export import configuration.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		ExportImportConfiguration exportImportConfiguration) {
+
+		EntityCacheUtil.removeResult(
+			ExportImportConfigurationImpl.class, exportImportConfiguration);
+	}
+
+	@Override
+	public void clearCache(
+		List<ExportImportConfiguration> exportImportConfigurations) {
+
+		for (ExportImportConfiguration exportImportConfiguration :
+				exportImportConfigurations) {
+
+			EntityCacheUtil.removeResult(
+				ExportImportConfigurationImpl.class, exportImportConfiguration);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(ExportImportConfigurationImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(
+				ExportImportConfigurationImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new export import configuration with the primary key. Does not add the export import configuration to the database.
 	 *
 	 * @param exportImportConfigurationId the primary key for the new export import configuration
@@ -956,6 +1780,48 @@ public class ExportImportConfigurationPersistenceImpl
 		throws NoSuchConfigurationException {
 
 		return remove((Serializable)exportImportConfigurationId);
+	}
+
+	/**
+	 * Removes the export import configuration with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the export import configuration
+	 * @return the export import configuration that was removed
+	 * @throws NoSuchConfigurationException if a export import configuration with the primary key could not be found
+	 */
+	@Override
+	public ExportImportConfiguration remove(Serializable primaryKey)
+		throws NoSuchConfigurationException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ExportImportConfiguration exportImportConfiguration =
+				(ExportImportConfiguration)session.get(
+					ExportImportConfigurationImpl.class, primaryKey);
+
+			if (exportImportConfiguration == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchConfigurationException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(exportImportConfiguration);
+		}
+		catch (NoSuchConfigurationException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1075,6 +1941,32 @@ public class ExportImportConfigurationPersistenceImpl
 		}
 
 		exportImportConfiguration.resetOriginalValues();
+
+		return exportImportConfiguration;
+	}
+
+	/**
+	 * Returns the export import configuration with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the export import configuration
+	 * @return the export import configuration
+	 * @throws NoSuchConfigurationException if a export import configuration with the primary key could not be found
+	 */
+	@Override
+	public ExportImportConfiguration findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchConfigurationException {
+
+		ExportImportConfiguration exportImportConfiguration = fetchByPrimaryKey(
+			primaryKey);
+
+		if (exportImportConfiguration == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchConfigurationException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return exportImportConfiguration;
 	}
@@ -1352,20 +2244,6 @@ public class ExportImportConfigurationPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId,
-				_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE,
-				_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE,
-				ExportImportConfigurationModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"exportImportConfiguration.", "groupId",
-					FinderColumn.Type.LONG, "=", true, true,
-					ExportImportConfiguration::getGroupId));
-
 		_finderPathWithPaginationFindByCompanyId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCompanyId",
 			new String[] {
@@ -1383,20 +2261,6 @@ public class ExportImportConfigurationPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByCompanyId",
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
-
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId,
-				_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE,
-				_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE,
-				ExportImportConfigurationModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"exportImportConfiguration.", "companyId",
-					FinderColumn.Type.LONG, "=", true, true,
-					ExportImportConfiguration::getCompanyId));
 
 		_finderPathWithPaginationFindByG_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_T",
@@ -1417,20 +2281,6 @@ public class ExportImportConfigurationPersistenceImpl
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"groupId", "type_"}, false);
 
-		_collectionPersistenceFinderByG_T = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_T,
-			_finderPathWithoutPaginationFindByG_T, _finderPathCountByG_T,
-			_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE,
-			_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE,
-			ExportImportConfigurationModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"exportImportConfiguration.", "groupId", FinderColumn.Type.LONG,
-				"=", true, false, ExportImportConfiguration::getGroupId),
-			new FinderColumn<>(
-				"exportImportConfiguration.", "type", FinderColumn.Type.INTEGER,
-				"=", true, true, ExportImportConfiguration::getType));
-
 		_finderPathWithPaginationFindByG_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_S",
 			new String[] {
@@ -1449,21 +2299,6 @@ public class ExportImportConfigurationPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByG_S",
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"groupId", "status"}, false);
-
-		_collectionPersistenceFinderByG_S = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_S,
-			_finderPathWithoutPaginationFindByG_S, _finderPathCountByG_S,
-			_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE,
-			_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE,
-			ExportImportConfigurationModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"exportImportConfiguration.", "groupId", FinderColumn.Type.LONG,
-				"=", true, false, ExportImportConfiguration::getGroupId),
-			new FinderColumn<>(
-				"exportImportConfiguration.", "status",
-				FinderColumn.Type.INTEGER, "=", true, true,
-				ExportImportConfiguration::getStatus));
 
 		_finderPathWithPaginationFindByG_T_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_T_S",
@@ -1490,24 +2325,6 @@ public class ExportImportConfigurationPersistenceImpl
 			},
 			new String[] {"groupId", "type_", "status"}, false);
 
-		_collectionPersistenceFinderByG_T_S = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_T_S,
-			_finderPathWithoutPaginationFindByG_T_S, _finderPathCountByG_T_S,
-			_SQL_SELECT_EXPORTIMPORTCONFIGURATION_WHERE,
-			_SQL_COUNT_EXPORTIMPORTCONFIGURATION_WHERE,
-			ExportImportConfigurationModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"exportImportConfiguration.", "groupId", FinderColumn.Type.LONG,
-				"=", true, false, ExportImportConfiguration::getGroupId),
-			new FinderColumn<>(
-				"exportImportConfiguration.", "type", FinderColumn.Type.INTEGER,
-				"=", true, false, ExportImportConfiguration::getType),
-			new FinderColumn<>(
-				"exportImportConfiguration.", "status",
-				FinderColumn.Type.INTEGER, "=", true, true,
-				ExportImportConfiguration::getStatus));
-
 		ExportImportConfigurationUtil.setPersistence(this);
 	}
 
@@ -1533,6 +2350,9 @@ public class ExportImportConfigurationPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"exportImportConfiguration.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No ExportImportConfiguration exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No ExportImportConfiguration exists with the key {";
 
@@ -1548,4 +2368,4 @@ public class ExportImportConfigurationPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:944361762
+// LIFERAY-SERVICE-BUILDER-HASH:1437166093

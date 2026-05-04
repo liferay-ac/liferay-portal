@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -28,8 +29,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -43,6 +42,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -63,8 +63,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = PatcherTicketHintPersistence.class)
 public class PatcherTicketHintPersistenceImpl
-	extends BasePersistenceImpl
-		<PatcherTicketHint, NoSuchPatcherTicketHintException>
+	extends BasePersistenceImpl<PatcherTicketHint>
 	implements PatcherTicketHintPersistence {
 
 	/*
@@ -85,8 +84,6 @@ public class PatcherTicketHintPersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByPatcherProductVersionId;
-	private UniquePersistenceFinder<PatcherTicketHint>
-		_uniquePersistenceFinderByPatcherProductVersionId;
 
 	/**
 	 * Returns the patcher ticket hint where patcherProductVersionId = &#63; or throws a <code>NoSuchPatcherTicketHintException</code> if it could not be found.
@@ -104,17 +101,20 @@ public class PatcherTicketHintPersistenceImpl
 			patcherProductVersionId);
 
 		if (patcherTicketHint == null) {
-			String message =
-				_uniquePersistenceFinderByPatcherProductVersionId.
-					buildNoSuchKeyMessage(
-						_NO_SUCH_ENTITY_WITH_KEY,
-						new Object[] {patcherProductVersionId});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("patcherProductVersionId=");
+			sb.append(patcherProductVersionId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchPatcherTicketHintException(message);
+			throw new NoSuchPatcherTicketHintException(sb.toString());
 		}
 
 		return patcherTicketHint;
@@ -144,9 +144,81 @@ public class PatcherTicketHintPersistenceImpl
 	public PatcherTicketHint fetchByPatcherProductVersionId(
 		long patcherProductVersionId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByPatcherProductVersionId.fetch(
-			finderCache, new Object[] {patcherProductVersionId},
-			useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {patcherProductVersionId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByPatcherProductVersionId, finderArgs, this);
+		}
+
+		if (result instanceof PatcherTicketHint) {
+			PatcherTicketHint patcherTicketHint = (PatcherTicketHint)result;
+
+			if (patcherProductVersionId !=
+					patcherTicketHint.getPatcherProductVersionId()) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_PATCHERTICKETHINT_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_PATCHERPRODUCTVERSIONID_PATCHERPRODUCTVERSIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(patcherProductVersionId);
+
+				List<PatcherTicketHint> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByPatcherProductVersionId,
+							finderArgs, list);
+					}
+				}
+				else {
+					PatcherTicketHint patcherTicketHint = list.get(0);
+
+					result = patcherTicketHint;
+
+					cacheResult(patcherTicketHint);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (PatcherTicketHint)result;
+		}
 	}
 
 	/**
@@ -174,9 +246,19 @@ public class PatcherTicketHintPersistenceImpl
 	 */
 	@Override
 	public int countByPatcherProductVersionId(long patcherProductVersionId) {
-		return _uniquePersistenceFinderByPatcherProductVersionId.count(
-			finderCache, new Object[] {patcherProductVersionId});
+		PatcherTicketHint patcherTicketHint = fetchByPatcherProductVersionId(
+			patcherProductVersionId);
+
+		if (patcherTicketHint == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_PATCHERPRODUCTVERSIONID_PATCHERPRODUCTVERSIONID_2 =
+			"patcherTicketHint.patcherProductVersionId = ?";
 
 	public PatcherTicketHintPersistenceImpl() {
 		setModelClass(PatcherTicketHint.class);
@@ -231,6 +313,50 @@ public class PatcherTicketHintPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all patcher ticket hints.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(PatcherTicketHintImpl.class);
+
+		finderCache.clearCache(PatcherTicketHintImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the patcher ticket hint.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(PatcherTicketHint patcherTicketHint) {
+		entityCache.removeResult(
+			PatcherTicketHintImpl.class, patcherTicketHint);
+	}
+
+	@Override
+	public void clearCache(List<PatcherTicketHint> patcherTicketHints) {
+		for (PatcherTicketHint patcherTicketHint : patcherTicketHints) {
+			entityCache.removeResult(
+				PatcherTicketHintImpl.class, patcherTicketHint);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(PatcherTicketHintImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(PatcherTicketHintImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		PatcherTicketHintModelImpl patcherTicketHintModelImpl) {
 
@@ -273,6 +399,48 @@ public class PatcherTicketHintPersistenceImpl
 		throws NoSuchPatcherTicketHintException {
 
 		return remove((Serializable)patcherTicketHintId);
+	}
+
+	/**
+	 * Removes the patcher ticket hint with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the patcher ticket hint
+	 * @return the patcher ticket hint that was removed
+	 * @throws NoSuchPatcherTicketHintException if a patcher ticket hint with the primary key could not be found
+	 */
+	@Override
+	public PatcherTicketHint remove(Serializable primaryKey)
+		throws NoSuchPatcherTicketHintException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			PatcherTicketHint patcherTicketHint =
+				(PatcherTicketHint)session.get(
+					PatcherTicketHintImpl.class, primaryKey);
+
+			if (patcherTicketHint == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchPatcherTicketHintException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(patcherTicketHint);
+		}
+		catch (NoSuchPatcherTicketHintException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -388,6 +556,31 @@ public class PatcherTicketHintPersistenceImpl
 		}
 
 		patcherTicketHint.resetOriginalValues();
+
+		return patcherTicketHint;
+	}
+
+	/**
+	 * Returns the patcher ticket hint with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the patcher ticket hint
+	 * @return the patcher ticket hint
+	 * @throws NoSuchPatcherTicketHintException if a patcher ticket hint with the primary key could not be found
+	 */
+	@Override
+	public PatcherTicketHint findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchPatcherTicketHintException {
+
+		PatcherTicketHint patcherTicketHint = fetchByPrimaryKey(primaryKey);
+
+		if (patcherTicketHint == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchPatcherTicketHintException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return patcherTicketHint;
 	}
@@ -643,15 +836,6 @@ public class PatcherTicketHintPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"patcherProductVersionId"}, true);
 
-		_uniquePersistenceFinderByPatcherProductVersionId =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByPatcherProductVersionId,
-				_SQL_SELECT_PATCHERTICKETHINT_WHERE,
-				new FinderColumn<>(
-					"patcherTicketHint.", "patcherProductVersionId",
-					FinderColumn.Type.LONG, "=", true, true,
-					PatcherTicketHint::getPatcherProductVersionId));
-
 		PatcherTicketHintUtil.setPersistence(this);
 	}
 
@@ -703,7 +887,13 @@ public class PatcherTicketHintPersistenceImpl
 	private static final String _SQL_COUNT_PATCHERTICKETHINT =
 		"SELECT COUNT(patcherTicketHint) FROM PatcherTicketHint patcherTicketHint";
 
+	private static final String _SQL_COUNT_PATCHERTICKETHINT_WHERE =
+		"SELECT COUNT(patcherTicketHint) FROM PatcherTicketHint patcherTicketHint WHERE ";
+
 	private static final String _ORDER_BY_ENTITY_ALIAS = "patcherTicketHint.";
+
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No PatcherTicketHint exists with the primary key ";
 
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No PatcherTicketHint exists with the key {";
@@ -717,4 +907,4 @@ public class PatcherTicketHintPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:246483818
+// LIFERAY-SERVICE-BUILDER-HASH:1957456338

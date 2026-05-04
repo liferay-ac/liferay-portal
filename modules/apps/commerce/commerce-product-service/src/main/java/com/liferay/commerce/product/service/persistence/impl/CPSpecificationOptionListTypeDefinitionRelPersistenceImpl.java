@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -30,9 +31,6 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -49,6 +47,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,9 +73,7 @@ import org.osgi.service.component.annotations.Reference;
 	service = CPSpecificationOptionListTypeDefinitionRelPersistence.class
 )
 public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
-	extends BasePersistenceImpl
-		<CPSpecificationOptionListTypeDefinitionRel,
-		 NoSuchCPSpecificationOptionListTypeDefinitionRelException>
+	extends BasePersistenceImpl<CPSpecificationOptionListTypeDefinitionRel>
 	implements CPSpecificationOptionListTypeDefinitionRelPersistence {
 
 	/*
@@ -100,9 +97,6 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 	private FinderPath
 		_finderPathWithoutPaginationFindByCPSpecificationOptionId;
 	private FinderPath _finderPathCountByCPSpecificationOptionId;
-	private CollectionPersistenceFinder
-		<CPSpecificationOptionListTypeDefinitionRel>
-			_collectionPersistenceFinderByCPSpecificationOptionId;
 
 	/**
 	 * Returns all the cp specification option list type definition rels where CPSpecificationOptionId = &#63;.
@@ -190,9 +184,108 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPSpecificationOptionListTypeDefinitionRel.class)) {
 
-			return _collectionPersistenceFinderByCPSpecificationOptionId.find(
-				finderCache, new Object[] {CPSpecificationOptionId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindByCPSpecificationOptionId;
+					finderArgs = new Object[] {CPSpecificationOptionId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath =
+					_finderPathWithPaginationFindByCPSpecificationOptionId;
+				finderArgs = new Object[] {
+					CPSpecificationOptionId, start, end, orderByComparator
+				};
+			}
+
+			List<CPSpecificationOptionListTypeDefinitionRel> list = null;
+
+			if (useFinderCache) {
+				list =
+					(List<CPSpecificationOptionListTypeDefinitionRel>)
+						finderCache.getResult(finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CPSpecificationOptionListTypeDefinitionRel
+							cpSpecificationOptionListTypeDefinitionRel : list) {
+
+						if (CPSpecificationOptionId !=
+								cpSpecificationOptionListTypeDefinitionRel.
+									getCPSpecificationOptionId()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(
+					_SQL_SELECT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_CPSPECIFICATIONOPTIONID_CPSPECIFICATIONOPTIONID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(
+						CPSpecificationOptionListTypeDefinitionRelModelImpl.
+							ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(CPSpecificationOptionId);
+
+					list =
+						(List<CPSpecificationOptionListTypeDefinitionRel>)
+							QueryUtil.list(query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -221,11 +314,17 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 			return cpSpecificationOptionListTypeDefinitionRel;
 		}
 
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("CPSpecificationOptionId=");
+		sb.append(CPSpecificationOptionId);
+
+		sb.append("}");
+
 		throw new NoSuchCPSpecificationOptionListTypeDefinitionRelException(
-			_collectionPersistenceFinderByCPSpecificationOptionId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {CPSpecificationOptionId}));
+			sb.toString());
 	}
 
 	/**
@@ -242,9 +341,15 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 			OrderByComparator<CPSpecificationOptionListTypeDefinitionRel>
 				orderByComparator) {
 
-		return _collectionPersistenceFinderByCPSpecificationOptionId.fetchFirst(
-			finderCache, new Object[] {CPSpecificationOptionId},
-			orderByComparator);
+		List<CPSpecificationOptionListTypeDefinitionRel> list =
+			findByCPSpecificationOptionId(
+				CPSpecificationOptionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -254,8 +359,14 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 	 */
 	@Override
 	public void removeByCPSpecificationOptionId(long CPSpecificationOptionId) {
-		_collectionPersistenceFinderByCPSpecificationOptionId.remove(
-			finderCache, new Object[] {CPSpecificationOptionId});
+		for (CPSpecificationOptionListTypeDefinitionRel
+				cpSpecificationOptionListTypeDefinitionRel :
+					findByCPSpecificationOptionId(
+						CPSpecificationOptionId, QueryUtil.ALL_POS,
+						QueryUtil.ALL_POS, null)) {
+
+			remove(cpSpecificationOptionListTypeDefinitionRel);
+		}
 	}
 
 	/**
@@ -270,17 +381,58 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPSpecificationOptionListTypeDefinitionRel.class)) {
 
-			return _collectionPersistenceFinderByCPSpecificationOptionId.count(
-				finderCache, new Object[] {CPSpecificationOptionId});
+			FinderPath finderPath = _finderPathCountByCPSpecificationOptionId;
+
+			Object[] finderArgs = new Object[] {CPSpecificationOptionId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(
+					_SQL_COUNT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_CPSPECIFICATIONOPTIONID_CPSPECIFICATIONOPTIONID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(CPSpecificationOptionId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String
+		_FINDER_COLUMN_CPSPECIFICATIONOPTIONID_CPSPECIFICATIONOPTIONID_2 =
+			"cpSpecificationOptionListTypeDefinitionRel.CPSpecificationOptionId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByListTypeDefinitionId;
 	private FinderPath _finderPathWithoutPaginationFindByListTypeDefinitionId;
 	private FinderPath _finderPathCountByListTypeDefinitionId;
-	private CollectionPersistenceFinder
-		<CPSpecificationOptionListTypeDefinitionRel>
-			_collectionPersistenceFinderByListTypeDefinitionId;
 
 	/**
 	 * Returns all the cp specification option list type definition rels where listTypeDefinitionId = &#63;.
@@ -367,9 +519,108 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPSpecificationOptionListTypeDefinitionRel.class)) {
 
-			return _collectionPersistenceFinderByListTypeDefinitionId.find(
-				finderCache, new Object[] {listTypeDefinitionId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindByListTypeDefinitionId;
+					finderArgs = new Object[] {listTypeDefinitionId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath =
+					_finderPathWithPaginationFindByListTypeDefinitionId;
+				finderArgs = new Object[] {
+					listTypeDefinitionId, start, end, orderByComparator
+				};
+			}
+
+			List<CPSpecificationOptionListTypeDefinitionRel> list = null;
+
+			if (useFinderCache) {
+				list =
+					(List<CPSpecificationOptionListTypeDefinitionRel>)
+						finderCache.getResult(finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CPSpecificationOptionListTypeDefinitionRel
+							cpSpecificationOptionListTypeDefinitionRel : list) {
+
+						if (listTypeDefinitionId !=
+								cpSpecificationOptionListTypeDefinitionRel.
+									getListTypeDefinitionId()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(
+					_SQL_SELECT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_LISTTYPEDEFINITIONID_LISTTYPEDEFINITIONID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(
+						CPSpecificationOptionListTypeDefinitionRelModelImpl.
+							ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(listTypeDefinitionId);
+
+					list =
+						(List<CPSpecificationOptionListTypeDefinitionRel>)
+							QueryUtil.list(query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -398,11 +649,17 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 			return cpSpecificationOptionListTypeDefinitionRel;
 		}
 
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("listTypeDefinitionId=");
+		sb.append(listTypeDefinitionId);
+
+		sb.append("}");
+
 		throw new NoSuchCPSpecificationOptionListTypeDefinitionRelException(
-			_collectionPersistenceFinderByListTypeDefinitionId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {listTypeDefinitionId}));
+			sb.toString());
 	}
 
 	/**
@@ -419,9 +676,15 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 			OrderByComparator<CPSpecificationOptionListTypeDefinitionRel>
 				orderByComparator) {
 
-		return _collectionPersistenceFinderByListTypeDefinitionId.fetchFirst(
-			finderCache, new Object[] {listTypeDefinitionId},
-			orderByComparator);
+		List<CPSpecificationOptionListTypeDefinitionRel> list =
+			findByListTypeDefinitionId(
+				listTypeDefinitionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -431,8 +694,14 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 	 */
 	@Override
 	public void removeByListTypeDefinitionId(long listTypeDefinitionId) {
-		_collectionPersistenceFinderByListTypeDefinitionId.remove(
-			finderCache, new Object[] {listTypeDefinitionId});
+		for (CPSpecificationOptionListTypeDefinitionRel
+				cpSpecificationOptionListTypeDefinitionRel :
+					findByListTypeDefinitionId(
+						listTypeDefinitionId, QueryUtil.ALL_POS,
+						QueryUtil.ALL_POS, null)) {
+
+			remove(cpSpecificationOptionListTypeDefinitionRel);
+		}
 	}
 
 	/**
@@ -447,14 +716,56 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPSpecificationOptionListTypeDefinitionRel.class)) {
 
-			return _collectionPersistenceFinderByListTypeDefinitionId.count(
-				finderCache, new Object[] {listTypeDefinitionId});
+			FinderPath finderPath = _finderPathCountByListTypeDefinitionId;
+
+			Object[] finderArgs = new Object[] {listTypeDefinitionId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(
+					_SQL_COUNT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE);
+
+				sb.append(
+					_FINDER_COLUMN_LISTTYPEDEFINITIONID_LISTTYPEDEFINITIONID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(listTypeDefinitionId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String
+		_FINDER_COLUMN_LISTTYPEDEFINITIONID_LISTTYPEDEFINITIONID_2 =
+			"cpSpecificationOptionListTypeDefinitionRel.listTypeDefinitionId = ?";
+
 	private FinderPath _finderPathFetchByC_L;
-	private UniquePersistenceFinder<CPSpecificationOptionListTypeDefinitionRel>
-		_uniquePersistenceFinderByC_L;
 
 	/**
 	 * Returns the cp specification option list type definition rel where CPSpecificationOptionId = &#63; and listTypeDefinitionId = &#63; or throws a <code>NoSuchCPSpecificationOptionListTypeDefinitionRelException</code> if it could not be found.
@@ -474,19 +785,24 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 				CPSpecificationOptionId, listTypeDefinitionId);
 
 		if (cpSpecificationOptionListTypeDefinitionRel == null) {
-			String message =
-				_uniquePersistenceFinderByC_L.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {
-						CPSpecificationOptionId, listTypeDefinitionId
-					});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("CPSpecificationOptionId=");
+			sb.append(CPSpecificationOptionId);
+
+			sb.append(", listTypeDefinitionId=");
+			sb.append(listTypeDefinitionId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
 			throw new NoSuchCPSpecificationOptionListTypeDefinitionRelException(
-				message);
+				sb.toString());
 		}
 
 		return cpSpecificationOptionListTypeDefinitionRel;
@@ -523,10 +839,95 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CPSpecificationOptionListTypeDefinitionRel.class)) {
 
-			return _uniquePersistenceFinderByC_L.fetch(
-				finderCache,
-				new Object[] {CPSpecificationOptionId, listTypeDefinitionId},
-				useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {
+					CPSpecificationOptionId, listTypeDefinitionId
+				};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByC_L, finderArgs, this);
+			}
+
+			if (result instanceof CPSpecificationOptionListTypeDefinitionRel) {
+				CPSpecificationOptionListTypeDefinitionRel
+					cpSpecificationOptionListTypeDefinitionRel =
+						(CPSpecificationOptionListTypeDefinitionRel)result;
+
+				if ((CPSpecificationOptionId !=
+						cpSpecificationOptionListTypeDefinitionRel.
+							getCPSpecificationOptionId()) ||
+					(listTypeDefinitionId !=
+						cpSpecificationOptionListTypeDefinitionRel.
+							getListTypeDefinitionId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(
+					_SQL_SELECT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_L_CPSPECIFICATIONOPTIONID_2);
+
+				sb.append(_FINDER_COLUMN_C_L_LISTTYPEDEFINITIONID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(CPSpecificationOptionId);
+
+					queryPos.add(listTypeDefinitionId);
+
+					List<CPSpecificationOptionListTypeDefinitionRel> list =
+						query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByC_L, finderArgs, list);
+						}
+					}
+					else {
+						CPSpecificationOptionListTypeDefinitionRel
+							cpSpecificationOptionListTypeDefinitionRel =
+								list.get(0);
+
+						result = cpSpecificationOptionListTypeDefinitionRel;
+
+						cacheResult(cpSpecificationOptionListTypeDefinitionRel);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (CPSpecificationOptionListTypeDefinitionRel)result;
+			}
 		}
 	}
 
@@ -560,10 +961,22 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 	public int countByC_L(
 		long CPSpecificationOptionId, long listTypeDefinitionId) {
 
-		return _uniquePersistenceFinderByC_L.count(
-			finderCache,
-			new Object[] {CPSpecificationOptionId, listTypeDefinitionId});
+		CPSpecificationOptionListTypeDefinitionRel
+			cpSpecificationOptionListTypeDefinitionRel = fetchByC_L(
+				CPSpecificationOptionId, listTypeDefinitionId);
+
+		if (cpSpecificationOptionListTypeDefinitionRel == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_L_CPSPECIFICATIONOPTIONID_2 =
+		"cpSpecificationOptionListTypeDefinitionRel.CPSpecificationOptionId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_L_LISTTYPEDEFINITIONID_2 =
+		"cpSpecificationOptionListTypeDefinitionRel.listTypeDefinitionId = ?";
 
 	public CPSpecificationOptionListTypeDefinitionRelPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -654,6 +1067,66 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all cp specification option list type definition rels.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(
+			CPSpecificationOptionListTypeDefinitionRelImpl.class);
+
+		finderCache.clearCache(
+			CPSpecificationOptionListTypeDefinitionRelImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cp specification option list type definition rel.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		CPSpecificationOptionListTypeDefinitionRel
+			cpSpecificationOptionListTypeDefinitionRel) {
+
+		entityCache.removeResult(
+			CPSpecificationOptionListTypeDefinitionRelImpl.class,
+			cpSpecificationOptionListTypeDefinitionRel);
+	}
+
+	@Override
+	public void clearCache(
+		List<CPSpecificationOptionListTypeDefinitionRel>
+			cpSpecificationOptionListTypeDefinitionRels) {
+
+		for (CPSpecificationOptionListTypeDefinitionRel
+				cpSpecificationOptionListTypeDefinitionRel :
+					cpSpecificationOptionListTypeDefinitionRels) {
+
+			entityCache.removeResult(
+				CPSpecificationOptionListTypeDefinitionRelImpl.class,
+				cpSpecificationOptionListTypeDefinitionRel);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(
+			CPSpecificationOptionListTypeDefinitionRelImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				CPSpecificationOptionListTypeDefinitionRelImpl.class,
+				primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CPSpecificationOptionListTypeDefinitionRelModelImpl
 			cpSpecificationOptionListTypeDefinitionRelModelImpl) {
@@ -714,6 +1187,53 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 
 		return remove(
 			(Serializable)CPSpecificationOptionListTypeDefinitionRelId);
+	}
+
+	/**
+	 * Removes the cp specification option list type definition rel with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cp specification option list type definition rel
+	 * @return the cp specification option list type definition rel that was removed
+	 * @throws NoSuchCPSpecificationOptionListTypeDefinitionRelException if a cp specification option list type definition rel with the primary key could not be found
+	 */
+	@Override
+	public CPSpecificationOptionListTypeDefinitionRel remove(
+			Serializable primaryKey)
+		throws NoSuchCPSpecificationOptionListTypeDefinitionRelException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CPSpecificationOptionListTypeDefinitionRel
+				cpSpecificationOptionListTypeDefinitionRel =
+					(CPSpecificationOptionListTypeDefinitionRel)session.get(
+						CPSpecificationOptionListTypeDefinitionRelImpl.class,
+						primaryKey);
+
+			if (cpSpecificationOptionListTypeDefinitionRel == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCPSpecificationOptionListTypeDefinitionRelException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(cpSpecificationOptionListTypeDefinitionRel);
+		}
+		catch (NoSuchCPSpecificationOptionListTypeDefinitionRelException
+					noSuchEntityException) {
+
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -835,6 +1355,34 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 	}
 
 	/**
+	 * Returns the cp specification option list type definition rel with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cp specification option list type definition rel
+	 * @return the cp specification option list type definition rel
+	 * @throws NoSuchCPSpecificationOptionListTypeDefinitionRelException if a cp specification option list type definition rel with the primary key could not be found
+	 */
+	@Override
+	public CPSpecificationOptionListTypeDefinitionRel findByPrimaryKey(
+			Serializable primaryKey)
+		throws NoSuchCPSpecificationOptionListTypeDefinitionRelException {
+
+		CPSpecificationOptionListTypeDefinitionRel
+			cpSpecificationOptionListTypeDefinitionRel = fetchByPrimaryKey(
+				primaryKey);
+
+		if (cpSpecificationOptionListTypeDefinitionRel == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCPSpecificationOptionListTypeDefinitionRelException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return cpSpecificationOptionListTypeDefinitionRel;
+	}
+
+	/**
 	 * Returns the cp specification option list type definition rel with the primary key or throws a <code>NoSuchCPSpecificationOptionListTypeDefinitionRelException</code> if it could not be found.
 	 *
 	 * @param CPSpecificationOptionListTypeDefinitionRelId the primary key of the cp specification option list type definition rel
@@ -850,9 +1398,60 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 			(Serializable)CPSpecificationOptionListTypeDefinitionRelId);
 	}
 
+	/**
+	 * Returns the cp specification option list type definition rel with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cp specification option list type definition rel
+	 * @return the cp specification option list type definition rel, or <code>null</code> if a cp specification option list type definition rel with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public CPSpecificationOptionListTypeDefinitionRel fetchByPrimaryKey(
+		Serializable primaryKey) {
+
+		if (ctPersistenceHelper.isProductionMode(
+				CPSpecificationOptionListTypeDefinitionRel.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		CPSpecificationOptionListTypeDefinitionRel
+			cpSpecificationOptionListTypeDefinitionRel =
+				(CPSpecificationOptionListTypeDefinitionRel)
+					entityCache.getResult(
+						CPSpecificationOptionListTypeDefinitionRelImpl.class,
+						primaryKey);
+
+		if (cpSpecificationOptionListTypeDefinitionRel != null) {
+			return cpSpecificationOptionListTypeDefinitionRel;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			cpSpecificationOptionListTypeDefinitionRel =
+				(CPSpecificationOptionListTypeDefinitionRel)session.get(
+					CPSpecificationOptionListTypeDefinitionRelImpl.class,
+					primaryKey);
+
+			if (cpSpecificationOptionListTypeDefinitionRel != null) {
+				cacheResult(cpSpecificationOptionListTypeDefinitionRel);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return cpSpecificationOptionListTypeDefinitionRel;
 	}
 
 	/**
@@ -867,6 +1466,148 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 
 		return fetchByPrimaryKey(
 			(Serializable)CPSpecificationOptionListTypeDefinitionRelId);
+	}
+
+	@Override
+	public Map<Serializable, CPSpecificationOptionListTypeDefinitionRel>
+		fetchByPrimaryKeys(Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(
+				CPSpecificationOptionListTypeDefinitionRel.class)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, CPSpecificationOptionListTypeDefinitionRel> map =
+			new HashMap
+				<Serializable, CPSpecificationOptionListTypeDefinitionRel>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			CPSpecificationOptionListTypeDefinitionRel
+				cpSpecificationOptionListTypeDefinitionRel = fetchByPrimaryKey(
+					primaryKey);
+
+			if (cpSpecificationOptionListTypeDefinitionRel != null) {
+				map.put(primaryKey, cpSpecificationOptionListTypeDefinitionRel);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						CPSpecificationOptionListTypeDefinitionRel.class,
+						primaryKey)) {
+
+				CPSpecificationOptionListTypeDefinitionRel
+					cpSpecificationOptionListTypeDefinitionRel =
+						(CPSpecificationOptionListTypeDefinitionRel)
+							entityCache.getResult(
+								CPSpecificationOptionListTypeDefinitionRelImpl.
+									class,
+								primaryKey);
+
+				if (cpSpecificationOptionListTypeDefinitionRel == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(
+						primaryKey, cpSpecificationOptionListTypeDefinitionRel);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (CPSpecificationOptionListTypeDefinitionRel
+					cpSpecificationOptionListTypeDefinitionRel :
+						(List<CPSpecificationOptionListTypeDefinitionRel>)
+							query.list()) {
+
+				map.put(
+					cpSpecificationOptionListTypeDefinitionRel.
+						getPrimaryKeyObj(),
+					cpSpecificationOptionListTypeDefinitionRel);
+
+				cacheResult(cpSpecificationOptionListTypeDefinitionRel);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1196,23 +1937,6 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"CPSpecificationOptionId"}, false);
 
-		_collectionPersistenceFinderByCPSpecificationOptionId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCPSpecificationOptionId,
-				_finderPathWithoutPaginationFindByCPSpecificationOptionId,
-				_finderPathCountByCPSpecificationOptionId,
-				_SQL_SELECT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE,
-				_SQL_COUNT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE,
-				CPSpecificationOptionListTypeDefinitionRelModelImpl.
-					ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"cpSpecificationOptionListTypeDefinitionRel.",
-					"CPSpecificationOptionId", FinderColumn.Type.LONG, "=",
-					true, true,
-					CPSpecificationOptionListTypeDefinitionRel::
-						getCPSpecificationOptionId));
-
 		_finderPathWithPaginationFindByListTypeDefinitionId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
 			"findByListTypeDefinitionId",
@@ -1232,43 +1956,11 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 			"countByListTypeDefinitionId", new String[] {Long.class.getName()},
 			new String[] {"listTypeDefinitionId"}, false);
 
-		_collectionPersistenceFinderByListTypeDefinitionId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByListTypeDefinitionId,
-				_finderPathWithoutPaginationFindByListTypeDefinitionId,
-				_finderPathCountByListTypeDefinitionId,
-				_SQL_SELECT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE,
-				_SQL_COUNT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE,
-				CPSpecificationOptionListTypeDefinitionRelModelImpl.
-					ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"cpSpecificationOptionListTypeDefinitionRel.",
-					"listTypeDefinitionId", FinderColumn.Type.LONG, "=", true,
-					true,
-					CPSpecificationOptionListTypeDefinitionRel::
-						getListTypeDefinitionId));
-
 		_finderPathFetchByC_L = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_L",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"CPSpecificationOptionId", "listTypeDefinitionId"},
 			true);
-
-		_uniquePersistenceFinderByC_L = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_L,
-			_SQL_SELECT_CPSPECIFICATIONOPTIONLISTTYPEDEFINITIONREL_WHERE,
-			new FinderColumn<>(
-				"cpSpecificationOptionListTypeDefinitionRel.",
-				"CPSpecificationOptionId", FinderColumn.Type.LONG, "=", true,
-				false,
-				CPSpecificationOptionListTypeDefinitionRel::
-					getCPSpecificationOptionId),
-			new FinderColumn<>(
-				"cpSpecificationOptionListTypeDefinitionRel.",
-				"listTypeDefinitionId", FinderColumn.Type.LONG, "=", true, true,
-				CPSpecificationOptionListTypeDefinitionRel::
-					getListTypeDefinitionId));
 
 		CPSpecificationOptionListTypeDefinitionRelUtil.setPersistence(this);
 	}
@@ -1335,6 +2027,9 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"cpSpecificationOptionListTypeDefinitionRel.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CPSpecificationOptionListTypeDefinitionRel exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CPSpecificationOptionListTypeDefinitionRel exists with the key {";
 
@@ -1350,4 +2045,4 @@ public class CPSpecificationOptionListTypeDefinitionRelPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1050451447
+// LIFERAY-SERVICE-BUILDER-HASH:86614143

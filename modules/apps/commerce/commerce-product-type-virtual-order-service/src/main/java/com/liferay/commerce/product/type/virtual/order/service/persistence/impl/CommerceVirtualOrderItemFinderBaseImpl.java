@@ -5,7 +5,6 @@
 
 package com.liferay.commerce.product.type.virtual.order.service.persistence.impl;
 
-import com.liferay.commerce.product.type.virtual.order.exception.NoSuchVirtualOrderItemException;
 import com.liferay.commerce.product.type.virtual.order.model.CommerceVirtualOrderItem;
 import com.liferay.commerce.product.type.virtual.order.service.persistence.CommerceVirtualOrderItemPersistence;
 import com.liferay.commerce.product.type.virtual.order.service.persistence.impl.constants.CommercePersistenceConstants;
@@ -28,8 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class CommerceVirtualOrderItemFinderBaseImpl
-	extends BasePersistenceImpl
-		<CommerceVirtualOrderItem, NoSuchVirtualOrderItemException> {
+	extends BasePersistenceImpl<CommerceVirtualOrderItem> {
 
 	public CommerceVirtualOrderItemFinderBaseImpl() {
 		setModelClass(CommerceVirtualOrderItem.class);
@@ -81,4 +79,4 @@ public abstract class CommerceVirtualOrderItemFinderBaseImpl
 		CommerceVirtualOrderItemFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:839129108
+// LIFERAY-SERVICE-BUILDER-HASH:1576790994

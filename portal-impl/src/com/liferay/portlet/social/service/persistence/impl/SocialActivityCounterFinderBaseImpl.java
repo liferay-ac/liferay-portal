@@ -9,7 +9,6 @@ import com.liferay.portal.kernel.bean.BeanReference;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.social.kernel.exception.NoSuchActivityCounterException;
 import com.liferay.social.kernel.model.SocialActivityCounter;
 import com.liferay.social.kernel.service.persistence.SocialActivityCounterPersistence;
 
@@ -22,8 +21,7 @@ import java.util.Set;
  * @generated
  */
 public class SocialActivityCounterFinderBaseImpl
-	extends BasePersistenceImpl
-		<SocialActivityCounter, NoSuchActivityCounterException> {
+	extends BasePersistenceImpl<SocialActivityCounter> {
 
 	public SocialActivityCounterFinderBaseImpl() {
 		setModelClass(SocialActivityCounter.class);
@@ -70,4 +68,4 @@ public class SocialActivityCounterFinderBaseImpl
 		SocialActivityCounterFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-2039156941
+// LIFERAY-SERVICE-BUILDER-HASH:-373512466

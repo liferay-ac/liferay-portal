@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -28,9 +29,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -44,6 +42,8 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -64,8 +64,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = EntryPersistence.class)
 public class EntryPersistenceImpl
-	extends BasePersistenceImpl<Entry, NoSuchEntryException>
-	implements EntryPersistence {
+	extends BasePersistenceImpl<Entry> implements EntryPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -87,8 +86,6 @@ public class EntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUserId;
 	private FinderPath _finderPathWithoutPaginationFindByUserId;
 	private FinderPath _finderPathCountByUserId;
-	private CollectionPersistenceFinder<Entry>
-		_collectionPersistenceFinderByUserId;
 
 	/**
 	 * Returns all the entries where userId = &#63;.
@@ -158,9 +155,93 @@ public class EntryPersistenceImpl
 		long userId, int start, int end,
 		OrderByComparator<Entry> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUserId.find(
-			finderCache, new Object[] {userId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUserId;
+				finderArgs = new Object[] {userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUserId;
+			finderArgs = new Object[] {userId, start, end, orderByComparator};
+		}
+
+		List<Entry> list = null;
+
+		if (useFinderCache) {
+			list = (List<Entry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Entry entry : list) {
+					if (userId != entry.getUserId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_ENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(EntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				list = (List<Entry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -182,9 +263,16 @@ public class EntryPersistenceImpl
 			return entry;
 		}
 
-		throw new NoSuchEntryException(
-			_collectionPersistenceFinderByUserId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {userId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryException(sb.toString());
 	}
 
 	/**
@@ -198,8 +286,13 @@ public class EntryPersistenceImpl
 	public Entry fetchByUserId_First(
 		long userId, OrderByComparator<Entry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUserId.fetchFirst(
-			finderCache, new Object[] {userId}, orderByComparator);
+		List<Entry> list = findByUserId(userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -209,8 +302,12 @@ public class EntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUserId(long userId) {
-		_collectionPersistenceFinderByUserId.remove(
-			finderCache, new Object[] {userId});
+		for (Entry entry :
+				findByUserId(
+					userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(entry);
+		}
 	}
 
 	/**
@@ -221,12 +318,51 @@ public class EntryPersistenceImpl
 	 */
 	@Override
 	public int countByUserId(long userId) {
-		return _collectionPersistenceFinderByUserId.count(
-			finderCache, new Object[] {userId});
+		FinderPath finderPath = _finderPathCountByUserId;
+
+		Object[] finderArgs = new Object[] {userId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_ENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_USERID_USERID_2 =
+		"entry.userId = ?";
+
 	private FinderPath _finderPathFetchByU_EA;
-	private UniquePersistenceFinder<Entry> _uniquePersistenceFinderByU_EA;
 
 	/**
 	 * Returns the entry where userId = &#63; and emailAddress = &#63; or throws a <code>NoSuchEntryException</code> if it could not be found.
@@ -243,16 +379,23 @@ public class EntryPersistenceImpl
 		Entry entry = fetchByU_EA(userId, emailAddress);
 
 		if (entry == null) {
-			String message =
-				_uniquePersistenceFinderByU_EA.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {userId, emailAddress});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("userId=");
+			sb.append(userId);
+
+			sb.append(", emailAddress=");
+			sb.append(emailAddress);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchEntryException(message);
+			throw new NoSuchEntryException(sb.toString());
 		}
 
 		return entry;
@@ -282,8 +425,96 @@ public class EntryPersistenceImpl
 	public Entry fetchByU_EA(
 		long userId, String emailAddress, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByU_EA.fetch(
-			finderCache, new Object[] {userId, emailAddress}, useFinderCache);
+		emailAddress = Objects.toString(emailAddress, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {userId, emailAddress};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByU_EA, finderArgs, this);
+		}
+
+		if (result instanceof Entry) {
+			Entry entry = (Entry)result;
+
+			if ((userId != entry.getUserId()) ||
+				!Objects.equals(emailAddress, entry.getEmailAddress())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_ENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_U_EA_USERID_2);
+
+			boolean bindEmailAddress = false;
+
+			if (emailAddress.isEmpty()) {
+				sb.append(_FINDER_COLUMN_U_EA_EMAILADDRESS_3);
+			}
+			else {
+				bindEmailAddress = true;
+
+				sb.append(_FINDER_COLUMN_U_EA_EMAILADDRESS_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				if (bindEmailAddress) {
+					queryPos.add(emailAddress);
+				}
+
+				List<Entry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByU_EA, finderArgs, list);
+					}
+				}
+				else {
+					Entry entry = list.get(0);
+
+					result = entry;
+
+					cacheResult(entry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (Entry)result;
+		}
 	}
 
 	/**
@@ -311,9 +542,23 @@ public class EntryPersistenceImpl
 	 */
 	@Override
 	public int countByU_EA(long userId, String emailAddress) {
-		return _uniquePersistenceFinderByU_EA.count(
-			finderCache, new Object[] {userId, emailAddress});
+		Entry entry = fetchByU_EA(userId, emailAddress);
+
+		if (entry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_U_EA_USERID_2 =
+		"entry.userId = ? AND ";
+
+	private static final String _FINDER_COLUMN_U_EA_EMAILADDRESS_2 =
+		"entry.emailAddress = ?";
+
+	private static final String _FINDER_COLUMN_U_EA_EMAILADDRESS_3 =
+		"(entry.emailAddress IS NULL OR entry.emailAddress = '')";
 
 	public EntryPersistenceImpl() {
 		setModelClass(Entry.class);
@@ -363,6 +608,48 @@ public class EntryPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(EntryImpl.class);
+
+		finderCache.clearCache(EntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(Entry entry) {
+		entityCache.removeResult(EntryImpl.class, entry);
+	}
+
+	@Override
+	public void clearCache(List<Entry> entries) {
+		for (Entry entry : entries) {
+			entityCache.removeResult(EntryImpl.class, entry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(EntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(EntryImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(EntryModelImpl entryModelImpl) {
 		Object[] args = new Object[] {
 			entryModelImpl.getUserId(), entryModelImpl.getEmailAddress()
@@ -399,6 +686,44 @@ public class EntryPersistenceImpl
 	@Override
 	public Entry remove(long entryId) throws NoSuchEntryException {
 		return remove((Serializable)entryId);
+	}
+
+	/**
+	 * Removes the entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the entry
+	 * @return the entry that was removed
+	 * @throws NoSuchEntryException if a entry with the primary key could not be found
+	 */
+	@Override
+	public Entry remove(Serializable primaryKey) throws NoSuchEntryException {
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Entry entry = (Entry)session.get(EntryImpl.class, primaryKey);
+
+			if (entry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(entry);
+		}
+		catch (NoSuchEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -504,6 +829,31 @@ public class EntryPersistenceImpl
 		}
 
 		entry.resetOriginalValues();
+
+		return entry;
+	}
+
+	/**
+	 * Returns the entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the entry
+	 * @return the entry
+	 * @throws NoSuchEntryException if a entry with the primary key could not be found
+	 */
+	@Override
+	public Entry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchEntryException {
+
+		Entry entry = fetchByPrimaryKey(primaryKey);
+
+		if (entry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return entry;
 	}
@@ -767,30 +1117,10 @@ public class EntryPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"userId"},
 			false);
 
-		_collectionPersistenceFinderByUserId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUserId,
-				_finderPathWithoutPaginationFindByUserId,
-				_finderPathCountByUserId, _SQL_SELECT_ENTRY_WHERE,
-				_SQL_COUNT_ENTRY_WHERE, EntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"entry.", "userId", FinderColumn.Type.LONG, "=", true, true,
-					Entry::getUserId));
-
 		_finderPathFetchByU_EA = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByU_EA",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"userId", "emailAddress"}, true);
-
-		_uniquePersistenceFinderByU_EA = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByU_EA, _SQL_SELECT_ENTRY_WHERE,
-			new FinderColumn<>(
-				"entry.", "userId", FinderColumn.Type.LONG, "=", true, false,
-				Entry::getUserId),
-			new FinderColumn<>(
-				"entry.", "emailAddress", FinderColumn.Type.STRING, "=", true,
-				true, Entry::getEmailAddress));
 
 		EntryUtil.setPersistence(this);
 	}
@@ -848,6 +1178,9 @@ public class EntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "entry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No Entry exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No Entry exists with the key {";
 
@@ -860,4 +1193,4 @@ public class EntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1990086867
+// LIFERAY-SERVICE-BUILDER-HASH:-1356453045

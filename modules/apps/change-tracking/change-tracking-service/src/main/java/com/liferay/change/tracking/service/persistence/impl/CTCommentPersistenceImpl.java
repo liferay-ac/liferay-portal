@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -28,8 +29,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -43,6 +42,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -63,8 +63,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTCommentPersistence.class)
 public class CTCommentPersistenceImpl
-	extends BasePersistenceImpl<CTComment, NoSuchCommentException>
-	implements CTCommentPersistence {
+	extends BasePersistenceImpl<CTComment> implements CTCommentPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -86,8 +85,6 @@ public class CTCommentPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCtCollectionId;
 	private FinderPath _finderPathWithoutPaginationFindByCtCollectionId;
 	private FinderPath _finderPathCountByCtCollectionId;
-	private CollectionPersistenceFinder<CTComment>
-		_collectionPersistenceFinderByCtCollectionId;
 
 	/**
 	 * Returns all the ct comments where ctCollectionId = &#63;.
@@ -162,9 +159,95 @@ public class CTCommentPersistenceImpl
 		OrderByComparator<CTComment> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCtCollectionId.find(
-			finderCache, new Object[] {ctCollectionId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCtCollectionId;
+				finderArgs = new Object[] {ctCollectionId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCtCollectionId;
+			finderArgs = new Object[] {
+				ctCollectionId, start, end, orderByComparator
+			};
+		}
+
+		List<CTComment> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTComment>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTComment ctComment : list) {
+					if (ctCollectionId != ctComment.getCtCollectionId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTCOMMENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTCommentModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctCollectionId);
+
+				list = (List<CTComment>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -187,9 +270,16 @@ public class CTCommentPersistenceImpl
 			return ctComment;
 		}
 
-		throw new NoSuchCommentException(
-			_collectionPersistenceFinderByCtCollectionId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {ctCollectionId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("ctCollectionId=");
+		sb.append(ctCollectionId);
+
+		sb.append("}");
+
+		throw new NoSuchCommentException(sb.toString());
 	}
 
 	/**
@@ -203,8 +293,14 @@ public class CTCommentPersistenceImpl
 	public CTComment fetchByCtCollectionId_First(
 		long ctCollectionId, OrderByComparator<CTComment> orderByComparator) {
 
-		return _collectionPersistenceFinderByCtCollectionId.fetchFirst(
-			finderCache, new Object[] {ctCollectionId}, orderByComparator);
+		List<CTComment> list = findByCtCollectionId(
+			ctCollectionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -214,8 +310,13 @@ public class CTCommentPersistenceImpl
 	 */
 	@Override
 	public void removeByCtCollectionId(long ctCollectionId) {
-		_collectionPersistenceFinderByCtCollectionId.remove(
-			finderCache, new Object[] {ctCollectionId});
+		for (CTComment ctComment :
+				findByCtCollectionId(
+					ctCollectionId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(ctComment);
+		}
 	}
 
 	/**
@@ -226,15 +327,53 @@ public class CTCommentPersistenceImpl
 	 */
 	@Override
 	public int countByCtCollectionId(long ctCollectionId) {
-		return _collectionPersistenceFinderByCtCollectionId.count(
-			finderCache, new Object[] {ctCollectionId});
+		FinderPath finderPath = _finderPathCountByCtCollectionId;
+
+		Object[] finderArgs = new Object[] {ctCollectionId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTCOMMENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctCollectionId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2 =
+		"ctComment.ctCollectionId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByCtEntryId;
 	private FinderPath _finderPathWithoutPaginationFindByCtEntryId;
 	private FinderPath _finderPathCountByCtEntryId;
-	private CollectionPersistenceFinder<CTComment>
-		_collectionPersistenceFinderByCtEntryId;
 
 	/**
 	 * Returns all the ct comments where ctEntryId = &#63;.
@@ -306,9 +445,95 @@ public class CTCommentPersistenceImpl
 		OrderByComparator<CTComment> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCtEntryId.find(
-			finderCache, new Object[] {ctEntryId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCtEntryId;
+				finderArgs = new Object[] {ctEntryId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCtEntryId;
+			finderArgs = new Object[] {
+				ctEntryId, start, end, orderByComparator
+			};
+		}
+
+		List<CTComment> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTComment>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTComment ctComment : list) {
+					if (ctEntryId != ctComment.getCtEntryId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTCOMMENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTENTRYID_CTENTRYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTCommentModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctEntryId);
+
+				list = (List<CTComment>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -331,9 +556,16 @@ public class CTCommentPersistenceImpl
 			return ctComment;
 		}
 
-		throw new NoSuchCommentException(
-			_collectionPersistenceFinderByCtEntryId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {ctEntryId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("ctEntryId=");
+		sb.append(ctEntryId);
+
+		sb.append("}");
+
+		throw new NoSuchCommentException(sb.toString());
 	}
 
 	/**
@@ -347,8 +579,14 @@ public class CTCommentPersistenceImpl
 	public CTComment fetchByCtEntryId_First(
 		long ctEntryId, OrderByComparator<CTComment> orderByComparator) {
 
-		return _collectionPersistenceFinderByCtEntryId.fetchFirst(
-			finderCache, new Object[] {ctEntryId}, orderByComparator);
+		List<CTComment> list = findByCtEntryId(
+			ctEntryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -358,8 +596,12 @@ public class CTCommentPersistenceImpl
 	 */
 	@Override
 	public void removeByCtEntryId(long ctEntryId) {
-		_collectionPersistenceFinderByCtEntryId.remove(
-			finderCache, new Object[] {ctEntryId});
+		for (CTComment ctComment :
+				findByCtEntryId(
+					ctEntryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(ctComment);
+		}
 	}
 
 	/**
@@ -370,9 +612,49 @@ public class CTCommentPersistenceImpl
 	 */
 	@Override
 	public int countByCtEntryId(long ctEntryId) {
-		return _collectionPersistenceFinderByCtEntryId.count(
-			finderCache, new Object[] {ctEntryId});
+		FinderPath finderPath = _finderPathCountByCtEntryId;
+
+		Object[] finderArgs = new Object[] {ctEntryId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTCOMMENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTENTRYID_CTENTRYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctEntryId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_CTENTRYID_CTENTRYID_2 =
+		"ctComment.ctEntryId = ?";
 
 	public CTCommentPersistenceImpl() {
 		setModelClass(CTComment.class);
@@ -420,6 +702,48 @@ public class CTCommentPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all ct comments.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTCommentImpl.class);
+
+		finderCache.clearCache(CTCommentImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ct comment.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTComment ctComment) {
+		entityCache.removeResult(CTCommentImpl.class, ctComment);
+	}
+
+	@Override
+	public void clearCache(List<CTComment> ctComments) {
+		for (CTComment ctComment : ctComments) {
+			entityCache.removeResult(CTCommentImpl.class, ctComment);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTCommentImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CTCommentImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new ct comment with the primary key. Does not add the ct comment to the database.
 	 *
 	 * @param ctCommentId the primary key for the new ct comment
@@ -447,6 +771,47 @@ public class CTCommentPersistenceImpl
 	@Override
 	public CTComment remove(long ctCommentId) throws NoSuchCommentException {
 		return remove((Serializable)ctCommentId);
+	}
+
+	/**
+	 * Removes the ct comment with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ct comment
+	 * @return the ct comment that was removed
+	 * @throws NoSuchCommentException if a ct comment with the primary key could not be found
+	 */
+	@Override
+	public CTComment remove(Serializable primaryKey)
+		throws NoSuchCommentException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTComment ctComment = (CTComment)session.get(
+				CTCommentImpl.class, primaryKey);
+
+			if (ctComment == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCommentException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctComment);
+		}
+		catch (NoSuchCommentException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -551,6 +916,31 @@ public class CTCommentPersistenceImpl
 		}
 
 		ctComment.resetOriginalValues();
+
+		return ctComment;
+	}
+
+	/**
+	 * Returns the ct comment with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ct comment
+	 * @return the ct comment
+	 * @throws NoSuchCommentException if a ct comment with the primary key could not be found
+	 */
+	@Override
+	public CTComment findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCommentException {
+
+		CTComment ctComment = fetchByPrimaryKey(primaryKey);
+
+		if (ctComment == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCommentException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return ctComment;
 	}
@@ -817,17 +1207,6 @@ public class CTCommentPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"ctCollectionId"}, false);
 
-		_collectionPersistenceFinderByCtCollectionId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCtCollectionId,
-				_finderPathWithoutPaginationFindByCtCollectionId,
-				_finderPathCountByCtCollectionId, _SQL_SELECT_CTCOMMENT_WHERE,
-				_SQL_COUNT_CTCOMMENT_WHERE, CTCommentModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctComment.", "ctCollectionId", FinderColumn.Type.LONG, "=",
-					true, true, CTComment::getCtCollectionId));
-
 		_finderPathWithPaginationFindByCtEntryId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCtEntryId",
 			new String[] {
@@ -845,17 +1224,6 @@ public class CTCommentPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByCtEntryId",
 			new String[] {Long.class.getName()}, new String[] {"ctEntryId"},
 			false);
-
-		_collectionPersistenceFinderByCtEntryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCtEntryId,
-				_finderPathWithoutPaginationFindByCtEntryId,
-				_finderPathCountByCtEntryId, _SQL_SELECT_CTCOMMENT_WHERE,
-				_SQL_COUNT_CTCOMMENT_WHERE, CTCommentModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctComment.", "ctEntryId", FinderColumn.Type.LONG, "=",
-					true, true, CTComment::getCtEntryId));
 
 		CTCommentUtil.setPersistence(this);
 	}
@@ -913,6 +1281,9 @@ public class CTCommentPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ctComment.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTComment exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTComment exists with the key {";
 
@@ -925,4 +1296,4 @@ public class CTCommentPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-324608398
+// LIFERAY-SERVICE-BUILDER-HASH:1007918115

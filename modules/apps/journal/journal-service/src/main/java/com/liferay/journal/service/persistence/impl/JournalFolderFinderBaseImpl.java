@@ -5,7 +5,6 @@
 
 package com.liferay.journal.service.persistence.impl;
 
-import com.liferay.journal.exception.NoSuchFolderException;
 import com.liferay.journal.model.JournalFolder;
 import com.liferay.journal.service.persistence.JournalFolderPersistence;
 import com.liferay.journal.service.persistence.impl.constants.JournalPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class JournalFolderFinderBaseImpl
-	extends BasePersistenceImpl<JournalFolder, NoSuchFolderException> {
+	extends BasePersistenceImpl<JournalFolder> {
 
 	public JournalFolderFinderBaseImpl() {
 		setModelClass(JournalFolder.class);
@@ -78,4 +77,4 @@ public abstract class JournalFolderFinderBaseImpl
 		JournalFolderFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1422036868
+// LIFERAY-SERVICE-BUILDER-HASH:319618876

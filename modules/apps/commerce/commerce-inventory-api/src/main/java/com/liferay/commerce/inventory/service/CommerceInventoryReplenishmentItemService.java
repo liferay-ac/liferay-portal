@@ -118,4 +118,4 @@ public interface CommerceInventoryReplenishmentItemService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1654990574
+// LIFERAY-SERVICE-BUILDER-HASH:-1193039419

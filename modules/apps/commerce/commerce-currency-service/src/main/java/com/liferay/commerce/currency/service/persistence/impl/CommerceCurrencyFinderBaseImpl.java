@@ -5,7 +5,6 @@
 
 package com.liferay.commerce.currency.service.persistence.impl;
 
-import com.liferay.commerce.currency.exception.NoSuchCurrencyException;
 import com.liferay.commerce.currency.model.CommerceCurrency;
 import com.liferay.commerce.currency.service.persistence.CommerceCurrencyPersistence;
 import com.liferay.commerce.currency.service.persistence.impl.constants.CommercePersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class CommerceCurrencyFinderBaseImpl
-	extends BasePersistenceImpl<CommerceCurrency, NoSuchCurrencyException> {
+	extends BasePersistenceImpl<CommerceCurrency> {
 
 	public CommerceCurrencyFinderBaseImpl() {
 		setModelClass(CommerceCurrency.class);
@@ -81,4 +80,4 @@ public abstract class CommerceCurrencyFinderBaseImpl
 		CommerceCurrencyFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1234828793
+// LIFERAY-SERVICE-BUILDER-HASH:-506197322

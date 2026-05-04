@@ -10,7 +10,6 @@ import com.liferay.portal.kernel.dao.orm.SessionFactory;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.sharing.exception.NoSuchEntryException;
 import com.liferay.sharing.model.SharingEntry;
 import com.liferay.sharing.service.persistence.SharingEntryPersistence;
 import com.liferay.sharing.service.persistence.impl.constants.SharingPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class SharingEntryFinderBaseImpl
-	extends BasePersistenceImpl<SharingEntry, NoSuchEntryException> {
+	extends BasePersistenceImpl<SharingEntry> {
 
 	public SharingEntryFinderBaseImpl() {
 		setModelClass(SharingEntry.class);
@@ -78,4 +77,4 @@ public abstract class SharingEntryFinderBaseImpl
 		SharingEntryFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1874629259
+// LIFERAY-SERVICE-BUILDER-HASH:-1880096384

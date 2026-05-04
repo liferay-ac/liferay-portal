@@ -370,4 +370,4 @@ public interface ReadingTimeEntryLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:674334002
+// LIFERAY-SERVICE-BUILDER-HASH:-2059435234

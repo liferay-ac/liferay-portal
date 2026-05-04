@@ -20,6 +20,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -29,8 +30,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.service.persistence.impl.TableMapper;
 import com.liferay.portal.kernel.service.persistence.impl.TableMapperFactory;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -51,6 +50,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -72,8 +72,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = OAuth2AuthorizationPersistence.class)
 public class OAuth2AuthorizationPersistenceImpl
-	extends BasePersistenceImpl
-		<OAuth2Authorization, NoSuchOAuth2AuthorizationException>
+	extends BasePersistenceImpl<OAuth2Authorization>
 	implements OAuth2AuthorizationPersistence {
 
 	/*
@@ -96,8 +95,6 @@ public class OAuth2AuthorizationPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUserId;
 	private FinderPath _finderPathWithoutPaginationFindByUserId;
 	private FinderPath _finderPathCountByUserId;
-	private CollectionPersistenceFinder<OAuth2Authorization>
-		_collectionPersistenceFinderByUserId;
 
 	/**
 	 * Returns all the o auth2 authorizations where userId = &#63;.
@@ -170,9 +167,93 @@ public class OAuth2AuthorizationPersistenceImpl
 		OrderByComparator<OAuth2Authorization> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUserId.find(
-			finderCache, new Object[] {userId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUserId;
+				finderArgs = new Object[] {userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUserId;
+			finderArgs = new Object[] {userId, start, end, orderByComparator};
+		}
+
+		List<OAuth2Authorization> list = null;
+
+		if (useFinderCache) {
+			list = (List<OAuth2Authorization>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (OAuth2Authorization oAuth2Authorization : list) {
+					if (userId != oAuth2Authorization.getUserId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(OAuth2AuthorizationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				list = (List<OAuth2Authorization>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -196,9 +277,16 @@ public class OAuth2AuthorizationPersistenceImpl
 			return oAuth2Authorization;
 		}
 
-		throw new NoSuchOAuth2AuthorizationException(
-			_collectionPersistenceFinderByUserId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {userId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchOAuth2AuthorizationException(sb.toString());
 	}
 
 	/**
@@ -212,8 +300,14 @@ public class OAuth2AuthorizationPersistenceImpl
 	public OAuth2Authorization fetchByUserId_First(
 		long userId, OrderByComparator<OAuth2Authorization> orderByComparator) {
 
-		return _collectionPersistenceFinderByUserId.fetchFirst(
-			finderCache, new Object[] {userId}, orderByComparator);
+		List<OAuth2Authorization> list = findByUserId(
+			userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -223,8 +317,12 @@ public class OAuth2AuthorizationPersistenceImpl
 	 */
 	@Override
 	public void removeByUserId(long userId) {
-		_collectionPersistenceFinderByUserId.remove(
-			finderCache, new Object[] {userId});
+		for (OAuth2Authorization oAuth2Authorization :
+				findByUserId(
+					userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(oAuth2Authorization);
+		}
 	}
 
 	/**
@@ -235,15 +333,53 @@ public class OAuth2AuthorizationPersistenceImpl
 	 */
 	@Override
 	public int countByUserId(long userId) {
-		return _collectionPersistenceFinderByUserId.count(
-			finderCache, new Object[] {userId});
+		FinderPath finderPath = _finderPathCountByUserId;
+
+		Object[] finderArgs = new Object[] {userId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_USERID_USERID_2 =
+		"oAuth2Authorization.userId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByOAuth2ApplicationId;
 	private FinderPath _finderPathWithoutPaginationFindByOAuth2ApplicationId;
 	private FinderPath _finderPathCountByOAuth2ApplicationId;
-	private CollectionPersistenceFinder<OAuth2Authorization>
-		_collectionPersistenceFinderByOAuth2ApplicationId;
 
 	/**
 	 * Returns all the o auth2 authorizations where oAuth2ApplicationId = &#63;.
@@ -320,9 +456,98 @@ public class OAuth2AuthorizationPersistenceImpl
 		OrderByComparator<OAuth2Authorization> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByOAuth2ApplicationId.find(
-			finderCache, new Object[] {oAuth2ApplicationId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByOAuth2ApplicationId;
+				finderArgs = new Object[] {oAuth2ApplicationId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByOAuth2ApplicationId;
+			finderArgs = new Object[] {
+				oAuth2ApplicationId, start, end, orderByComparator
+			};
+		}
+
+		List<OAuth2Authorization> list = null;
+
+		if (useFinderCache) {
+			list = (List<OAuth2Authorization>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (OAuth2Authorization oAuth2Authorization : list) {
+					if (oAuth2ApplicationId !=
+							oAuth2Authorization.getOAuth2ApplicationId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_OAUTH2APPLICATIONID_OAUTH2APPLICATIONID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(OAuth2AuthorizationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(oAuth2ApplicationId);
+
+				list = (List<OAuth2Authorization>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -347,11 +572,16 @@ public class OAuth2AuthorizationPersistenceImpl
 			return oAuth2Authorization;
 		}
 
-		throw new NoSuchOAuth2AuthorizationException(
-			_collectionPersistenceFinderByOAuth2ApplicationId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {oAuth2ApplicationId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("oAuth2ApplicationId=");
+		sb.append(oAuth2ApplicationId);
+
+		sb.append("}");
+
+		throw new NoSuchOAuth2AuthorizationException(sb.toString());
 	}
 
 	/**
@@ -366,8 +596,14 @@ public class OAuth2AuthorizationPersistenceImpl
 		long oAuth2ApplicationId,
 		OrderByComparator<OAuth2Authorization> orderByComparator) {
 
-		return _collectionPersistenceFinderByOAuth2ApplicationId.fetchFirst(
-			finderCache, new Object[] {oAuth2ApplicationId}, orderByComparator);
+		List<OAuth2Authorization> list = findByOAuth2ApplicationId(
+			oAuth2ApplicationId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -377,8 +613,13 @@ public class OAuth2AuthorizationPersistenceImpl
 	 */
 	@Override
 	public void removeByOAuth2ApplicationId(long oAuth2ApplicationId) {
-		_collectionPersistenceFinderByOAuth2ApplicationId.remove(
-			finderCache, new Object[] {oAuth2ApplicationId});
+		for (OAuth2Authorization oAuth2Authorization :
+				findByOAuth2ApplicationId(
+					oAuth2ApplicationId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(oAuth2Authorization);
+		}
 	}
 
 	/**
@@ -389,15 +630,54 @@ public class OAuth2AuthorizationPersistenceImpl
 	 */
 	@Override
 	public int countByOAuth2ApplicationId(long oAuth2ApplicationId) {
-		return _collectionPersistenceFinderByOAuth2ApplicationId.count(
-			finderCache, new Object[] {oAuth2ApplicationId});
+		FinderPath finderPath = _finderPathCountByOAuth2ApplicationId;
+
+		Object[] finderArgs = new Object[] {oAuth2ApplicationId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_OAUTH2APPLICATIONID_OAUTH2APPLICATIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(oAuth2ApplicationId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_OAUTH2APPLICATIONID_OAUTH2APPLICATIONID_2 =
+			"oAuth2Authorization.oAuth2ApplicationId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_ATCH;
 	private FinderPath _finderPathWithoutPaginationFindByC_ATCH;
 	private FinderPath _finderPathCountByC_ATCH;
-	private CollectionPersistenceFinder<OAuth2Authorization>
-		_collectionPersistenceFinderByC_ATCH;
 
 	/**
 	 * Returns all the o auth2 authorizations where companyId = &#63; and accessTokenContentHash = &#63;.
@@ -481,9 +761,102 @@ public class OAuth2AuthorizationPersistenceImpl
 		OrderByComparator<OAuth2Authorization> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_ATCH.find(
-			finderCache, new Object[] {companyId, accessTokenContentHash},
-			start, end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_ATCH;
+				finderArgs = new Object[] {companyId, accessTokenContentHash};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_ATCH;
+			finderArgs = new Object[] {
+				companyId, accessTokenContentHash, start, end, orderByComparator
+			};
+		}
+
+		List<OAuth2Authorization> list = null;
+
+		if (useFinderCache) {
+			list = (List<OAuth2Authorization>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (OAuth2Authorization oAuth2Authorization : list) {
+					if ((companyId != oAuth2Authorization.getCompanyId()) ||
+						(accessTokenContentHash !=
+							oAuth2Authorization.getAccessTokenContentHash())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_ATCH_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_ATCH_ACCESSTOKENCONTENTHASH_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(OAuth2AuthorizationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(accessTokenContentHash);
+
+				list = (List<OAuth2Authorization>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -508,10 +881,19 @@ public class OAuth2AuthorizationPersistenceImpl
 			return oAuth2Authorization;
 		}
 
-		throw new NoSuchOAuth2AuthorizationException(
-			_collectionPersistenceFinderByC_ATCH.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, accessTokenContentHash}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", accessTokenContentHash=");
+		sb.append(accessTokenContentHash);
+
+		sb.append("}");
+
+		throw new NoSuchOAuth2AuthorizationException(sb.toString());
 	}
 
 	/**
@@ -527,9 +909,14 @@ public class OAuth2AuthorizationPersistenceImpl
 		long companyId, long accessTokenContentHash,
 		OrderByComparator<OAuth2Authorization> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_ATCH.fetchFirst(
-			finderCache, new Object[] {companyId, accessTokenContentHash},
-			orderByComparator);
+		List<OAuth2Authorization> list = findByC_ATCH(
+			companyId, accessTokenContentHash, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -540,8 +927,13 @@ public class OAuth2AuthorizationPersistenceImpl
 	 */
 	@Override
 	public void removeByC_ATCH(long companyId, long accessTokenContentHash) {
-		_collectionPersistenceFinderByC_ATCH.remove(
-			finderCache, new Object[] {companyId, accessTokenContentHash});
+		for (OAuth2Authorization oAuth2Authorization :
+				findByC_ATCH(
+					companyId, accessTokenContentHash, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(oAuth2Authorization);
+		}
 	}
 
 	/**
@@ -553,15 +945,60 @@ public class OAuth2AuthorizationPersistenceImpl
 	 */
 	@Override
 	public int countByC_ATCH(long companyId, long accessTokenContentHash) {
-		return _collectionPersistenceFinderByC_ATCH.count(
-			finderCache, new Object[] {companyId, accessTokenContentHash});
+		FinderPath finderPath = _finderPathCountByC_ATCH;
+
+		Object[] finderArgs = new Object[] {companyId, accessTokenContentHash};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_ATCH_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_ATCH_ACCESSTOKENCONTENTHASH_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(accessTokenContentHash);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_C_ATCH_COMPANYID_2 =
+		"oAuth2Authorization.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_ATCH_ACCESSTOKENCONTENTHASH_2 =
+		"oAuth2Authorization.accessTokenContentHash = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_RTCH;
 	private FinderPath _finderPathWithoutPaginationFindByC_RTCH;
 	private FinderPath _finderPathCountByC_RTCH;
-	private CollectionPersistenceFinder<OAuth2Authorization>
-		_collectionPersistenceFinderByC_RTCH;
 
 	/**
 	 * Returns all the o auth2 authorizations where companyId = &#63; and refreshTokenContentHash = &#63;.
@@ -645,9 +1082,103 @@ public class OAuth2AuthorizationPersistenceImpl
 		OrderByComparator<OAuth2Authorization> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_RTCH.find(
-			finderCache, new Object[] {companyId, refreshTokenContentHash},
-			start, end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_RTCH;
+				finderArgs = new Object[] {companyId, refreshTokenContentHash};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_RTCH;
+			finderArgs = new Object[] {
+				companyId, refreshTokenContentHash, start, end,
+				orderByComparator
+			};
+		}
+
+		List<OAuth2Authorization> list = null;
+
+		if (useFinderCache) {
+			list = (List<OAuth2Authorization>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (OAuth2Authorization oAuth2Authorization : list) {
+					if ((companyId != oAuth2Authorization.getCompanyId()) ||
+						(refreshTokenContentHash !=
+							oAuth2Authorization.getRefreshTokenContentHash())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_RTCH_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_RTCH_REFRESHTOKENCONTENTHASH_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(OAuth2AuthorizationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(refreshTokenContentHash);
+
+				list = (List<OAuth2Authorization>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -672,10 +1203,19 @@ public class OAuth2AuthorizationPersistenceImpl
 			return oAuth2Authorization;
 		}
 
-		throw new NoSuchOAuth2AuthorizationException(
-			_collectionPersistenceFinderByC_RTCH.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, refreshTokenContentHash}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", refreshTokenContentHash=");
+		sb.append(refreshTokenContentHash);
+
+		sb.append("}");
+
+		throw new NoSuchOAuth2AuthorizationException(sb.toString());
 	}
 
 	/**
@@ -691,9 +1231,14 @@ public class OAuth2AuthorizationPersistenceImpl
 		long companyId, long refreshTokenContentHash,
 		OrderByComparator<OAuth2Authorization> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_RTCH.fetchFirst(
-			finderCache, new Object[] {companyId, refreshTokenContentHash},
-			orderByComparator);
+		List<OAuth2Authorization> list = findByC_RTCH(
+			companyId, refreshTokenContentHash, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -704,8 +1249,13 @@ public class OAuth2AuthorizationPersistenceImpl
 	 */
 	@Override
 	public void removeByC_RTCH(long companyId, long refreshTokenContentHash) {
-		_collectionPersistenceFinderByC_RTCH.remove(
-			finderCache, new Object[] {companyId, refreshTokenContentHash});
+		for (OAuth2Authorization oAuth2Authorization :
+				findByC_RTCH(
+					companyId, refreshTokenContentHash, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(oAuth2Authorization);
+		}
 	}
 
 	/**
@@ -717,15 +1267,61 @@ public class OAuth2AuthorizationPersistenceImpl
 	 */
 	@Override
 	public int countByC_RTCH(long companyId, long refreshTokenContentHash) {
-		return _collectionPersistenceFinderByC_RTCH.count(
-			finderCache, new Object[] {companyId, refreshTokenContentHash});
+		FinderPath finderPath = _finderPathCountByC_RTCH;
+
+		Object[] finderArgs = new Object[] {companyId, refreshTokenContentHash};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_RTCH_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_RTCH_REFRESHTOKENCONTENTHASH_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(refreshTokenContentHash);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_C_RTCH_COMPANYID_2 =
+		"oAuth2Authorization.companyId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_C_RTCH_REFRESHTOKENCONTENTHASH_2 =
+			"oAuth2Authorization.refreshTokenContentHash = ?";
 
 	private FinderPath _finderPathWithPaginationFindByU_O_R;
 	private FinderPath _finderPathWithoutPaginationFindByU_O_R;
 	private FinderPath _finderPathCountByU_O_R;
-	private CollectionPersistenceFinder<OAuth2Authorization>
-		_collectionPersistenceFinderByU_O_R;
 
 	/**
 	 * Returns all the o auth2 authorizations where userId = &#63; and oAuth2ApplicationId = &#63; and rememberDeviceContent = &#63;.
@@ -817,10 +1413,124 @@ public class OAuth2AuthorizationPersistenceImpl
 		OrderByComparator<OAuth2Authorization> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByU_O_R.find(
-			finderCache,
-			new Object[] {userId, oAuth2ApplicationId, rememberDeviceContent},
-			start, end, orderByComparator, useFinderCache);
+		rememberDeviceContent = Objects.toString(rememberDeviceContent, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByU_O_R;
+				finderArgs = new Object[] {
+					userId, oAuth2ApplicationId, rememberDeviceContent
+				};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByU_O_R;
+			finderArgs = new Object[] {
+				userId, oAuth2ApplicationId, rememberDeviceContent, start, end,
+				orderByComparator
+			};
+		}
+
+		List<OAuth2Authorization> list = null;
+
+		if (useFinderCache) {
+			list = (List<OAuth2Authorization>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (OAuth2Authorization oAuth2Authorization : list) {
+					if ((userId != oAuth2Authorization.getUserId()) ||
+						(oAuth2ApplicationId !=
+							oAuth2Authorization.getOAuth2ApplicationId()) ||
+						!rememberDeviceContent.equals(
+							oAuth2Authorization.getRememberDeviceContent())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_U_O_R_USERID_2);
+
+			sb.append(_FINDER_COLUMN_U_O_R_OAUTH2APPLICATIONID_2);
+
+			boolean bindRememberDeviceContent = false;
+
+			if (rememberDeviceContent.isEmpty()) {
+				sb.append(_FINDER_COLUMN_U_O_R_REMEMBERDEVICECONTENT_3);
+			}
+			else {
+				bindRememberDeviceContent = true;
+
+				sb.append(_FINDER_COLUMN_U_O_R_REMEMBERDEVICECONTENT_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(OAuth2AuthorizationModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				queryPos.add(oAuth2ApplicationId);
+
+				if (bindRememberDeviceContent) {
+					queryPos.add(rememberDeviceContent);
+				}
+
+				list = (List<OAuth2Authorization>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -847,12 +1557,22 @@ public class OAuth2AuthorizationPersistenceImpl
 			return oAuth2Authorization;
 		}
 
-		throw new NoSuchOAuth2AuthorizationException(
-			_collectionPersistenceFinderByU_O_R.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {
-					userId, oAuth2ApplicationId, rememberDeviceContent
-				}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append(", oAuth2ApplicationId=");
+		sb.append(oAuth2ApplicationId);
+
+		sb.append(", rememberDeviceContent=");
+		sb.append(rememberDeviceContent);
+
+		sb.append("}");
+
+		throw new NoSuchOAuth2AuthorizationException(sb.toString());
 	}
 
 	/**
@@ -869,10 +1589,15 @@ public class OAuth2AuthorizationPersistenceImpl
 		long userId, long oAuth2ApplicationId, String rememberDeviceContent,
 		OrderByComparator<OAuth2Authorization> orderByComparator) {
 
-		return _collectionPersistenceFinderByU_O_R.fetchFirst(
-			finderCache,
-			new Object[] {userId, oAuth2ApplicationId, rememberDeviceContent},
+		List<OAuth2Authorization> list = findByU_O_R(
+			userId, oAuth2ApplicationId, rememberDeviceContent, 0, 1,
 			orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -886,9 +1611,13 @@ public class OAuth2AuthorizationPersistenceImpl
 	public void removeByU_O_R(
 		long userId, long oAuth2ApplicationId, String rememberDeviceContent) {
 
-		_collectionPersistenceFinderByU_O_R.remove(
-			finderCache,
-			new Object[] {userId, oAuth2ApplicationId, rememberDeviceContent});
+		for (OAuth2Authorization oAuth2Authorization :
+				findByU_O_R(
+					userId, oAuth2ApplicationId, rememberDeviceContent,
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(oAuth2Authorization);
+		}
 	}
 
 	/**
@@ -903,10 +1632,81 @@ public class OAuth2AuthorizationPersistenceImpl
 	public int countByU_O_R(
 		long userId, long oAuth2ApplicationId, String rememberDeviceContent) {
 
-		return _collectionPersistenceFinderByU_O_R.count(
-			finderCache,
-			new Object[] {userId, oAuth2ApplicationId, rememberDeviceContent});
+		rememberDeviceContent = Objects.toString(rememberDeviceContent, "");
+
+		FinderPath finderPath = _finderPathCountByU_O_R;
+
+		Object[] finderArgs = new Object[] {
+			userId, oAuth2ApplicationId, rememberDeviceContent
+		};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE);
+
+			sb.append(_FINDER_COLUMN_U_O_R_USERID_2);
+
+			sb.append(_FINDER_COLUMN_U_O_R_OAUTH2APPLICATIONID_2);
+
+			boolean bindRememberDeviceContent = false;
+
+			if (rememberDeviceContent.isEmpty()) {
+				sb.append(_FINDER_COLUMN_U_O_R_REMEMBERDEVICECONTENT_3);
+			}
+			else {
+				bindRememberDeviceContent = true;
+
+				sb.append(_FINDER_COLUMN_U_O_R_REMEMBERDEVICECONTENT_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				queryPos.add(oAuth2ApplicationId);
+
+				if (bindRememberDeviceContent) {
+					queryPos.add(rememberDeviceContent);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_U_O_R_USERID_2 =
+		"oAuth2Authorization.userId = ? AND ";
+
+	private static final String _FINDER_COLUMN_U_O_R_OAUTH2APPLICATIONID_2 =
+		"oAuth2Authorization.oAuth2ApplicationId = ? AND ";
+
+	private static final String _FINDER_COLUMN_U_O_R_REMEMBERDEVICECONTENT_2 =
+		"oAuth2Authorization.rememberDeviceContent = ?";
+
+	private static final String _FINDER_COLUMN_U_O_R_REMEMBERDEVICECONTENT_3 =
+		"(oAuth2Authorization.rememberDeviceContent IS NULL OR oAuth2Authorization.rememberDeviceContent = '')";
 
 	public OAuth2AuthorizationPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -964,6 +1764,50 @@ public class OAuth2AuthorizationPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all o auth2 authorizations.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(OAuth2AuthorizationImpl.class);
+
+		finderCache.clearCache(OAuth2AuthorizationImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the o auth2 authorization.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(OAuth2Authorization oAuth2Authorization) {
+		entityCache.removeResult(
+			OAuth2AuthorizationImpl.class, oAuth2Authorization);
+	}
+
+	@Override
+	public void clearCache(List<OAuth2Authorization> oAuth2Authorizations) {
+		for (OAuth2Authorization oAuth2Authorization : oAuth2Authorizations) {
+			entityCache.removeResult(
+				OAuth2AuthorizationImpl.class, oAuth2Authorization);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(OAuth2AuthorizationImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(OAuth2AuthorizationImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new o auth2 authorization with the primary key. Does not add the o auth2 authorization to the database.
 	 *
 	 * @param oAuth2AuthorizationId the primary key for the new o auth2 authorization
@@ -993,6 +1837,48 @@ public class OAuth2AuthorizationPersistenceImpl
 		throws NoSuchOAuth2AuthorizationException {
 
 		return remove((Serializable)oAuth2AuthorizationId);
+	}
+
+	/**
+	 * Removes the o auth2 authorization with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the o auth2 authorization
+	 * @return the o auth2 authorization that was removed
+	 * @throws NoSuchOAuth2AuthorizationException if a o auth2 authorization with the primary key could not be found
+	 */
+	@Override
+	public OAuth2Authorization remove(Serializable primaryKey)
+		throws NoSuchOAuth2AuthorizationException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			OAuth2Authorization oAuth2Authorization =
+				(OAuth2Authorization)session.get(
+					OAuth2AuthorizationImpl.class, primaryKey);
+
+			if (oAuth2Authorization == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchOAuth2AuthorizationException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(oAuth2Authorization);
+		}
+		catch (NoSuchOAuth2AuthorizationException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1102,6 +1988,31 @@ public class OAuth2AuthorizationPersistenceImpl
 		}
 
 		oAuth2Authorization.resetOriginalValues();
+
+		return oAuth2Authorization;
+	}
+
+	/**
+	 * Returns the o auth2 authorization with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the o auth2 authorization
+	 * @return the o auth2 authorization
+	 * @throws NoSuchOAuth2AuthorizationException if a o auth2 authorization with the primary key could not be found
+	 */
+	@Override
+	public OAuth2Authorization findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchOAuth2AuthorizationException {
+
+		OAuth2Authorization oAuth2Authorization = fetchByPrimaryKey(primaryKey);
+
+		if (oAuth2Authorization == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchOAuth2AuthorizationException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return oAuth2Authorization;
 	}
@@ -1725,18 +2636,6 @@ public class OAuth2AuthorizationPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"userId"},
 			false);
 
-		_collectionPersistenceFinderByUserId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUserId,
-				_finderPathWithoutPaginationFindByUserId,
-				_finderPathCountByUserId, _SQL_SELECT_OAUTH2AUTHORIZATION_WHERE,
-				_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE,
-				OAuth2AuthorizationModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"oAuth2Authorization.", "userId", FinderColumn.Type.LONG,
-					"=", true, true, OAuth2Authorization::getUserId));
-
 		_finderPathWithPaginationFindByOAuth2ApplicationId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByOAuth2ApplicationId",
 			new String[] {
@@ -1754,20 +2653,6 @@ public class OAuth2AuthorizationPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
 			"countByOAuth2ApplicationId", new String[] {Long.class.getName()},
 			new String[] {"oAuth2ApplicationId"}, false);
-
-		_collectionPersistenceFinderByOAuth2ApplicationId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByOAuth2ApplicationId,
-				_finderPathWithoutPaginationFindByOAuth2ApplicationId,
-				_finderPathCountByOAuth2ApplicationId,
-				_SQL_SELECT_OAUTH2AUTHORIZATION_WHERE,
-				_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE,
-				OAuth2AuthorizationModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"oAuth2Authorization.", "oAuth2ApplicationId",
-					FinderColumn.Type.LONG, "=", true, true,
-					OAuth2Authorization::getOAuth2ApplicationId));
 
 		_finderPathWithPaginationFindByC_ATCH = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_ATCH",
@@ -1788,22 +2673,6 @@ public class OAuth2AuthorizationPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "accessTokenContentHash"}, false);
 
-		_collectionPersistenceFinderByC_ATCH =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_ATCH,
-				_finderPathWithoutPaginationFindByC_ATCH,
-				_finderPathCountByC_ATCH, _SQL_SELECT_OAUTH2AUTHORIZATION_WHERE,
-				_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE,
-				OAuth2AuthorizationModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"oAuth2Authorization.", "companyId", FinderColumn.Type.LONG,
-					"=", true, false, OAuth2Authorization::getCompanyId),
-				new FinderColumn<>(
-					"oAuth2Authorization.", "accessTokenContentHash",
-					FinderColumn.Type.LONG, "=", true, true,
-					OAuth2Authorization::getAccessTokenContentHash));
-
 		_finderPathWithPaginationFindByC_RTCH = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_RTCH",
 			new String[] {
@@ -1822,22 +2691,6 @@ public class OAuth2AuthorizationPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByC_RTCH",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "refreshTokenContentHash"}, false);
-
-		_collectionPersistenceFinderByC_RTCH =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_RTCH,
-				_finderPathWithoutPaginationFindByC_RTCH,
-				_finderPathCountByC_RTCH, _SQL_SELECT_OAUTH2AUTHORIZATION_WHERE,
-				_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE,
-				OAuth2AuthorizationModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"oAuth2Authorization.", "companyId", FinderColumn.Type.LONG,
-					"=", true, false, OAuth2Authorization::getCompanyId),
-				new FinderColumn<>(
-					"oAuth2Authorization.", "refreshTokenContentHash",
-					FinderColumn.Type.LONG, "=", true, true,
-					OAuth2Authorization::getRefreshTokenContentHash));
 
 		_finderPathWithPaginationFindByU_O_R = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByU_O_R",
@@ -1872,24 +2725,6 @@ public class OAuth2AuthorizationPersistenceImpl
 				"userId", "oAuth2ApplicationId", "rememberDeviceContent"
 			},
 			false);
-
-		_collectionPersistenceFinderByU_O_R = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByU_O_R,
-			_finderPathWithoutPaginationFindByU_O_R, _finderPathCountByU_O_R,
-			_SQL_SELECT_OAUTH2AUTHORIZATION_WHERE,
-			_SQL_COUNT_OAUTH2AUTHORIZATION_WHERE,
-			OAuth2AuthorizationModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"oAuth2Authorization.", "userId", FinderColumn.Type.LONG, "=",
-				true, false, OAuth2Authorization::getUserId),
-			new FinderColumn<>(
-				"oAuth2Authorization.", "oAuth2ApplicationId",
-				FinderColumn.Type.LONG, "=", true, false,
-				OAuth2Authorization::getOAuth2ApplicationId),
-			new FinderColumn<>(
-				"oAuth2Authorization.", "rememberDeviceContent",
-				FinderColumn.Type.STRING, "=", true, true,
-				OAuth2Authorization::getRememberDeviceContent));
 
 		OAuth2AuthorizationUtil.setPersistence(this);
 	}
@@ -1953,6 +2788,9 @@ public class OAuth2AuthorizationPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "oAuth2Authorization.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No OAuth2Authorization exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No OAuth2Authorization exists with the key {";
 
@@ -1968,4 +2806,4 @@ public class OAuth2AuthorizationPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-512513654
+// LIFERAY-SERVICE-BUILDER-HASH:-597403814

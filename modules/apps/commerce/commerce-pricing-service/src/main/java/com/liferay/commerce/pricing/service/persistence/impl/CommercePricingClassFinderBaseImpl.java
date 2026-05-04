@@ -5,7 +5,6 @@
 
 package com.liferay.commerce.pricing.service.persistence.impl;
 
-import com.liferay.commerce.pricing.exception.NoSuchPricingClassException;
 import com.liferay.commerce.pricing.model.CommercePricingClass;
 import com.liferay.commerce.pricing.service.persistence.CommercePricingClassPersistence;
 import com.liferay.commerce.pricing.service.persistence.impl.constants.CommercePersistenceConstants;
@@ -28,8 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class CommercePricingClassFinderBaseImpl
-	extends BasePersistenceImpl
-		<CommercePricingClass, NoSuchPricingClassException> {
+	extends BasePersistenceImpl<CommercePricingClass> {
 
 	public CommercePricingClassFinderBaseImpl() {
 		setModelClass(CommercePricingClass.class);
@@ -79,4 +77,4 @@ public abstract class CommercePricingClassFinderBaseImpl
 		CommercePricingClassFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:107662981
+// LIFERAY-SERVICE-BUILDER-HASH:1247194287

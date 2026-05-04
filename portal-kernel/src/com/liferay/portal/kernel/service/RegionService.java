@@ -124,4 +124,4 @@ public interface RegionService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-920159411
+// LIFERAY-SERVICE-BUILDER-HASH:2075818662

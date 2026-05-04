@@ -37,9 +37,6 @@ import com.liferay.portal.kernel.security.permission.InlineSQLHelperUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -80,8 +77,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = ListTypeDefinitionPersistence.class)
 public class ListTypeDefinitionPersistenceImpl
-	extends BasePersistenceImpl
-		<ListTypeDefinition, NoSuchListTypeDefinitionException>
+	extends BasePersistenceImpl<ListTypeDefinition>
 	implements ListTypeDefinitionPersistence {
 
 	/*
@@ -104,8 +100,6 @@ public class ListTypeDefinitionPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<ListTypeDefinition>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the list type definitions where uuid = &#63;.
@@ -178,9 +172,106 @@ public class ListTypeDefinitionPersistenceImpl
 		OrderByComparator<ListTypeDefinition> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid.find(
-			finderCache, new Object[] {uuid}, start, end, orderByComparator,
-			useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid;
+				finderArgs = new Object[] {uuid};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid;
+			finderArgs = new Object[] {uuid, start, end, orderByComparator};
+		}
+
+		List<ListTypeDefinition> list = null;
+
+		if (useFinderCache) {
+			list = (List<ListTypeDefinition>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ListTypeDefinition listTypeDefinition : list) {
+					if (!uuid.equals(listTypeDefinition.getUuid())) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_LISTTYPEDEFINITION_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ListTypeDefinitionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				list = (List<ListTypeDefinition>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -204,9 +295,16 @@ public class ListTypeDefinitionPersistenceImpl
 			return listTypeDefinition;
 		}
 
-		throw new NoSuchListTypeDefinitionException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchListTypeDefinitionException(sb.toString());
 	}
 
 	/**
@@ -220,8 +318,14 @@ public class ListTypeDefinitionPersistenceImpl
 	public ListTypeDefinition fetchByUuid_First(
 		String uuid, OrderByComparator<ListTypeDefinition> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<ListTypeDefinition> list = findByUuid(
+			uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -386,8 +490,11 @@ public class ListTypeDefinitionPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (ListTypeDefinition listTypeDefinition :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(listTypeDefinition);
+		}
 	}
 
 	/**
@@ -398,8 +505,58 @@ public class ListTypeDefinitionPersistenceImpl
 	 */
 	@Override
 	public int countByUuid(String uuid) {
-		return _collectionPersistenceFinderByUuid.count(
-			finderCache, new Object[] {uuid});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid;
+
+		Object[] finderArgs = new Object[] {uuid};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_LISTTYPEDEFINITION_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -472,6 +629,12 @@ public class ListTypeDefinitionPersistenceImpl
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"listTypeDefinition.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(listTypeDefinition.uuid IS NULL OR listTypeDefinition.uuid = '')";
+
 	private static final String _FINDER_COLUMN_UUID_UUID_2_SQL =
 		"listTypeDefinition.uuid_ = ?";
 
@@ -481,8 +644,6 @@ public class ListTypeDefinitionPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<ListTypeDefinition>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the list type definitions where uuid = &#63; and companyId = &#63;.
@@ -561,9 +722,114 @@ public class ListTypeDefinitionPersistenceImpl
 		OrderByComparator<ListTypeDefinition> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid_C.find(
-			finderCache, new Object[] {uuid, companyId}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid_C;
+				finderArgs = new Object[] {uuid, companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid_C;
+			finderArgs = new Object[] {
+				uuid, companyId, start, end, orderByComparator
+			};
+		}
+
+		List<ListTypeDefinition> list = null;
+
+		if (useFinderCache) {
+			list = (List<ListTypeDefinition>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ListTypeDefinition listTypeDefinition : list) {
+					if (!uuid.equals(listTypeDefinition.getUuid()) ||
+						(companyId != listTypeDefinition.getCompanyId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LISTTYPEDEFINITION_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ListTypeDefinitionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				list = (List<ListTypeDefinition>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -588,9 +854,19 @@ public class ListTypeDefinitionPersistenceImpl
 			return listTypeDefinition;
 		}
 
-		throw new NoSuchListTypeDefinitionException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchListTypeDefinitionException(sb.toString());
 	}
 
 	/**
@@ -606,8 +882,14 @@ public class ListTypeDefinitionPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<ListTypeDefinition> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<ListTypeDefinition> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -782,8 +1064,13 @@ public class ListTypeDefinitionPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (ListTypeDefinition listTypeDefinition :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(listTypeDefinition);
+		}
 	}
 
 	/**
@@ -795,8 +1082,62 @@ public class ListTypeDefinitionPersistenceImpl
 	 */
 	@Override
 	public int countByUuid_C(String uuid, long companyId) {
-		return _collectionPersistenceFinderByUuid_C.count(
-			finderCache, new Object[] {uuid, companyId});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid_C;
+
+		Object[] finderArgs = new Object[] {uuid, companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LISTTYPEDEFINITION_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -875,6 +1216,12 @@ public class ListTypeDefinitionPersistenceImpl
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"listTypeDefinition.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(listTypeDefinition.uuid IS NULL OR listTypeDefinition.uuid = '') AND ";
+
 	private static final String _FINDER_COLUMN_UUID_C_UUID_2_SQL =
 		"listTypeDefinition.uuid_ = ? AND ";
 
@@ -887,8 +1234,6 @@ public class ListTypeDefinitionPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByC_U;
 	private FinderPath _finderPathWithoutPaginationFindByC_U;
 	private FinderPath _finderPathCountByC_U;
-	private CollectionPersistenceFinder<ListTypeDefinition>
-		_collectionPersistenceFinderByC_U;
 
 	/**
 	 * Returns all the list type definitions where companyId = &#63; and userId = &#63;.
@@ -967,9 +1312,101 @@ public class ListTypeDefinitionPersistenceImpl
 		OrderByComparator<ListTypeDefinition> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_U.find(
-			finderCache, new Object[] {companyId, userId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_U;
+				finderArgs = new Object[] {companyId, userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_U;
+			finderArgs = new Object[] {
+				companyId, userId, start, end, orderByComparator
+			};
+		}
+
+		List<ListTypeDefinition> list = null;
+
+		if (useFinderCache) {
+			list = (List<ListTypeDefinition>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ListTypeDefinition listTypeDefinition : list) {
+					if ((companyId != listTypeDefinition.getCompanyId()) ||
+						(userId != listTypeDefinition.getUserId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LISTTYPEDEFINITION_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ListTypeDefinitionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				list = (List<ListTypeDefinition>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -994,9 +1431,19 @@ public class ListTypeDefinitionPersistenceImpl
 			return listTypeDefinition;
 		}
 
-		throw new NoSuchListTypeDefinitionException(
-			_collectionPersistenceFinderByC_U.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, userId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchListTypeDefinitionException(sb.toString());
 	}
 
 	/**
@@ -1012,8 +1459,14 @@ public class ListTypeDefinitionPersistenceImpl
 		long companyId, long userId,
 		OrderByComparator<ListTypeDefinition> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_U.fetchFirst(
-			finderCache, new Object[] {companyId, userId}, orderByComparator);
+		List<ListTypeDefinition> list = findByC_U(
+			companyId, userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1175,8 +1628,13 @@ public class ListTypeDefinitionPersistenceImpl
 	 */
 	@Override
 	public void removeByC_U(long companyId, long userId) {
-		_collectionPersistenceFinderByC_U.remove(
-			finderCache, new Object[] {companyId, userId});
+		for (ListTypeDefinition listTypeDefinition :
+				findByC_U(
+					companyId, userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(listTypeDefinition);
+		}
 	}
 
 	/**
@@ -1188,8 +1646,49 @@ public class ListTypeDefinitionPersistenceImpl
 	 */
 	@Override
 	public int countByC_U(long companyId, long userId) {
-		return _collectionPersistenceFinderByC_U.count(
-			finderCache, new Object[] {companyId, userId});
+		FinderPath finderPath = _finderPathCountByC_U;
+
+		Object[] finderArgs = new Object[] {companyId, userId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LISTTYPEDEFINITION_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -1262,8 +1761,6 @@ public class ListTypeDefinitionPersistenceImpl
 		"listTypeDefinition.userId = ?";
 
 	private FinderPath _finderPathFetchByERC_C;
-	private UniquePersistenceFinder<ListTypeDefinition>
-		_uniquePersistenceFinderByERC_C;
 
 	/**
 	 * Returns the list type definition where externalReferenceCode = &#63; and companyId = &#63; or throws a <code>NoSuchListTypeDefinitionException</code> if it could not be found.
@@ -1282,16 +1779,23 @@ public class ListTypeDefinitionPersistenceImpl
 			externalReferenceCode, companyId);
 
 		if (listTypeDefinition == null) {
-			String message =
-				_uniquePersistenceFinderByERC_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {externalReferenceCode, companyId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("externalReferenceCode=");
+			sb.append(externalReferenceCode);
+
+			sb.append(", companyId=");
+			sb.append(companyId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchListTypeDefinitionException(message);
+			throw new NoSuchListTypeDefinitionException(sb.toString());
 		}
 
 		return listTypeDefinition;
@@ -1323,9 +1827,98 @@ public class ListTypeDefinitionPersistenceImpl
 	public ListTypeDefinition fetchByERC_C(
 		String externalReferenceCode, long companyId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByERC_C.fetch(
-			finderCache, new Object[] {externalReferenceCode, companyId},
-			useFinderCache);
+		externalReferenceCode = Objects.toString(externalReferenceCode, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {externalReferenceCode, companyId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByERC_C, finderArgs, this);
+		}
+
+		if (result instanceof ListTypeDefinition) {
+			ListTypeDefinition listTypeDefinition = (ListTypeDefinition)result;
+
+			if (!Objects.equals(
+					externalReferenceCode,
+					listTypeDefinition.getExternalReferenceCode()) ||
+				(companyId != listTypeDefinition.getCompanyId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_LISTTYPEDEFINITION_WHERE);
+
+			boolean bindExternalReferenceCode = false;
+
+			if (externalReferenceCode.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_3);
+			}
+			else {
+				bindExternalReferenceCode = true;
+
+				sb.append(_FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_ERC_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExternalReferenceCode) {
+					queryPos.add(externalReferenceCode);
+				}
+
+				queryPos.add(companyId);
+
+				List<ListTypeDefinition> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByERC_C, finderArgs, list);
+					}
+				}
+				else {
+					ListTypeDefinition listTypeDefinition = list.get(0);
+
+					result = listTypeDefinition;
+
+					cacheResult(listTypeDefinition);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (ListTypeDefinition)result;
+		}
 	}
 
 	/**
@@ -1355,9 +1948,24 @@ public class ListTypeDefinitionPersistenceImpl
 	 */
 	@Override
 	public int countByERC_C(String externalReferenceCode, long companyId) {
-		return _uniquePersistenceFinderByERC_C.count(
-			finderCache, new Object[] {externalReferenceCode, companyId});
+		ListTypeDefinition listTypeDefinition = fetchByERC_C(
+			externalReferenceCode, companyId);
+
+		if (listTypeDefinition == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_2 =
+		"listTypeDefinition.externalReferenceCode = ? AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_3 =
+		"(listTypeDefinition.externalReferenceCode IS NULL OR listTypeDefinition.externalReferenceCode = '') AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_COMPANYID_2 =
+		"listTypeDefinition.companyId = ?";
 
 	public ListTypeDefinitionPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -1422,6 +2030,50 @@ public class ListTypeDefinitionPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all list type definitions.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(ListTypeDefinitionImpl.class);
+
+		finderCache.clearCache(ListTypeDefinitionImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the list type definition.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(ListTypeDefinition listTypeDefinition) {
+		entityCache.removeResult(
+			ListTypeDefinitionImpl.class, listTypeDefinition);
+	}
+
+	@Override
+	public void clearCache(List<ListTypeDefinition> listTypeDefinitions) {
+		for (ListTypeDefinition listTypeDefinition : listTypeDefinitions) {
+			entityCache.removeResult(
+				ListTypeDefinitionImpl.class, listTypeDefinition);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(ListTypeDefinitionImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(ListTypeDefinitionImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		ListTypeDefinitionModelImpl listTypeDefinitionModelImpl) {
 
@@ -1468,6 +2120,48 @@ public class ListTypeDefinitionPersistenceImpl
 		throws NoSuchListTypeDefinitionException {
 
 		return remove((Serializable)listTypeDefinitionId);
+	}
+
+	/**
+	 * Removes the list type definition with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the list type definition
+	 * @return the list type definition that was removed
+	 * @throws NoSuchListTypeDefinitionException if a list type definition with the primary key could not be found
+	 */
+	@Override
+	public ListTypeDefinition remove(Serializable primaryKey)
+		throws NoSuchListTypeDefinitionException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ListTypeDefinition listTypeDefinition =
+				(ListTypeDefinition)session.get(
+					ListTypeDefinitionImpl.class, primaryKey);
+
+			if (listTypeDefinition == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchListTypeDefinitionException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(listTypeDefinition);
+		}
+		catch (NoSuchListTypeDefinitionException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1657,6 +2351,31 @@ public class ListTypeDefinitionPersistenceImpl
 		}
 
 		listTypeDefinition.resetOriginalValues();
+
+		return listTypeDefinition;
+	}
+
+	/**
+	 * Returns the list type definition with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the list type definition
+	 * @return the list type definition
+	 * @throws NoSuchListTypeDefinitionException if a list type definition with the primary key could not be found
+	 */
+	@Override
+	public ListTypeDefinition findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchListTypeDefinitionException {
+
+		ListTypeDefinition listTypeDefinition = fetchByPrimaryKey(primaryKey);
+
+		if (listTypeDefinition == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchListTypeDefinitionException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return listTypeDefinition;
 	}
@@ -1931,16 +2650,6 @@ public class ListTypeDefinitionPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_LISTTYPEDEFINITION_WHERE,
-			_SQL_COUNT_LISTTYPEDEFINITION_WHERE,
-			ListTypeDefinitionModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"listTypeDefinition.", "uuid", FinderColumn.Type.STRING, "=",
-				true, true, ListTypeDefinition::getUuid));
-
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
 			new String[] {
@@ -1959,21 +2668,6 @@ public class ListTypeDefinitionPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUuid_C",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
-
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_LISTTYPEDEFINITION_WHERE,
-				_SQL_COUNT_LISTTYPEDEFINITION_WHERE,
-				ListTypeDefinitionModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"listTypeDefinition.", "uuid", FinderColumn.Type.STRING,
-					"=", true, false, ListTypeDefinition::getUuid),
-				new FinderColumn<>(
-					"listTypeDefinition.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, ListTypeDefinition::getCompanyId));
 
 		_finderPathWithPaginationFindByC_U = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_U",
@@ -1994,33 +2688,10 @@ public class ListTypeDefinitionPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "userId"}, false);
 
-		_collectionPersistenceFinderByC_U = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_U,
-			_finderPathWithoutPaginationFindByC_U, _finderPathCountByC_U,
-			_SQL_SELECT_LISTTYPEDEFINITION_WHERE,
-			_SQL_COUNT_LISTTYPEDEFINITION_WHERE,
-			ListTypeDefinitionModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"listTypeDefinition.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, ListTypeDefinition::getCompanyId),
-			new FinderColumn<>(
-				"listTypeDefinition.", "userId", FinderColumn.Type.LONG, "=",
-				true, true, ListTypeDefinition::getUserId));
-
 		_finderPathFetchByERC_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByERC_C",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"externalReferenceCode", "companyId"}, true);
-
-		_uniquePersistenceFinderByERC_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByERC_C, _SQL_SELECT_LISTTYPEDEFINITION_WHERE,
-			new FinderColumn<>(
-				"listTypeDefinition.", "externalReferenceCode",
-				FinderColumn.Type.STRING, "=", true, false,
-				ListTypeDefinition::getExternalReferenceCode),
-			new FinderColumn<>(
-				"listTypeDefinition.", "companyId", FinderColumn.Type.LONG, "=",
-				true, true, ListTypeDefinition::getCompanyId));
 
 		ListTypeDefinitionUtil.setPersistence(this);
 	}
@@ -2101,6 +2772,9 @@ public class ListTypeDefinitionPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_TABLE = "ListTypeDefinition.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No ListTypeDefinition exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No ListTypeDefinition exists with the key {";
 
@@ -2116,4 +2790,4 @@ public class ListTypeDefinitionPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:776829052
+// LIFERAY-SERVICE-BUILDER-HASH:-411673836

@@ -5,7 +5,6 @@
 
 package com.liferay.portal.background.task.service.persistence.impl;
 
-import com.liferay.portal.background.task.exception.NoSuchBackgroundTaskException;
 import com.liferay.portal.background.task.model.BackgroundTask;
 import com.liferay.portal.background.task.service.persistence.BackgroundTaskPersistence;
 import com.liferay.portal.background.task.service.persistence.impl.constants.BackgroundTaskPersistenceConstants;
@@ -22,7 +21,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class BackgroundTaskFinderBaseImpl
-	extends BasePersistenceImpl<BackgroundTask, NoSuchBackgroundTaskException> {
+	extends BasePersistenceImpl<BackgroundTask> {
 
 	public BackgroundTaskFinderBaseImpl() {
 		setModelClass(BackgroundTask.class);
@@ -58,4 +57,4 @@ public abstract class BackgroundTaskFinderBaseImpl
 	protected BackgroundTaskPersistence backgroundTaskPersistence;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1390293062
+// LIFERAY-SERVICE-BUILDER-HASH:-482471352

@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -32,9 +33,6 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -54,8 +52,10 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -77,8 +77,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = DepotEntryGroupRelPersistence.class)
 public class DepotEntryGroupRelPersistenceImpl
-	extends BasePersistenceImpl
-		<DepotEntryGroupRel, NoSuchEntryGroupRelException>
+	extends BasePersistenceImpl<DepotEntryGroupRel>
 	implements DepotEntryGroupRelPersistence {
 
 	/*
@@ -101,8 +100,6 @@ public class DepotEntryGroupRelPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<DepotEntryGroupRel>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the depot entry group rels where uuid = &#63;.
@@ -179,9 +176,106 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByUuid.find(
-				finderCache, new Object[] {uuid}, start, end, orderByComparator,
-				useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid;
+					finderArgs = new Object[] {uuid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid;
+				finderArgs = new Object[] {uuid, start, end, orderByComparator};
+			}
+
+			List<DepotEntryGroupRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<DepotEntryGroupRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (DepotEntryGroupRel depotEntryGroupRel : list) {
+						if (!uuid.equals(depotEntryGroupRel.getUuid())) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(DepotEntryGroupRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					list = (List<DepotEntryGroupRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -206,9 +300,16 @@ public class DepotEntryGroupRelPersistenceImpl
 			return depotEntryGroupRel;
 		}
 
-		throw new NoSuchEntryGroupRelException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchEntryGroupRelException(sb.toString());
 	}
 
 	/**
@@ -222,8 +323,14 @@ public class DepotEntryGroupRelPersistenceImpl
 	public DepotEntryGroupRel fetchByUuid_First(
 		String uuid, OrderByComparator<DepotEntryGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<DepotEntryGroupRel> list = findByUuid(
+			uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -233,8 +340,11 @@ public class DepotEntryGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (DepotEntryGroupRel depotEntryGroupRel :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(depotEntryGroupRel);
+		}
 	}
 
 	/**
@@ -249,14 +359,69 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByUuid.count(
-				finderCache, new Object[] {uuid});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid;
+
+			Object[] finderArgs = new Object[] {uuid};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"depotEntryGroupRel.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(depotEntryGroupRel.uuid IS NULL OR depotEntryGroupRel.uuid = '')";
+
 	private FinderPath _finderPathFetchByUUID_G;
-	private UniquePersistenceFinder<DepotEntryGroupRel>
-		_uniquePersistenceFinderByUUID_G;
 
 	/**
 	 * Returns the depot entry group rel where uuid = &#63; and groupId = &#63; or throws a <code>NoSuchEntryGroupRelException</code> if it could not be found.
@@ -273,15 +438,23 @@ public class DepotEntryGroupRelPersistenceImpl
 		DepotEntryGroupRel depotEntryGroupRel = fetchByUUID_G(uuid, groupId);
 
 		if (depotEntryGroupRel == null) {
-			String message =
-				_uniquePersistenceFinderByUUID_G.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, groupId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("uuid=");
+			sb.append(uuid);
+
+			sb.append(", groupId=");
+			sb.append(groupId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchEntryGroupRelException(message);
+			throw new NoSuchEntryGroupRelException(sb.toString());
 		}
 
 		return depotEntryGroupRel;
@@ -315,8 +488,97 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _uniquePersistenceFinderByUUID_G.fetch(
-				finderCache, new Object[] {uuid, groupId}, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {uuid, groupId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByUUID_G, finderArgs, this);
+			}
+
+			if (result instanceof DepotEntryGroupRel) {
+				DepotEntryGroupRel depotEntryGroupRel =
+					(DepotEntryGroupRel)result;
+
+				if (!Objects.equals(uuid, depotEntryGroupRel.getUuid()) ||
+					(groupId != depotEntryGroupRel.getGroupId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_G_GROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(groupId);
+
+					List<DepotEntryGroupRel> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByUUID_G, finderArgs, list);
+						}
+					}
+					else {
+						DepotEntryGroupRel depotEntryGroupRel = list.get(0);
+
+						result = depotEntryGroupRel;
+
+						cacheResult(depotEntryGroupRel);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (DepotEntryGroupRel)result;
+			}
 		}
 	}
 
@@ -345,15 +607,27 @@ public class DepotEntryGroupRelPersistenceImpl
 	 */
 	@Override
 	public int countByUUID_G(String uuid, long groupId) {
-		return _uniquePersistenceFinderByUUID_G.count(
-			finderCache, new Object[] {uuid, groupId});
+		DepotEntryGroupRel depotEntryGroupRel = fetchByUUID_G(uuid, groupId);
+
+		if (depotEntryGroupRel == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_2 =
+		"depotEntryGroupRel.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_3 =
+		"(depotEntryGroupRel.uuid IS NULL OR depotEntryGroupRel.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_GROUPID_2 =
+		"depotEntryGroupRel.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<DepotEntryGroupRel>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the depot entry group rels where uuid = &#63; and companyId = &#63;.
@@ -436,9 +710,114 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.find(
-				finderCache, new Object[] {uuid, companyId}, start, end,
-				orderByComparator, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid_C;
+					finderArgs = new Object[] {uuid, companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid_C;
+				finderArgs = new Object[] {
+					uuid, companyId, start, end, orderByComparator
+				};
+			}
+
+			List<DepotEntryGroupRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<DepotEntryGroupRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (DepotEntryGroupRel depotEntryGroupRel : list) {
+						if (!uuid.equals(depotEntryGroupRel.getUuid()) ||
+							(companyId != depotEntryGroupRel.getCompanyId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(DepotEntryGroupRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					list = (List<DepotEntryGroupRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -464,9 +843,19 @@ public class DepotEntryGroupRelPersistenceImpl
 			return depotEntryGroupRel;
 		}
 
-		throw new NoSuchEntryGroupRelException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryGroupRelException(sb.toString());
 	}
 
 	/**
@@ -482,8 +871,14 @@ public class DepotEntryGroupRelPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<DepotEntryGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<DepotEntryGroupRel> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -494,8 +889,13 @@ public class DepotEntryGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (DepotEntryGroupRel depotEntryGroupRel :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(depotEntryGroupRel);
+		}
 	}
 
 	/**
@@ -511,16 +911,78 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.count(
-				finderCache, new Object[] {uuid, companyId});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid_C;
+
+			Object[] finderArgs = new Object[] {uuid, companyId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"depotEntryGroupRel.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(depotEntryGroupRel.uuid IS NULL OR depotEntryGroupRel.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"depotEntryGroupRel.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByDepotEntryId;
 	private FinderPath _finderPathWithoutPaginationFindByDepotEntryId;
 	private FinderPath _finderPathCountByDepotEntryId;
-	private CollectionPersistenceFinder<DepotEntryGroupRel>
-		_collectionPersistenceFinderByDepotEntryId;
 
 	/**
 	 * Returns all the depot entry group rels where depotEntryId = &#63;.
@@ -599,9 +1061,97 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByDepotEntryId.find(
-				finderCache, new Object[] {depotEntryId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByDepotEntryId;
+					finderArgs = new Object[] {depotEntryId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByDepotEntryId;
+				finderArgs = new Object[] {
+					depotEntryId, start, end, orderByComparator
+				};
+			}
+
+			List<DepotEntryGroupRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<DepotEntryGroupRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (DepotEntryGroupRel depotEntryGroupRel : list) {
+						if (depotEntryId !=
+								depotEntryGroupRel.getDepotEntryId()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_DEPOTENTRYID_DEPOTENTRYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(DepotEntryGroupRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(depotEntryId);
+
+					list = (List<DepotEntryGroupRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -626,9 +1176,16 @@ public class DepotEntryGroupRelPersistenceImpl
 			return depotEntryGroupRel;
 		}
 
-		throw new NoSuchEntryGroupRelException(
-			_collectionPersistenceFinderByDepotEntryId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {depotEntryId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("depotEntryId=");
+		sb.append(depotEntryId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryGroupRelException(sb.toString());
 	}
 
 	/**
@@ -643,8 +1200,14 @@ public class DepotEntryGroupRelPersistenceImpl
 		long depotEntryId,
 		OrderByComparator<DepotEntryGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByDepotEntryId.fetchFirst(
-			finderCache, new Object[] {depotEntryId}, orderByComparator);
+		List<DepotEntryGroupRel> list = findByDepotEntryId(
+			depotEntryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -654,8 +1217,12 @@ public class DepotEntryGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByDepotEntryId(long depotEntryId) {
-		_collectionPersistenceFinderByDepotEntryId.remove(
-			finderCache, new Object[] {depotEntryId});
+		for (DepotEntryGroupRel depotEntryGroupRel :
+				findByDepotEntryId(
+					depotEntryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(depotEntryGroupRel);
+		}
 	}
 
 	/**
@@ -670,16 +1237,55 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByDepotEntryId.count(
-				finderCache, new Object[] {depotEntryId});
+			FinderPath finderPath = _finderPathCountByDepotEntryId;
+
+			Object[] finderArgs = new Object[] {depotEntryId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_DEPOTENTRYID_DEPOTENTRYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(depotEntryId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_DEPOTENTRYID_DEPOTENTRYID_2 =
+		"depotEntryGroupRel.depotEntryId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByToGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByToGroupId;
 	private FinderPath _finderPathCountByToGroupId;
-	private CollectionPersistenceFinder<DepotEntryGroupRel>
-		_collectionPersistenceFinderByToGroupId;
 
 	/**
 	 * Returns all the depot entry group rels where toGroupId = &#63;.
@@ -757,9 +1363,95 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByToGroupId.find(
-				finderCache, new Object[] {toGroupId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByToGroupId;
+					finderArgs = new Object[] {toGroupId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByToGroupId;
+				finderArgs = new Object[] {
+					toGroupId, start, end, orderByComparator
+				};
+			}
+
+			List<DepotEntryGroupRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<DepotEntryGroupRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (DepotEntryGroupRel depotEntryGroupRel : list) {
+						if (toGroupId != depotEntryGroupRel.getToGroupId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_TOGROUPID_TOGROUPID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(DepotEntryGroupRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(toGroupId);
+
+					list = (List<DepotEntryGroupRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -784,9 +1476,16 @@ public class DepotEntryGroupRelPersistenceImpl
 			return depotEntryGroupRel;
 		}
 
-		throw new NoSuchEntryGroupRelException(
-			_collectionPersistenceFinderByToGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {toGroupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("toGroupId=");
+		sb.append(toGroupId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryGroupRelException(sb.toString());
 	}
 
 	/**
@@ -801,8 +1500,14 @@ public class DepotEntryGroupRelPersistenceImpl
 		long toGroupId,
 		OrderByComparator<DepotEntryGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByToGroupId.fetchFirst(
-			finderCache, new Object[] {toGroupId}, orderByComparator);
+		List<DepotEntryGroupRel> list = findByToGroupId(
+			toGroupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -812,8 +1517,12 @@ public class DepotEntryGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByToGroupId(long toGroupId) {
-		_collectionPersistenceFinderByToGroupId.remove(
-			finderCache, new Object[] {toGroupId});
+		for (DepotEntryGroupRel depotEntryGroupRel :
+				findByToGroupId(
+					toGroupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(depotEntryGroupRel);
+		}
 	}
 
 	/**
@@ -828,16 +1537,55 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByToGroupId.count(
-				finderCache, new Object[] {toGroupId});
+			FinderPath finderPath = _finderPathCountByToGroupId;
+
+			Object[] finderArgs = new Object[] {toGroupId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_TOGROUPID_TOGROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(toGroupId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_TOGROUPID_TOGROUPID_2 =
+		"depotEntryGroupRel.toGroupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByDDMSA_TGI;
 	private FinderPath _finderPathWithoutPaginationFindByDDMSA_TGI;
 	private FinderPath _finderPathCountByDDMSA_TGI;
-	private CollectionPersistenceFinder<DepotEntryGroupRel>
-		_collectionPersistenceFinderByDDMSA_TGI;
 
 	/**
 	 * Returns all the depot entry group rels where ddmStructuresAvailable = &#63; and toGroupId = &#63;.
@@ -925,9 +1673,106 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByDDMSA_TGI.find(
-				finderCache, new Object[] {ddmStructuresAvailable, toGroupId},
-				start, end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByDDMSA_TGI;
+					finderArgs = new Object[] {
+						ddmStructuresAvailable, toGroupId
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByDDMSA_TGI;
+				finderArgs = new Object[] {
+					ddmStructuresAvailable, toGroupId, start, end,
+					orderByComparator
+				};
+			}
+
+			List<DepotEntryGroupRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<DepotEntryGroupRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (DepotEntryGroupRel depotEntryGroupRel : list) {
+						if ((ddmStructuresAvailable !=
+								depotEntryGroupRel.
+									isDdmStructuresAvailable()) ||
+							(toGroupId != depotEntryGroupRel.getToGroupId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_DDMSA_TGI_DDMSTRUCTURESAVAILABLE_2);
+
+				sb.append(_FINDER_COLUMN_DDMSA_TGI_TOGROUPID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(DepotEntryGroupRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(ddmStructuresAvailable);
+
+					queryPos.add(toGroupId);
+
+					list = (List<DepotEntryGroupRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -953,10 +1798,19 @@ public class DepotEntryGroupRelPersistenceImpl
 			return depotEntryGroupRel;
 		}
 
-		throw new NoSuchEntryGroupRelException(
-			_collectionPersistenceFinderByDDMSA_TGI.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {ddmStructuresAvailable, toGroupId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("ddmStructuresAvailable=");
+		sb.append(ddmStructuresAvailable);
+
+		sb.append(", toGroupId=");
+		sb.append(toGroupId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryGroupRelException(sb.toString());
 	}
 
 	/**
@@ -972,9 +1826,14 @@ public class DepotEntryGroupRelPersistenceImpl
 		boolean ddmStructuresAvailable, long toGroupId,
 		OrderByComparator<DepotEntryGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByDDMSA_TGI.fetchFirst(
-			finderCache, new Object[] {ddmStructuresAvailable, toGroupId},
-			orderByComparator);
+		List<DepotEntryGroupRel> list = findByDDMSA_TGI(
+			ddmStructuresAvailable, toGroupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -987,8 +1846,13 @@ public class DepotEntryGroupRelPersistenceImpl
 	public void removeByDDMSA_TGI(
 		boolean ddmStructuresAvailable, long toGroupId) {
 
-		_collectionPersistenceFinderByDDMSA_TGI.remove(
-			finderCache, new Object[] {ddmStructuresAvailable, toGroupId});
+		for (DepotEntryGroupRel depotEntryGroupRel :
+				findByDDMSA_TGI(
+					ddmStructuresAvailable, toGroupId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(depotEntryGroupRel);
+		}
 	}
 
 	/**
@@ -1006,14 +1870,63 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByDDMSA_TGI.count(
-				finderCache, new Object[] {ddmStructuresAvailable, toGroupId});
+			FinderPath finderPath = _finderPathCountByDDMSA_TGI;
+
+			Object[] finderArgs = new Object[] {
+				ddmStructuresAvailable, toGroupId
+			};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_DDMSA_TGI_DDMSTRUCTURESAVAILABLE_2);
+
+				sb.append(_FINDER_COLUMN_DDMSA_TGI_TOGROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(ddmStructuresAvailable);
+
+					queryPos.add(toGroupId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String
+		_FINDER_COLUMN_DDMSA_TGI_DDMSTRUCTURESAVAILABLE_2 =
+			"depotEntryGroupRel.ddmStructuresAvailable = ? AND ";
+
+	private static final String _FINDER_COLUMN_DDMSA_TGI_TOGROUPID_2 =
+		"depotEntryGroupRel.toGroupId = ?";
+
 	private FinderPath _finderPathFetchByD_TGI;
-	private UniquePersistenceFinder<DepotEntryGroupRel>
-		_uniquePersistenceFinderByD_TGI;
 
 	/**
 	 * Returns the depot entry group rel where depotEntryId = &#63; and toGroupId = &#63; or throws a <code>NoSuchEntryGroupRelException</code> if it could not be found.
@@ -1031,16 +1944,23 @@ public class DepotEntryGroupRelPersistenceImpl
 			depotEntryId, toGroupId);
 
 		if (depotEntryGroupRel == null) {
-			String message =
-				_uniquePersistenceFinderByD_TGI.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {depotEntryId, toGroupId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("depotEntryId=");
+			sb.append(depotEntryId);
+
+			sb.append(", toGroupId=");
+			sb.append(toGroupId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchEntryGroupRelException(message);
+			throw new NoSuchEntryGroupRelException(sb.toString());
 		}
 
 		return depotEntryGroupRel;
@@ -1074,9 +1994,84 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _uniquePersistenceFinderByD_TGI.fetch(
-				finderCache, new Object[] {depotEntryId, toGroupId},
-				useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {depotEntryId, toGroupId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByD_TGI, finderArgs, this);
+			}
+
+			if (result instanceof DepotEntryGroupRel) {
+				DepotEntryGroupRel depotEntryGroupRel =
+					(DepotEntryGroupRel)result;
+
+				if ((depotEntryId != depotEntryGroupRel.getDepotEntryId()) ||
+					(toGroupId != depotEntryGroupRel.getToGroupId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_D_TGI_DEPOTENTRYID_2);
+
+				sb.append(_FINDER_COLUMN_D_TGI_TOGROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(depotEntryId);
+
+					queryPos.add(toGroupId);
+
+					List<DepotEntryGroupRel> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByD_TGI, finderArgs, list);
+						}
+					}
+					else {
+						DepotEntryGroupRel depotEntryGroupRel = list.get(0);
+
+						result = depotEntryGroupRel;
+
+						cacheResult(depotEntryGroupRel);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (DepotEntryGroupRel)result;
+			}
 		}
 	}
 
@@ -1106,15 +2101,25 @@ public class DepotEntryGroupRelPersistenceImpl
 	 */
 	@Override
 	public int countByD_TGI(long depotEntryId, long toGroupId) {
-		return _uniquePersistenceFinderByD_TGI.count(
-			finderCache, new Object[] {depotEntryId, toGroupId});
+		DepotEntryGroupRel depotEntryGroupRel = fetchByD_TGI(
+			depotEntryId, toGroupId);
+
+		if (depotEntryGroupRel == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_D_TGI_DEPOTENTRYID_2 =
+		"depotEntryGroupRel.depotEntryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_D_TGI_TOGROUPID_2 =
+		"depotEntryGroupRel.toGroupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByS_TGI;
 	private FinderPath _finderPathWithoutPaginationFindByS_TGI;
 	private FinderPath _finderPathCountByS_TGI;
-	private CollectionPersistenceFinder<DepotEntryGroupRel>
-		_collectionPersistenceFinderByS_TGI;
 
 	/**
 	 * Returns all the depot entry group rels where searchable = &#63; and toGroupId = &#63;.
@@ -1199,9 +2204,101 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByS_TGI.find(
-				finderCache, new Object[] {searchable, toGroupId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByS_TGI;
+					finderArgs = new Object[] {searchable, toGroupId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByS_TGI;
+				finderArgs = new Object[] {
+					searchable, toGroupId, start, end, orderByComparator
+				};
+			}
+
+			List<DepotEntryGroupRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<DepotEntryGroupRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (DepotEntryGroupRel depotEntryGroupRel : list) {
+						if ((searchable != depotEntryGroupRel.isSearchable()) ||
+							(toGroupId != depotEntryGroupRel.getToGroupId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_S_TGI_SEARCHABLE_2);
+
+				sb.append(_FINDER_COLUMN_S_TGI_TOGROUPID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(DepotEntryGroupRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(searchable);
+
+					queryPos.add(toGroupId);
+
+					list = (List<DepotEntryGroupRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1227,10 +2324,19 @@ public class DepotEntryGroupRelPersistenceImpl
 			return depotEntryGroupRel;
 		}
 
-		throw new NoSuchEntryGroupRelException(
-			_collectionPersistenceFinderByS_TGI.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {searchable, toGroupId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("searchable=");
+		sb.append(searchable);
+
+		sb.append(", toGroupId=");
+		sb.append(toGroupId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryGroupRelException(sb.toString());
 	}
 
 	/**
@@ -1246,9 +2352,14 @@ public class DepotEntryGroupRelPersistenceImpl
 		boolean searchable, long toGroupId,
 		OrderByComparator<DepotEntryGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByS_TGI.fetchFirst(
-			finderCache, new Object[] {searchable, toGroupId},
-			orderByComparator);
+		List<DepotEntryGroupRel> list = findByS_TGI(
+			searchable, toGroupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1259,8 +2370,13 @@ public class DepotEntryGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByS_TGI(boolean searchable, long toGroupId) {
-		_collectionPersistenceFinderByS_TGI.remove(
-			finderCache, new Object[] {searchable, toGroupId});
+		for (DepotEntryGroupRel depotEntryGroupRel :
+				findByS_TGI(
+					searchable, toGroupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(depotEntryGroupRel);
+		}
 	}
 
 	/**
@@ -1276,16 +2392,62 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByS_TGI.count(
-				finderCache, new Object[] {searchable, toGroupId});
+			FinderPath finderPath = _finderPathCountByS_TGI;
+
+			Object[] finderArgs = new Object[] {searchable, toGroupId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_S_TGI_SEARCHABLE_2);
+
+				sb.append(_FINDER_COLUMN_S_TGI_TOGROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(searchable);
+
+					queryPos.add(toGroupId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_S_TGI_SEARCHABLE_2 =
+		"depotEntryGroupRel.searchable = ? AND ";
+
+	private static final String _FINDER_COLUMN_S_TGI_TOGROUPID_2 =
+		"depotEntryGroupRel.toGroupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByTGI_T;
 	private FinderPath _finderPathWithoutPaginationFindByTGI_T;
 	private FinderPath _finderPathCountByTGI_T;
-	private CollectionPersistenceFinder<DepotEntryGroupRel>
-		_collectionPersistenceFinderByTGI_T;
 
 	/**
 	 * Returns all the depot entry group rels where toGroupId = &#63; and type = &#63;.
@@ -1368,9 +2530,101 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByTGI_T.find(
-				finderCache, new Object[] {toGroupId, type}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByTGI_T;
+					finderArgs = new Object[] {toGroupId, type};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByTGI_T;
+				finderArgs = new Object[] {
+					toGroupId, type, start, end, orderByComparator
+				};
+			}
+
+			List<DepotEntryGroupRel> list = null;
+
+			if (useFinderCache) {
+				list = (List<DepotEntryGroupRel>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (DepotEntryGroupRel depotEntryGroupRel : list) {
+						if ((toGroupId != depotEntryGroupRel.getToGroupId()) ||
+							(type != depotEntryGroupRel.getType())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_TGI_T_TOGROUPID_2);
+
+				sb.append(_FINDER_COLUMN_TGI_T_TYPE_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(DepotEntryGroupRelModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(toGroupId);
+
+					queryPos.add(type);
+
+					list = (List<DepotEntryGroupRel>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1396,9 +2650,19 @@ public class DepotEntryGroupRelPersistenceImpl
 			return depotEntryGroupRel;
 		}
 
-		throw new NoSuchEntryGroupRelException(
-			_collectionPersistenceFinderByTGI_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {toGroupId, type}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("toGroupId=");
+		sb.append(toGroupId);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchEntryGroupRelException(sb.toString());
 	}
 
 	/**
@@ -1414,8 +2678,14 @@ public class DepotEntryGroupRelPersistenceImpl
 		long toGroupId, int type,
 		OrderByComparator<DepotEntryGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByTGI_T.fetchFirst(
-			finderCache, new Object[] {toGroupId, type}, orderByComparator);
+		List<DepotEntryGroupRel> list = findByTGI_T(
+			toGroupId, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1426,8 +2696,13 @@ public class DepotEntryGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByTGI_T(long toGroupId, int type) {
-		_collectionPersistenceFinderByTGI_T.remove(
-			finderCache, new Object[] {toGroupId, type});
+		for (DepotEntryGroupRel depotEntryGroupRel :
+				findByTGI_T(
+					toGroupId, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(depotEntryGroupRel);
+		}
 	}
 
 	/**
@@ -1443,10 +2718,58 @@ public class DepotEntryGroupRelPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DepotEntryGroupRel.class)) {
 
-			return _collectionPersistenceFinderByTGI_T.count(
-				finderCache, new Object[] {toGroupId, type});
+			FinderPath finderPath = _finderPathCountByTGI_T;
+
+			Object[] finderArgs = new Object[] {toGroupId, type};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE);
+
+				sb.append(_FINDER_COLUMN_TGI_T_TOGROUPID_2);
+
+				sb.append(_FINDER_COLUMN_TGI_T_TYPE_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(toGroupId);
+
+					queryPos.add(type);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_TGI_T_TOGROUPID_2 =
+		"depotEntryGroupRel.toGroupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_TGI_T_TYPE_2 =
+		"depotEntryGroupRel.type = ?";
 
 	public DepotEntryGroupRelPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -1529,6 +2852,50 @@ public class DepotEntryGroupRelPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all depot entry group rels.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(DepotEntryGroupRelImpl.class);
+
+		finderCache.clearCache(DepotEntryGroupRelImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the depot entry group rel.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(DepotEntryGroupRel depotEntryGroupRel) {
+		entityCache.removeResult(
+			DepotEntryGroupRelImpl.class, depotEntryGroupRel);
+	}
+
+	@Override
+	public void clearCache(List<DepotEntryGroupRel> depotEntryGroupRels) {
+		for (DepotEntryGroupRel depotEntryGroupRel : depotEntryGroupRels) {
+			entityCache.removeResult(
+				DepotEntryGroupRelImpl.class, depotEntryGroupRel);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(DepotEntryGroupRelImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(DepotEntryGroupRelImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		DepotEntryGroupRelModelImpl depotEntryGroupRelModelImpl) {
 
@@ -1588,6 +2955,48 @@ public class DepotEntryGroupRelPersistenceImpl
 		throws NoSuchEntryGroupRelException {
 
 		return remove((Serializable)depotEntryGroupRelId);
+	}
+
+	/**
+	 * Removes the depot entry group rel with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the depot entry group rel
+	 * @return the depot entry group rel that was removed
+	 * @throws NoSuchEntryGroupRelException if a depot entry group rel with the primary key could not be found
+	 */
+	@Override
+	public DepotEntryGroupRel remove(Serializable primaryKey)
+		throws NoSuchEntryGroupRelException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			DepotEntryGroupRel depotEntryGroupRel =
+				(DepotEntryGroupRel)session.get(
+					DepotEntryGroupRelImpl.class, primaryKey);
+
+			if (depotEntryGroupRel == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchEntryGroupRelException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(depotEntryGroupRel);
+		}
+		catch (NoSuchEntryGroupRelException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1724,6 +3133,31 @@ public class DepotEntryGroupRelPersistenceImpl
 	}
 
 	/**
+	 * Returns the depot entry group rel with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the depot entry group rel
+	 * @return the depot entry group rel
+	 * @throws NoSuchEntryGroupRelException if a depot entry group rel with the primary key could not be found
+	 */
+	@Override
+	public DepotEntryGroupRel findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchEntryGroupRelException {
+
+		DepotEntryGroupRel depotEntryGroupRel = fetchByPrimaryKey(primaryKey);
+
+		if (depotEntryGroupRel == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchEntryGroupRelException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return depotEntryGroupRel;
+	}
+
+	/**
 	 * Returns the depot entry group rel with the primary key or throws a <code>NoSuchEntryGroupRelException</code> if it could not be found.
 	 *
 	 * @param depotEntryGroupRelId the primary key of the depot entry group rel
@@ -1737,9 +3171,53 @@ public class DepotEntryGroupRelPersistenceImpl
 		return findByPrimaryKey((Serializable)depotEntryGroupRelId);
 	}
 
+	/**
+	 * Returns the depot entry group rel with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the depot entry group rel
+	 * @return the depot entry group rel, or <code>null</code> if a depot entry group rel with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public DepotEntryGroupRel fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				DepotEntryGroupRel.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		DepotEntryGroupRel depotEntryGroupRel =
+			(DepotEntryGroupRel)entityCache.getResult(
+				DepotEntryGroupRelImpl.class, primaryKey);
+
+		if (depotEntryGroupRel != null) {
+			return depotEntryGroupRel;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			depotEntryGroupRel = (DepotEntryGroupRel)session.get(
+				DepotEntryGroupRelImpl.class, primaryKey);
+
+			if (depotEntryGroupRel != null) {
+				cacheResult(depotEntryGroupRel);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return depotEntryGroupRel;
 	}
 
 	/**
@@ -1751,6 +3229,134 @@ public class DepotEntryGroupRelPersistenceImpl
 	@Override
 	public DepotEntryGroupRel fetchByPrimaryKey(long depotEntryGroupRelId) {
 		return fetchByPrimaryKey((Serializable)depotEntryGroupRelId);
+	}
+
+	@Override
+	public Map<Serializable, DepotEntryGroupRel> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(DepotEntryGroupRel.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, DepotEntryGroupRel> map =
+			new HashMap<Serializable, DepotEntryGroupRel>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			DepotEntryGroupRel depotEntryGroupRel = fetchByPrimaryKey(
+				primaryKey);
+
+			if (depotEntryGroupRel != null) {
+				map.put(primaryKey, depotEntryGroupRel);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						DepotEntryGroupRel.class, primaryKey)) {
+
+				DepotEntryGroupRel depotEntryGroupRel =
+					(DepotEntryGroupRel)entityCache.getResult(
+						DepotEntryGroupRelImpl.class, primaryKey);
+
+				if (depotEntryGroupRel == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, depotEntryGroupRel);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (DepotEntryGroupRel depotEntryGroupRel :
+					(List<DepotEntryGroupRel>)query.list()) {
+
+				map.put(
+					depotEntryGroupRel.getPrimaryKeyObj(), depotEntryGroupRel);
+
+				cacheResult(depotEntryGroupRel);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -2077,30 +3683,10 @@ public class DepotEntryGroupRelPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-			_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE,
-			DepotEntryGroupRelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "uuid", FinderColumn.Type.STRING, "=",
-				true, true, DepotEntryGroupRel::getUuid));
-
 		_finderPathFetchByUUID_G = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByUUID_G",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "groupId"}, true);
-
-		_uniquePersistenceFinderByUUID_G = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByUUID_G,
-			_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "uuid", FinderColumn.Type.STRING, "=",
-				true, false, DepotEntryGroupRel::getUuid),
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "groupId", FinderColumn.Type.LONG, "=",
-				true, true, DepotEntryGroupRel::getGroupId));
 
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
@@ -2121,21 +3707,6 @@ public class DepotEntryGroupRelPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-				_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE,
-				DepotEntryGroupRelModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"depotEntryGroupRel.", "uuid", FinderColumn.Type.STRING,
-					"=", true, false, DepotEntryGroupRel::getUuid),
-				new FinderColumn<>(
-					"depotEntryGroupRel.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, DepotEntryGroupRel::getCompanyId));
-
 		_finderPathWithPaginationFindByDepotEntryId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByDepotEntryId",
 			new String[] {
@@ -2154,20 +3725,6 @@ public class DepotEntryGroupRelPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"depotEntryId"},
 			false);
 
-		_collectionPersistenceFinderByDepotEntryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByDepotEntryId,
-				_finderPathWithoutPaginationFindByDepotEntryId,
-				_finderPathCountByDepotEntryId,
-				_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-				_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE,
-				DepotEntryGroupRelModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"depotEntryGroupRel.", "depotEntryId",
-					FinderColumn.Type.LONG, "=", true, true,
-					DepotEntryGroupRel::getDepotEntryId));
-
 		_finderPathWithPaginationFindByToGroupId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByToGroupId",
 			new String[] {
@@ -2185,19 +3742,6 @@ public class DepotEntryGroupRelPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByToGroupId",
 			new String[] {Long.class.getName()}, new String[] {"toGroupId"},
 			false);
-
-		_collectionPersistenceFinderByToGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByToGroupId,
-				_finderPathWithoutPaginationFindByToGroupId,
-				_finderPathCountByToGroupId,
-				_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-				_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE,
-				DepotEntryGroupRelModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"depotEntryGroupRel.", "toGroupId", FinderColumn.Type.LONG,
-					"=", true, true, DepotEntryGroupRel::getToGroupId));
 
 		_finderPathWithPaginationFindByDDMSA_TGI = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByDDMSA_TGI",
@@ -2218,36 +3762,10 @@ public class DepotEntryGroupRelPersistenceImpl
 			new String[] {Boolean.class.getName(), Long.class.getName()},
 			new String[] {"ddmStructuresAvailable", "toGroupId"}, false);
 
-		_collectionPersistenceFinderByDDMSA_TGI =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByDDMSA_TGI,
-				_finderPathWithoutPaginationFindByDDMSA_TGI,
-				_finderPathCountByDDMSA_TGI,
-				_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-				_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE,
-				DepotEntryGroupRelModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"depotEntryGroupRel.", "ddmStructuresAvailable",
-					FinderColumn.Type.BOOLEAN, "=", true, false,
-					DepotEntryGroupRel::isDdmStructuresAvailable),
-				new FinderColumn<>(
-					"depotEntryGroupRel.", "toGroupId", FinderColumn.Type.LONG,
-					"=", true, true, DepotEntryGroupRel::getToGroupId));
-
 		_finderPathFetchByD_TGI = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByD_TGI",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"depotEntryId", "toGroupId"}, true);
-
-		_uniquePersistenceFinderByD_TGI = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByD_TGI, _SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "depotEntryId", FinderColumn.Type.LONG,
-				"=", true, false, DepotEntryGroupRel::getDepotEntryId),
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "toGroupId", FinderColumn.Type.LONG, "=",
-				true, true, DepotEntryGroupRel::getToGroupId));
 
 		_finderPathWithPaginationFindByS_TGI = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByS_TGI",
@@ -2268,19 +3786,6 @@ public class DepotEntryGroupRelPersistenceImpl
 			new String[] {Boolean.class.getName(), Long.class.getName()},
 			new String[] {"searchable", "toGroupId"}, false);
 
-		_collectionPersistenceFinderByS_TGI = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByS_TGI,
-			_finderPathWithoutPaginationFindByS_TGI, _finderPathCountByS_TGI,
-			_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-			_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE,
-			DepotEntryGroupRelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "searchable", FinderColumn.Type.BOOLEAN,
-				"=", true, false, DepotEntryGroupRel::isSearchable),
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "toGroupId", FinderColumn.Type.LONG, "=",
-				true, true, DepotEntryGroupRel::getToGroupId));
-
 		_finderPathWithPaginationFindByTGI_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByTGI_T",
 			new String[] {
@@ -2299,19 +3804,6 @@ public class DepotEntryGroupRelPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByTGI_T",
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"toGroupId", "type_"}, false);
-
-		_collectionPersistenceFinderByTGI_T = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByTGI_T,
-			_finderPathWithoutPaginationFindByTGI_T, _finderPathCountByTGI_T,
-			_SQL_SELECT_DEPOTENTRYGROUPREL_WHERE,
-			_SQL_COUNT_DEPOTENTRYGROUPREL_WHERE,
-			DepotEntryGroupRelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "toGroupId", FinderColumn.Type.LONG, "=",
-				true, false, DepotEntryGroupRel::getToGroupId),
-			new FinderColumn<>(
-				"depotEntryGroupRel.", "type", FinderColumn.Type.INTEGER, "=",
-				true, true, DepotEntryGroupRel::getType));
 
 		DepotEntryGroupRelUtil.setPersistence(this);
 	}
@@ -2372,6 +3864,9 @@ public class DepotEntryGroupRelPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "depotEntryGroupRel.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No DepotEntryGroupRel exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No DepotEntryGroupRel exists with the key {";
 
@@ -2387,4 +3882,4 @@ public class DepotEntryGroupRelPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-474842027
+// LIFERAY-SERVICE-BUILDER-HASH:-418896469

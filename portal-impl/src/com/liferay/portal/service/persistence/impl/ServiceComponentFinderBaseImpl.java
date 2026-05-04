@@ -6,7 +6,6 @@
 package com.liferay.portal.service.persistence.impl;
 
 import com.liferay.portal.kernel.bean.BeanReference;
-import com.liferay.portal.kernel.exception.NoSuchServiceComponentException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.ServiceComponent;
@@ -22,8 +21,7 @@ import java.util.Set;
  * @generated
  */
 public class ServiceComponentFinderBaseImpl
-	extends BasePersistenceImpl
-		<ServiceComponent, NoSuchServiceComponentException> {
+	extends BasePersistenceImpl<ServiceComponent> {
 
 	public ServiceComponentFinderBaseImpl() {
 		setModelClass(ServiceComponent.class);
@@ -67,4 +65,4 @@ public class ServiceComponentFinderBaseImpl
 		ServiceComponentFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:850044285
+// LIFERAY-SERVICE-BUILDER-HASH:-1024976263

@@ -617,4 +617,4 @@ public interface CommerceOrderItemLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1377531969
+// LIFERAY-SERVICE-BUILDER-HASH:-443194838

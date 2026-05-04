@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -28,9 +29,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -46,6 +44,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -67,8 +66,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CommerceShippingMethodPersistence.class)
 public class CommerceShippingMethodPersistenceImpl
-	extends BasePersistenceImpl
-		<CommerceShippingMethod, NoSuchShippingMethodException>
+	extends BasePersistenceImpl<CommerceShippingMethod>
 	implements CommerceShippingMethodPersistence {
 
 	/*
@@ -91,8 +89,6 @@ public class CommerceShippingMethodPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<CommerceShippingMethod>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the commerce shipping methods where groupId = &#63;.
@@ -166,9 +162,93 @@ public class CommerceShippingMethodPersistenceImpl
 		OrderByComparator<CommerceShippingMethod> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			finderCache, new Object[] {groupId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<CommerceShippingMethod> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceShippingMethod>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceShippingMethod commerceShippingMethod : list) {
+					if (groupId != commerceShippingMethod.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCESHIPPINGMETHOD_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceShippingMethodModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<CommerceShippingMethod>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -192,9 +272,16 @@ public class CommerceShippingMethodPersistenceImpl
 			return commerceShippingMethod;
 		}
 
-		throw new NoSuchShippingMethodException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchShippingMethodException(sb.toString());
 	}
 
 	/**
@@ -209,8 +296,14 @@ public class CommerceShippingMethodPersistenceImpl
 		long groupId,
 		OrderByComparator<CommerceShippingMethod> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			finderCache, new Object[] {groupId}, orderByComparator);
+		List<CommerceShippingMethod> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -220,8 +313,12 @@ public class CommerceShippingMethodPersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			finderCache, new Object[] {groupId});
+		for (CommerceShippingMethod commerceShippingMethod :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(commerceShippingMethod);
+		}
 	}
 
 	/**
@@ -232,15 +329,53 @@ public class CommerceShippingMethodPersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			finderCache, new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_COMMERCESHIPPINGMETHOD_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"commerceShippingMethod.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_A;
 	private FinderPath _finderPathWithoutPaginationFindByG_A;
 	private FinderPath _finderPathCountByG_A;
-	private CollectionPersistenceFinder<CommerceShippingMethod>
-		_collectionPersistenceFinderByG_A;
 
 	/**
 	 * Returns all the commerce shipping methods where groupId = &#63; and active = &#63;.
@@ -320,9 +455,101 @@ public class CommerceShippingMethodPersistenceImpl
 		OrderByComparator<CommerceShippingMethod> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByG_A.find(
-			finderCache, new Object[] {groupId, active}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByG_A;
+				finderArgs = new Object[] {groupId, active};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByG_A;
+			finderArgs = new Object[] {
+				groupId, active, start, end, orderByComparator
+			};
+		}
+
+		List<CommerceShippingMethod> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceShippingMethod>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceShippingMethod commerceShippingMethod : list) {
+					if ((groupId != commerceShippingMethod.getGroupId()) ||
+						(active != commerceShippingMethod.isActive())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCESHIPPINGMETHOD_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_A_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_A_ACTIVE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceShippingMethodModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(active);
+
+				list = (List<CommerceShippingMethod>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -347,9 +574,19 @@ public class CommerceShippingMethodPersistenceImpl
 			return commerceShippingMethod;
 		}
 
-		throw new NoSuchShippingMethodException(
-			_collectionPersistenceFinderByG_A.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, active}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", active=");
+		sb.append(active);
+
+		sb.append("}");
+
+		throw new NoSuchShippingMethodException(sb.toString());
 	}
 
 	/**
@@ -365,8 +602,14 @@ public class CommerceShippingMethodPersistenceImpl
 		long groupId, boolean active,
 		OrderByComparator<CommerceShippingMethod> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_A.fetchFirst(
-			finderCache, new Object[] {groupId, active}, orderByComparator);
+		List<CommerceShippingMethod> list = findByG_A(
+			groupId, active, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -377,8 +620,13 @@ public class CommerceShippingMethodPersistenceImpl
 	 */
 	@Override
 	public void removeByG_A(long groupId, boolean active) {
-		_collectionPersistenceFinderByG_A.remove(
-			finderCache, new Object[] {groupId, active});
+		for (CommerceShippingMethod commerceShippingMethod :
+				findByG_A(
+					groupId, active, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(commerceShippingMethod);
+		}
 	}
 
 	/**
@@ -390,13 +638,58 @@ public class CommerceShippingMethodPersistenceImpl
 	 */
 	@Override
 	public int countByG_A(long groupId, boolean active) {
-		return _collectionPersistenceFinderByG_A.count(
-			finderCache, new Object[] {groupId, active});
+		FinderPath finderPath = _finderPathCountByG_A;
+
+		Object[] finderArgs = new Object[] {groupId, active};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_COMMERCESHIPPINGMETHOD_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_A_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_A_ACTIVE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(active);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_G_A_GROUPID_2 =
+		"commerceShippingMethod.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_A_ACTIVE_2 =
+		"commerceShippingMethod.active = ?";
+
 	private FinderPath _finderPathFetchByG_E;
-	private UniquePersistenceFinder<CommerceShippingMethod>
-		_uniquePersistenceFinderByG_E;
 
 	/**
 	 * Returns the commerce shipping method where groupId = &#63; and engineKey = &#63; or throws a <code>NoSuchShippingMethodException</code> if it could not be found.
@@ -414,16 +707,23 @@ public class CommerceShippingMethodPersistenceImpl
 			groupId, engineKey);
 
 		if (commerceShippingMethod == null) {
-			String message =
-				_uniquePersistenceFinderByG_E.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {groupId, engineKey});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append(", engineKey=");
+			sb.append(engineKey);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchShippingMethodException(message);
+			throw new NoSuchShippingMethodException(sb.toString());
 		}
 
 		return commerceShippingMethod;
@@ -453,8 +753,98 @@ public class CommerceShippingMethodPersistenceImpl
 	public CommerceShippingMethod fetchByG_E(
 		long groupId, String engineKey, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByG_E.fetch(
-			finderCache, new Object[] {groupId, engineKey}, useFinderCache);
+		engineKey = Objects.toString(engineKey, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {groupId, engineKey};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByG_E, finderArgs, this);
+		}
+
+		if (result instanceof CommerceShippingMethod) {
+			CommerceShippingMethod commerceShippingMethod =
+				(CommerceShippingMethod)result;
+
+			if ((groupId != commerceShippingMethod.getGroupId()) ||
+				!Objects.equals(
+					engineKey, commerceShippingMethod.getEngineKey())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_COMMERCESHIPPINGMETHOD_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_E_GROUPID_2);
+
+			boolean bindEngineKey = false;
+
+			if (engineKey.isEmpty()) {
+				sb.append(_FINDER_COLUMN_G_E_ENGINEKEY_3);
+			}
+			else {
+				bindEngineKey = true;
+
+				sb.append(_FINDER_COLUMN_G_E_ENGINEKEY_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				if (bindEngineKey) {
+					queryPos.add(engineKey);
+				}
+
+				List<CommerceShippingMethod> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByG_E, finderArgs, list);
+					}
+				}
+				else {
+					CommerceShippingMethod commerceShippingMethod = list.get(0);
+
+					result = commerceShippingMethod;
+
+					cacheResult(commerceShippingMethod);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CommerceShippingMethod)result;
+		}
 	}
 
 	/**
@@ -483,9 +873,24 @@ public class CommerceShippingMethodPersistenceImpl
 	 */
 	@Override
 	public int countByG_E(long groupId, String engineKey) {
-		return _uniquePersistenceFinderByG_E.count(
-			finderCache, new Object[] {groupId, engineKey});
+		CommerceShippingMethod commerceShippingMethod = fetchByG_E(
+			groupId, engineKey);
+
+		if (commerceShippingMethod == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_G_E_GROUPID_2 =
+		"commerceShippingMethod.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_E_ENGINEKEY_2 =
+		"commerceShippingMethod.engineKey = ?";
+
+	private static final String _FINDER_COLUMN_G_E_ENGINEKEY_3 =
+		"(commerceShippingMethod.engineKey IS NULL OR commerceShippingMethod.engineKey = '')";
 
 	public CommerceShippingMethodPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -553,6 +958,55 @@ public class CommerceShippingMethodPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all commerce shipping methods.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CommerceShippingMethodImpl.class);
+
+		finderCache.clearCache(CommerceShippingMethodImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the commerce shipping method.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CommerceShippingMethod commerceShippingMethod) {
+		entityCache.removeResult(
+			CommerceShippingMethodImpl.class, commerceShippingMethod);
+	}
+
+	@Override
+	public void clearCache(
+		List<CommerceShippingMethod> commerceShippingMethods) {
+
+		for (CommerceShippingMethod commerceShippingMethod :
+				commerceShippingMethods) {
+
+			entityCache.removeResult(
+				CommerceShippingMethodImpl.class, commerceShippingMethod);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CommerceShippingMethodImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				CommerceShippingMethodImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CommerceShippingMethodModelImpl commerceShippingMethodModelImpl) {
 
@@ -596,6 +1050,48 @@ public class CommerceShippingMethodPersistenceImpl
 		throws NoSuchShippingMethodException {
 
 		return remove((Serializable)commerceShippingMethodId);
+	}
+
+	/**
+	 * Removes the commerce shipping method with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the commerce shipping method
+	 * @return the commerce shipping method that was removed
+	 * @throws NoSuchShippingMethodException if a commerce shipping method with the primary key could not be found
+	 */
+	@Override
+	public CommerceShippingMethod remove(Serializable primaryKey)
+		throws NoSuchShippingMethodException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CommerceShippingMethod commerceShippingMethod =
+				(CommerceShippingMethod)session.get(
+					CommerceShippingMethodImpl.class, primaryKey);
+
+			if (commerceShippingMethod == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchShippingMethodException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(commerceShippingMethod);
+		}
+		catch (NoSuchShippingMethodException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -715,6 +1211,32 @@ public class CommerceShippingMethodPersistenceImpl
 		}
 
 		commerceShippingMethod.resetOriginalValues();
+
+		return commerceShippingMethod;
+	}
+
+	/**
+	 * Returns the commerce shipping method with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the commerce shipping method
+	 * @return the commerce shipping method
+	 * @throws NoSuchShippingMethodException if a commerce shipping method with the primary key could not be found
+	 */
+	@Override
+	public CommerceShippingMethod findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchShippingMethodException {
+
+		CommerceShippingMethod commerceShippingMethod = fetchByPrimaryKey(
+			primaryKey);
+
+		if (commerceShippingMethod == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchShippingMethodException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return commerceShippingMethod;
 	}
@@ -992,20 +1514,6 @@ public class CommerceShippingMethodPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId,
-				_SQL_SELECT_COMMERCESHIPPINGMETHOD_WHERE,
-				_SQL_COUNT_COMMERCESHIPPINGMETHOD_WHERE,
-				CommerceShippingMethodModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"commerceShippingMethod.", "groupId",
-					FinderColumn.Type.LONG, "=", true, true,
-					CommerceShippingMethod::getGroupId));
-
 		_finderPathWithPaginationFindByG_A = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_A",
 			new String[] {
@@ -1025,35 +1533,10 @@ public class CommerceShippingMethodPersistenceImpl
 			new String[] {Long.class.getName(), Boolean.class.getName()},
 			new String[] {"groupId", "active_"}, false);
 
-		_collectionPersistenceFinderByG_A = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_A,
-			_finderPathWithoutPaginationFindByG_A, _finderPathCountByG_A,
-			_SQL_SELECT_COMMERCESHIPPINGMETHOD_WHERE,
-			_SQL_COUNT_COMMERCESHIPPINGMETHOD_WHERE,
-			CommerceShippingMethodModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"commerceShippingMethod.", "groupId", FinderColumn.Type.LONG,
-				"=", true, false, CommerceShippingMethod::getGroupId),
-			new FinderColumn<>(
-				"commerceShippingMethod.", "active", FinderColumn.Type.BOOLEAN,
-				"=", true, true, CommerceShippingMethod::isActive));
-
 		_finderPathFetchByG_E = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByG_E",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"groupId", "engineKey"}, true);
-
-		_uniquePersistenceFinderByG_E = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByG_E,
-			_SQL_SELECT_COMMERCESHIPPINGMETHOD_WHERE,
-			new FinderColumn<>(
-				"commerceShippingMethod.", "groupId", FinderColumn.Type.LONG,
-				"=", true, false, CommerceShippingMethod::getGroupId),
-			new FinderColumn<>(
-				"commerceShippingMethod.", "engineKey",
-				FinderColumn.Type.STRING, "=", true, true,
-				CommerceShippingMethod::getEngineKey));
 
 		CommerceShippingMethodUtil.setPersistence(this);
 	}
@@ -1112,6 +1595,9 @@ public class CommerceShippingMethodPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"commerceShippingMethod.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CommerceShippingMethod exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CommerceShippingMethod exists with the key {";
 
@@ -1127,4 +1613,4 @@ public class CommerceShippingMethodPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-2026174834
+// LIFERAY-SERVICE-BUILDER-HASH:-1890794209

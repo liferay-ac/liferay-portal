@@ -373,4 +373,4 @@ public interface MBSuspiciousActivityLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-480593752
+// LIFERAY-SERVICE-BUILDER-HASH:-172704092

@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,9 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -64,8 +62,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = DLSyncEventPersistence.class)
 public class DLSyncEventPersistenceImpl
-	extends BasePersistenceImpl<DLSyncEvent, NoSuchEventException>
-	implements DLSyncEventPersistence {
+	extends BasePersistenceImpl<DLSyncEvent> implements DLSyncEventPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -86,8 +83,6 @@ public class DLSyncEventPersistenceImpl
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathWithPaginationFindByGtModifiedTime;
 	private FinderPath _finderPathWithPaginationCountByGtModifiedTime;
-	private CollectionPersistenceFinder<DLSyncEvent>
-		_collectionPersistenceFinderByGtModifiedTime;
 
 	/**
 	 * Returns all the dl sync events where modifiedTime &gt; &#63;.
@@ -162,9 +157,83 @@ public class DLSyncEventPersistenceImpl
 		OrderByComparator<DLSyncEvent> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGtModifiedTime.find(
-			finderCache, new Object[] {modifiedTime}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		finderPath = _finderPathWithPaginationFindByGtModifiedTime;
+		finderArgs = new Object[] {modifiedTime, start, end, orderByComparator};
+
+		List<DLSyncEvent> list = null;
+
+		if (useFinderCache) {
+			list = (List<DLSyncEvent>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (DLSyncEvent dlSyncEvent : list) {
+					if (modifiedTime >= dlSyncEvent.getModifiedTime()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_DLSYNCEVENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_GTMODIFIEDTIME_MODIFIEDTIME_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(DLSyncEventModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(modifiedTime);
+
+				list = (List<DLSyncEvent>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -187,9 +256,16 @@ public class DLSyncEventPersistenceImpl
 			return dlSyncEvent;
 		}
 
-		throw new NoSuchEventException(
-			_collectionPersistenceFinderByGtModifiedTime.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {modifiedTime}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("modifiedTime>");
+		sb.append(modifiedTime);
+
+		sb.append("}");
+
+		throw new NoSuchEventException(sb.toString());
 	}
 
 	/**
@@ -203,8 +279,14 @@ public class DLSyncEventPersistenceImpl
 	public DLSyncEvent fetchByGtModifiedTime_First(
 		long modifiedTime, OrderByComparator<DLSyncEvent> orderByComparator) {
 
-		return _collectionPersistenceFinderByGtModifiedTime.fetchFirst(
-			finderCache, new Object[] {modifiedTime}, orderByComparator);
+		List<DLSyncEvent> list = findByGtModifiedTime(
+			modifiedTime, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -214,8 +296,12 @@ public class DLSyncEventPersistenceImpl
 	 */
 	@Override
 	public void removeByGtModifiedTime(long modifiedTime) {
-		_collectionPersistenceFinderByGtModifiedTime.remove(
-			finderCache, new Object[] {modifiedTime});
+		for (DLSyncEvent dlSyncEvent :
+				findByGtModifiedTime(
+					modifiedTime, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(dlSyncEvent);
+		}
 	}
 
 	/**
@@ -226,13 +312,51 @@ public class DLSyncEventPersistenceImpl
 	 */
 	@Override
 	public int countByGtModifiedTime(long modifiedTime) {
-		return _collectionPersistenceFinderByGtModifiedTime.count(
-			finderCache, new Object[] {modifiedTime});
+		FinderPath finderPath = _finderPathWithPaginationCountByGtModifiedTime;
+
+		Object[] finderArgs = new Object[] {modifiedTime};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_DLSYNCEVENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_GTMODIFIEDTIME_MODIFIEDTIME_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(modifiedTime);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_GTMODIFIEDTIME_MODIFIEDTIME_2 =
+		"dlSyncEvent.modifiedTime > ?";
+
 	private FinderPath _finderPathFetchByTypePK;
-	private UniquePersistenceFinder<DLSyncEvent>
-		_uniquePersistenceFinderByTypePK;
 
 	/**
 	 * Returns the dl sync event where typePK = &#63; or throws a <code>NoSuchEventException</code> if it could not be found.
@@ -246,15 +370,20 @@ public class DLSyncEventPersistenceImpl
 		DLSyncEvent dlSyncEvent = fetchByTypePK(typePK);
 
 		if (dlSyncEvent == null) {
-			String message =
-				_uniquePersistenceFinderByTypePK.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {typePK});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("typePK=");
+			sb.append(typePK);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchEventException(message);
+			throw new NoSuchEventException(sb.toString());
 		}
 
 		return dlSyncEvent;
@@ -280,8 +409,77 @@ public class DLSyncEventPersistenceImpl
 	 */
 	@Override
 	public DLSyncEvent fetchByTypePK(long typePK, boolean useFinderCache) {
-		return _uniquePersistenceFinderByTypePK.fetch(
-			finderCache, new Object[] {typePK}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {typePK};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByTypePK, finderArgs, this);
+		}
+
+		if (result instanceof DLSyncEvent) {
+			DLSyncEvent dlSyncEvent = (DLSyncEvent)result;
+
+			if (typePK != dlSyncEvent.getTypePK()) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_DLSYNCEVENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_TYPEPK_TYPEPK_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(typePK);
+
+				List<DLSyncEvent> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByTypePK, finderArgs, list);
+					}
+				}
+				else {
+					DLSyncEvent dlSyncEvent = list.get(0);
+
+					result = dlSyncEvent;
+
+					cacheResult(dlSyncEvent);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (DLSyncEvent)result;
+		}
 	}
 
 	/**
@@ -305,9 +503,17 @@ public class DLSyncEventPersistenceImpl
 	 */
 	@Override
 	public int countByTypePK(long typePK) {
-		return _uniquePersistenceFinderByTypePK.count(
-			finderCache, new Object[] {typePK});
+		DLSyncEvent dlSyncEvent = fetchByTypePK(typePK);
+
+		if (dlSyncEvent == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_TYPEPK_TYPEPK_2 =
+		"dlSyncEvent.typePK = ?";
 
 	public DLSyncEventPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -365,6 +571,48 @@ public class DLSyncEventPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all dl sync events.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(DLSyncEventImpl.class);
+
+		finderCache.clearCache(DLSyncEventImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the dl sync event.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(DLSyncEvent dlSyncEvent) {
+		entityCache.removeResult(DLSyncEventImpl.class, dlSyncEvent);
+	}
+
+	@Override
+	public void clearCache(List<DLSyncEvent> dlSyncEvents) {
+		for (DLSyncEvent dlSyncEvent : dlSyncEvents) {
+			entityCache.removeResult(DLSyncEventImpl.class, dlSyncEvent);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(DLSyncEventImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(DLSyncEventImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		DLSyncEventModelImpl dlSyncEventModelImpl) {
 
@@ -402,6 +650,47 @@ public class DLSyncEventPersistenceImpl
 	@Override
 	public DLSyncEvent remove(long syncEventId) throws NoSuchEventException {
 		return remove((Serializable)syncEventId);
+	}
+
+	/**
+	 * Removes the dl sync event with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the dl sync event
+	 * @return the dl sync event that was removed
+	 * @throws NoSuchEventException if a dl sync event with the primary key could not be found
+	 */
+	@Override
+	public DLSyncEvent remove(Serializable primaryKey)
+		throws NoSuchEventException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			DLSyncEvent dlSyncEvent = (DLSyncEvent)session.get(
+				DLSyncEventImpl.class, primaryKey);
+
+			if (dlSyncEvent == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchEventException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(dlSyncEvent);
+		}
+		catch (NoSuchEventException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -486,6 +775,31 @@ public class DLSyncEventPersistenceImpl
 		}
 
 		dlSyncEvent.resetOriginalValues();
+
+		return dlSyncEvent;
+	}
+
+	/**
+	 * Returns the dl sync event with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the dl sync event
+	 * @return the dl sync event
+	 * @throws NoSuchEventException if a dl sync event with the primary key could not be found
+	 */
+	@Override
+	public DLSyncEvent findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchEventException {
+
+		DLSyncEvent dlSyncEvent = fetchByPrimaryKey(primaryKey);
+
+		if (dlSyncEvent == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchEventException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return dlSyncEvent;
 	}
@@ -752,25 +1066,9 @@ public class DLSyncEventPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"modifiedTime"},
 			false);
 
-		_collectionPersistenceFinderByGtModifiedTime =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGtModifiedTime, null,
-				_finderPathWithPaginationCountByGtModifiedTime,
-				_SQL_SELECT_DLSYNCEVENT_WHERE, _SQL_COUNT_DLSYNCEVENT_WHERE,
-				DLSyncEventModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"dlSyncEvent.", "modifiedTime", FinderColumn.Type.LONG, ">",
-					true, true, DLSyncEvent::getModifiedTime));
-
 		_finderPathFetchByTypePK = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByTypePK",
 			new String[] {Long.class.getName()}, new String[] {"typePK"}, true);
-
-		_uniquePersistenceFinderByTypePK = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByTypePK, _SQL_SELECT_DLSYNCEVENT_WHERE,
-			new FinderColumn<>(
-				"dlSyncEvent.", "typePK", FinderColumn.Type.LONG, "=", true,
-				true, DLSyncEvent::getTypePK));
 
 		DLSyncEventUtil.setPersistence(this);
 	}
@@ -828,6 +1126,9 @@ public class DLSyncEventPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "dlSyncEvent.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No DLSyncEvent exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No DLSyncEvent exists with the key {";
 
@@ -843,4 +1144,4 @@ public class DLSyncEventPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:843248243
+// LIFERAY-SERVICE-BUILDER-HASH:1563444882

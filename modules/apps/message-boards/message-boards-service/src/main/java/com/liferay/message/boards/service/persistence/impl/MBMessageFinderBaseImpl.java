@@ -5,7 +5,6 @@
 
 package com.liferay.message.boards.service.persistence.impl;
 
-import com.liferay.message.boards.exception.NoSuchMessageException;
 import com.liferay.message.boards.model.MBMessage;
 import com.liferay.message.boards.service.persistence.MBMessagePersistence;
 import com.liferay.message.boards.service.persistence.impl.constants.MBPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class MBMessageFinderBaseImpl
-	extends BasePersistenceImpl<MBMessage, NoSuchMessageException> {
+	extends BasePersistenceImpl<MBMessage> {
 
 	public MBMessageFinderBaseImpl() {
 		setModelClass(MBMessage.class);
@@ -78,4 +77,4 @@ public abstract class MBMessageFinderBaseImpl
 		MBMessageFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-778799153
+// LIFERAY-SERVICE-BUILDER-HASH:1914934942

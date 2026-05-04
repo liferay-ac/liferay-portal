@@ -88,4 +88,4 @@ public interface PasswordPolicyService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-791626226
+// LIFERAY-SERVICE-BUILDER-HASH:852602106

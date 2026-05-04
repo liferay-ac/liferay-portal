@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -32,14 +33,13 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.SetUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 
 import java.io.Serializable;
 
@@ -51,6 +51,7 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,8 +75,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = DDMFormInstanceReportPersistence.class)
 public class DDMFormInstanceReportPersistenceImpl
-	extends BasePersistenceImpl
-		<DDMFormInstanceReport, NoSuchFormInstanceReportException>
+	extends BasePersistenceImpl<DDMFormInstanceReport>
 	implements DDMFormInstanceReportPersistence {
 
 	/*
@@ -96,8 +96,6 @@ public class DDMFormInstanceReportPersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByFormInstanceId;
-	private UniquePersistenceFinder<DDMFormInstanceReport>
-		_uniquePersistenceFinderByFormInstanceId;
 
 	/**
 	 * Returns the ddm form instance report where formInstanceId = &#63; or throws a <code>NoSuchFormInstanceReportException</code> if it could not be found.
@@ -114,15 +112,20 @@ public class DDMFormInstanceReportPersistenceImpl
 			formInstanceId);
 
 		if (ddmFormInstanceReport == null) {
-			String message =
-				_uniquePersistenceFinderByFormInstanceId.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {formInstanceId});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("formInstanceId=");
+			sb.append(formInstanceId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchFormInstanceReportException(message);
+			throw new NoSuchFormInstanceReportException(sb.toString());
 		}
 
 		return ddmFormInstanceReport;
@@ -154,8 +157,97 @@ public class DDMFormInstanceReportPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DDMFormInstanceReport.class)) {
 
-			return _uniquePersistenceFinderByFormInstanceId.fetch(
-				finderCache, new Object[] {formInstanceId}, useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {formInstanceId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByFormInstanceId, finderArgs, this);
+			}
+
+			if (result instanceof DDMFormInstanceReport) {
+				DDMFormInstanceReport ddmFormInstanceReport =
+					(DDMFormInstanceReport)result;
+
+				if (formInstanceId !=
+						ddmFormInstanceReport.getFormInstanceId()) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_SELECT_DDMFORMINSTANCEREPORT_WHERE);
+
+				sb.append(_FINDER_COLUMN_FORMINSTANCEID_FORMINSTANCEID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(formInstanceId);
+
+					List<DDMFormInstanceReport> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByFormInstanceId, finderArgs,
+								list);
+						}
+					}
+					else {
+						if (list.size() > 1) {
+							Collections.sort(list, Collections.reverseOrder());
+
+							if (_log.isWarnEnabled()) {
+								if (!useFinderCache) {
+									finderArgs = new Object[] {formInstanceId};
+								}
+
+								_log.warn(
+									"DDMFormInstanceReportPersistenceImpl.fetchByFormInstanceId(long, boolean) with parameters (" +
+										StringUtil.merge(finderArgs) +
+											") yields a result set with more than 1 result. This violates the logical unique restriction. There is no order guarantee on which result is returned by this finder.");
+							}
+						}
+
+						DDMFormInstanceReport ddmFormInstanceReport = list.get(
+							0);
+
+						result = ddmFormInstanceReport;
+
+						cacheResult(ddmFormInstanceReport);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (DDMFormInstanceReport)result;
+			}
 		}
 	}
 
@@ -183,9 +275,18 @@ public class DDMFormInstanceReportPersistenceImpl
 	 */
 	@Override
 	public int countByFormInstanceId(long formInstanceId) {
-		return _uniquePersistenceFinderByFormInstanceId.count(
-			finderCache, new Object[] {formInstanceId});
+		DDMFormInstanceReport ddmFormInstanceReport = fetchByFormInstanceId(
+			formInstanceId);
+
+		if (ddmFormInstanceReport == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_FORMINSTANCEID_FORMINSTANCEID_2 =
+		"ddmFormInstanceReport.formInstanceId = ?";
 
 	public DDMFormInstanceReportPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -260,6 +361,53 @@ public class DDMFormInstanceReportPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all ddm form instance reports.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(DDMFormInstanceReportImpl.class);
+
+		finderCache.clearCache(DDMFormInstanceReportImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ddm form instance report.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(DDMFormInstanceReport ddmFormInstanceReport) {
+		entityCache.removeResult(
+			DDMFormInstanceReportImpl.class, ddmFormInstanceReport);
+	}
+
+	@Override
+	public void clearCache(List<DDMFormInstanceReport> ddmFormInstanceReports) {
+		for (DDMFormInstanceReport ddmFormInstanceReport :
+				ddmFormInstanceReports) {
+
+			entityCache.removeResult(
+				DDMFormInstanceReportImpl.class, ddmFormInstanceReport);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(DDMFormInstanceReportImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				DDMFormInstanceReportImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		DDMFormInstanceReportModelImpl ddmFormInstanceReportModelImpl) {
 
@@ -308,6 +456,48 @@ public class DDMFormInstanceReportPersistenceImpl
 		throws NoSuchFormInstanceReportException {
 
 		return remove((Serializable)formInstanceReportId);
+	}
+
+	/**
+	 * Removes the ddm form instance report with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ddm form instance report
+	 * @return the ddm form instance report that was removed
+	 * @throws NoSuchFormInstanceReportException if a ddm form instance report with the primary key could not be found
+	 */
+	@Override
+	public DDMFormInstanceReport remove(Serializable primaryKey)
+		throws NoSuchFormInstanceReportException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			DDMFormInstanceReport ddmFormInstanceReport =
+				(DDMFormInstanceReport)session.get(
+					DDMFormInstanceReportImpl.class, primaryKey);
+
+			if (ddmFormInstanceReport == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchFormInstanceReportException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ddmFormInstanceReport);
+		}
+		catch (NoSuchFormInstanceReportException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -440,6 +630,32 @@ public class DDMFormInstanceReportPersistenceImpl
 	}
 
 	/**
+	 * Returns the ddm form instance report with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ddm form instance report
+	 * @return the ddm form instance report
+	 * @throws NoSuchFormInstanceReportException if a ddm form instance report with the primary key could not be found
+	 */
+	@Override
+	public DDMFormInstanceReport findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchFormInstanceReportException {
+
+		DDMFormInstanceReport ddmFormInstanceReport = fetchByPrimaryKey(
+			primaryKey);
+
+		if (ddmFormInstanceReport == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchFormInstanceReportException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return ddmFormInstanceReport;
+	}
+
+	/**
 	 * Returns the ddm form instance report with the primary key or throws a <code>NoSuchFormInstanceReportException</code> if it could not be found.
 	 *
 	 * @param formInstanceReportId the primary key of the ddm form instance report
@@ -453,9 +669,53 @@ public class DDMFormInstanceReportPersistenceImpl
 		return findByPrimaryKey((Serializable)formInstanceReportId);
 	}
 
+	/**
+	 * Returns the ddm form instance report with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ddm form instance report
+	 * @return the ddm form instance report, or <code>null</code> if a ddm form instance report with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public DDMFormInstanceReport fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				DDMFormInstanceReport.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		DDMFormInstanceReport ddmFormInstanceReport =
+			(DDMFormInstanceReport)entityCache.getResult(
+				DDMFormInstanceReportImpl.class, primaryKey);
+
+		if (ddmFormInstanceReport != null) {
+			return ddmFormInstanceReport;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ddmFormInstanceReport = (DDMFormInstanceReport)session.get(
+				DDMFormInstanceReportImpl.class, primaryKey);
+
+			if (ddmFormInstanceReport != null) {
+				cacheResult(ddmFormInstanceReport);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return ddmFormInstanceReport;
 	}
 
 	/**
@@ -467,6 +727,135 @@ public class DDMFormInstanceReportPersistenceImpl
 	@Override
 	public DDMFormInstanceReport fetchByPrimaryKey(long formInstanceReportId) {
 		return fetchByPrimaryKey((Serializable)formInstanceReportId);
+	}
+
+	@Override
+	public Map<Serializable, DDMFormInstanceReport> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(DDMFormInstanceReport.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, DDMFormInstanceReport> map =
+			new HashMap<Serializable, DDMFormInstanceReport>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			DDMFormInstanceReport ddmFormInstanceReport = fetchByPrimaryKey(
+				primaryKey);
+
+			if (ddmFormInstanceReport != null) {
+				map.put(primaryKey, ddmFormInstanceReport);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						DDMFormInstanceReport.class, primaryKey)) {
+
+				DDMFormInstanceReport ddmFormInstanceReport =
+					(DDMFormInstanceReport)entityCache.getResult(
+						DDMFormInstanceReportImpl.class, primaryKey);
+
+				if (ddmFormInstanceReport == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, ddmFormInstanceReport);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (DDMFormInstanceReport ddmFormInstanceReport :
+					(List<DDMFormInstanceReport>)query.list()) {
+
+				map.put(
+					ddmFormInstanceReport.getPrimaryKeyObj(),
+					ddmFormInstanceReport);
+
+				cacheResult(ddmFormInstanceReport);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -770,15 +1159,6 @@ public class DDMFormInstanceReportPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"formInstanceId"}, true);
 
-		_uniquePersistenceFinderByFormInstanceId =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByFormInstanceId,
-				_SQL_SELECT_DDMFORMINSTANCEREPORT_WHERE,
-				new FinderColumn<>(
-					"ddmFormInstanceReport.", "formInstanceId",
-					FinderColumn.Type.LONG, "=", true, true,
-					DDMFormInstanceReport::getFormInstanceId));
-
 		DDMFormInstanceReportUtil.setPersistence(this);
 	}
 
@@ -833,8 +1213,14 @@ public class DDMFormInstanceReportPersistenceImpl
 	private static final String _SQL_COUNT_DDMFORMINSTANCEREPORT =
 		"SELECT COUNT(ddmFormInstanceReport) FROM DDMFormInstanceReport ddmFormInstanceReport";
 
+	private static final String _SQL_COUNT_DDMFORMINSTANCEREPORT_WHERE =
+		"SELECT COUNT(ddmFormInstanceReport) FROM DDMFormInstanceReport ddmFormInstanceReport WHERE ";
+
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"ddmFormInstanceReport.";
+
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No DDMFormInstanceReport exists with the primary key ";
 
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No DDMFormInstanceReport exists with the key {";
@@ -851,4 +1237,4 @@ public class DDMFormInstanceReportPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1553160044
+// LIFERAY-SERVICE-BUILDER-HASH:1547691722

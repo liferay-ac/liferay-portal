@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -30,9 +31,6 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -46,7 +44,9 @@ import java.lang.reflect.InvocationHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,7 +70,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = DDMTemplateLinkPersistence.class)
 public class DDMTemplateLinkPersistenceImpl
-	extends BasePersistenceImpl<DDMTemplateLink, NoSuchTemplateLinkException>
+	extends BasePersistenceImpl<DDMTemplateLink>
 	implements DDMTemplateLinkPersistence {
 
 	/*
@@ -93,8 +93,6 @@ public class DDMTemplateLinkPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByTemplateId;
 	private FinderPath _finderPathWithoutPaginationFindByTemplateId;
 	private FinderPath _finderPathCountByTemplateId;
-	private CollectionPersistenceFinder<DDMTemplateLink>
-		_collectionPersistenceFinderByTemplateId;
 
 	/**
 	 * Returns all the ddm template links where templateId = &#63;.
@@ -173,9 +171,95 @@ public class DDMTemplateLinkPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DDMTemplateLink.class)) {
 
-			return _collectionPersistenceFinderByTemplateId.find(
-				finderCache, new Object[] {templateId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByTemplateId;
+					finderArgs = new Object[] {templateId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByTemplateId;
+				finderArgs = new Object[] {
+					templateId, start, end, orderByComparator
+				};
+			}
+
+			List<DDMTemplateLink> list = null;
+
+			if (useFinderCache) {
+				list = (List<DDMTemplateLink>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (DDMTemplateLink ddmTemplateLink : list) {
+						if (templateId != ddmTemplateLink.getTemplateId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_DDMTEMPLATELINK_WHERE);
+
+				sb.append(_FINDER_COLUMN_TEMPLATEID_TEMPLATEID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(DDMTemplateLinkModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(templateId);
+
+					list = (List<DDMTemplateLink>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -200,9 +284,16 @@ public class DDMTemplateLinkPersistenceImpl
 			return ddmTemplateLink;
 		}
 
-		throw new NoSuchTemplateLinkException(
-			_collectionPersistenceFinderByTemplateId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {templateId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("templateId=");
+		sb.append(templateId);
+
+		sb.append("}");
+
+		throw new NoSuchTemplateLinkException(sb.toString());
 	}
 
 	/**
@@ -216,8 +307,14 @@ public class DDMTemplateLinkPersistenceImpl
 	public DDMTemplateLink fetchByTemplateId_First(
 		long templateId, OrderByComparator<DDMTemplateLink> orderByComparator) {
 
-		return _collectionPersistenceFinderByTemplateId.fetchFirst(
-			finderCache, new Object[] {templateId}, orderByComparator);
+		List<DDMTemplateLink> list = findByTemplateId(
+			templateId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -227,8 +324,12 @@ public class DDMTemplateLinkPersistenceImpl
 	 */
 	@Override
 	public void removeByTemplateId(long templateId) {
-		_collectionPersistenceFinderByTemplateId.remove(
-			finderCache, new Object[] {templateId});
+		for (DDMTemplateLink ddmTemplateLink :
+				findByTemplateId(
+					templateId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(ddmTemplateLink);
+		}
 	}
 
 	/**
@@ -243,14 +344,53 @@ public class DDMTemplateLinkPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DDMTemplateLink.class)) {
 
-			return _collectionPersistenceFinderByTemplateId.count(
-				finderCache, new Object[] {templateId});
+			FinderPath finderPath = _finderPathCountByTemplateId;
+
+			Object[] finderArgs = new Object[] {templateId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_DDMTEMPLATELINK_WHERE);
+
+				sb.append(_FINDER_COLUMN_TEMPLATEID_TEMPLATEID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(templateId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_TEMPLATEID_TEMPLATEID_2 =
+		"ddmTemplateLink.templateId = ?";
+
 	private FinderPath _finderPathFetchByC_C;
-	private UniquePersistenceFinder<DDMTemplateLink>
-		_uniquePersistenceFinderByC_C;
 
 	/**
 	 * Returns the ddm template link where classNameId = &#63; and classPK = &#63; or throws a <code>NoSuchTemplateLinkException</code> if it could not be found.
@@ -267,16 +407,23 @@ public class DDMTemplateLinkPersistenceImpl
 		DDMTemplateLink ddmTemplateLink = fetchByC_C(classNameId, classPK);
 
 		if (ddmTemplateLink == null) {
-			String message =
-				_uniquePersistenceFinderByC_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {classNameId, classPK});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("classNameId=");
+			sb.append(classNameId);
+
+			sb.append(", classPK=");
+			sb.append(classPK);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchTemplateLinkException(message);
+			throw new NoSuchTemplateLinkException(sb.toString());
 		}
 
 		return ddmTemplateLink;
@@ -310,9 +457,83 @@ public class DDMTemplateLinkPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					DDMTemplateLink.class)) {
 
-			return _uniquePersistenceFinderByC_C.fetch(
-				finderCache, new Object[] {classNameId, classPK},
-				useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {classNameId, classPK};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByC_C, finderArgs, this);
+			}
+
+			if (result instanceof DDMTemplateLink) {
+				DDMTemplateLink ddmTemplateLink = (DDMTemplateLink)result;
+
+				if ((classNameId != ddmTemplateLink.getClassNameId()) ||
+					(classPK != ddmTemplateLink.getClassPK())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_DDMTEMPLATELINK_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSPK_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					List<DDMTemplateLink> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByC_C, finderArgs, list);
+						}
+					}
+					else {
+						DDMTemplateLink ddmTemplateLink = list.get(0);
+
+						result = ddmTemplateLink;
+
+						cacheResult(ddmTemplateLink);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (DDMTemplateLink)result;
+			}
 		}
 	}
 
@@ -341,9 +562,20 @@ public class DDMTemplateLinkPersistenceImpl
 	 */
 	@Override
 	public int countByC_C(long classNameId, long classPK) {
-		return _uniquePersistenceFinderByC_C.count(
-			finderCache, new Object[] {classNameId, classPK});
+		DDMTemplateLink ddmTemplateLink = fetchByC_C(classNameId, classPK);
+
+		if (ddmTemplateLink == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_C_CLASSNAMEID_2 =
+		"ddmTemplateLink.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_CLASSPK_2 =
+		"ddmTemplateLink.classPK = ?";
 
 	public DDMTemplateLinkPersistenceImpl() {
 		setModelClass(DDMTemplateLink.class);
@@ -411,6 +643,49 @@ public class DDMTemplateLinkPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all ddm template links.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(DDMTemplateLinkImpl.class);
+
+		finderCache.clearCache(DDMTemplateLinkImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ddm template link.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(DDMTemplateLink ddmTemplateLink) {
+		entityCache.removeResult(DDMTemplateLinkImpl.class, ddmTemplateLink);
+	}
+
+	@Override
+	public void clearCache(List<DDMTemplateLink> ddmTemplateLinks) {
+		for (DDMTemplateLink ddmTemplateLink : ddmTemplateLinks) {
+			entityCache.removeResult(
+				DDMTemplateLinkImpl.class, ddmTemplateLink);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(DDMTemplateLinkImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(DDMTemplateLinkImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		DDMTemplateLinkModelImpl ddmTemplateLinkModelImpl) {
 
@@ -458,6 +733,47 @@ public class DDMTemplateLinkPersistenceImpl
 		throws NoSuchTemplateLinkException {
 
 		return remove((Serializable)templateLinkId);
+	}
+
+	/**
+	 * Removes the ddm template link with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ddm template link
+	 * @return the ddm template link that was removed
+	 * @throws NoSuchTemplateLinkException if a ddm template link with the primary key could not be found
+	 */
+	@Override
+	public DDMTemplateLink remove(Serializable primaryKey)
+		throws NoSuchTemplateLinkException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			DDMTemplateLink ddmTemplateLink = (DDMTemplateLink)session.get(
+				DDMTemplateLinkImpl.class, primaryKey);
+
+			if (ddmTemplateLink == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchTemplateLinkException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ddmTemplateLink);
+		}
+		catch (NoSuchTemplateLinkException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -558,6 +874,31 @@ public class DDMTemplateLinkPersistenceImpl
 	}
 
 	/**
+	 * Returns the ddm template link with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ddm template link
+	 * @return the ddm template link
+	 * @throws NoSuchTemplateLinkException if a ddm template link with the primary key could not be found
+	 */
+	@Override
+	public DDMTemplateLink findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchTemplateLinkException {
+
+		DDMTemplateLink ddmTemplateLink = fetchByPrimaryKey(primaryKey);
+
+		if (ddmTemplateLink == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchTemplateLinkException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return ddmTemplateLink;
+	}
+
+	/**
 	 * Returns the ddm template link with the primary key or throws a <code>NoSuchTemplateLinkException</code> if it could not be found.
 	 *
 	 * @param templateLinkId the primary key of the ddm template link
@@ -571,9 +912,53 @@ public class DDMTemplateLinkPersistenceImpl
 		return findByPrimaryKey((Serializable)templateLinkId);
 	}
 
+	/**
+	 * Returns the ddm template link with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ddm template link
+	 * @return the ddm template link, or <code>null</code> if a ddm template link with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public DDMTemplateLink fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				DDMTemplateLink.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		DDMTemplateLink ddmTemplateLink =
+			(DDMTemplateLink)entityCache.getResult(
+				DDMTemplateLinkImpl.class, primaryKey);
+
+		if (ddmTemplateLink != null) {
+			return ddmTemplateLink;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ddmTemplateLink = (DDMTemplateLink)session.get(
+				DDMTemplateLinkImpl.class, primaryKey);
+
+			if (ddmTemplateLink != null) {
+				cacheResult(ddmTemplateLink);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return ddmTemplateLink;
 	}
 
 	/**
@@ -585,6 +970,132 @@ public class DDMTemplateLinkPersistenceImpl
 	@Override
 	public DDMTemplateLink fetchByPrimaryKey(long templateLinkId) {
 		return fetchByPrimaryKey((Serializable)templateLinkId);
+	}
+
+	@Override
+	public Map<Serializable, DDMTemplateLink> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(DDMTemplateLink.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, DDMTemplateLink> map =
+			new HashMap<Serializable, DDMTemplateLink>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			DDMTemplateLink ddmTemplateLink = fetchByPrimaryKey(primaryKey);
+
+			if (ddmTemplateLink != null) {
+				map.put(primaryKey, ddmTemplateLink);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						DDMTemplateLink.class, primaryKey)) {
+
+				DDMTemplateLink ddmTemplateLink =
+					(DDMTemplateLink)entityCache.getResult(
+						DDMTemplateLinkImpl.class, primaryKey);
+
+				if (ddmTemplateLink == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, ddmTemplateLink);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (DDMTemplateLink ddmTemplateLink :
+					(List<DDMTemplateLink>)query.list()) {
+
+				map.put(ddmTemplateLink.getPrimaryKeyObj(), ddmTemplateLink);
+
+				cacheResult(ddmTemplateLink);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -891,30 +1402,10 @@ public class DDMTemplateLinkPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"templateId"},
 			false);
 
-		_collectionPersistenceFinderByTemplateId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByTemplateId,
-				_finderPathWithoutPaginationFindByTemplateId,
-				_finderPathCountByTemplateId, _SQL_SELECT_DDMTEMPLATELINK_WHERE,
-				_SQL_COUNT_DDMTEMPLATELINK_WHERE,
-				DDMTemplateLinkModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ddmTemplateLink.", "templateId", FinderColumn.Type.LONG,
-					"=", true, true, DDMTemplateLink::getTemplateId));
-
 		_finderPathFetchByC_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_C",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"classNameId", "classPK"}, true);
-
-		_uniquePersistenceFinderByC_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_C, _SQL_SELECT_DDMTEMPLATELINK_WHERE,
-			new FinderColumn<>(
-				"ddmTemplateLink.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, DDMTemplateLink::getClassNameId),
-			new FinderColumn<>(
-				"ddmTemplateLink.", "classPK", FinderColumn.Type.LONG, "=",
-				true, true, DDMTemplateLink::getClassPK));
 
 		DDMTemplateLinkUtil.setPersistence(this);
 	}
@@ -975,6 +1466,9 @@ public class DDMTemplateLinkPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ddmTemplateLink.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No DDMTemplateLink exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No DDMTemplateLink exists with the key {";
 
@@ -987,4 +1481,4 @@ public class DDMTemplateLinkPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:641237025
+// LIFERAY-SERVICE-BUILDER-HASH:-1489270196

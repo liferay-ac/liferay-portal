@@ -40,9 +40,6 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -59,12 +56,15 @@ import java.io.Serializable;
 
 import java.lang.reflect.InvocationHandler;
 
+import java.sql.Timestamp;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -89,7 +89,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = JournalArticlePersistence.class)
 public class JournalArticlePersistenceImpl
-	extends BasePersistenceImpl<JournalArticle, NoSuchArticleException>
+	extends BasePersistenceImpl<JournalArticle>
 	implements JournalArticlePersistence {
 
 	/*
@@ -112,8 +112,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByResourcePrimKey;
 	private FinderPath _finderPathWithoutPaginationFindByResourcePrimKey;
 	private FinderPath _finderPathCountByResourcePrimKey;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByResourcePrimKey;
 
 	/**
 	 * Returns all the journal articles where resourcePrimKey = &#63;.
@@ -192,9 +190,98 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByResourcePrimKey.find(
-				finderCache, new Object[] {resourcePrimKey}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindByResourcePrimKey;
+					finderArgs = new Object[] {resourcePrimKey};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByResourcePrimKey;
+				finderArgs = new Object[] {
+					resourcePrimKey, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (resourcePrimKey !=
+								journalArticle.getResourcePrimKey()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_RESOURCEPRIMKEY_RESOURCEPRIMKEY_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(resourcePrimKey);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -219,9 +306,16 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByResourcePrimKey.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {resourcePrimKey}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("resourcePrimKey=");
+		sb.append(resourcePrimKey);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -236,8 +330,14 @@ public class JournalArticlePersistenceImpl
 		long resourcePrimKey,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByResourcePrimKey.fetchFirst(
-			finderCache, new Object[] {resourcePrimKey}, orderByComparator);
+		List<JournalArticle> list = findByResourcePrimKey(
+			resourcePrimKey, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -247,8 +347,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByResourcePrimKey(long resourcePrimKey) {
-		_collectionPersistenceFinderByResourcePrimKey.remove(
-			finderCache, new Object[] {resourcePrimKey});
+		for (JournalArticle journalArticle :
+				findByResourcePrimKey(
+					resourcePrimKey, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -263,16 +368,56 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByResourcePrimKey.count(
-				finderCache, new Object[] {resourcePrimKey});
+			FinderPath finderPath = _finderPathCountByResourcePrimKey;
+
+			Object[] finderArgs = new Object[] {resourcePrimKey};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_RESOURCEPRIMKEY_RESOURCEPRIMKEY_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(resourcePrimKey);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String
+		_FINDER_COLUMN_RESOURCEPRIMKEY_RESOURCEPRIMKEY_2 =
+			"journalArticle.resourcePrimKey = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the journal articles where uuid = &#63;.
@@ -347,9 +492,106 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByUuid.find(
-				finderCache, new Object[] {uuid}, start, end, orderByComparator,
-				useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid;
+					finderArgs = new Object[] {uuid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid;
+				finderArgs = new Object[] {uuid, start, end, orderByComparator};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (!uuid.equals(journalArticle.getUuid())) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -373,9 +615,16 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -389,8 +638,13 @@ public class JournalArticlePersistenceImpl
 	public JournalArticle fetchByUuid_First(
 		String uuid, OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<JournalArticle> list = findByUuid(uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -400,8 +654,11 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (JournalArticle journalArticle :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -416,14 +673,69 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByUuid.count(
-				finderCache, new Object[] {uuid});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid;
+
+			Object[] finderArgs = new Object[] {uuid};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"journalArticle.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(journalArticle.uuid IS NULL OR journalArticle.uuid = '')";
+
 	private FinderPath _finderPathFetchByUUID_G;
-	private UniquePersistenceFinder<JournalArticle>
-		_uniquePersistenceFinderByUUID_G;
 
 	/**
 	 * Returns the journal article where uuid = &#63; and groupId = &#63; or throws a <code>NoSuchArticleException</code> if it could not be found.
@@ -440,15 +752,23 @@ public class JournalArticlePersistenceImpl
 		JournalArticle journalArticle = fetchByUUID_G(uuid, groupId);
 
 		if (journalArticle == null) {
-			String message =
-				_uniquePersistenceFinderByUUID_G.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, groupId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("uuid=");
+			sb.append(uuid);
+
+			sb.append(", groupId=");
+			sb.append(groupId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchArticleException(message);
+			throw new NoSuchArticleException(sb.toString());
 		}
 
 		return journalArticle;
@@ -482,8 +802,96 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _uniquePersistenceFinderByUUID_G.fetch(
-				finderCache, new Object[] {uuid, groupId}, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {uuid, groupId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByUUID_G, finderArgs, this);
+			}
+
+			if (result instanceof JournalArticle) {
+				JournalArticle journalArticle = (JournalArticle)result;
+
+				if (!Objects.equals(uuid, journalArticle.getUuid()) ||
+					(groupId != journalArticle.getGroupId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_G_GROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(groupId);
+
+					List<JournalArticle> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByUUID_G, finderArgs, list);
+						}
+					}
+					else {
+						JournalArticle journalArticle = list.get(0);
+
+						result = journalArticle;
+
+						cacheResult(journalArticle);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (JournalArticle)result;
+			}
 		}
 	}
 
@@ -512,15 +920,27 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public int countByUUID_G(String uuid, long groupId) {
-		return _uniquePersistenceFinderByUUID_G.count(
-			finderCache, new Object[] {uuid, groupId});
+		JournalArticle journalArticle = fetchByUUID_G(uuid, groupId);
+
+		if (journalArticle == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_2 =
+		"journalArticle.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_3 =
+		"(journalArticle.uuid IS NULL OR journalArticle.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_GROUPID_2 =
+		"journalArticle.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the journal articles where uuid = &#63; and companyId = &#63;.
@@ -603,9 +1023,114 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.find(
-				finderCache, new Object[] {uuid, companyId}, start, end,
-				orderByComparator, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid_C;
+					finderArgs = new Object[] {uuid, companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid_C;
+				finderArgs = new Object[] {
+					uuid, companyId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (!uuid.equals(journalArticle.getUuid()) ||
+							(companyId != journalArticle.getCompanyId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -631,9 +1156,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -649,8 +1184,14 @@ public class JournalArticlePersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<JournalArticle> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -661,8 +1202,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (JournalArticle journalArticle :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -678,16 +1224,78 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.count(
-				finderCache, new Object[] {uuid, companyId});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid_C;
+
+			Object[] finderArgs = new Object[] {uuid, companyId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"journalArticle.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(journalArticle.uuid IS NULL OR journalArticle.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"journalArticle.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63;.
@@ -765,9 +1373,95 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByGroupId.find(
-				finderCache, new Object[] {groupId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByGroupId;
+					finderArgs = new Object[] {groupId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByGroupId;
+				finderArgs = new Object[] {
+					groupId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (groupId != journalArticle.getGroupId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -791,9 +1485,16 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -807,8 +1508,14 @@ public class JournalArticlePersistenceImpl
 	public JournalArticle fetchByGroupId_First(
 		long groupId, OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			finderCache, new Object[] {groupId}, orderByComparator);
+		List<JournalArticle> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -960,8 +1667,12 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			finderCache, new Object[] {groupId});
+		for (JournalArticle journalArticle :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -976,8 +1687,46 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByGroupId.count(
-				finderCache, new Object[] {groupId});
+			FinderPath finderPath = _finderPathCountByGroupId;
+
+			Object[] finderArgs = new Object[] {groupId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -1044,8 +1793,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the journal articles where companyId = &#63;.
@@ -1123,9 +1870,95 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.find(
-				finderCache, new Object[] {companyId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByCompanyId;
+					finderArgs = new Object[] {companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByCompanyId;
+				finderArgs = new Object[] {
+					companyId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (companyId != journalArticle.getCompanyId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1149,9 +1982,16 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -1165,8 +2005,14 @@ public class JournalArticlePersistenceImpl
 	public JournalArticle fetchByCompanyId_First(
 		long companyId, OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<JournalArticle> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1176,8 +2022,12 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (JournalArticle journalArticle :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -1192,16 +2042,55 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.count(
-				finderCache, new Object[] {companyId});
+			FinderPath finderPath = _finderPathCountByCompanyId;
+
+			Object[] finderArgs = new Object[] {companyId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"journalArticle.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByDDMStructureId;
 	private FinderPath _finderPathWithoutPaginationFindByDDMStructureId;
 	private FinderPath _finderPathCountByDDMStructureId;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByDDMStructureId;
 
 	/**
 	 * Returns all the journal articles where DDMStructureId = &#63;.
@@ -1280,9 +2169,98 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByDDMStructureId.find(
-				finderCache, new Object[] {DDMStructureId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindByDDMStructureId;
+					finderArgs = new Object[] {DDMStructureId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByDDMStructureId;
+				finderArgs = new Object[] {
+					DDMStructureId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (DDMStructureId !=
+								journalArticle.getDDMStructureId()) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_DDMSTRUCTUREID_DDMSTRUCTUREID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(DDMStructureId);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1307,9 +2285,16 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByDDMStructureId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {DDMStructureId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("DDMStructureId=");
+		sb.append(DDMStructureId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -1324,8 +2309,14 @@ public class JournalArticlePersistenceImpl
 		long DDMStructureId,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByDDMStructureId.fetchFirst(
-			finderCache, new Object[] {DDMStructureId}, orderByComparator);
+		List<JournalArticle> list = findByDDMStructureId(
+			DDMStructureId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1335,8 +2326,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByDDMStructureId(long DDMStructureId) {
-		_collectionPersistenceFinderByDDMStructureId.remove(
-			finderCache, new Object[] {DDMStructureId});
+		for (JournalArticle journalArticle :
+				findByDDMStructureId(
+					DDMStructureId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -1351,16 +2347,55 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByDDMStructureId.count(
-				finderCache, new Object[] {DDMStructureId});
+			FinderPath finderPath = _finderPathCountByDDMStructureId;
+
+			Object[] finderArgs = new Object[] {DDMStructureId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_DDMSTRUCTUREID_DDMSTRUCTUREID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(DDMStructureId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_DDMSTRUCTUREID_DDMSTRUCTUREID_2 =
+		"journalArticle.DDMStructureId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByDDMTemplateKey;
 	private FinderPath _finderPathWithoutPaginationFindByDDMTemplateKey;
 	private FinderPath _finderPathCountByDDMTemplateKey;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByDDMTemplateKey;
 
 	/**
 	 * Returns all the journal articles where DDMTemplateKey = &#63;.
@@ -1439,9 +2474,111 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByDDMTemplateKey.find(
-				finderCache, new Object[] {DDMTemplateKey}, start, end,
-				orderByComparator, useFinderCache);
+			DDMTemplateKey = Objects.toString(DDMTemplateKey, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath =
+						_finderPathWithoutPaginationFindByDDMTemplateKey;
+					finderArgs = new Object[] {DDMTemplateKey};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByDDMTemplateKey;
+				finderArgs = new Object[] {
+					DDMTemplateKey, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (!DDMTemplateKey.equals(
+								journalArticle.getDDMTemplateKey())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				boolean bindDDMTemplateKey = false;
+
+				if (DDMTemplateKey.isEmpty()) {
+					sb.append(_FINDER_COLUMN_DDMTEMPLATEKEY_DDMTEMPLATEKEY_3);
+				}
+				else {
+					bindDDMTemplateKey = true;
+
+					sb.append(_FINDER_COLUMN_DDMTEMPLATEKEY_DDMTEMPLATEKEY_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindDDMTemplateKey) {
+						queryPos.add(DDMTemplateKey);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1466,9 +2603,16 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByDDMTemplateKey.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {DDMTemplateKey}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("DDMTemplateKey=");
+		sb.append(DDMTemplateKey);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -1483,8 +2627,14 @@ public class JournalArticlePersistenceImpl
 		String DDMTemplateKey,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByDDMTemplateKey.fetchFirst(
-			finderCache, new Object[] {DDMTemplateKey}, orderByComparator);
+		List<JournalArticle> list = findByDDMTemplateKey(
+			DDMTemplateKey, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1494,8 +2644,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByDDMTemplateKey(String DDMTemplateKey) {
-		_collectionPersistenceFinderByDDMTemplateKey.remove(
-			finderCache, new Object[] {DDMTemplateKey});
+		for (JournalArticle journalArticle :
+				findByDDMTemplateKey(
+					DDMTemplateKey, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -1510,16 +2665,71 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByDDMTemplateKey.count(
-				finderCache, new Object[] {DDMTemplateKey});
+			DDMTemplateKey = Objects.toString(DDMTemplateKey, "");
+
+			FinderPath finderPath = _finderPathCountByDDMTemplateKey;
+
+			Object[] finderArgs = new Object[] {DDMTemplateKey};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				boolean bindDDMTemplateKey = false;
+
+				if (DDMTemplateKey.isEmpty()) {
+					sb.append(_FINDER_COLUMN_DDMTEMPLATEKEY_DDMTEMPLATEKEY_3);
+				}
+				else {
+					bindDDMTemplateKey = true;
+
+					sb.append(_FINDER_COLUMN_DDMTEMPLATEKEY_DDMTEMPLATEKEY_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindDDMTemplateKey) {
+						queryPos.add(DDMTemplateKey);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_DDMTEMPLATEKEY_DDMTEMPLATEKEY_2 =
+		"journalArticle.DDMTemplateKey = ?";
+
+	private static final String _FINDER_COLUMN_DDMTEMPLATEKEY_DDMTEMPLATEKEY_3 =
+		"(journalArticle.DDMTemplateKey IS NULL OR journalArticle.DDMTemplateKey = '')";
 
 	private FinderPath _finderPathWithPaginationFindByLayoutUuid;
 	private FinderPath _finderPathWithoutPaginationFindByLayoutUuid;
 	private FinderPath _finderPathCountByLayoutUuid;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByLayoutUuid;
 
 	/**
 	 * Returns all the journal articles where layoutUuid = &#63;.
@@ -1598,9 +2808,110 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByLayoutUuid.find(
-				finderCache, new Object[] {layoutUuid}, start, end,
-				orderByComparator, useFinderCache);
+			layoutUuid = Objects.toString(layoutUuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByLayoutUuid;
+					finderArgs = new Object[] {layoutUuid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByLayoutUuid;
+				finderArgs = new Object[] {
+					layoutUuid, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (!layoutUuid.equals(
+								journalArticle.getLayoutUuid())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				boolean bindLayoutUuid = false;
+
+				if (layoutUuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_LAYOUTUUID_LAYOUTUUID_3);
+				}
+				else {
+					bindLayoutUuid = true;
+
+					sb.append(_FINDER_COLUMN_LAYOUTUUID_LAYOUTUUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindLayoutUuid) {
+						queryPos.add(layoutUuid);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1625,9 +2936,16 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByLayoutUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {layoutUuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("layoutUuid=");
+		sb.append(layoutUuid);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -1642,8 +2960,14 @@ public class JournalArticlePersistenceImpl
 		String layoutUuid,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByLayoutUuid.fetchFirst(
-			finderCache, new Object[] {layoutUuid}, orderByComparator);
+		List<JournalArticle> list = findByLayoutUuid(
+			layoutUuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1653,8 +2977,12 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByLayoutUuid(String layoutUuid) {
-		_collectionPersistenceFinderByLayoutUuid.remove(
-			finderCache, new Object[] {layoutUuid});
+		for (JournalArticle journalArticle :
+				findByLayoutUuid(
+					layoutUuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -1669,16 +2997,71 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByLayoutUuid.count(
-				finderCache, new Object[] {layoutUuid});
+			layoutUuid = Objects.toString(layoutUuid, "");
+
+			FinderPath finderPath = _finderPathCountByLayoutUuid;
+
+			Object[] finderArgs = new Object[] {layoutUuid};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				boolean bindLayoutUuid = false;
+
+				if (layoutUuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_LAYOUTUUID_LAYOUTUUID_3);
+				}
+				else {
+					bindLayoutUuid = true;
+
+					sb.append(_FINDER_COLUMN_LAYOUTUUID_LAYOUTUUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindLayoutUuid) {
+						queryPos.add(layoutUuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_LAYOUTUUID_LAYOUTUUID_2 =
+		"journalArticle.layoutUuid = ?";
+
+	private static final String _FINDER_COLUMN_LAYOUTUUID_LAYOUTUUID_3 =
+		"(journalArticle.layoutUuid IS NULL OR journalArticle.layoutUuid = '')";
 
 	private FinderPath _finderPathWithPaginationFindBySmallImageId;
 	private FinderPath _finderPathWithoutPaginationFindBySmallImageId;
 	private FinderPath _finderPathCountBySmallImageId;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderBySmallImageId;
 
 	/**
 	 * Returns all the journal articles where smallImageId = &#63;.
@@ -1757,9 +3140,95 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderBySmallImageId.find(
-				finderCache, new Object[] {smallImageId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindBySmallImageId;
+					finderArgs = new Object[] {smallImageId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindBySmallImageId;
+				finderArgs = new Object[] {
+					smallImageId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if (smallImageId != journalArticle.getSmallImageId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_SMALLIMAGEID_SMALLIMAGEID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(smallImageId);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1784,9 +3253,16 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderBySmallImageId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {smallImageId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("smallImageId=");
+		sb.append(smallImageId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -1801,8 +3277,14 @@ public class JournalArticlePersistenceImpl
 		long smallImageId,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderBySmallImageId.fetchFirst(
-			finderCache, new Object[] {smallImageId}, orderByComparator);
+		List<JournalArticle> list = findBySmallImageId(
+			smallImageId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1812,8 +3294,12 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeBySmallImageId(long smallImageId) {
-		_collectionPersistenceFinderBySmallImageId.remove(
-			finderCache, new Object[] {smallImageId});
+		for (JournalArticle journalArticle :
+				findBySmallImageId(
+					smallImageId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -1828,16 +3314,55 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderBySmallImageId.count(
-				finderCache, new Object[] {smallImageId});
+			FinderPath finderPath = _finderPathCountBySmallImageId;
+
+			Object[] finderArgs = new Object[] {smallImageId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_SMALLIMAGEID_SMALLIMAGEID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(smallImageId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_SMALLIMAGEID_SMALLIMAGEID_2 =
+		"journalArticle.smallImageId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByR_I;
 	private FinderPath _finderPathWithoutPaginationFindByR_I;
 	private FinderPath _finderPathCountByR_I;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByR_I;
 
 	/**
 	 * Returns all the journal articles where resourcePrimKey = &#63; and indexable = &#63;.
@@ -1923,9 +3448,102 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByR_I.find(
-				finderCache, new Object[] {resourcePrimKey, indexable}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByR_I;
+					finderArgs = new Object[] {resourcePrimKey, indexable};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByR_I;
+				finderArgs = new Object[] {
+					resourcePrimKey, indexable, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((resourcePrimKey !=
+								journalArticle.getResourcePrimKey()) ||
+							(indexable != journalArticle.isIndexable())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_R_I_RESOURCEPRIMKEY_2);
+
+				sb.append(_FINDER_COLUMN_R_I_INDEXABLE_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(resourcePrimKey);
+
+					queryPos.add(indexable);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1951,10 +3569,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByR_I.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {resourcePrimKey, indexable}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("resourcePrimKey=");
+		sb.append(resourcePrimKey);
+
+		sb.append(", indexable=");
+		sb.append(indexable);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -1970,9 +3597,14 @@ public class JournalArticlePersistenceImpl
 		long resourcePrimKey, boolean indexable,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByR_I.fetchFirst(
-			finderCache, new Object[] {resourcePrimKey, indexable},
-			orderByComparator);
+		List<JournalArticle> list = findByR_I(
+			resourcePrimKey, indexable, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1983,8 +3615,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByR_I(long resourcePrimKey, boolean indexable) {
-		_collectionPersistenceFinderByR_I.remove(
-			finderCache, new Object[] {resourcePrimKey, indexable});
+		for (JournalArticle journalArticle :
+				findByR_I(
+					resourcePrimKey, indexable, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -2000,10 +3637,58 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByR_I.count(
-				finderCache, new Object[] {resourcePrimKey, indexable});
+			FinderPath finderPath = _finderPathCountByR_I;
+
+			Object[] finderArgs = new Object[] {resourcePrimKey, indexable};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_R_I_RESOURCEPRIMKEY_2);
+
+				sb.append(_FINDER_COLUMN_R_I_INDEXABLE_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(resourcePrimKey);
+
+					queryPos.add(indexable);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_R_I_RESOURCEPRIMKEY_2 =
+		"journalArticle.resourcePrimKey = ? AND ";
+
+	private static final String _FINDER_COLUMN_R_I_INDEXABLE_2 =
+		"journalArticle.indexable = ?";
 
 	private FinderPath _finderPathWithPaginationFindByR_ST;
 	private FinderPath _finderPathWithoutPaginationFindByR_ST;
@@ -2627,8 +4312,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_U;
 	private FinderPath _finderPathWithoutPaginationFindByG_U;
 	private FinderPath _finderPathCountByG_U;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_U;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and userId = &#63;.
@@ -2710,9 +4393,101 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_U.find(
-				finderCache, new Object[] {groupId, userId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_U;
+					finderArgs = new Object[] {groupId, userId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_U;
+				finderArgs = new Object[] {
+					groupId, userId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							(userId != journalArticle.getUserId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_U_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_U_USERID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(userId);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -2738,9 +4513,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_U.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, userId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -2756,8 +4541,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, long userId,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_U.fetchFirst(
-			finderCache, new Object[] {groupId, userId}, orderByComparator);
+		List<JournalArticle> list = findByG_U(
+			groupId, userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2917,8 +4708,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_U(long groupId, long userId) {
-		_collectionPersistenceFinderByG_U.remove(
-			finderCache, new Object[] {groupId, userId});
+		for (JournalArticle journalArticle :
+				findByG_U(
+					groupId, userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -2934,8 +4730,50 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_U.count(
-				finderCache, new Object[] {groupId, userId});
+			FinderPath finderPath = _finderPathCountByG_U;
+
+			Object[] finderArgs = new Object[] {groupId, userId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_U_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_U_USERID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(userId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -3010,8 +4848,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_ERC;
 	private FinderPath _finderPathWithoutPaginationFindByG_ERC;
 	private FinderPath _finderPathCountByG_ERC;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_ERC;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and externalReferenceCode = &#63;.
@@ -3098,9 +4934,116 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_ERC.find(
-				finderCache, new Object[] {groupId, externalReferenceCode},
-				start, end, orderByComparator, useFinderCache);
+			externalReferenceCode = Objects.toString(externalReferenceCode, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_ERC;
+					finderArgs = new Object[] {groupId, externalReferenceCode};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_ERC;
+				finderArgs = new Object[] {
+					groupId, externalReferenceCode, start, end,
+					orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							!externalReferenceCode.equals(
+								journalArticle.getExternalReferenceCode())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_ERC_GROUPID_2);
+
+				boolean bindExternalReferenceCode = false;
+
+				if (externalReferenceCode.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_ERC_EXTERNALREFERENCECODE_3);
+				}
+				else {
+					bindExternalReferenceCode = true;
+
+					sb.append(_FINDER_COLUMN_G_ERC_EXTERNALREFERENCECODE_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindExternalReferenceCode) {
+						queryPos.add(externalReferenceCode);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -3126,10 +5069,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_ERC.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, externalReferenceCode}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", externalReferenceCode=");
+		sb.append(externalReferenceCode);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -3145,9 +5097,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, String externalReferenceCode,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_ERC.fetchFirst(
-			finderCache, new Object[] {groupId, externalReferenceCode},
-			orderByComparator);
+		List<JournalArticle> list = findByG_ERC(
+			groupId, externalReferenceCode, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -3325,8 +5282,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_ERC(long groupId, String externalReferenceCode) {
-		_collectionPersistenceFinderByG_ERC.remove(
-			finderCache, new Object[] {groupId, externalReferenceCode});
+		for (JournalArticle journalArticle :
+				findByG_ERC(
+					groupId, externalReferenceCode, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -3342,8 +5304,63 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_ERC.count(
-				finderCache, new Object[] {groupId, externalReferenceCode});
+			externalReferenceCode = Objects.toString(externalReferenceCode, "");
+
+			FinderPath finderPath = _finderPathCountByG_ERC;
+
+			Object[] finderArgs = new Object[] {groupId, externalReferenceCode};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_ERC_GROUPID_2);
+
+				boolean bindExternalReferenceCode = false;
+
+				if (externalReferenceCode.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_ERC_EXTERNALREFERENCECODE_3);
+				}
+				else {
+					bindExternalReferenceCode = true;
+
+					sb.append(_FINDER_COLUMN_G_ERC_EXTERNALREFERENCECODE_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindExternalReferenceCode) {
+						queryPos.add(externalReferenceCode);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -4497,8 +6514,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_A;
 	private FinderPath _finderPathWithoutPaginationFindByG_A;
 	private FinderPath _finderPathCountByG_A;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_A;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and articleId = &#63;.
@@ -4581,9 +6596,114 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_A.find(
-				finderCache, new Object[] {groupId, articleId}, start, end,
-				orderByComparator, useFinderCache);
+			articleId = Objects.toString(articleId, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_A;
+					finderArgs = new Object[] {groupId, articleId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_A;
+				finderArgs = new Object[] {
+					groupId, articleId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							!articleId.equals(journalArticle.getArticleId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_A_GROUPID_2);
+
+				boolean bindArticleId = false;
+
+				if (articleId.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_A_ARTICLEID_3);
+				}
+				else {
+					bindArticleId = true;
+
+					sb.append(_FINDER_COLUMN_G_A_ARTICLEID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindArticleId) {
+						queryPos.add(articleId);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -4609,9 +6729,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_A.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, articleId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", articleId=");
+		sb.append(articleId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -4627,8 +6757,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, String articleId,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_A.fetchFirst(
-			finderCache, new Object[] {groupId, articleId}, orderByComparator);
+		List<JournalArticle> list = findByG_A(
+			groupId, articleId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -4803,8 +6939,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_A(long groupId, String articleId) {
-		_collectionPersistenceFinderByG_A.remove(
-			finderCache, new Object[] {groupId, articleId});
+		for (JournalArticle journalArticle :
+				findByG_A(
+					groupId, articleId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -4820,8 +6961,63 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_A.count(
-				finderCache, new Object[] {groupId, articleId});
+			articleId = Objects.toString(articleId, "");
+
+			FinderPath finderPath = _finderPathCountByG_A;
+
+			Object[] finderArgs = new Object[] {groupId, articleId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_A_GROUPID_2);
+
+				boolean bindArticleId = false;
+
+				if (articleId.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_A_ARTICLEID_3);
+				}
+				else {
+					bindArticleId = true;
+
+					sb.append(_FINDER_COLUMN_G_A_ARTICLEID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindArticleId) {
+						queryPos.add(articleId);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -4913,8 +7109,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_UT;
 	private FinderPath _finderPathWithoutPaginationFindByG_UT;
 	private FinderPath _finderPathCountByG_UT;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_UT;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and urlTitle = &#63;.
@@ -4997,9 +7191,114 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_UT.find(
-				finderCache, new Object[] {groupId, urlTitle}, start, end,
-				orderByComparator, useFinderCache);
+			urlTitle = Objects.toString(urlTitle, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_UT;
+					finderArgs = new Object[] {groupId, urlTitle};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_UT;
+				finderArgs = new Object[] {
+					groupId, urlTitle, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							!urlTitle.equals(journalArticle.getUrlTitle())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_UT_GROUPID_2);
+
+				boolean bindUrlTitle = false;
+
+				if (urlTitle.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_UT_URLTITLE_3);
+				}
+				else {
+					bindUrlTitle = true;
+
+					sb.append(_FINDER_COLUMN_G_UT_URLTITLE_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindUrlTitle) {
+						queryPos.add(urlTitle);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -5025,9 +7324,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_UT.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, urlTitle}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", urlTitle=");
+		sb.append(urlTitle);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -5043,8 +7352,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, String urlTitle,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_UT.fetchFirst(
-			finderCache, new Object[] {groupId, urlTitle}, orderByComparator);
+		List<JournalArticle> list = findByG_UT(
+			groupId, urlTitle, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -5219,8 +7534,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_UT(long groupId, String urlTitle) {
-		_collectionPersistenceFinderByG_UT.remove(
-			finderCache, new Object[] {groupId, urlTitle});
+		for (JournalArticle journalArticle :
+				findByG_UT(
+					groupId, urlTitle, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -5236,8 +7556,63 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_UT.count(
-				finderCache, new Object[] {groupId, urlTitle});
+			urlTitle = Objects.toString(urlTitle, "");
+
+			FinderPath finderPath = _finderPathCountByG_UT;
+
+			Object[] finderArgs = new Object[] {groupId, urlTitle};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_UT_GROUPID_2);
+
+				boolean bindUrlTitle = false;
+
+				if (urlTitle.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_UT_URLTITLE_3);
+				}
+				else {
+					bindUrlTitle = true;
+
+					sb.append(_FINDER_COLUMN_G_UT_URLTITLE_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindUrlTitle) {
+						queryPos.add(urlTitle);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -5329,8 +7704,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_DDMSI;
 	private FinderPath _finderPathWithoutPaginationFindByG_DDMSI;
 	private FinderPath _finderPathCountByG_DDMSI;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_DDMSI;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and DDMStructureId = &#63;.
@@ -5416,9 +7789,102 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_DDMSI.find(
-				finderCache, new Object[] {groupId, DDMStructureId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_DDMSI;
+					finderArgs = new Object[] {groupId, DDMStructureId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_DDMSI;
+				finderArgs = new Object[] {
+					groupId, DDMStructureId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							(DDMStructureId !=
+								journalArticle.getDDMStructureId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_DDMSI_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_DDMSI_DDMSTRUCTUREID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(DDMStructureId);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -5444,10 +7910,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_DDMSI.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, DDMStructureId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", DDMStructureId=");
+		sb.append(DDMStructureId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -5463,9 +7938,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, long DDMStructureId,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_DDMSI.fetchFirst(
-			finderCache, new Object[] {groupId, DDMStructureId},
-			orderByComparator);
+		List<JournalArticle> list = findByG_DDMSI(
+			groupId, DDMStructureId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -5629,8 +8109,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_DDMSI(long groupId, long DDMStructureId) {
-		_collectionPersistenceFinderByG_DDMSI.remove(
-			finderCache, new Object[] {groupId, DDMStructureId});
+		for (JournalArticle journalArticle :
+				findByG_DDMSI(
+					groupId, DDMStructureId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -5646,8 +8131,50 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_DDMSI.count(
-				finderCache, new Object[] {groupId, DDMStructureId});
+			FinderPath finderPath = _finderPathCountByG_DDMSI;
+
+			Object[] finderArgs = new Object[] {groupId, DDMStructureId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_DDMSI_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_DDMSI_DDMSTRUCTUREID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(DDMStructureId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -5723,8 +8250,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_DDMTK;
 	private FinderPath _finderPathWithoutPaginationFindByG_DDMTK;
 	private FinderPath _finderPathCountByG_DDMTK;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_DDMTK;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and DDMTemplateKey = &#63;.
@@ -5810,9 +8335,115 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_DDMTK.find(
-				finderCache, new Object[] {groupId, DDMTemplateKey}, start, end,
-				orderByComparator, useFinderCache);
+			DDMTemplateKey = Objects.toString(DDMTemplateKey, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_DDMTK;
+					finderArgs = new Object[] {groupId, DDMTemplateKey};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_DDMTK;
+				finderArgs = new Object[] {
+					groupId, DDMTemplateKey, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							!DDMTemplateKey.equals(
+								journalArticle.getDDMTemplateKey())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_DDMTK_GROUPID_2);
+
+				boolean bindDDMTemplateKey = false;
+
+				if (DDMTemplateKey.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_DDMTK_DDMTEMPLATEKEY_3);
+				}
+				else {
+					bindDDMTemplateKey = true;
+
+					sb.append(_FINDER_COLUMN_G_DDMTK_DDMTEMPLATEKEY_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindDDMTemplateKey) {
+						queryPos.add(DDMTemplateKey);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -5838,10 +8469,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_DDMTK.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, DDMTemplateKey}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", DDMTemplateKey=");
+		sb.append(DDMTemplateKey);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -5857,9 +8497,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, String DDMTemplateKey,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_DDMTK.fetchFirst(
-			finderCache, new Object[] {groupId, DDMTemplateKey},
-			orderByComparator);
+		List<JournalArticle> list = findByG_DDMTK(
+			groupId, DDMTemplateKey, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -6036,8 +8681,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_DDMTK(long groupId, String DDMTemplateKey) {
-		_collectionPersistenceFinderByG_DDMTK.remove(
-			finderCache, new Object[] {groupId, DDMTemplateKey});
+		for (JournalArticle journalArticle :
+				findByG_DDMTK(
+					groupId, DDMTemplateKey, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -6053,8 +8703,63 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_DDMTK.count(
-				finderCache, new Object[] {groupId, DDMTemplateKey});
+			DDMTemplateKey = Objects.toString(DDMTemplateKey, "");
+
+			FinderPath finderPath = _finderPathCountByG_DDMTK;
+
+			Object[] finderArgs = new Object[] {groupId, DDMTemplateKey};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_DDMTK_GROUPID_2);
+
+				boolean bindDDMTemplateKey = false;
+
+				if (DDMTemplateKey.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_DDMTK_DDMTEMPLATEKEY_3);
+				}
+				else {
+					bindDDMTemplateKey = true;
+
+					sb.append(_FINDER_COLUMN_G_DDMTK_DDMTEMPLATEKEY_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindDDMTemplateKey) {
+						queryPos.add(DDMTemplateKey);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -6146,8 +8851,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_L;
 	private FinderPath _finderPathWithoutPaginationFindByG_L;
 	private FinderPath _finderPathCountByG_L;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_L;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and layoutUuid = &#63;.
@@ -6230,9 +8933,115 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_L.find(
-				finderCache, new Object[] {groupId, layoutUuid}, start, end,
-				orderByComparator, useFinderCache);
+			layoutUuid = Objects.toString(layoutUuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_L;
+					finderArgs = new Object[] {groupId, layoutUuid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_L;
+				finderArgs = new Object[] {
+					groupId, layoutUuid, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							!layoutUuid.equals(
+								journalArticle.getLayoutUuid())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_L_GROUPID_2);
+
+				boolean bindLayoutUuid = false;
+
+				if (layoutUuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_L_LAYOUTUUID_3);
+				}
+				else {
+					bindLayoutUuid = true;
+
+					sb.append(_FINDER_COLUMN_G_L_LAYOUTUUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindLayoutUuid) {
+						queryPos.add(layoutUuid);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -6258,9 +9067,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_L.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, layoutUuid}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", layoutUuid=");
+		sb.append(layoutUuid);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -6276,8 +9095,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, String layoutUuid,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_L.fetchFirst(
-			finderCache, new Object[] {groupId, layoutUuid}, orderByComparator);
+		List<JournalArticle> list = findByG_L(
+			groupId, layoutUuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -6453,8 +9278,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_L(long groupId, String layoutUuid) {
-		_collectionPersistenceFinderByG_L.remove(
-			finderCache, new Object[] {groupId, layoutUuid});
+		for (JournalArticle journalArticle :
+				findByG_L(
+					groupId, layoutUuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -6470,8 +9300,63 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_L.count(
-				finderCache, new Object[] {groupId, layoutUuid});
+			layoutUuid = Objects.toString(layoutUuid, "");
+
+			FinderPath finderPath = _finderPathCountByG_L;
+
+			Object[] finderArgs = new Object[] {groupId, layoutUuid};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_L_GROUPID_2);
+
+				boolean bindLayoutUuid = false;
+
+				if (layoutUuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_L_LAYOUTUUID_3);
+				}
+				else {
+					bindLayoutUuid = true;
+
+					sb.append(_FINDER_COLUMN_G_L_LAYOUTUUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindLayoutUuid) {
+						queryPos.add(layoutUuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -6563,8 +9448,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_ST;
 	private FinderPath _finderPathWithoutPaginationFindByG_ST;
 	private FinderPath _finderPathCountByG_ST;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_ST;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and status = &#63;.
@@ -6646,9 +9529,101 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_ST.find(
-				finderCache, new Object[] {groupId, status}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_ST;
+					finderArgs = new Object[] {groupId, status};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_ST;
+				finderArgs = new Object[] {
+					groupId, status, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							(status != journalArticle.getStatus())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_ST_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_ST_STATUS_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(status);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -6674,9 +9649,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_ST.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, status}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -6692,8 +9677,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, int status,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_ST.fetchFirst(
-			finderCache, new Object[] {groupId, status}, orderByComparator);
+		List<JournalArticle> list = findByG_ST(
+			groupId, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -6853,8 +9844,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_ST(long groupId, int status) {
-		_collectionPersistenceFinderByG_ST.remove(
-			finderCache, new Object[] {groupId, status});
+		for (JournalArticle journalArticle :
+				findByG_ST(
+					groupId, status, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -6870,8 +9866,50 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_ST.count(
-				finderCache, new Object[] {groupId, status});
+			FinderPath finderPath = _finderPathCountByG_ST;
+
+			Object[] finderArgs = new Object[] {groupId, status};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_ST_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_ST_STATUS_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(status);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -6946,8 +9984,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByC_V;
 	private FinderPath _finderPathWithoutPaginationFindByC_V;
 	private FinderPath _finderPathCountByC_V;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByC_V;
 
 	/**
 	 * Returns all the journal articles where companyId = &#63; and version = &#63;.
@@ -7030,9 +10066,101 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByC_V.find(
-				finderCache, new Object[] {companyId, version}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_V;
+					finderArgs = new Object[] {companyId, version};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_V;
+				finderArgs = new Object[] {
+					companyId, version, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((companyId != journalArticle.getCompanyId()) ||
+							(version != journalArticle.getVersion())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_V_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_V_VERSION_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(version);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -7058,9 +10186,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByC_V.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, version}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", version=");
+		sb.append(version);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -7076,8 +10214,14 @@ public class JournalArticlePersistenceImpl
 		long companyId, double version,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_V.fetchFirst(
-			finderCache, new Object[] {companyId, version}, orderByComparator);
+		List<JournalArticle> list = findByC_V(
+			companyId, version, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -7088,8 +10232,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByC_V(long companyId, double version) {
-		_collectionPersistenceFinderByC_V.remove(
-			finderCache, new Object[] {companyId, version});
+		for (JournalArticle journalArticle :
+				findByC_V(
+					companyId, version, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -7105,16 +10254,62 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByC_V.count(
-				finderCache, new Object[] {companyId, version});
+			FinderPath finderPath = _finderPathCountByC_V;
+
+			Object[] finderArgs = new Object[] {companyId, version};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_V_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_V_VERSION_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(version);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_C_V_COMPANYID_2 =
+		"journalArticle.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_V_VERSION_2 =
+		"journalArticle.version = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_ST;
 	private FinderPath _finderPathWithoutPaginationFindByC_ST;
 	private FinderPath _finderPathCountByC_ST;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByC_ST;
 
 	/**
 	 * Returns all the journal articles where companyId = &#63; and status = &#63;.
@@ -7197,9 +10392,101 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByC_ST.find(
-				finderCache, new Object[] {companyId, status}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_ST;
+					finderArgs = new Object[] {companyId, status};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_ST;
+				finderArgs = new Object[] {
+					companyId, status, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((companyId != journalArticle.getCompanyId()) ||
+							(status != journalArticle.getStatus())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_ST_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_ST_STATUS_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(status);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -7225,9 +10512,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByC_ST.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, status}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -7243,8 +10540,14 @@ public class JournalArticlePersistenceImpl
 		long companyId, int status,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_ST.fetchFirst(
-			finderCache, new Object[] {companyId, status}, orderByComparator);
+		List<JournalArticle> list = findByC_ST(
+			companyId, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -7255,8 +10558,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByC_ST(long companyId, int status) {
-		_collectionPersistenceFinderByC_ST.remove(
-			finderCache, new Object[] {companyId, status});
+		for (JournalArticle journalArticle :
+				findByC_ST(
+					companyId, status, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -7272,15 +10580,61 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByC_ST.count(
-				finderCache, new Object[] {companyId, status});
+			FinderPath finderPath = _finderPathCountByC_ST;
+
+			Object[] finderArgs = new Object[] {companyId, status};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_ST_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_ST_STATUS_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(status);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_C_ST_COMPANYID_2 =
+		"journalArticle.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_ST_STATUS_2 =
+		"journalArticle.status = ?";
+
 	private FinderPath _finderPathWithPaginationFindByC_NotST;
 	private FinderPath _finderPathWithPaginationCountByC_NotST;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByC_NotST;
 
 	/**
 	 * Returns all the journal articles where companyId = &#63; and status &ne; &#63;.
@@ -7363,9 +10717,91 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByC_NotST.find(
-				finderCache, new Object[] {companyId, status}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			finderPath = _finderPathWithPaginationFindByC_NotST;
+			finderArgs = new Object[] {
+				companyId, status, start, end, orderByComparator
+			};
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((companyId != journalArticle.getCompanyId()) ||
+							(status == journalArticle.getStatus())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_NOTST_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_NOTST_STATUS_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(status);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -7391,9 +10827,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByC_NotST.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, status}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", status!=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -7409,8 +10855,14 @@ public class JournalArticlePersistenceImpl
 		long companyId, int status,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_NotST.fetchFirst(
-			finderCache, new Object[] {companyId, status}, orderByComparator);
+		List<JournalArticle> list = findByC_NotST(
+			companyId, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -7421,8 +10873,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByC_NotST(long companyId, int status) {
-		_collectionPersistenceFinderByC_NotST.remove(
-			finderCache, new Object[] {companyId, status});
+		for (JournalArticle journalArticle :
+				findByC_NotST(
+					companyId, status, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -7438,15 +10895,61 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByC_NotST.count(
-				finderCache, new Object[] {companyId, status});
+			FinderPath finderPath = _finderPathWithPaginationCountByC_NotST;
+
+			Object[] finderArgs = new Object[] {companyId, status};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_NOTST_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_NOTST_STATUS_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(status);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_C_NOTST_COMPANYID_2 =
+		"journalArticle.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_NOTST_STATUS_2 =
+		"journalArticle.status != ?";
+
 	private FinderPath _finderPathWithPaginationFindByLtD_S;
 	private FinderPath _finderPathWithPaginationCountByLtD_S;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByLtD_S;
 
 	/**
 	 * Returns all the journal articles where displayDate &lt; &#63; and status = &#63;.
@@ -7529,9 +11032,104 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByLtD_S.find(
-				finderCache, new Object[] {displayDate, status}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			finderPath = _finderPathWithPaginationFindByLtD_S;
+			finderArgs = new Object[] {
+				_getTime(displayDate), status, start, end, orderByComparator
+			};
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((displayDate.getTime() <=
+								journalArticle.getDisplayDate(
+								).getTime()) ||
+							(status != journalArticle.getStatus())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				boolean bindDisplayDate = false;
+
+				if (displayDate == null) {
+					sb.append(_FINDER_COLUMN_LTD_S_DISPLAYDATE_1);
+				}
+				else {
+					bindDisplayDate = true;
+
+					sb.append(_FINDER_COLUMN_LTD_S_DISPLAYDATE_2);
+				}
+
+				sb.append(_FINDER_COLUMN_LTD_S_STATUS_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindDisplayDate) {
+						queryPos.add(new Timestamp(displayDate.getTime()));
+					}
+
+					queryPos.add(status);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -7557,9 +11155,19 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByLtD_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {displayDate, status}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("displayDate<");
+		sb.append(displayDate);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -7575,8 +11183,14 @@ public class JournalArticlePersistenceImpl
 		Date displayDate, int status,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByLtD_S.fetchFirst(
-			finderCache, new Object[] {displayDate, status}, orderByComparator);
+		List<JournalArticle> list = findByLtD_S(
+			displayDate, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -7587,8 +11201,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByLtD_S(Date displayDate, int status) {
-		_collectionPersistenceFinderByLtD_S.remove(
-			finderCache, new Object[] {displayDate, status});
+		for (JournalArticle journalArticle :
+				findByLtD_S(
+					displayDate, status, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -7604,10 +11223,72 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByLtD_S.count(
-				finderCache, new Object[] {displayDate, status});
+			FinderPath finderPath = _finderPathWithPaginationCountByLtD_S;
+
+			Object[] finderArgs = new Object[] {_getTime(displayDate), status};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				boolean bindDisplayDate = false;
+
+				if (displayDate == null) {
+					sb.append(_FINDER_COLUMN_LTD_S_DISPLAYDATE_1);
+				}
+				else {
+					bindDisplayDate = true;
+
+					sb.append(_FINDER_COLUMN_LTD_S_DISPLAYDATE_2);
+				}
+
+				sb.append(_FINDER_COLUMN_LTD_S_STATUS_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindDisplayDate) {
+						queryPos.add(new Timestamp(displayDate.getTime()));
+					}
+
+					queryPos.add(status);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_LTD_S_DISPLAYDATE_1 =
+		"journalArticle.displayDate IS NULL AND ";
+
+	private static final String _FINDER_COLUMN_LTD_S_DISPLAYDATE_2 =
+		"journalArticle.displayDate < ? AND ";
+
+	private static final String _FINDER_COLUMN_LTD_S_STATUS_2 =
+		"journalArticle.status = ?";
 
 	private FinderPath _finderPathWithPaginationFindByR_I_S;
 	private FinderPath _finderPathWithoutPaginationFindByR_I_S;
@@ -8288,8 +11969,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_U_C;
 	private FinderPath _finderPathWithoutPaginationFindByG_U_C;
 	private FinderPath _finderPathCountByG_U_C;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_U_C;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and userId = &#63; and classNameId = &#63;.
@@ -8379,9 +12058,106 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_U_C.find(
-				finderCache, new Object[] {groupId, userId, classNameId}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_U_C;
+					finderArgs = new Object[] {groupId, userId, classNameId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_U_C;
+				finderArgs = new Object[] {
+					groupId, userId, classNameId, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							(userId != journalArticle.getUserId()) ||
+							(classNameId != journalArticle.getClassNameId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_U_C_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_U_C_USERID_2);
+
+				sb.append(_FINDER_COLUMN_G_U_C_CLASSNAMEID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(userId);
+
+					queryPos.add(classNameId);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -8408,10 +12184,22 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_U_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, userId, classNameId}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", userId=");
+		sb.append(userId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -8428,9 +12216,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, long userId, long classNameId,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_U_C.fetchFirst(
-			finderCache, new Object[] {groupId, userId, classNameId},
-			orderByComparator);
+		List<JournalArticle> list = findByG_U_C(
+			groupId, userId, classNameId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -8603,8 +12396,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_U_C(long groupId, long userId, long classNameId) {
-		_collectionPersistenceFinderByG_U_C.remove(
-			finderCache, new Object[] {groupId, userId, classNameId});
+		for (JournalArticle journalArticle :
+				findByG_U_C(
+					groupId, userId, classNameId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -8621,8 +12419,54 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_U_C.count(
-				finderCache, new Object[] {groupId, userId, classNameId});
+			FinderPath finderPath = _finderPathCountByG_U_C;
+
+			Object[] finderArgs = new Object[] {groupId, userId, classNameId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_U_C_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_U_C_USERID_2);
+
+				sb.append(_FINDER_COLUMN_G_U_C_CLASSNAMEID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(userId);
+
+					queryPos.add(classNameId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -8704,8 +12548,6 @@ public class JournalArticlePersistenceImpl
 		"journalArticle.classNameId = ?";
 
 	private FinderPath _finderPathFetchByG_ERC_V;
-	private UniquePersistenceFinder<JournalArticle>
-		_uniquePersistenceFinderByG_ERC_V;
 
 	/**
 	 * Returns the journal article where groupId = &#63; and externalReferenceCode = &#63; and version = &#63; or throws a <code>NoSuchArticleException</code> if it could not be found.
@@ -8725,16 +12567,26 @@ public class JournalArticlePersistenceImpl
 			groupId, externalReferenceCode, version);
 
 		if (journalArticle == null) {
-			String message =
-				_uniquePersistenceFinderByG_ERC_V.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {groupId, externalReferenceCode, version});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append(", externalReferenceCode=");
+			sb.append(externalReferenceCode);
+
+			sb.append(", version=");
+			sb.append(version);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchArticleException(message);
+			throw new NoSuchArticleException(sb.toString());
 		}
 
 		return journalArticle;
@@ -8773,10 +12625,105 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _uniquePersistenceFinderByG_ERC_V.fetch(
-				finderCache,
-				new Object[] {groupId, externalReferenceCode, version},
-				useFinderCache);
+			externalReferenceCode = Objects.toString(externalReferenceCode, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {
+					groupId, externalReferenceCode, version
+				};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByG_ERC_V, finderArgs, this);
+			}
+
+			if (result instanceof JournalArticle) {
+				JournalArticle journalArticle = (JournalArticle)result;
+
+				if ((groupId != journalArticle.getGroupId()) ||
+					!Objects.equals(
+						externalReferenceCode,
+						journalArticle.getExternalReferenceCode()) ||
+					(version != journalArticle.getVersion())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_ERC_V_GROUPID_2);
+
+				boolean bindExternalReferenceCode = false;
+
+				if (externalReferenceCode.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_ERC_V_EXTERNALREFERENCECODE_3);
+				}
+				else {
+					bindExternalReferenceCode = true;
+
+					sb.append(_FINDER_COLUMN_G_ERC_V_EXTERNALREFERENCECODE_2);
+				}
+
+				sb.append(_FINDER_COLUMN_G_ERC_V_VERSION_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindExternalReferenceCode) {
+						queryPos.add(externalReferenceCode);
+					}
+
+					queryPos.add(version);
+
+					List<JournalArticle> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByG_ERC_V, finderArgs, list);
+						}
+					}
+					else {
+						JournalArticle journalArticle = list.get(0);
+
+						result = journalArticle;
+
+						cacheResult(journalArticle);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (JournalArticle)result;
+			}
 		}
 	}
 
@@ -8811,10 +12758,27 @@ public class JournalArticlePersistenceImpl
 	public int countByG_ERC_V(
 		long groupId, String externalReferenceCode, double version) {
 
-		return _uniquePersistenceFinderByG_ERC_V.count(
-			finderCache,
-			new Object[] {groupId, externalReferenceCode, version});
+		JournalArticle journalArticle = fetchByG_ERC_V(
+			groupId, externalReferenceCode, version);
+
+		if (journalArticle == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_G_ERC_V_GROUPID_2 =
+		"journalArticle.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_ERC_V_EXTERNALREFERENCECODE_2 =
+		"journalArticle.externalReferenceCode = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_ERC_V_EXTERNALREFERENCECODE_3 =
+		"(journalArticle.externalReferenceCode IS NULL OR journalArticle.externalReferenceCode = '') AND ";
+
+	private static final String _FINDER_COLUMN_G_ERC_V_VERSION_2 =
+		"journalArticle.version = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_ERC_ST;
 	private FinderPath _finderPathWithoutPaginationFindByG_ERC_ST;
@@ -11237,8 +15201,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_C_C;
 	private FinderPath _finderPathWithoutPaginationFindByG_C_C;
 	private FinderPath _finderPathCountByG_C_C;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_C_C;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and classNameId = &#63; and classPK = &#63;.
@@ -11328,9 +15290,106 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_C_C.find(
-				finderCache, new Object[] {groupId, classNameId, classPK},
-				start, end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_C_C;
+					finderArgs = new Object[] {groupId, classNameId, classPK};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_C_C;
+				finderArgs = new Object[] {
+					groupId, classNameId, classPK, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							(classNameId != journalArticle.getClassNameId()) ||
+							(classPK != journalArticle.getClassPK())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_C_C_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_C_CLASSPK_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -11357,10 +15416,22 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_C_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, classNameId, classPK}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", classPK=");
+		sb.append(classPK);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -11377,9 +15448,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, long classNameId, long classPK,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_C_C.fetchFirst(
-			finderCache, new Object[] {groupId, classNameId, classPK},
-			orderByComparator);
+		List<JournalArticle> list = findByG_C_C(
+			groupId, classNameId, classPK, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -11552,8 +15628,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_C_C(long groupId, long classNameId, long classPK) {
-		_collectionPersistenceFinderByG_C_C.remove(
-			finderCache, new Object[] {groupId, classNameId, classPK});
+		for (JournalArticle journalArticle :
+				findByG_C_C(
+					groupId, classNameId, classPK, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -11570,8 +15651,54 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_C_C.count(
-				finderCache, new Object[] {groupId, classNameId, classPK});
+			FinderPath finderPath = _finderPathCountByG_C_C;
+
+			Object[] finderArgs = new Object[] {groupId, classNameId, classPK};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_C_C_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_C_CLASSPK_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -11655,8 +15782,6 @@ public class JournalArticlePersistenceImpl
 		"journalArticle.classPK = ?";
 
 	private FinderPath _finderPathFetchByG_C_DDMSI;
-	private UniquePersistenceFinder<JournalArticle>
-		_uniquePersistenceFinderByG_C_DDMSI;
 
 	/**
 	 * Returns the journal article where groupId = &#63; and classNameId = &#63; and DDMStructureId = &#63; or throws a <code>NoSuchArticleException</code> if it could not be found.
@@ -11676,16 +15801,26 @@ public class JournalArticlePersistenceImpl
 			groupId, classNameId, DDMStructureId);
 
 		if (journalArticle == null) {
-			String message =
-				_uniquePersistenceFinderByG_C_DDMSI.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {groupId, classNameId, DDMStructureId});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append(", classNameId=");
+			sb.append(classNameId);
+
+			sb.append(", DDMStructureId=");
+			sb.append(DDMStructureId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchArticleException(message);
+			throw new NoSuchArticleException(sb.toString());
 		}
 
 		return journalArticle;
@@ -11724,10 +15859,107 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _uniquePersistenceFinderByG_C_DDMSI.fetch(
-				finderCache,
-				new Object[] {groupId, classNameId, DDMStructureId},
-				useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {
+					groupId, classNameId, DDMStructureId
+				};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByG_C_DDMSI, finderArgs, this);
+			}
+
+			if (result instanceof JournalArticle) {
+				JournalArticle journalArticle = (JournalArticle)result;
+
+				if ((groupId != journalArticle.getGroupId()) ||
+					(classNameId != journalArticle.getClassNameId()) ||
+					(DDMStructureId != journalArticle.getDDMStructureId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_C_DDMSI_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_DDMSI_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_DDMSI_DDMSTRUCTUREID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(DDMStructureId);
+
+					List<JournalArticle> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByG_C_DDMSI, finderArgs, list);
+						}
+					}
+					else {
+						if (list.size() > 1) {
+							Collections.sort(list, Collections.reverseOrder());
+
+							if (_log.isWarnEnabled()) {
+								if (!useFinderCache) {
+									finderArgs = new Object[] {
+										groupId, classNameId, DDMStructureId
+									};
+								}
+
+								_log.warn(
+									"JournalArticlePersistenceImpl.fetchByG_C_DDMSI(long, long, long, boolean) with parameters (" +
+										StringUtil.merge(finderArgs) +
+											") yields a result set with more than 1 result. This violates the logical unique restriction. There is no order guarantee on which result is returned by this finder.");
+							}
+						}
+
+						JournalArticle journalArticle = list.get(0);
+
+						result = journalArticle;
+
+						cacheResult(journalArticle);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (JournalArticle)result;
+			}
 		}
 	}
 
@@ -11762,15 +15994,28 @@ public class JournalArticlePersistenceImpl
 	public int countByG_C_DDMSI(
 		long groupId, long classNameId, long DDMStructureId) {
 
-		return _uniquePersistenceFinderByG_C_DDMSI.count(
-			finderCache, new Object[] {groupId, classNameId, DDMStructureId});
+		JournalArticle journalArticle = fetchByG_C_DDMSI(
+			groupId, classNameId, DDMStructureId);
+
+		if (journalArticle == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_G_C_DDMSI_GROUPID_2 =
+		"journalArticle.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_C_DDMSI_CLASSNAMEID_2 =
+		"journalArticle.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_C_DDMSI_DDMSTRUCTUREID_2 =
+		"journalArticle.DDMStructureId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_C_DDMTK;
 	private FinderPath _finderPathWithoutPaginationFindByG_C_DDMTK;
 	private FinderPath _finderPathCountByG_C_DDMTK;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_C_DDMTK;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and classNameId = &#63; and DDMTemplateKey = &#63;.
@@ -11863,10 +16108,123 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_C_DDMTK.find(
-				finderCache,
-				new Object[] {groupId, classNameId, DDMTemplateKey}, start, end,
-				orderByComparator, useFinderCache);
+			DDMTemplateKey = Objects.toString(DDMTemplateKey, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_C_DDMTK;
+					finderArgs = new Object[] {
+						groupId, classNameId, DDMTemplateKey
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_C_DDMTK;
+				finderArgs = new Object[] {
+					groupId, classNameId, DDMTemplateKey, start, end,
+					orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							(classNameId != journalArticle.getClassNameId()) ||
+							!DDMTemplateKey.equals(
+								journalArticle.getDDMTemplateKey())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_C_DDMTK_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_DDMTK_CLASSNAMEID_2);
+
+				boolean bindDDMTemplateKey = false;
+
+				if (DDMTemplateKey.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_C_DDMTK_DDMTEMPLATEKEY_3);
+				}
+				else {
+					bindDDMTemplateKey = true;
+
+					sb.append(_FINDER_COLUMN_G_C_DDMTK_DDMTEMPLATEKEY_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(classNameId);
+
+					if (bindDDMTemplateKey) {
+						queryPos.add(DDMTemplateKey);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -11893,10 +16251,22 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_C_DDMTK.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, classNameId, DDMTemplateKey}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", DDMTemplateKey=");
+		sb.append(DDMTemplateKey);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -11913,9 +16283,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, long classNameId, String DDMTemplateKey,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_C_DDMTK.fetchFirst(
-			finderCache, new Object[] {groupId, classNameId, DDMTemplateKey},
-			orderByComparator);
+		List<JournalArticle> list = findByG_C_DDMTK(
+			groupId, classNameId, DDMTemplateKey, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -12105,8 +16480,13 @@ public class JournalArticlePersistenceImpl
 	public void removeByG_C_DDMTK(
 		long groupId, long classNameId, String DDMTemplateKey) {
 
-		_collectionPersistenceFinderByG_C_DDMTK.remove(
-			finderCache, new Object[] {groupId, classNameId, DDMTemplateKey});
+		for (JournalArticle journalArticle :
+				findByG_C_DDMTK(
+					groupId, classNameId, DDMTemplateKey, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -12125,9 +16505,69 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_C_DDMTK.count(
-				finderCache,
-				new Object[] {groupId, classNameId, DDMTemplateKey});
+			DDMTemplateKey = Objects.toString(DDMTemplateKey, "");
+
+			FinderPath finderPath = _finderPathCountByG_C_DDMTK;
+
+			Object[] finderArgs = new Object[] {
+				groupId, classNameId, DDMTemplateKey
+			};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_C_DDMTK_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_DDMTK_CLASSNAMEID_2);
+
+				boolean bindDDMTemplateKey = false;
+
+				if (DDMTemplateKey.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_C_DDMTK_DDMTEMPLATEKEY_3);
+				}
+				else {
+					bindDDMTemplateKey = true;
+
+					sb.append(_FINDER_COLUMN_G_C_DDMTK_DDMTEMPLATEKEY_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(classNameId);
+
+					if (bindDDMTemplateKey) {
+						queryPos.add(DDMTemplateKey);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -12229,8 +16669,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_C_L;
 	private FinderPath _finderPathWithoutPaginationFindByG_C_L;
 	private FinderPath _finderPathCountByG_C_L;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_C_L;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and classNameId = &#63; and layoutUuid = &#63;.
@@ -12321,9 +16759,123 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_C_L.find(
-				finderCache, new Object[] {groupId, classNameId, layoutUuid},
-				start, end, orderByComparator, useFinderCache);
+			layoutUuid = Objects.toString(layoutUuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_C_L;
+					finderArgs = new Object[] {
+						groupId, classNameId, layoutUuid
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_C_L;
+				finderArgs = new Object[] {
+					groupId, classNameId, layoutUuid, start, end,
+					orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							(classNameId != journalArticle.getClassNameId()) ||
+							!layoutUuid.equals(
+								journalArticle.getLayoutUuid())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_C_L_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_L_CLASSNAMEID_2);
+
+				boolean bindLayoutUuid = false;
+
+				if (layoutUuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_C_L_LAYOUTUUID_3);
+				}
+				else {
+					bindLayoutUuid = true;
+
+					sb.append(_FINDER_COLUMN_G_C_L_LAYOUTUUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(classNameId);
+
+					if (bindLayoutUuid) {
+						queryPos.add(layoutUuid);
+					}
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -12350,10 +16902,22 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_C_L.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, classNameId, layoutUuid}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", layoutUuid=");
+		sb.append(layoutUuid);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -12370,9 +16934,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, long classNameId, String layoutUuid,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_C_L.fetchFirst(
-			finderCache, new Object[] {groupId, classNameId, layoutUuid},
-			orderByComparator);
+		List<JournalArticle> list = findByG_C_L(
+			groupId, classNameId, layoutUuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -12561,8 +17130,13 @@ public class JournalArticlePersistenceImpl
 	public void removeByG_C_L(
 		long groupId, long classNameId, String layoutUuid) {
 
-		_collectionPersistenceFinderByG_C_L.remove(
-			finderCache, new Object[] {groupId, classNameId, layoutUuid});
+		for (JournalArticle journalArticle :
+				findByG_C_L(
+					groupId, classNameId, layoutUuid, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -12579,8 +17153,69 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_C_L.count(
-				finderCache, new Object[] {groupId, classNameId, layoutUuid});
+			layoutUuid = Objects.toString(layoutUuid, "");
+
+			FinderPath finderPath = _finderPathCountByG_C_L;
+
+			Object[] finderArgs = new Object[] {
+				groupId, classNameId, layoutUuid
+			};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_C_L_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_C_L_CLASSNAMEID_2);
+
+				boolean bindLayoutUuid = false;
+
+				if (layoutUuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_C_L_LAYOUTUUID_3);
+				}
+				else {
+					bindLayoutUuid = true;
+
+					sb.append(_FINDER_COLUMN_G_C_L_LAYOUTUUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(classNameId);
+
+					if (bindLayoutUuid) {
+						queryPos.add(layoutUuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -13956,8 +18591,6 @@ public class JournalArticlePersistenceImpl
 		"(journalArticle.layoutUuid IS NULL OR journalArticle.layoutUuid != '')";
 
 	private FinderPath _finderPathFetchByG_A_V;
-	private UniquePersistenceFinder<JournalArticle>
-		_uniquePersistenceFinderByG_A_V;
 
 	/**
 	 * Returns the journal article where groupId = &#63; and articleId = &#63; and version = &#63; or throws a <code>NoSuchArticleException</code> if it could not be found.
@@ -13977,16 +18610,26 @@ public class JournalArticlePersistenceImpl
 			groupId, articleId, version);
 
 		if (journalArticle == null) {
-			String message =
-				_uniquePersistenceFinderByG_A_V.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {groupId, articleId, version});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append(", articleId=");
+			sb.append(articleId);
+
+			sb.append(", version=");
+			sb.append(version);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchArticleException(message);
+			throw new NoSuchArticleException(sb.toString());
 		}
 
 		return journalArticle;
@@ -14025,9 +18668,101 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _uniquePersistenceFinderByG_A_V.fetch(
-				finderCache, new Object[] {groupId, articleId, version},
-				useFinderCache);
+			articleId = Objects.toString(articleId, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {groupId, articleId, version};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByG_A_V, finderArgs, this);
+			}
+
+			if (result instanceof JournalArticle) {
+				JournalArticle journalArticle = (JournalArticle)result;
+
+				if ((groupId != journalArticle.getGroupId()) ||
+					!Objects.equals(articleId, journalArticle.getArticleId()) ||
+					(version != journalArticle.getVersion())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_A_V_GROUPID_2);
+
+				boolean bindArticleId = false;
+
+				if (articleId.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_A_V_ARTICLEID_3);
+				}
+				else {
+					bindArticleId = true;
+
+					sb.append(_FINDER_COLUMN_G_A_V_ARTICLEID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_G_A_V_VERSION_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindArticleId) {
+						queryPos.add(articleId);
+					}
+
+					queryPos.add(version);
+
+					List<JournalArticle> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByG_A_V, finderArgs, list);
+						}
+					}
+					else {
+						JournalArticle journalArticle = list.get(0);
+
+						result = journalArticle;
+
+						cacheResult(journalArticle);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (JournalArticle)result;
+			}
 		}
 	}
 
@@ -14060,9 +18795,27 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public int countByG_A_V(long groupId, String articleId, double version) {
-		return _uniquePersistenceFinderByG_A_V.count(
-			finderCache, new Object[] {groupId, articleId, version});
+		JournalArticle journalArticle = fetchByG_A_V(
+			groupId, articleId, version);
+
+		if (journalArticle == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_G_A_V_GROUPID_2 =
+		"journalArticle.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_A_V_ARTICLEID_2 =
+		"journalArticle.articleId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_A_V_ARTICLEID_3 =
+		"(journalArticle.articleId IS NULL OR journalArticle.articleId = '') AND ";
+
+	private static final String _FINDER_COLUMN_G_A_V_VERSION_2 =
+		"journalArticle.version = ?";
 
 	private FinderPath _finderPathWithPaginationFindByG_A_ST;
 	private FinderPath _finderPathWithoutPaginationFindByG_A_ST;
@@ -15313,8 +20066,6 @@ public class JournalArticlePersistenceImpl
 
 	private FinderPath _finderPathWithPaginationFindByG_A_NotST;
 	private FinderPath _finderPathWithPaginationCountByG_A_NotST;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_A_NotST;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and articleId = &#63; and status &ne; &#63;.
@@ -15404,9 +20155,109 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_A_NotST.find(
-				finderCache, new Object[] {groupId, articleId, status}, start,
-				end, orderByComparator, useFinderCache);
+			articleId = Objects.toString(articleId, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			finderPath = _finderPathWithPaginationFindByG_A_NotST;
+			finderArgs = new Object[] {
+				groupId, articleId, status, start, end, orderByComparator
+			};
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							!articleId.equals(journalArticle.getArticleId()) ||
+							(status == journalArticle.getStatus())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_A_NOTST_GROUPID_2);
+
+				boolean bindArticleId = false;
+
+				if (articleId.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_A_NOTST_ARTICLEID_3);
+				}
+				else {
+					bindArticleId = true;
+
+					sb.append(_FINDER_COLUMN_G_A_NOTST_ARTICLEID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_G_A_NOTST_STATUS_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindArticleId) {
+						queryPos.add(articleId);
+					}
+
+					queryPos.add(status);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -15433,10 +20284,22 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_A_NotST.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, articleId, status}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", articleId=");
+		sb.append(articleId);
+
+		sb.append(", status!=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -15453,9 +20316,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, String articleId, int status,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_A_NotST.fetchFirst(
-			finderCache, new Object[] {groupId, articleId, status},
-			orderByComparator);
+		List<JournalArticle> list = findByG_A_NotST(
+			groupId, articleId, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -15641,8 +20509,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_A_NotST(long groupId, String articleId, int status) {
-		_collectionPersistenceFinderByG_A_NotST.remove(
-			finderCache, new Object[] {groupId, articleId, status});
+		for (JournalArticle journalArticle :
+				findByG_A_NotST(
+					groupId, articleId, status, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -15659,8 +20532,67 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_A_NotST.count(
-				finderCache, new Object[] {groupId, articleId, status});
+			articleId = Objects.toString(articleId, "");
+
+			FinderPath finderPath = _finderPathWithPaginationCountByG_A_NotST;
+
+			Object[] finderArgs = new Object[] {groupId, articleId, status};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_A_NOTST_GROUPID_2);
+
+				boolean bindArticleId = false;
+
+				if (articleId.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_A_NOTST_ARTICLEID_3);
+				}
+				else {
+					bindArticleId = true;
+
+					sb.append(_FINDER_COLUMN_G_A_NOTST_ARTICLEID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_G_A_NOTST_STATUS_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindArticleId) {
+						queryPos.add(articleId);
+					}
+
+					queryPos.add(status);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -15762,8 +20694,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_UT_ST;
 	private FinderPath _finderPathWithoutPaginationFindByG_UT_ST;
 	private FinderPath _finderPathCountByG_UT_ST;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_UT_ST;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and urlTitle = &#63; and status = &#63;.
@@ -15853,9 +20783,119 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_UT_ST.find(
-				finderCache, new Object[] {groupId, urlTitle, status}, start,
-				end, orderByComparator, useFinderCache);
+			urlTitle = Objects.toString(urlTitle, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByG_UT_ST;
+					finderArgs = new Object[] {groupId, urlTitle, status};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByG_UT_ST;
+				finderArgs = new Object[] {
+					groupId, urlTitle, status, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							!urlTitle.equals(journalArticle.getUrlTitle()) ||
+							(status != journalArticle.getStatus())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_UT_ST_GROUPID_2);
+
+				boolean bindUrlTitle = false;
+
+				if (urlTitle.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_UT_ST_URLTITLE_3);
+				}
+				else {
+					bindUrlTitle = true;
+
+					sb.append(_FINDER_COLUMN_G_UT_ST_URLTITLE_2);
+				}
+
+				sb.append(_FINDER_COLUMN_G_UT_ST_STATUS_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindUrlTitle) {
+						queryPos.add(urlTitle);
+					}
+
+					queryPos.add(status);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -15882,10 +20922,22 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_UT_ST.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, urlTitle, status}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", urlTitle=");
+		sb.append(urlTitle);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -15902,9 +20954,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, String urlTitle, int status,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_UT_ST.fetchFirst(
-			finderCache, new Object[] {groupId, urlTitle, status},
-			orderByComparator);
+		List<JournalArticle> list = findByG_UT_ST(
+			groupId, urlTitle, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -16089,8 +21146,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByG_UT_ST(long groupId, String urlTitle, int status) {
-		_collectionPersistenceFinderByG_UT_ST.remove(
-			finderCache, new Object[] {groupId, urlTitle, status});
+		for (JournalArticle journalArticle :
+				findByG_UT_ST(
+					groupId, urlTitle, status, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -16107,8 +21169,67 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_UT_ST.count(
-				finderCache, new Object[] {groupId, urlTitle, status});
+			urlTitle = Objects.toString(urlTitle, "");
+
+			FinderPath finderPath = _finderPathCountByG_UT_ST;
+
+			Object[] finderArgs = new Object[] {groupId, urlTitle, status};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_UT_ST_GROUPID_2);
+
+				boolean bindUrlTitle = false;
+
+				if (urlTitle.isEmpty()) {
+					sb.append(_FINDER_COLUMN_G_UT_ST_URLTITLE_3);
+				}
+				else {
+					bindUrlTitle = true;
+
+					sb.append(_FINDER_COLUMN_G_UT_ST_URLTITLE_2);
+				}
+
+				sb.append(_FINDER_COLUMN_G_UT_ST_STATUS_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					if (bindUrlTitle) {
+						queryPos.add(urlTitle);
+					}
+
+					queryPos.add(status);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -16208,8 +21329,6 @@ public class JournalArticlePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByC_V_ST;
 	private FinderPath _finderPathWithoutPaginationFindByC_V_ST;
 	private FinderPath _finderPathCountByC_V_ST;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByC_V_ST;
 
 	/**
 	 * Returns all the journal articles where companyId = &#63; and version = &#63; and status = &#63;.
@@ -16299,9 +21418,106 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByC_V_ST.find(
-				finderCache, new Object[] {companyId, version, status}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_V_ST;
+					finderArgs = new Object[] {companyId, version, status};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_V_ST;
+				finderArgs = new Object[] {
+					companyId, version, status, start, end, orderByComparator
+				};
+			}
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((companyId != journalArticle.getCompanyId()) ||
+							(version != journalArticle.getVersion()) ||
+							(status != journalArticle.getStatus())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_V_ST_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_V_ST_VERSION_2);
+
+				sb.append(_FINDER_COLUMN_C_V_ST_STATUS_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(version);
+
+					queryPos.add(status);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -16328,10 +21544,22 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByC_V_ST.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, version, status}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", version=");
+		sb.append(version);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -16348,9 +21576,14 @@ public class JournalArticlePersistenceImpl
 		long companyId, double version, int status,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_V_ST.fetchFirst(
-			finderCache, new Object[] {companyId, version, status},
-			orderByComparator);
+		List<JournalArticle> list = findByC_V_ST(
+			companyId, version, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -16362,8 +21595,13 @@ public class JournalArticlePersistenceImpl
 	 */
 	@Override
 	public void removeByC_V_ST(long companyId, double version, int status) {
-		_collectionPersistenceFinderByC_V_ST.remove(
-			finderCache, new Object[] {companyId, version, status});
+		for (JournalArticle journalArticle :
+				findByC_V_ST(
+					companyId, version, status, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -16380,15 +21618,68 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByC_V_ST.count(
-				finderCache, new Object[] {companyId, version, status});
+			FinderPath finderPath = _finderPathCountByC_V_ST;
+
+			Object[] finderArgs = new Object[] {companyId, version, status};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_V_ST_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_V_ST_VERSION_2);
+
+				sb.append(_FINDER_COLUMN_C_V_ST_STATUS_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(version);
+
+					queryPos.add(status);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_C_V_ST_COMPANYID_2 =
+		"journalArticle.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_V_ST_VERSION_2 =
+		"journalArticle.version = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_V_ST_STATUS_2 =
+		"journalArticle.status = ?";
+
 	private FinderPath _finderPathWithPaginationFindByG_F_C_NotST;
 	private FinderPath _finderPathWithPaginationCountByG_F_C_NotST;
-	private CollectionPersistenceFinder<JournalArticle>
-		_collectionPersistenceFinderByG_F_C_NotST;
 
 	/**
 	 * Returns all the journal articles where groupId = &#63; and folderId = &#63; and classNameId = &#63; and status &ne; &#63;.
@@ -16485,10 +21776,102 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_F_C_NotST.find(
-				finderCache,
-				new Object[] {groupId, folderId, classNameId, status}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			finderPath = _finderPathWithPaginationFindByG_F_C_NotST;
+			finderArgs = new Object[] {
+				groupId, folderId, classNameId, status, start, end,
+				orderByComparator
+			};
+
+			List<JournalArticle> list = null;
+
+			if (useFinderCache) {
+				list = (List<JournalArticle>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (JournalArticle journalArticle : list) {
+						if ((groupId != journalArticle.getGroupId()) ||
+							(folderId != journalArticle.getFolderId()) ||
+							(classNameId != journalArticle.getClassNameId()) ||
+							(status == journalArticle.getStatus())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						6 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(6);
+				}
+
+				sb.append(_SQL_SELECT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_F_C_NOTST_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_F_C_NOTST_FOLDERID_2);
+
+				sb.append(_FINDER_COLUMN_G_F_C_NOTST_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_G_F_C_NOTST_STATUS_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(JournalArticleModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(folderId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(status);
+
+					list = (List<JournalArticle>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -16516,10 +21899,25 @@ public class JournalArticlePersistenceImpl
 			return journalArticle;
 		}
 
-		throw new NoSuchArticleException(
-			_collectionPersistenceFinderByG_F_C_NotST.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, folderId, classNameId, status}));
+		StringBundler sb = new StringBundler(10);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", folderId=");
+		sb.append(folderId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", status!=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchArticleException(sb.toString());
 	}
 
 	/**
@@ -16537,9 +21935,14 @@ public class JournalArticlePersistenceImpl
 		long groupId, long folderId, long classNameId, int status,
 		OrderByComparator<JournalArticle> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_F_C_NotST.fetchFirst(
-			finderCache, new Object[] {groupId, folderId, classNameId, status},
-			orderByComparator);
+		List<JournalArticle> list = findByG_F_C_NotST(
+			groupId, folderId, classNameId, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -16724,8 +22127,13 @@ public class JournalArticlePersistenceImpl
 	public void removeByG_F_C_NotST(
 		long groupId, long folderId, long classNameId, int status) {
 
-		_collectionPersistenceFinderByG_F_C_NotST.remove(
-			finderCache, new Object[] {groupId, folderId, classNameId, status});
+		for (JournalArticle journalArticle :
+				findByG_F_C_NotST(
+					groupId, folderId, classNameId, status, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(journalArticle);
+		}
 	}
 
 	/**
@@ -16745,9 +22153,60 @@ public class JournalArticlePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					JournalArticle.class)) {
 
-			return _collectionPersistenceFinderByG_F_C_NotST.count(
-				finderCache,
-				new Object[] {groupId, folderId, classNameId, status});
+			FinderPath finderPath = _finderPathWithPaginationCountByG_F_C_NotST;
+
+			Object[] finderArgs = new Object[] {
+				groupId, folderId, classNameId, status
+			};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_COUNT_JOURNALARTICLE_WHERE);
+
+				sb.append(_FINDER_COLUMN_G_F_C_NOTST_GROUPID_2);
+
+				sb.append(_FINDER_COLUMN_G_F_C_NOTST_FOLDERID_2);
+
+				sb.append(_FINDER_COLUMN_G_F_C_NOTST_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_G_F_C_NOTST_STATUS_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(groupId);
+
+					queryPos.add(folderId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(status);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
@@ -16935,6 +22394,48 @@ public class JournalArticlePersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all journal articles.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(JournalArticleImpl.class);
+
+		finderCache.clearCache(JournalArticleImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the journal article.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(JournalArticle journalArticle) {
+		entityCache.removeResult(JournalArticleImpl.class, journalArticle);
+	}
+
+	@Override
+	public void clearCache(List<JournalArticle> journalArticles) {
+		for (JournalArticle journalArticle : journalArticles) {
+			entityCache.removeResult(JournalArticleImpl.class, journalArticle);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(JournalArticleImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(JournalArticleImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		JournalArticleModelImpl journalArticleModelImpl) {
 
@@ -17011,6 +22512,47 @@ public class JournalArticlePersistenceImpl
 	@Override
 	public JournalArticle remove(long id) throws NoSuchArticleException {
 		return remove((Serializable)id);
+	}
+
+	/**
+	 * Removes the journal article with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the journal article
+	 * @return the journal article that was removed
+	 * @throws NoSuchArticleException if a journal article with the primary key could not be found
+	 */
+	@Override
+	public JournalArticle remove(Serializable primaryKey)
+		throws NoSuchArticleException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			JournalArticle journalArticle = (JournalArticle)session.get(
+				JournalArticleImpl.class, primaryKey);
+
+			if (journalArticle == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchArticleException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(journalArticle);
+		}
+		catch (NoSuchArticleException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -17180,6 +22722,31 @@ public class JournalArticlePersistenceImpl
 	}
 
 	/**
+	 * Returns the journal article with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the journal article
+	 * @return the journal article
+	 * @throws NoSuchArticleException if a journal article with the primary key could not be found
+	 */
+	@Override
+	public JournalArticle findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchArticleException {
+
+		JournalArticle journalArticle = fetchByPrimaryKey(primaryKey);
+
+		if (journalArticle == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchArticleException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return journalArticle;
+	}
+
+	/**
 	 * Returns the journal article with the primary key or throws a <code>NoSuchArticleException</code> if it could not be found.
 	 *
 	 * @param id the primary key of the journal article
@@ -17193,9 +22760,52 @@ public class JournalArticlePersistenceImpl
 		return findByPrimaryKey((Serializable)id);
 	}
 
+	/**
+	 * Returns the journal article with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the journal article
+	 * @return the journal article, or <code>null</code> if a journal article with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public JournalArticle fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				JournalArticle.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		JournalArticle journalArticle = (JournalArticle)entityCache.getResult(
+			JournalArticleImpl.class, primaryKey);
+
+		if (journalArticle != null) {
+			return journalArticle;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			journalArticle = (JournalArticle)session.get(
+				JournalArticleImpl.class, primaryKey);
+
+			if (journalArticle != null) {
+				cacheResult(journalArticle);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return journalArticle;
 	}
 
 	/**
@@ -17207,6 +22817,132 @@ public class JournalArticlePersistenceImpl
 	@Override
 	public JournalArticle fetchByPrimaryKey(long id) {
 		return fetchByPrimaryKey((Serializable)id);
+	}
+
+	@Override
+	public Map<Serializable, JournalArticle> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(JournalArticle.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, JournalArticle> map =
+			new HashMap<Serializable, JournalArticle>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			JournalArticle journalArticle = fetchByPrimaryKey(primaryKey);
+
+			if (journalArticle != null) {
+				map.put(primaryKey, journalArticle);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						JournalArticle.class, primaryKey)) {
+
+				JournalArticle journalArticle =
+					(JournalArticle)entityCache.getResult(
+						JournalArticleImpl.class, primaryKey);
+
+				if (journalArticle == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, journalArticle);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (JournalArticle journalArticle :
+					(List<JournalArticle>)query.list()) {
+
+				map.put(journalArticle.getPrimaryKeyObj(), journalArticle);
+
+				cacheResult(journalArticle);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -17555,19 +23291,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"resourcePrimKey"}, false);
 
-		_collectionPersistenceFinderByResourcePrimKey =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByResourcePrimKey,
-				_finderPathWithoutPaginationFindByResourcePrimKey,
-				_finderPathCountByResourcePrimKey,
-				_SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "resourcePrimKey",
-					FinderColumn.Type.LONG, "=", true, true,
-					JournalArticle::getResourcePrimKey));
-
 		_finderPathWithPaginationFindByUuid = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid",
 			new String[] {
@@ -17586,28 +23309,10 @@ public class JournalArticlePersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "uuid", FinderColumn.Type.STRING, "=", true,
-				true, JournalArticle::getUuid));
-
 		_finderPathFetchByUUID_G = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByUUID_G",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "groupId"}, true);
-
-		_uniquePersistenceFinderByUUID_G = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByUUID_G, _SQL_SELECT_JOURNALARTICLE_WHERE,
-			new FinderColumn<>(
-				"journalArticle.", "uuid", FinderColumn.Type.STRING, "=", true,
-				false, JournalArticle::getUuid),
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				true, JournalArticle::getGroupId));
 
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
@@ -17628,20 +23333,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "uuid", FinderColumn.Type.STRING, "=",
-					true, false, JournalArticle::getUuid),
-				new FinderColumn<>(
-					"journalArticle.", "companyId", FinderColumn.Type.LONG, "=",
-					true, true, JournalArticle::getCompanyId));
-
 		_finderPathWithPaginationFindByGroupId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByGroupId",
 			new String[] {
@@ -17659,17 +23350,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByGroupId",
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
-
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "groupId", FinderColumn.Type.LONG, "=",
-					true, true, JournalArticle::getGroupId));
 
 		_finderPathWithPaginationFindByCompanyId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCompanyId",
@@ -17689,17 +23369,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "companyId", FinderColumn.Type.LONG, "=",
-					true, true, JournalArticle::getCompanyId));
-
 		_finderPathWithPaginationFindByDDMStructureId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByDDMStructureId",
 			new String[] {
@@ -17717,18 +23386,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByDDMStructureId",
 			new String[] {Long.class.getName()},
 			new String[] {"DDMStructureId"}, false);
-
-		_collectionPersistenceFinderByDDMStructureId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByDDMStructureId,
-				_finderPathWithoutPaginationFindByDDMStructureId,
-				_finderPathCountByDDMStructureId,
-				_SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "DDMStructureId", FinderColumn.Type.LONG,
-					"=", true, true, JournalArticle::getDDMStructureId));
 
 		_finderPathWithPaginationFindByDDMTemplateKey = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByDDMTemplateKey",
@@ -17748,19 +23405,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {String.class.getName()},
 			new String[] {"DDMTemplateKey"}, false);
 
-		_collectionPersistenceFinderByDDMTemplateKey =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByDDMTemplateKey,
-				_finderPathWithoutPaginationFindByDDMTemplateKey,
-				_finderPathCountByDDMTemplateKey,
-				_SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "DDMTemplateKey",
-					FinderColumn.Type.STRING, "=", true, true,
-					JournalArticle::getDDMTemplateKey));
-
 		_finderPathWithPaginationFindByLayoutUuid = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLayoutUuid",
 			new String[] {
@@ -17778,17 +23422,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByLayoutUuid",
 			new String[] {String.class.getName()}, new String[] {"layoutUuid"},
 			false);
-
-		_collectionPersistenceFinderByLayoutUuid =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLayoutUuid,
-				_finderPathWithoutPaginationFindByLayoutUuid,
-				_finderPathCountByLayoutUuid, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "layoutUuid", FinderColumn.Type.STRING,
-					"=", true, true, JournalArticle::getLayoutUuid));
 
 		_finderPathWithPaginationFindBySmallImageId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findBySmallImageId",
@@ -17808,18 +23441,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"smallImageId"},
 			false);
 
-		_collectionPersistenceFinderBySmallImageId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindBySmallImageId,
-				_finderPathWithoutPaginationFindBySmallImageId,
-				_finderPathCountBySmallImageId,
-				_SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "smallImageId", FinderColumn.Type.LONG,
-					"=", true, true, JournalArticle::getSmallImageId));
-
 		_finderPathWithPaginationFindByR_I = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByR_I",
 			new String[] {
@@ -17838,18 +23459,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByR_I",
 			new String[] {Long.class.getName(), Boolean.class.getName()},
 			new String[] {"resourcePrimKey", "indexable"}, false);
-
-		_collectionPersistenceFinderByR_I = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByR_I,
-			_finderPathWithoutPaginationFindByR_I, _finderPathCountByR_I,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "resourcePrimKey", FinderColumn.Type.LONG,
-				"=", true, false, JournalArticle::getResourcePrimKey),
-			new FinderColumn<>(
-				"journalArticle.", "indexable", FinderColumn.Type.BOOLEAN, "=",
-				true, true, JournalArticle::isIndexable));
 
 		_finderPathWithPaginationFindByR_ST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByR_ST",
@@ -17894,18 +23503,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"groupId", "userId"}, false);
 
-		_collectionPersistenceFinderByG_U = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_U,
-			_finderPathWithoutPaginationFindByG_U, _finderPathCountByG_U,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "userId", FinderColumn.Type.LONG, "=", true,
-				true, JournalArticle::getUserId));
-
 		_finderPathWithPaginationFindByG_ERC = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_ERC",
 			new String[] {
@@ -17924,19 +23521,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByG_ERC",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"groupId", "externalReferenceCode"}, false);
-
-		_collectionPersistenceFinderByG_ERC = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_ERC,
-			_finderPathWithoutPaginationFindByG_ERC, _finderPathCountByG_ERC,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "externalReferenceCode",
-				FinderColumn.Type.STRING, "=", true, true,
-				JournalArticle::getExternalReferenceCode));
 
 		_finderPathWithPaginationFindByG_F = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_F",
@@ -17981,18 +23565,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"groupId", "articleId"}, false);
 
-		_collectionPersistenceFinderByG_A = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_A,
-			_finderPathWithoutPaginationFindByG_A, _finderPathCountByG_A,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "articleId", FinderColumn.Type.STRING, "=",
-				true, true, JournalArticle::getArticleId));
-
 		_finderPathWithPaginationFindByG_UT = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_UT",
 			new String[] {
@@ -18011,18 +23583,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByG_UT",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"groupId", "urlTitle"}, false);
-
-		_collectionPersistenceFinderByG_UT = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_UT,
-			_finderPathWithoutPaginationFindByG_UT, _finderPathCountByG_UT,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "urlTitle", FinderColumn.Type.STRING, "=",
-				true, true, JournalArticle::getUrlTitle));
 
 		_finderPathWithPaginationFindByG_DDMSI = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_DDMSI",
@@ -18043,20 +23603,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"groupId", "DDMStructureId"}, false);
 
-		_collectionPersistenceFinderByG_DDMSI =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByG_DDMSI,
-				_finderPathWithoutPaginationFindByG_DDMSI,
-				_finderPathCountByG_DDMSI, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "groupId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getGroupId),
-				new FinderColumn<>(
-					"journalArticle.", "DDMStructureId", FinderColumn.Type.LONG,
-					"=", true, true, JournalArticle::getDDMStructureId));
-
 		_finderPathWithPaginationFindByG_DDMTK = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_DDMTK",
 			new String[] {
@@ -18075,21 +23621,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByG_DDMTK",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"groupId", "DDMTemplateKey"}, false);
-
-		_collectionPersistenceFinderByG_DDMTK =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByG_DDMTK,
-				_finderPathWithoutPaginationFindByG_DDMTK,
-				_finderPathCountByG_DDMTK, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "groupId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getGroupId),
-				new FinderColumn<>(
-					"journalArticle.", "DDMTemplateKey",
-					FinderColumn.Type.STRING, "=", true, true,
-					JournalArticle::getDDMTemplateKey));
 
 		_finderPathWithPaginationFindByG_L = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_L",
@@ -18110,18 +23641,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"groupId", "layoutUuid"}, false);
 
-		_collectionPersistenceFinderByG_L = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_L,
-			_finderPathWithoutPaginationFindByG_L, _finderPathCountByG_L,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "layoutUuid", FinderColumn.Type.STRING, "=",
-				true, true, JournalArticle::getLayoutUuid));
-
 		_finderPathWithPaginationFindByG_ST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_ST",
 			new String[] {
@@ -18140,18 +23659,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByG_ST",
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"groupId", "status"}, false);
-
-		_collectionPersistenceFinderByG_ST = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_ST,
-			_finderPathWithoutPaginationFindByG_ST, _finderPathCountByG_ST,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "status", FinderColumn.Type.INTEGER, "=",
-				true, true, JournalArticle::getStatus));
 
 		_finderPathWithPaginationFindByC_V = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_V",
@@ -18172,18 +23679,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName(), Double.class.getName()},
 			new String[] {"companyId", "version"}, false);
 
-		_collectionPersistenceFinderByC_V = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_V,
-			_finderPathWithoutPaginationFindByC_V, _finderPathCountByC_V,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, JournalArticle::getCompanyId),
-			new FinderColumn<>(
-				"journalArticle.", "version", FinderColumn.Type.DOUBLE, "=",
-				true, true, JournalArticle::getVersion));
-
 		_finderPathWithPaginationFindByC_ST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_ST",
 			new String[] {
@@ -18203,18 +23698,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"companyId", "status"}, false);
 
-		_collectionPersistenceFinderByC_ST = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_ST,
-			_finderPathWithoutPaginationFindByC_ST, _finderPathCountByC_ST,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, JournalArticle::getCompanyId),
-			new FinderColumn<>(
-				"journalArticle.", "status", FinderColumn.Type.INTEGER, "=",
-				true, true, JournalArticle::getStatus));
-
 		_finderPathWithPaginationFindByC_NotST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_NotST",
 			new String[] {
@@ -18229,20 +23712,6 @@ public class JournalArticlePersistenceImpl
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"companyId", "status"}, false);
 
-		_collectionPersistenceFinderByC_NotST =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_NotST, null,
-				_finderPathWithPaginationCountByC_NotST,
-				_SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "companyId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getCompanyId),
-				new FinderColumn<>(
-					"journalArticle.", "status", FinderColumn.Type.INTEGER,
-					"!=", true, true, JournalArticle::getStatus));
-
 		_finderPathWithPaginationFindByLtD_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLtD_S",
 			new String[] {
@@ -18256,18 +23725,6 @@ public class JournalArticlePersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByLtD_S",
 			new String[] {Date.class.getName(), Integer.class.getName()},
 			new String[] {"displayDate", "status"}, false);
-
-		_collectionPersistenceFinderByLtD_S = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByLtD_S, null,
-			_finderPathWithPaginationCountByLtD_S,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "displayDate", FinderColumn.Type.DATE, "<",
-				true, false, JournalArticle::getDisplayDate),
-			new FinderColumn<>(
-				"journalArticle.", "status", FinderColumn.Type.INTEGER, "=",
-				true, true, JournalArticle::getStatus));
 
 		_finderPathWithPaginationFindByR_I_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByR_I_S",
@@ -18325,21 +23782,6 @@ public class JournalArticlePersistenceImpl
 			},
 			new String[] {"groupId", "userId", "classNameId"}, false);
 
-		_collectionPersistenceFinderByG_U_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_U_C,
-			_finderPathWithoutPaginationFindByG_U_C, _finderPathCountByG_U_C,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "userId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getUserId),
-			new FinderColumn<>(
-				"journalArticle.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, true, JournalArticle::getClassNameId));
-
 		_finderPathFetchByG_ERC_V = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByG_ERC_V",
 			new String[] {
@@ -18347,19 +23789,6 @@ public class JournalArticlePersistenceImpl
 				Double.class.getName()
 			},
 			new String[] {"groupId", "externalReferenceCode", "version"}, true);
-
-		_uniquePersistenceFinderByG_ERC_V = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByG_ERC_V, _SQL_SELECT_JOURNALARTICLE_WHERE,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "externalReferenceCode",
-				FinderColumn.Type.STRING, "=", true, false,
-				JournalArticle::getExternalReferenceCode),
-			new FinderColumn<>(
-				"journalArticle.", "version", FinderColumn.Type.DOUBLE, "=",
-				true, true, JournalArticle::getVersion));
 
 		_finderPathWithPaginationFindByG_ERC_ST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_ERC_ST",
@@ -18450,39 +23879,12 @@ public class JournalArticlePersistenceImpl
 			},
 			new String[] {"groupId", "classNameId", "classPK"}, false);
 
-		_collectionPersistenceFinderByG_C_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_C_C,
-			_finderPathWithoutPaginationFindByG_C_C, _finderPathCountByG_C_C,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, JournalArticle::getClassNameId),
-			new FinderColumn<>(
-				"journalArticle.", "classPK", FinderColumn.Type.LONG, "=", true,
-				true, JournalArticle::getClassPK));
-
 		_finderPathFetchByG_C_DDMSI = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByG_C_DDMSI",
 			new String[] {
 				Long.class.getName(), Long.class.getName(), Long.class.getName()
 			},
 			new String[] {"groupId", "classNameId", "DDMStructureId"}, true);
-
-		_uniquePersistenceFinderByG_C_DDMSI = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByG_C_DDMSI, _SQL_SELECT_JOURNALARTICLE_WHERE,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, JournalArticle::getClassNameId),
-			new FinderColumn<>(
-				"journalArticle.", "DDMStructureId", FinderColumn.Type.LONG,
-				"=", true, true, JournalArticle::getDDMStructureId));
 
 		_finderPathWithPaginationFindByG_C_DDMTK = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_C_DDMTK",
@@ -18509,24 +23911,6 @@ public class JournalArticlePersistenceImpl
 			},
 			new String[] {"groupId", "classNameId", "DDMTemplateKey"}, false);
 
-		_collectionPersistenceFinderByG_C_DDMTK =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByG_C_DDMTK,
-				_finderPathWithoutPaginationFindByG_C_DDMTK,
-				_finderPathCountByG_C_DDMTK, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "groupId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getGroupId),
-				new FinderColumn<>(
-					"journalArticle.", "classNameId", FinderColumn.Type.LONG,
-					"=", true, false, JournalArticle::getClassNameId),
-				new FinderColumn<>(
-					"journalArticle.", "DDMTemplateKey",
-					FinderColumn.Type.STRING, "=", true, true,
-					JournalArticle::getDDMTemplateKey));
-
 		_finderPathWithPaginationFindByG_C_L = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_C_L",
 			new String[] {
@@ -18552,21 +23936,6 @@ public class JournalArticlePersistenceImpl
 			},
 			new String[] {"groupId", "classNameId", "layoutUuid"}, false);
 
-		_collectionPersistenceFinderByG_C_L = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_C_L,
-			_finderPathWithoutPaginationFindByG_C_L, _finderPathCountByG_C_L,
-			_SQL_SELECT_JOURNALARTICLE_WHERE, _SQL_COUNT_JOURNALARTICLE_WHERE,
-			JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, JournalArticle::getClassNameId),
-			new FinderColumn<>(
-				"journalArticle.", "layoutUuid", FinderColumn.Type.STRING, "=",
-				true, true, JournalArticle::getLayoutUuid));
-
 		_finderPathWithPaginationFindByG_C_NotL = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_C_NotL",
 			new String[] {
@@ -18591,18 +23960,6 @@ public class JournalArticlePersistenceImpl
 				Double.class.getName()
 			},
 			new String[] {"groupId", "articleId", "version"}, true);
-
-		_uniquePersistenceFinderByG_A_V = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByG_A_V, _SQL_SELECT_JOURNALARTICLE_WHERE,
-			new FinderColumn<>(
-				"journalArticle.", "groupId", FinderColumn.Type.LONG, "=", true,
-				false, JournalArticle::getGroupId),
-			new FinderColumn<>(
-				"journalArticle.", "articleId", FinderColumn.Type.STRING, "=",
-				true, false, JournalArticle::getArticleId),
-			new FinderColumn<>(
-				"journalArticle.", "version", FinderColumn.Type.DOUBLE, "=",
-				true, true, JournalArticle::getVersion));
 
 		_finderPathWithPaginationFindByG_A_ST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_A_ST",
@@ -18654,23 +24011,6 @@ public class JournalArticlePersistenceImpl
 			},
 			new String[] {"groupId", "articleId", "status"}, false);
 
-		_collectionPersistenceFinderByG_A_NotST =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByG_A_NotST, null,
-				_finderPathWithPaginationCountByG_A_NotST,
-				_SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "groupId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getGroupId),
-				new FinderColumn<>(
-					"journalArticle.", "articleId", FinderColumn.Type.STRING,
-					"=", true, false, JournalArticle::getArticleId),
-				new FinderColumn<>(
-					"journalArticle.", "status", FinderColumn.Type.INTEGER,
-					"!=", true, true, JournalArticle::getStatus));
-
 		_finderPathWithPaginationFindByG_UT_ST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_UT_ST",
 			new String[] {
@@ -18695,23 +24035,6 @@ public class JournalArticlePersistenceImpl
 				Integer.class.getName()
 			},
 			new String[] {"groupId", "urlTitle", "status"}, false);
-
-		_collectionPersistenceFinderByG_UT_ST =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByG_UT_ST,
-				_finderPathWithoutPaginationFindByG_UT_ST,
-				_finderPathCountByG_UT_ST, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "groupId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getGroupId),
-				new FinderColumn<>(
-					"journalArticle.", "urlTitle", FinderColumn.Type.STRING,
-					"=", true, false, JournalArticle::getUrlTitle),
-				new FinderColumn<>(
-					"journalArticle.", "status", FinderColumn.Type.INTEGER, "=",
-					true, true, JournalArticle::getStatus));
 
 		_finderPathWithPaginationFindByC_V_ST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_V_ST",
@@ -18738,23 +24061,6 @@ public class JournalArticlePersistenceImpl
 			},
 			new String[] {"companyId", "version", "status"}, false);
 
-		_collectionPersistenceFinderByC_V_ST =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_V_ST,
-				_finderPathWithoutPaginationFindByC_V_ST,
-				_finderPathCountByC_V_ST, _SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "companyId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getCompanyId),
-				new FinderColumn<>(
-					"journalArticle.", "version", FinderColumn.Type.DOUBLE, "=",
-					true, false, JournalArticle::getVersion),
-				new FinderColumn<>(
-					"journalArticle.", "status", FinderColumn.Type.INTEGER, "=",
-					true, true, JournalArticle::getStatus));
-
 		_finderPathWithPaginationFindByG_F_C_NotST = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_F_C_NotST",
 			new String[] {
@@ -18774,26 +24080,6 @@ public class JournalArticlePersistenceImpl
 			},
 			new String[] {"groupId", "folderId", "classNameId", "status"},
 			false);
-
-		_collectionPersistenceFinderByG_F_C_NotST =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByG_F_C_NotST, null,
-				_finderPathWithPaginationCountByG_F_C_NotST,
-				_SQL_SELECT_JOURNALARTICLE_WHERE,
-				_SQL_COUNT_JOURNALARTICLE_WHERE,
-				JournalArticleModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"journalArticle.", "groupId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getGroupId),
-				new FinderColumn<>(
-					"journalArticle.", "folderId", FinderColumn.Type.LONG, "=",
-					true, false, JournalArticle::getFolderId),
-				new FinderColumn<>(
-					"journalArticle.", "classNameId", FinderColumn.Type.LONG,
-					"=", true, false, JournalArticle::getClassNameId),
-				new FinderColumn<>(
-					"journalArticle.", "status", FinderColumn.Type.INTEGER,
-					"!=", true, true, JournalArticle::getStatus));
 
 		JournalArticleUtil.setPersistence(this);
 	}
@@ -18840,6 +24126,14 @@ public class JournalArticlePersistenceImpl
 	@Reference
 	protected FinderCache finderCache;
 
+	private static Long _getTime(Date date) {
+		if (date == null) {
+			return null;
+		}
+
+		return date.getTime();
+	}
+
 	private static final String _SQL_SELECT_JOURNALARTICLE =
 		"SELECT journalArticle FROM JournalArticle journalArticle";
 
@@ -18877,6 +24171,9 @@ public class JournalArticlePersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_TABLE = "JournalArticle.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No JournalArticle exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No JournalArticle exists with the key {";
 
@@ -18892,4 +24189,4 @@ public class JournalArticlePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1030184828
+// LIFERAY-SERVICE-BUILDER-HASH:-543158565

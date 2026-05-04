@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -30,8 +31,6 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -45,7 +44,9 @@ import java.lang.reflect.InvocationHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,8 +70,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTSChildPersistence.class)
 public class CTSChildPersistenceImpl
-	extends BasePersistenceImpl<CTSChild, NoSuchCTSChildException>
-	implements CTSChildPersistence {
+	extends BasePersistenceImpl<CTSChild> implements CTSChildPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -92,8 +92,6 @@ public class CTSChildPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<CTSChild>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the cts childs where companyId = &#63;.
@@ -168,9 +166,95 @@ public class CTSChildPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSChild.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.find(
-				finderCache, new Object[] {companyId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByCompanyId;
+					finderArgs = new Object[] {companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByCompanyId;
+				finderArgs = new Object[] {
+					companyId, start, end, orderByComparator
+				};
+			}
+
+			List<CTSChild> list = null;
+
+			if (useFinderCache) {
+				list = (List<CTSChild>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CTSChild ctsChild : list) {
+						if (companyId != ctsChild.getCompanyId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_CTSCHILD_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CTSChildModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					list = (List<CTSChild>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -194,9 +278,16 @@ public class CTSChildPersistenceImpl
 			return ctsChild;
 		}
 
-		throw new NoSuchCTSChildException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchCTSChildException(sb.toString());
 	}
 
 	/**
@@ -210,8 +301,14 @@ public class CTSChildPersistenceImpl
 	public CTSChild fetchByCompanyId_First(
 		long companyId, OrderByComparator<CTSChild> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<CTSChild> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -221,8 +318,12 @@ public class CTSChildPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (CTSChild ctsChild :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(ctsChild);
+		}
 	}
 
 	/**
@@ -237,16 +338,55 @@ public class CTSChildPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSChild.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.count(
-				finderCache, new Object[] {companyId});
+			FinderPath finderPath = _finderPathCountByCompanyId;
+
+			Object[] finderArgs = new Object[] {companyId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_CTSCHILD_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"ctsChild.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C;
 	private FinderPath _finderPathWithoutPaginationFindByC_C;
 	private FinderPath _finderPathCountByC_C;
-	private CollectionPersistenceFinder<CTSChild>
-		_collectionPersistenceFinderByC_C;
 
 	/**
 	 * Returns all the cts childs where companyId = &#63; and ctsGrandParentId = &#63;.
@@ -329,9 +469,102 @@ public class CTSChildPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSChild.class)) {
 
-			return _collectionPersistenceFinderByC_C.find(
-				finderCache, new Object[] {companyId, ctsGrandParentId}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_C;
+					finderArgs = new Object[] {companyId, ctsGrandParentId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_C;
+				finderArgs = new Object[] {
+					companyId, ctsGrandParentId, start, end, orderByComparator
+				};
+			}
+
+			List<CTSChild> list = null;
+
+			if (useFinderCache) {
+				list = (List<CTSChild>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CTSChild ctsChild : list) {
+						if ((companyId != ctsChild.getCompanyId()) ||
+							(ctsGrandParentId !=
+								ctsChild.getCtsGrandParentId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_CTSCHILD_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_CTSGRANDPARENTID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CTSChildModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(ctsGrandParentId);
+
+					list = (List<CTSChild>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -357,10 +590,19 @@ public class CTSChildPersistenceImpl
 			return ctsChild;
 		}
 
-		throw new NoSuchCTSChildException(
-			_collectionPersistenceFinderByC_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, ctsGrandParentId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", ctsGrandParentId=");
+		sb.append(ctsGrandParentId);
+
+		sb.append("}");
+
+		throw new NoSuchCTSChildException(sb.toString());
 	}
 
 	/**
@@ -376,9 +618,14 @@ public class CTSChildPersistenceImpl
 		long companyId, long ctsGrandParentId,
 		OrderByComparator<CTSChild> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C.fetchFirst(
-			finderCache, new Object[] {companyId, ctsGrandParentId},
-			orderByComparator);
+		List<CTSChild> list = findByC_C(
+			companyId, ctsGrandParentId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -389,8 +636,13 @@ public class CTSChildPersistenceImpl
 	 */
 	@Override
 	public void removeByC_C(long companyId, long ctsGrandParentId) {
-		_collectionPersistenceFinderByC_C.remove(
-			finderCache, new Object[] {companyId, ctsGrandParentId});
+		for (CTSChild ctsChild :
+				findByC_C(
+					companyId, ctsGrandParentId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(ctsChild);
+		}
 	}
 
 	/**
@@ -406,16 +658,62 @@ public class CTSChildPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSChild.class)) {
 
-			return _collectionPersistenceFinderByC_C.count(
-				finderCache, new Object[] {companyId, ctsGrandParentId});
+			FinderPath finderPath = _finderPathCountByC_C;
+
+			Object[] finderArgs = new Object[] {companyId, ctsGrandParentId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_CTSCHILD_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_CTSGRANDPARENTID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(ctsGrandParentId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_C_C_COMPANYID_2 =
+		"ctsChild.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_CTSGRANDPARENTID_2 =
+		"ctsChild.ctsGrandParentId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_P;
 	private FinderPath _finderPathWithoutPaginationFindByC_P;
 	private FinderPath _finderPathCountByC_P;
-	private CollectionPersistenceFinder<CTSChild>
-		_collectionPersistenceFinderByC_P;
 
 	/**
 	 * Returns all the cts childs where companyId = &#63; and parentCTSChildId = &#63;.
@@ -498,9 +796,102 @@ public class CTSChildPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSChild.class)) {
 
-			return _collectionPersistenceFinderByC_P.find(
-				finderCache, new Object[] {companyId, parentCTSChildId}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_P;
+					finderArgs = new Object[] {companyId, parentCTSChildId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_P;
+				finderArgs = new Object[] {
+					companyId, parentCTSChildId, start, end, orderByComparator
+				};
+			}
+
+			List<CTSChild> list = null;
+
+			if (useFinderCache) {
+				list = (List<CTSChild>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (CTSChild ctsChild : list) {
+						if ((companyId != ctsChild.getCompanyId()) ||
+							(parentCTSChildId !=
+								ctsChild.getParentCTSChildId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_CTSCHILD_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_P_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_P_PARENTCTSCHILDID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(CTSChildModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(parentCTSChildId);
+
+					list = (List<CTSChild>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -526,10 +917,19 @@ public class CTSChildPersistenceImpl
 			return ctsChild;
 		}
 
-		throw new NoSuchCTSChildException(
-			_collectionPersistenceFinderByC_P.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, parentCTSChildId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", parentCTSChildId=");
+		sb.append(parentCTSChildId);
+
+		sb.append("}");
+
+		throw new NoSuchCTSChildException(sb.toString());
 	}
 
 	/**
@@ -545,9 +945,14 @@ public class CTSChildPersistenceImpl
 		long companyId, long parentCTSChildId,
 		OrderByComparator<CTSChild> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_P.fetchFirst(
-			finderCache, new Object[] {companyId, parentCTSChildId},
-			orderByComparator);
+		List<CTSChild> list = findByC_P(
+			companyId, parentCTSChildId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -558,8 +963,13 @@ public class CTSChildPersistenceImpl
 	 */
 	@Override
 	public void removeByC_P(long companyId, long parentCTSChildId) {
-		_collectionPersistenceFinderByC_P.remove(
-			finderCache, new Object[] {companyId, parentCTSChildId});
+		for (CTSChild ctsChild :
+				findByC_P(
+					companyId, parentCTSChildId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(ctsChild);
+		}
 	}
 
 	/**
@@ -575,10 +985,58 @@ public class CTSChildPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					CTSChild.class)) {
 
-			return _collectionPersistenceFinderByC_P.count(
-				finderCache, new Object[] {companyId, parentCTSChildId});
+			FinderPath finderPath = _finderPathCountByC_P;
+
+			Object[] finderArgs = new Object[] {companyId, parentCTSChildId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_CTSCHILD_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_P_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_P_PARENTCTSCHILDID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(parentCTSChildId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_C_P_COMPANYID_2 =
+		"ctsChild.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_P_PARENTCTSCHILDID_2 =
+		"ctsChild.parentCTSChildId = ?";
 
 	public CTSChildPersistenceImpl() {
 		setModelClass(CTSChild.class);
@@ -636,6 +1094,48 @@ public class CTSChildPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all cts childs.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTSChildImpl.class);
+
+		finderCache.clearCache(CTSChildImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cts child.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTSChild ctsChild) {
+		entityCache.removeResult(CTSChildImpl.class, ctsChild);
+	}
+
+	@Override
+	public void clearCache(List<CTSChild> ctsChilds) {
+		for (CTSChild ctsChild : ctsChilds) {
+			entityCache.removeResult(CTSChildImpl.class, ctsChild);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTSChildImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CTSChildImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new cts child with the primary key. Does not add the cts child to the database.
 	 *
 	 * @param ctsChildId the primary key for the new cts child
@@ -663,6 +1163,47 @@ public class CTSChildPersistenceImpl
 	@Override
 	public CTSChild remove(long ctsChildId) throws NoSuchCTSChildException {
 		return remove((Serializable)ctsChildId);
+	}
+
+	/**
+	 * Removes the cts child with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cts child
+	 * @return the cts child that was removed
+	 * @throws NoSuchCTSChildException if a cts child with the primary key could not be found
+	 */
+	@Override
+	public CTSChild remove(Serializable primaryKey)
+		throws NoSuchCTSChildException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTSChild ctsChild = (CTSChild)session.get(
+				CTSChildImpl.class, primaryKey);
+
+			if (ctsChild == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCTSChildException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctsChild);
+		}
+		catch (NoSuchCTSChildException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -754,6 +1295,31 @@ public class CTSChildPersistenceImpl
 	}
 
 	/**
+	 * Returns the cts child with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cts child
+	 * @return the cts child
+	 * @throws NoSuchCTSChildException if a cts child with the primary key could not be found
+	 */
+	@Override
+	public CTSChild findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCTSChildException {
+
+		CTSChild ctsChild = fetchByPrimaryKey(primaryKey);
+
+		if (ctsChild == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCTSChildException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return ctsChild;
+	}
+
+	/**
 	 * Returns the cts child with the primary key or throws a <code>NoSuchCTSChildException</code> if it could not be found.
 	 *
 	 * @param ctsChildId the primary key of the cts child
@@ -767,9 +1333,49 @@ public class CTSChildPersistenceImpl
 		return findByPrimaryKey((Serializable)ctsChildId);
 	}
 
+	/**
+	 * Returns the cts child with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cts child
+	 * @return the cts child, or <code>null</code> if a cts child with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public CTSChild fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(CTSChild.class, primaryKey)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		CTSChild ctsChild = (CTSChild)entityCache.getResult(
+			CTSChildImpl.class, primaryKey);
+
+		if (ctsChild != null) {
+			return ctsChild;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ctsChild = (CTSChild)session.get(CTSChildImpl.class, primaryKey);
+
+			if (ctsChild != null) {
+				cacheResult(ctsChild);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return ctsChild;
 	}
 
 	/**
@@ -781,6 +1387,128 @@ public class CTSChildPersistenceImpl
 	@Override
 	public CTSChild fetchByPrimaryKey(long ctsChildId) {
 		return fetchByPrimaryKey((Serializable)ctsChildId);
+	}
+
+	@Override
+	public Map<Serializable, CTSChild> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(CTSChild.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, CTSChild> map = new HashMap<Serializable, CTSChild>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			CTSChild ctsChild = fetchByPrimaryKey(primaryKey);
+
+			if (ctsChild != null) {
+				map.put(primaryKey, ctsChild);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						CTSChild.class, primaryKey)) {
+
+				CTSChild ctsChild = (CTSChild)entityCache.getResult(
+					CTSChildImpl.class, primaryKey);
+
+				if (ctsChild == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, ctsChild);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (CTSChild ctsChild : (List<CTSChild>)query.list()) {
+				map.put(ctsChild.getPrimaryKeyObj(), ctsChild);
+
+				cacheResult(ctsChild);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1083,17 +1811,6 @@ public class CTSChildPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_CTSCHILD_WHERE,
-				_SQL_COUNT_CTSCHILD_WHERE, CTSChildModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctsChild.", "companyId", FinderColumn.Type.LONG, "=", true,
-					true, CTSChild::getCompanyId));
-
 		_finderPathWithPaginationFindByC_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C",
 			new String[] {
@@ -1113,18 +1830,6 @@ public class CTSChildPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "ctsGrandParentId"}, false);
 
-		_collectionPersistenceFinderByC_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_C,
-			_finderPathWithoutPaginationFindByC_C, _finderPathCountByC_C,
-			_SQL_SELECT_CTSCHILD_WHERE, _SQL_COUNT_CTSCHILD_WHERE,
-			CTSChildModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"ctsChild.", "companyId", FinderColumn.Type.LONG, "=", true,
-				false, CTSChild::getCompanyId),
-			new FinderColumn<>(
-				"ctsChild.", "ctsGrandParentId", FinderColumn.Type.LONG, "=",
-				true, true, CTSChild::getCtsGrandParentId));
-
 		_finderPathWithPaginationFindByC_P = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_P",
 			new String[] {
@@ -1143,18 +1848,6 @@ public class CTSChildPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByC_P",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "parentCTSChildId"}, false);
-
-		_collectionPersistenceFinderByC_P = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_P,
-			_finderPathWithoutPaginationFindByC_P, _finderPathCountByC_P,
-			_SQL_SELECT_CTSCHILD_WHERE, _SQL_COUNT_CTSCHILD_WHERE,
-			CTSChildModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"ctsChild.", "companyId", FinderColumn.Type.LONG, "=", true,
-				false, CTSChild::getCompanyId),
-			new FinderColumn<>(
-				"ctsChild.", "parentCTSChildId", FinderColumn.Type.LONG, "=",
-				true, true, CTSChild::getParentCTSChildId));
 
 		CTSChildUtil.setPersistence(this);
 	}
@@ -1215,6 +1908,9 @@ public class CTSChildPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ctsChild.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTSChild exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTSChild exists with the key {";
 
@@ -1227,4 +1923,4 @@ public class CTSChildPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:621064836
+// LIFERAY-SERVICE-BUILDER-HASH:573431485

@@ -12,6 +12,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchWebDAVPropsException;
@@ -25,8 +26,6 @@ import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.WebDAVPropsPersistence;
 import com.liferay.portal.kernel.service.persistence.WebDAVPropsUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -42,6 +41,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The persistence implementation for the web dav props service.
@@ -54,8 +54,7 @@ import java.util.Map;
  * @generated
  */
 public class WebDAVPropsPersistenceImpl
-	extends BasePersistenceImpl<WebDAVProps, NoSuchWebDAVPropsException>
-	implements WebDAVPropsPersistence {
+	extends BasePersistenceImpl<WebDAVProps> implements WebDAVPropsPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -75,7 +74,6 @@ public class WebDAVPropsPersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByC_C;
-	private UniquePersistenceFinder<WebDAVProps> _uniquePersistenceFinderByC_C;
 
 	/**
 	 * Returns the web dav props where classNameId = &#63; and classPK = &#63; or throws a <code>NoSuchWebDAVPropsException</code> if it could not be found.
@@ -92,16 +90,23 @@ public class WebDAVPropsPersistenceImpl
 		WebDAVProps webDAVProps = fetchByC_C(classNameId, classPK);
 
 		if (webDAVProps == null) {
-			String message =
-				_uniquePersistenceFinderByC_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {classNameId, classPK});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("classNameId=");
+			sb.append(classNameId);
+
+			sb.append(", classPK=");
+			sb.append(classPK);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchWebDAVPropsException(message);
+			throw new NoSuchWebDAVPropsException(sb.toString());
 		}
 
 		return webDAVProps;
@@ -131,9 +136,83 @@ public class WebDAVPropsPersistenceImpl
 	public WebDAVProps fetchByC_C(
 		long classNameId, long classPK, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_C.fetch(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {classNameId, classPK}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {classNameId, classPK};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = FinderCacheUtil.getResult(
+				_finderPathFetchByC_C, finderArgs, this);
+		}
+
+		if (result instanceof WebDAVProps) {
+			WebDAVProps webDAVProps = (WebDAVProps)result;
+
+			if ((classNameId != webDAVProps.getClassNameId()) ||
+				(classPK != webDAVProps.getClassPK())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_WEBDAVPROPS_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_C_C_CLASSPK_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(classNameId);
+
+				queryPos.add(classPK);
+
+				List<WebDAVProps> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(
+							_finderPathFetchByC_C, finderArgs, list);
+					}
+				}
+				else {
+					WebDAVProps webDAVProps = list.get(0);
+
+					result = webDAVProps;
+
+					cacheResult(webDAVProps);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (WebDAVProps)result;
+		}
 	}
 
 	/**
@@ -161,10 +240,20 @@ public class WebDAVPropsPersistenceImpl
 	 */
 	@Override
 	public int countByC_C(long classNameId, long classPK) {
-		return _uniquePersistenceFinderByC_C.count(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {classNameId, classPK});
+		WebDAVProps webDAVProps = fetchByC_C(classNameId, classPK);
+
+		if (webDAVProps == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_C_CLASSNAMEID_2 =
+		"webDAVProps.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_CLASSPK_2 =
+		"webDAVProps.classPK = ?";
 
 	public WebDAVPropsPersistenceImpl() {
 		setModelClass(WebDAVProps.class);
@@ -219,6 +308,48 @@ public class WebDAVPropsPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all web dav propses.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(WebDAVPropsImpl.class);
+
+		FinderCacheUtil.clearCache(WebDAVPropsImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the web dav props.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(WebDAVProps webDAVProps) {
+		EntityCacheUtil.removeResult(WebDAVPropsImpl.class, webDAVProps);
+	}
+
+	@Override
+	public void clearCache(List<WebDAVProps> webDAVPropses) {
+		for (WebDAVProps webDAVProps : webDAVPropses) {
+			EntityCacheUtil.removeResult(WebDAVPropsImpl.class, webDAVProps);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(WebDAVPropsImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(WebDAVPropsImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		WebDAVPropsModelImpl webDAVPropsModelImpl) {
 
@@ -261,6 +392,47 @@ public class WebDAVPropsPersistenceImpl
 		throws NoSuchWebDAVPropsException {
 
 		return remove((Serializable)webDavPropsId);
+	}
+
+	/**
+	 * Removes the web dav props with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the web dav props
+	 * @return the web dav props that was removed
+	 * @throws NoSuchWebDAVPropsException if a web dav props with the primary key could not be found
+	 */
+	@Override
+	public WebDAVProps remove(Serializable primaryKey)
+		throws NoSuchWebDAVPropsException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			WebDAVProps webDAVProps = (WebDAVProps)session.get(
+				WebDAVPropsImpl.class, primaryKey);
+
+			if (webDAVProps == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchWebDAVPropsException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(webDAVProps);
+		}
+		catch (NoSuchWebDAVPropsException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -369,6 +541,31 @@ public class WebDAVPropsPersistenceImpl
 		}
 
 		webDAVProps.resetOriginalValues();
+
+		return webDAVProps;
+	}
+
+	/**
+	 * Returns the web dav props with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the web dav props
+	 * @return the web dav props
+	 * @throws NoSuchWebDAVPropsException if a web dav props with the primary key could not be found
+	 */
+	@Override
+	public WebDAVProps findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchWebDAVPropsException {
+
+		WebDAVProps webDAVProps = fetchByPrimaryKey(primaryKey);
+
+		if (webDAVProps == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchWebDAVPropsException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return webDAVProps;
 	}
@@ -621,15 +818,6 @@ public class WebDAVPropsPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"classNameId", "classPK"}, true);
 
-		_uniquePersistenceFinderByC_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_C, _SQL_SELECT_WEBDAVPROPS_WHERE,
-			new FinderColumn<>(
-				"webDAVProps.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, WebDAVProps::getClassNameId),
-			new FinderColumn<>(
-				"webDAVProps.", "classPK", FinderColumn.Type.LONG, "=", true,
-				true, WebDAVProps::getClassPK));
-
 		WebDAVPropsUtil.setPersistence(this);
 	}
 
@@ -648,7 +836,13 @@ public class WebDAVPropsPersistenceImpl
 	private static final String _SQL_COUNT_WEBDAVPROPS =
 		"SELECT COUNT(webDAVProps) FROM WebDAVProps webDAVProps";
 
+	private static final String _SQL_COUNT_WEBDAVPROPS_WHERE =
+		"SELECT COUNT(webDAVProps) FROM WebDAVProps webDAVProps WHERE ";
+
 	private static final String _ORDER_BY_ENTITY_ALIAS = "webDAVProps.";
+
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No WebDAVProps exists with the primary key ";
 
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No WebDAVProps exists with the key {";
@@ -662,4 +856,4 @@ public class WebDAVPropsPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1126949646
+// LIFERAY-SERVICE-BUILDER-HASH:788903145

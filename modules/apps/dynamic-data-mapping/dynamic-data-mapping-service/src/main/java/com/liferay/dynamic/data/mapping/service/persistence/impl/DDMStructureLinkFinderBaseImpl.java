@@ -5,7 +5,6 @@
 
 package com.liferay.dynamic.data.mapping.service.persistence.impl;
 
-import com.liferay.dynamic.data.mapping.exception.NoSuchStructureLinkException;
 import com.liferay.dynamic.data.mapping.model.DDMStructureLink;
 import com.liferay.dynamic.data.mapping.service.persistence.DDMStructureLinkPersistence;
 import com.liferay.dynamic.data.mapping.service.persistence.impl.constants.DDMPersistenceConstants;
@@ -22,8 +21,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class DDMStructureLinkFinderBaseImpl
-	extends BasePersistenceImpl
-		<DDMStructureLink, NoSuchStructureLinkException> {
+	extends BasePersistenceImpl<DDMStructureLink> {
 
 	public DDMStructureLinkFinderBaseImpl() {
 		setModelClass(DDMStructureLink.class);
@@ -59,4 +57,4 @@ public abstract class DDMStructureLinkFinderBaseImpl
 	protected DDMStructureLinkPersistence ddmStructureLinkPersistence;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:884308204
+// LIFERAY-SERVICE-BUILDER-HASH:1648297118

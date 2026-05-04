@@ -5,7 +5,6 @@
 
 package com.liferay.dynamic.data.mapping.service.persistence.impl;
 
-import com.liferay.dynamic.data.mapping.exception.NoSuchTemplateException;
 import com.liferay.dynamic.data.mapping.model.DDMTemplate;
 import com.liferay.dynamic.data.mapping.service.persistence.DDMTemplatePersistence;
 import com.liferay.dynamic.data.mapping.service.persistence.impl.constants.DDMPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class DDMTemplateFinderBaseImpl
-	extends BasePersistenceImpl<DDMTemplate, NoSuchTemplateException> {
+	extends BasePersistenceImpl<DDMTemplate> {
 
 	public DDMTemplateFinderBaseImpl() {
 		setModelClass(DDMTemplate.class);
@@ -80,4 +79,4 @@ public abstract class DDMTemplateFinderBaseImpl
 		DDMTemplateFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:989995860
+// LIFERAY-SERVICE-BUILDER-HASH:161472208

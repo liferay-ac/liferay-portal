@@ -5,7 +5,6 @@
 
 package com.liferay.commerce.shipping.engine.fixed.service.persistence.impl;
 
-import com.liferay.commerce.shipping.engine.fixed.exception.NoSuchShippingFixedOptionRelException;
 import com.liferay.commerce.shipping.engine.fixed.model.CommerceShippingFixedOptionRel;
 import com.liferay.commerce.shipping.engine.fixed.service.persistence.CommerceShippingFixedOptionRelPersistence;
 import com.liferay.commerce.shipping.engine.fixed.service.persistence.impl.constants.CommercePersistenceConstants;
@@ -28,9 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class CommerceShippingFixedOptionRelFinderBaseImpl
-	extends BasePersistenceImpl
-		<CommerceShippingFixedOptionRel,
-		 NoSuchShippingFixedOptionRelException> {
+	extends BasePersistenceImpl<CommerceShippingFixedOptionRel> {
 
 	public CommerceShippingFixedOptionRelFinderBaseImpl() {
 		setModelClass(CommerceShippingFixedOptionRel.class);
@@ -82,4 +79,4 @@ public abstract class CommerceShippingFixedOptionRelFinderBaseImpl
 		CommerceShippingFixedOptionRelFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1992573893
+// LIFERAY-SERVICE-BUILDER-HASH:1248061521

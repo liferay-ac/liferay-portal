@@ -327,4 +327,4 @@ public interface LayoutSetBranchLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:722257104
+// LIFERAY-SERVICE-BUILDER-HASH:2141693548

@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -32,9 +33,6 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -54,8 +52,10 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -77,7 +77,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = MBDiscussionPersistence.class)
 public class MBDiscussionPersistenceImpl
-	extends BasePersistenceImpl<MBDiscussion, NoSuchDiscussionException>
+	extends BasePersistenceImpl<MBDiscussion>
 	implements MBDiscussionPersistence {
 
 	/*
@@ -100,8 +100,6 @@ public class MBDiscussionPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<MBDiscussion>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the message boards discussions where uuid = &#63;.
@@ -176,9 +174,106 @@ public class MBDiscussionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					MBDiscussion.class)) {
 
-			return _collectionPersistenceFinderByUuid.find(
-				finderCache, new Object[] {uuid}, start, end, orderByComparator,
-				useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid;
+					finderArgs = new Object[] {uuid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid;
+				finderArgs = new Object[] {uuid, start, end, orderByComparator};
+			}
+
+			List<MBDiscussion> list = null;
+
+			if (useFinderCache) {
+				list = (List<MBDiscussion>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (MBDiscussion mbDiscussion : list) {
+						if (!uuid.equals(mbDiscussion.getUuid())) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_MBDISCUSSION_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(MBDiscussionModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					list = (List<MBDiscussion>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -201,9 +296,16 @@ public class MBDiscussionPersistenceImpl
 			return mbDiscussion;
 		}
 
-		throw new NoSuchDiscussionException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchDiscussionException(sb.toString());
 	}
 
 	/**
@@ -217,8 +319,13 @@ public class MBDiscussionPersistenceImpl
 	public MBDiscussion fetchByUuid_First(
 		String uuid, OrderByComparator<MBDiscussion> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<MBDiscussion> list = findByUuid(uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -228,8 +335,11 @@ public class MBDiscussionPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (MBDiscussion mbDiscussion :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(mbDiscussion);
+		}
 	}
 
 	/**
@@ -244,14 +354,69 @@ public class MBDiscussionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					MBDiscussion.class)) {
 
-			return _collectionPersistenceFinderByUuid.count(
-				finderCache, new Object[] {uuid});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid;
+
+			Object[] finderArgs = new Object[] {uuid};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_MBDISCUSSION_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"mbDiscussion.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(mbDiscussion.uuid IS NULL OR mbDiscussion.uuid = '')";
+
 	private FinderPath _finderPathFetchByUUID_G;
-	private UniquePersistenceFinder<MBDiscussion>
-		_uniquePersistenceFinderByUUID_G;
 
 	/**
 	 * Returns the message boards discussion where uuid = &#63; and groupId = &#63; or throws a <code>NoSuchDiscussionException</code> if it could not be found.
@@ -268,15 +433,23 @@ public class MBDiscussionPersistenceImpl
 		MBDiscussion mbDiscussion = fetchByUUID_G(uuid, groupId);
 
 		if (mbDiscussion == null) {
-			String message =
-				_uniquePersistenceFinderByUUID_G.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, groupId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("uuid=");
+			sb.append(uuid);
+
+			sb.append(", groupId=");
+			sb.append(groupId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchDiscussionException(message);
+			throw new NoSuchDiscussionException(sb.toString());
 		}
 
 		return mbDiscussion;
@@ -310,8 +483,96 @@ public class MBDiscussionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					MBDiscussion.class)) {
 
-			return _uniquePersistenceFinderByUUID_G.fetch(
-				finderCache, new Object[] {uuid, groupId}, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {uuid, groupId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByUUID_G, finderArgs, this);
+			}
+
+			if (result instanceof MBDiscussion) {
+				MBDiscussion mbDiscussion = (MBDiscussion)result;
+
+				if (!Objects.equals(uuid, mbDiscussion.getUuid()) ||
+					(groupId != mbDiscussion.getGroupId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_MBDISCUSSION_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_G_GROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(groupId);
+
+					List<MBDiscussion> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByUUID_G, finderArgs, list);
+						}
+					}
+					else {
+						MBDiscussion mbDiscussion = list.get(0);
+
+						result = mbDiscussion;
+
+						cacheResult(mbDiscussion);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (MBDiscussion)result;
+			}
 		}
 	}
 
@@ -340,15 +601,27 @@ public class MBDiscussionPersistenceImpl
 	 */
 	@Override
 	public int countByUUID_G(String uuid, long groupId) {
-		return _uniquePersistenceFinderByUUID_G.count(
-			finderCache, new Object[] {uuid, groupId});
+		MBDiscussion mbDiscussion = fetchByUUID_G(uuid, groupId);
+
+		if (mbDiscussion == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_2 =
+		"mbDiscussion.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_3 =
+		"(mbDiscussion.uuid IS NULL OR mbDiscussion.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_GROUPID_2 =
+		"mbDiscussion.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<MBDiscussion>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the message boards discussions where uuid = &#63; and companyId = &#63;.
@@ -431,9 +704,114 @@ public class MBDiscussionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					MBDiscussion.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.find(
-				finderCache, new Object[] {uuid, companyId}, start, end,
-				orderByComparator, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid_C;
+					finderArgs = new Object[] {uuid, companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid_C;
+				finderArgs = new Object[] {
+					uuid, companyId, start, end, orderByComparator
+				};
+			}
+
+			List<MBDiscussion> list = null;
+
+			if (useFinderCache) {
+				list = (List<MBDiscussion>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (MBDiscussion mbDiscussion : list) {
+						if (!uuid.equals(mbDiscussion.getUuid()) ||
+							(companyId != mbDiscussion.getCompanyId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_MBDISCUSSION_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(MBDiscussionModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					list = (List<MBDiscussion>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -459,9 +837,19 @@ public class MBDiscussionPersistenceImpl
 			return mbDiscussion;
 		}
 
-		throw new NoSuchDiscussionException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchDiscussionException(sb.toString());
 	}
 
 	/**
@@ -477,8 +865,14 @@ public class MBDiscussionPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<MBDiscussion> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<MBDiscussion> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -489,8 +883,13 @@ public class MBDiscussionPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (MBDiscussion mbDiscussion :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(mbDiscussion);
+		}
 	}
 
 	/**
@@ -506,14 +905,76 @@ public class MBDiscussionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					MBDiscussion.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.count(
-				finderCache, new Object[] {uuid, companyId});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid_C;
+
+			Object[] finderArgs = new Object[] {uuid, companyId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_MBDISCUSSION_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"mbDiscussion.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(mbDiscussion.uuid IS NULL OR mbDiscussion.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"mbDiscussion.companyId = ?";
+
 	private FinderPath _finderPathFetchByThreadId;
-	private UniquePersistenceFinder<MBDiscussion>
-		_uniquePersistenceFinderByThreadId;
 
 	/**
 	 * Returns the message boards discussion where threadId = &#63; or throws a <code>NoSuchDiscussionException</code> if it could not be found.
@@ -529,15 +990,20 @@ public class MBDiscussionPersistenceImpl
 		MBDiscussion mbDiscussion = fetchByThreadId(threadId);
 
 		if (mbDiscussion == null) {
-			String message =
-				_uniquePersistenceFinderByThreadId.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {threadId});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("threadId=");
+			sb.append(threadId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchDiscussionException(message);
+			throw new NoSuchDiscussionException(sb.toString());
 		}
 
 		return mbDiscussion;
@@ -567,8 +1033,77 @@ public class MBDiscussionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					MBDiscussion.class)) {
 
-			return _uniquePersistenceFinderByThreadId.fetch(
-				finderCache, new Object[] {threadId}, useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {threadId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByThreadId, finderArgs, this);
+			}
+
+			if (result instanceof MBDiscussion) {
+				MBDiscussion mbDiscussion = (MBDiscussion)result;
+
+				if (threadId != mbDiscussion.getThreadId()) {
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_SELECT_MBDISCUSSION_WHERE);
+
+				sb.append(_FINDER_COLUMN_THREADID_THREADID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(threadId);
+
+					List<MBDiscussion> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByThreadId, finderArgs, list);
+						}
+					}
+					else {
+						MBDiscussion mbDiscussion = list.get(0);
+
+						result = mbDiscussion;
+
+						cacheResult(mbDiscussion);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (MBDiscussion)result;
+			}
 		}
 	}
 
@@ -595,12 +1130,19 @@ public class MBDiscussionPersistenceImpl
 	 */
 	@Override
 	public int countByThreadId(long threadId) {
-		return _uniquePersistenceFinderByThreadId.count(
-			finderCache, new Object[] {threadId});
+		MBDiscussion mbDiscussion = fetchByThreadId(threadId);
+
+		if (mbDiscussion == null) {
+			return 0;
+		}
+
+		return 1;
 	}
 
+	private static final String _FINDER_COLUMN_THREADID_THREADID_2 =
+		"mbDiscussion.threadId = ?";
+
 	private FinderPath _finderPathFetchByC_C;
-	private UniquePersistenceFinder<MBDiscussion> _uniquePersistenceFinderByC_C;
 
 	/**
 	 * Returns the message boards discussion where classNameId = &#63; and classPK = &#63; or throws a <code>NoSuchDiscussionException</code> if it could not be found.
@@ -617,16 +1159,23 @@ public class MBDiscussionPersistenceImpl
 		MBDiscussion mbDiscussion = fetchByC_C(classNameId, classPK);
 
 		if (mbDiscussion == null) {
-			String message =
-				_uniquePersistenceFinderByC_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {classNameId, classPK});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("classNameId=");
+			sb.append(classNameId);
+
+			sb.append(", classPK=");
+			sb.append(classPK);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchDiscussionException(message);
+			throw new NoSuchDiscussionException(sb.toString());
 		}
 
 		return mbDiscussion;
@@ -660,9 +1209,83 @@ public class MBDiscussionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					MBDiscussion.class)) {
 
-			return _uniquePersistenceFinderByC_C.fetch(
-				finderCache, new Object[] {classNameId, classPK},
-				useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {classNameId, classPK};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByC_C, finderArgs, this);
+			}
+
+			if (result instanceof MBDiscussion) {
+				MBDiscussion mbDiscussion = (MBDiscussion)result;
+
+				if ((classNameId != mbDiscussion.getClassNameId()) ||
+					(classPK != mbDiscussion.getClassPK())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_MBDISCUSSION_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSPK_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					List<MBDiscussion> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByC_C, finderArgs, list);
+						}
+					}
+					else {
+						MBDiscussion mbDiscussion = list.get(0);
+
+						result = mbDiscussion;
+
+						cacheResult(mbDiscussion);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (MBDiscussion)result;
+			}
 		}
 	}
 
@@ -691,9 +1314,20 @@ public class MBDiscussionPersistenceImpl
 	 */
 	@Override
 	public int countByC_C(long classNameId, long classPK) {
-		return _uniquePersistenceFinderByC_C.count(
-			finderCache, new Object[] {classNameId, classPK});
+		MBDiscussion mbDiscussion = fetchByC_C(classNameId, classPK);
+
+		if (mbDiscussion == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_C_CLASSNAMEID_2 =
+		"mbDiscussion.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_CLASSPK_2 =
+		"mbDiscussion.classPK = ?";
 
 	public MBDiscussionPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -776,6 +1410,48 @@ public class MBDiscussionPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all message boards discussions.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(MBDiscussionImpl.class);
+
+		finderCache.clearCache(MBDiscussionImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the message boards discussion.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(MBDiscussion mbDiscussion) {
+		entityCache.removeResult(MBDiscussionImpl.class, mbDiscussion);
+	}
+
+	@Override
+	public void clearCache(List<MBDiscussion> mbDiscussions) {
+		for (MBDiscussion mbDiscussion : mbDiscussions) {
+			entityCache.removeResult(MBDiscussionImpl.class, mbDiscussion);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(MBDiscussionImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(MBDiscussionImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		MBDiscussionModelImpl mbDiscussionModelImpl) {
 
@@ -840,6 +1516,47 @@ public class MBDiscussionPersistenceImpl
 		throws NoSuchDiscussionException {
 
 		return remove((Serializable)discussionId);
+	}
+
+	/**
+	 * Removes the message boards discussion with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the message boards discussion
+	 * @return the message boards discussion that was removed
+	 * @throws NoSuchDiscussionException if a message boards discussion with the primary key could not be found
+	 */
+	@Override
+	public MBDiscussion remove(Serializable primaryKey)
+		throws NoSuchDiscussionException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			MBDiscussion mbDiscussion = (MBDiscussion)session.get(
+				MBDiscussionImpl.class, primaryKey);
+
+			if (mbDiscussion == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchDiscussionException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(mbDiscussion);
+		}
+		catch (NoSuchDiscussionException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -968,6 +1685,31 @@ public class MBDiscussionPersistenceImpl
 	}
 
 	/**
+	 * Returns the message boards discussion with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the message boards discussion
+	 * @return the message boards discussion
+	 * @throws NoSuchDiscussionException if a message boards discussion with the primary key could not be found
+	 */
+	@Override
+	public MBDiscussion findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchDiscussionException {
+
+		MBDiscussion mbDiscussion = fetchByPrimaryKey(primaryKey);
+
+		if (mbDiscussion == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchDiscussionException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return mbDiscussion;
+	}
+
+	/**
 	 * Returns the message boards discussion with the primary key or throws a <code>NoSuchDiscussionException</code> if it could not be found.
 	 *
 	 * @param discussionId the primary key of the message boards discussion
@@ -981,9 +1723,52 @@ public class MBDiscussionPersistenceImpl
 		return findByPrimaryKey((Serializable)discussionId);
 	}
 
+	/**
+	 * Returns the message boards discussion with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the message boards discussion
+	 * @return the message boards discussion, or <code>null</code> if a message boards discussion with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public MBDiscussion fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				MBDiscussion.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		MBDiscussion mbDiscussion = (MBDiscussion)entityCache.getResult(
+			MBDiscussionImpl.class, primaryKey);
+
+		if (mbDiscussion != null) {
+			return mbDiscussion;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			mbDiscussion = (MBDiscussion)session.get(
+				MBDiscussionImpl.class, primaryKey);
+
+			if (mbDiscussion != null) {
+				cacheResult(mbDiscussion);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return mbDiscussion;
 	}
 
 	/**
@@ -995,6 +1780,129 @@ public class MBDiscussionPersistenceImpl
 	@Override
 	public MBDiscussion fetchByPrimaryKey(long discussionId) {
 		return fetchByPrimaryKey((Serializable)discussionId);
+	}
+
+	@Override
+	public Map<Serializable, MBDiscussion> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(MBDiscussion.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, MBDiscussion> map =
+			new HashMap<Serializable, MBDiscussion>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			MBDiscussion mbDiscussion = fetchByPrimaryKey(primaryKey);
+
+			if (mbDiscussion != null) {
+				map.put(primaryKey, mbDiscussion);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						MBDiscussion.class, primaryKey)) {
+
+				MBDiscussion mbDiscussion = (MBDiscussion)entityCache.getResult(
+					MBDiscussionImpl.class, primaryKey);
+
+				if (mbDiscussion == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, mbDiscussion);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (MBDiscussion mbDiscussion : (List<MBDiscussion>)query.list()) {
+				map.put(mbDiscussion.getPrimaryKeyObj(), mbDiscussion);
+
+				cacheResult(mbDiscussion);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1317,28 +2225,10 @@ public class MBDiscussionPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_MBDISCUSSION_WHERE, _SQL_COUNT_MBDISCUSSION_WHERE,
-			MBDiscussionModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"mbDiscussion.", "uuid", FinderColumn.Type.STRING, "=", true,
-				true, MBDiscussion::getUuid));
-
 		_finderPathFetchByUUID_G = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByUUID_G",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "groupId"}, true);
-
-		_uniquePersistenceFinderByUUID_G = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByUUID_G, _SQL_SELECT_MBDISCUSSION_WHERE,
-			new FinderColumn<>(
-				"mbDiscussion.", "uuid", FinderColumn.Type.STRING, "=", true,
-				false, MBDiscussion::getUuid),
-			new FinderColumn<>(
-				"mbDiscussion.", "groupId", FinderColumn.Type.LONG, "=", true,
-				true, MBDiscussion::getGroupId));
 
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
@@ -1359,44 +2249,15 @@ public class MBDiscussionPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_MBDISCUSSION_WHERE,
-				_SQL_COUNT_MBDISCUSSION_WHERE,
-				MBDiscussionModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"mbDiscussion.", "uuid", FinderColumn.Type.STRING, "=",
-					true, false, MBDiscussion::getUuid),
-				new FinderColumn<>(
-					"mbDiscussion.", "companyId", FinderColumn.Type.LONG, "=",
-					true, true, MBDiscussion::getCompanyId));
-
 		_finderPathFetchByThreadId = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByThreadId",
 			new String[] {Long.class.getName()}, new String[] {"threadId"},
 			true);
 
-		_uniquePersistenceFinderByThreadId = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByThreadId, _SQL_SELECT_MBDISCUSSION_WHERE,
-			new FinderColumn<>(
-				"mbDiscussion.", "threadId", FinderColumn.Type.LONG, "=", true,
-				true, MBDiscussion::getThreadId));
-
 		_finderPathFetchByC_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_C",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"classNameId", "classPK"}, true);
-
-		_uniquePersistenceFinderByC_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_C, _SQL_SELECT_MBDISCUSSION_WHERE,
-			new FinderColumn<>(
-				"mbDiscussion.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, MBDiscussion::getClassNameId),
-			new FinderColumn<>(
-				"mbDiscussion.", "classPK", FinderColumn.Type.LONG, "=", true,
-				true, MBDiscussion::getClassPK));
 
 		MBDiscussionUtil.setPersistence(this);
 	}
@@ -1457,6 +2318,9 @@ public class MBDiscussionPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "mbDiscussion.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No MBDiscussion exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No MBDiscussion exists with the key {";
 
@@ -1472,4 +2336,4 @@ public class MBDiscussionPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1575011481
+// LIFERAY-SERVICE-BUILDER-HASH:-1858563953

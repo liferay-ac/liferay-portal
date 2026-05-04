@@ -11,6 +11,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -20,9 +21,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -44,6 +42,8 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -64,7 +64,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = OpenIdConnectUserPersistence.class)
 public class OpenIdConnectUserPersistenceImpl
-	extends BasePersistenceImpl<OpenIdConnectUser, NoSuchUserException>
+	extends BasePersistenceImpl<OpenIdConnectUser>
 	implements OpenIdConnectUserPersistence {
 
 	/*
@@ -87,8 +87,6 @@ public class OpenIdConnectUserPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByC_U;
 	private FinderPath _finderPathWithoutPaginationFindByC_U;
 	private FinderPath _finderPathCountByC_U;
-	private CollectionPersistenceFinder<OpenIdConnectUser>
-		_collectionPersistenceFinderByC_U;
 
 	/**
 	 * Returns all the open ID connect users where companyId = &#63; and userId = &#63;.
@@ -167,9 +165,101 @@ public class OpenIdConnectUserPersistenceImpl
 		OrderByComparator<OpenIdConnectUser> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_U.find(
-			finderCache, new Object[] {companyId, userId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_U;
+				finderArgs = new Object[] {companyId, userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_U;
+			finderArgs = new Object[] {
+				companyId, userId, start, end, orderByComparator
+			};
+		}
+
+		List<OpenIdConnectUser> list = null;
+
+		if (useFinderCache) {
+			list = (List<OpenIdConnectUser>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (OpenIdConnectUser openIdConnectUser : list) {
+					if ((companyId != openIdConnectUser.getCompanyId()) ||
+						(userId != openIdConnectUser.getUserId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OPENIDCONNECTUSER_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(OpenIdConnectUserModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				list = (List<OpenIdConnectUser>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -194,9 +284,19 @@ public class OpenIdConnectUserPersistenceImpl
 			return openIdConnectUser;
 		}
 
-		throw new NoSuchUserException(
-			_collectionPersistenceFinderByC_U.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, userId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchUserException(sb.toString());
 	}
 
 	/**
@@ -212,8 +312,14 @@ public class OpenIdConnectUserPersistenceImpl
 		long companyId, long userId,
 		OrderByComparator<OpenIdConnectUser> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_U.fetchFirst(
-			finderCache, new Object[] {companyId, userId}, orderByComparator);
+		List<OpenIdConnectUser> list = findByC_U(
+			companyId, userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -224,8 +330,13 @@ public class OpenIdConnectUserPersistenceImpl
 	 */
 	@Override
 	public void removeByC_U(long companyId, long userId) {
-		_collectionPersistenceFinderByC_U.remove(
-			finderCache, new Object[] {companyId, userId});
+		for (OpenIdConnectUser openIdConnectUser :
+				findByC_U(
+					companyId, userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(openIdConnectUser);
+		}
 	}
 
 	/**
@@ -237,13 +348,58 @@ public class OpenIdConnectUserPersistenceImpl
 	 */
 	@Override
 	public int countByC_U(long companyId, long userId) {
-		return _collectionPersistenceFinderByC_U.count(
-			finderCache, new Object[] {companyId, userId});
+		FinderPath finderPath = _finderPathCountByC_U;
+
+		Object[] finderArgs = new Object[] {companyId, userId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OPENIDCONNECTUSER_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_C_U_COMPANYID_2 =
+		"openIdConnectUser.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_U_USERID_2 =
+		"openIdConnectUser.userId = ?";
+
 	private FinderPath _finderPathFetchByC_I_S;
-	private UniquePersistenceFinder<OpenIdConnectUser>
-		_uniquePersistenceFinderByC_I_S;
 
 	/**
 	 * Returns the open ID connect user where companyId = &#63; and issuer = &#63; and subject = &#63; or throws a <code>NoSuchUserException</code> if it could not be found.
@@ -263,16 +419,26 @@ public class OpenIdConnectUserPersistenceImpl
 			companyId, issuer, subject);
 
 		if (openIdConnectUser == null) {
-			String message =
-				_uniquePersistenceFinderByC_I_S.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {companyId, issuer, subject});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append(", issuer=");
+			sb.append(issuer);
+
+			sb.append(", subject=");
+			sb.append(subject);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchUserException(message);
+			throw new NoSuchUserException(sb.toString());
 		}
 
 		return openIdConnectUser;
@@ -306,9 +472,113 @@ public class OpenIdConnectUserPersistenceImpl
 	public OpenIdConnectUser fetchByC_I_S(
 		long companyId, String issuer, String subject, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_I_S.fetch(
-			finderCache, new Object[] {companyId, issuer, subject},
-			useFinderCache);
+		issuer = Objects.toString(issuer, "");
+		subject = Objects.toString(subject, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {companyId, issuer, subject};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByC_I_S, finderArgs, this);
+		}
+
+		if (result instanceof OpenIdConnectUser) {
+			OpenIdConnectUser openIdConnectUser = (OpenIdConnectUser)result;
+
+			if ((companyId != openIdConnectUser.getCompanyId()) ||
+				!Objects.equals(issuer, openIdConnectUser.getIssuer()) ||
+				!Objects.equals(subject, openIdConnectUser.getSubject())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_OPENIDCONNECTUSER_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_I_S_COMPANYID_2);
+
+			boolean bindIssuer = false;
+
+			if (issuer.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_I_S_ISSUER_3);
+			}
+			else {
+				bindIssuer = true;
+
+				sb.append(_FINDER_COLUMN_C_I_S_ISSUER_2);
+			}
+
+			boolean bindSubject = false;
+
+			if (subject.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_I_S_SUBJECT_3);
+			}
+			else {
+				bindSubject = true;
+
+				sb.append(_FINDER_COLUMN_C_I_S_SUBJECT_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindIssuer) {
+					queryPos.add(issuer);
+				}
+
+				if (bindSubject) {
+					queryPos.add(subject);
+				}
+
+				List<OpenIdConnectUser> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByC_I_S, finderArgs, list);
+					}
+				}
+				else {
+					OpenIdConnectUser openIdConnectUser = list.get(0);
+
+					result = openIdConnectUser;
+
+					cacheResult(openIdConnectUser);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (OpenIdConnectUser)result;
+		}
 	}
 
 	/**
@@ -340,9 +610,30 @@ public class OpenIdConnectUserPersistenceImpl
 	 */
 	@Override
 	public int countByC_I_S(long companyId, String issuer, String subject) {
-		return _uniquePersistenceFinderByC_I_S.count(
-			finderCache, new Object[] {companyId, issuer, subject});
+		OpenIdConnectUser openIdConnectUser = fetchByC_I_S(
+			companyId, issuer, subject);
+
+		if (openIdConnectUser == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_I_S_COMPANYID_2 =
+		"openIdConnectUser.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_I_S_ISSUER_2 =
+		"openIdConnectUser.issuer = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_I_S_ISSUER_3 =
+		"(openIdConnectUser.issuer IS NULL OR openIdConnectUser.issuer = '') AND ";
+
+	private static final String _FINDER_COLUMN_C_I_S_SUBJECT_2 =
+		"openIdConnectUser.subject = ?";
+
+	private static final String _FINDER_COLUMN_C_I_S_SUBJECT_3 =
+		"(openIdConnectUser.subject IS NULL OR openIdConnectUser.subject = '')";
 
 	public OpenIdConnectUserPersistenceImpl() {
 		setModelClass(OpenIdConnectUser.class);
@@ -400,6 +691,50 @@ public class OpenIdConnectUserPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all open ID connect users.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(OpenIdConnectUserImpl.class);
+
+		finderCache.clearCache(OpenIdConnectUserImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the open ID connect user.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(OpenIdConnectUser openIdConnectUser) {
+		entityCache.removeResult(
+			OpenIdConnectUserImpl.class, openIdConnectUser);
+	}
+
+	@Override
+	public void clearCache(List<OpenIdConnectUser> openIdConnectUsers) {
+		for (OpenIdConnectUser openIdConnectUser : openIdConnectUsers) {
+			entityCache.removeResult(
+				OpenIdConnectUserImpl.class, openIdConnectUser);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(OpenIdConnectUserImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(OpenIdConnectUserImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		OpenIdConnectUserModelImpl openIdConnectUserModelImpl) {
 
@@ -443,6 +778,48 @@ public class OpenIdConnectUserPersistenceImpl
 		throws NoSuchUserException {
 
 		return remove((Serializable)openIdConnectUserId);
+	}
+
+	/**
+	 * Removes the open ID connect user with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the open ID connect user
+	 * @return the open ID connect user that was removed
+	 * @throws NoSuchUserException if a open ID connect user with the primary key could not be found
+	 */
+	@Override
+	public OpenIdConnectUser remove(Serializable primaryKey)
+		throws NoSuchUserException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			OpenIdConnectUser openIdConnectUser =
+				(OpenIdConnectUser)session.get(
+					OpenIdConnectUserImpl.class, primaryKey);
+
+			if (openIdConnectUser == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchUserException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(openIdConnectUser);
+		}
+		catch (NoSuchUserException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -548,6 +925,31 @@ public class OpenIdConnectUserPersistenceImpl
 		}
 
 		openIdConnectUser.resetOriginalValues();
+
+		return openIdConnectUser;
+	}
+
+	/**
+	 * Returns the open ID connect user with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the open ID connect user
+	 * @return the open ID connect user
+	 * @throws NoSuchUserException if a open ID connect user with the primary key could not be found
+	 */
+	@Override
+	public OpenIdConnectUser findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchUserException {
+
+		OpenIdConnectUser openIdConnectUser = fetchByPrimaryKey(primaryKey);
+
+		if (openIdConnectUser == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchUserException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return openIdConnectUser;
 	}
@@ -817,19 +1219,6 @@ public class OpenIdConnectUserPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "userId"}, false);
 
-		_collectionPersistenceFinderByC_U = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_U,
-			_finderPathWithoutPaginationFindByC_U, _finderPathCountByC_U,
-			_SQL_SELECT_OPENIDCONNECTUSER_WHERE,
-			_SQL_COUNT_OPENIDCONNECTUSER_WHERE,
-			OpenIdConnectUserModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"openIdConnectUser.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, OpenIdConnectUser::getCompanyId),
-			new FinderColumn<>(
-				"openIdConnectUser.", "userId", FinderColumn.Type.LONG, "=",
-				true, true, OpenIdConnectUser::getUserId));
-
 		_finderPathFetchByC_I_S = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_I_S",
 			new String[] {
@@ -837,18 +1226,6 @@ public class OpenIdConnectUserPersistenceImpl
 				String.class.getName()
 			},
 			new String[] {"companyId", "issuer", "subject"}, true);
-
-		_uniquePersistenceFinderByC_I_S = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_I_S, _SQL_SELECT_OPENIDCONNECTUSER_WHERE,
-			new FinderColumn<>(
-				"openIdConnectUser.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, OpenIdConnectUser::getCompanyId),
-			new FinderColumn<>(
-				"openIdConnectUser.", "issuer", FinderColumn.Type.STRING, "=",
-				true, false, OpenIdConnectUser::getIssuer),
-			new FinderColumn<>(
-				"openIdConnectUser.", "subject", FinderColumn.Type.STRING, "=",
-				true, true, OpenIdConnectUser::getSubject));
 
 		OpenIdConnectUserUtil.setPersistence(this);
 	}
@@ -906,6 +1283,9 @@ public class OpenIdConnectUserPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "openIdConnectUser.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No OpenIdConnectUser exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No OpenIdConnectUser exists with the key {";
 
@@ -918,4 +1298,4 @@ public class OpenIdConnectUserPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-508505297
+// LIFERAY-SERVICE-BUILDER-HASH:1653216181

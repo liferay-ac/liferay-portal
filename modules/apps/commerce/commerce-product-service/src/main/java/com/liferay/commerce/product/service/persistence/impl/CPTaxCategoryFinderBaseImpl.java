@@ -5,7 +5,6 @@
 
 package com.liferay.commerce.product.service.persistence.impl;
 
-import com.liferay.commerce.product.exception.NoSuchCPTaxCategoryException;
 import com.liferay.commerce.product.model.CPTaxCategory;
 import com.liferay.commerce.product.service.persistence.CPTaxCategoryPersistence;
 import com.liferay.commerce.product.service.persistence.impl.constants.CommercePersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class CPTaxCategoryFinderBaseImpl
-	extends BasePersistenceImpl<CPTaxCategory, NoSuchCPTaxCategoryException> {
+	extends BasePersistenceImpl<CPTaxCategory> {
 
 	public CPTaxCategoryFinderBaseImpl() {
 		setModelClass(CPTaxCategory.class);
@@ -78,4 +77,4 @@ public abstract class CPTaxCategoryFinderBaseImpl
 		CPTaxCategoryFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-60037802
+// LIFERAY-SERVICE-BUILDER-HASH:311979853

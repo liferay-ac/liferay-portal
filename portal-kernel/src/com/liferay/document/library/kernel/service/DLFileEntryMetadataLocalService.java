@@ -386,4 +386,4 @@ public interface DLFileEntryMetadataLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:913475399
+// LIFERAY-SERVICE-BUILDER-HASH:1833949551

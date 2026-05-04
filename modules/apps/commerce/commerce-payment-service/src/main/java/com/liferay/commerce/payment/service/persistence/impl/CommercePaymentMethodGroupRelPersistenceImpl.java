@@ -31,9 +31,6 @@ import com.liferay.portal.kernel.security.permission.InlineSQLHelperUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -49,6 +46,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -70,8 +68,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CommercePaymentMethodGroupRelPersistence.class)
 public class CommercePaymentMethodGroupRelPersistenceImpl
-	extends BasePersistenceImpl
-		<CommercePaymentMethodGroupRel, NoSuchPaymentMethodGroupRelException>
+	extends BasePersistenceImpl<CommercePaymentMethodGroupRel>
 	implements CommercePaymentMethodGroupRelPersistence {
 
 	/*
@@ -94,8 +91,6 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<CommercePaymentMethodGroupRel>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the commerce payment method group rels where groupId = &#63;.
@@ -169,9 +164,95 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 		OrderByComparator<CommercePaymentMethodGroupRel> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			finderCache, new Object[] {groupId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<CommercePaymentMethodGroupRel> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommercePaymentMethodGroupRel>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommercePaymentMethodGroupRel
+						commercePaymentMethodGroupRel : list) {
+
+					if (groupId != commercePaymentMethodGroupRel.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCEPAYMENTMETHODGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommercePaymentMethodGroupRelModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<CommercePaymentMethodGroupRel>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -195,9 +276,16 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 			return commercePaymentMethodGroupRel;
 		}
 
-		throw new NoSuchPaymentMethodGroupRelException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchPaymentMethodGroupRelException(sb.toString());
 	}
 
 	/**
@@ -212,8 +300,14 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 		long groupId,
 		OrderByComparator<CommercePaymentMethodGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			finderCache, new Object[] {groupId}, orderByComparator);
+		List<CommercePaymentMethodGroupRel> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -371,8 +465,12 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			finderCache, new Object[] {groupId});
+		for (CommercePaymentMethodGroupRel commercePaymentMethodGroupRel :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(commercePaymentMethodGroupRel);
+		}
 	}
 
 	/**
@@ -383,8 +481,45 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			finderCache, new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_COMMERCEPAYMENTMETHODGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -451,8 +586,6 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_A;
 	private FinderPath _finderPathWithoutPaginationFindByG_A;
 	private FinderPath _finderPathCountByG_A;
-	private CollectionPersistenceFinder<CommercePaymentMethodGroupRel>
-		_collectionPersistenceFinderByG_A;
 
 	/**
 	 * Returns all the commerce payment method group rels where groupId = &#63; and active = &#63;.
@@ -532,9 +665,104 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 		OrderByComparator<CommercePaymentMethodGroupRel> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByG_A.find(
-			finderCache, new Object[] {groupId, active}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByG_A;
+				finderArgs = new Object[] {groupId, active};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByG_A;
+			finderArgs = new Object[] {
+				groupId, active, start, end, orderByComparator
+			};
+		}
+
+		List<CommercePaymentMethodGroupRel> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommercePaymentMethodGroupRel>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommercePaymentMethodGroupRel
+						commercePaymentMethodGroupRel : list) {
+
+					if ((groupId !=
+							commercePaymentMethodGroupRel.getGroupId()) ||
+						(active != commercePaymentMethodGroupRel.isActive())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCEPAYMENTMETHODGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_A_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_A_ACTIVE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommercePaymentMethodGroupRelModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(active);
+
+				list = (List<CommercePaymentMethodGroupRel>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -559,9 +787,19 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 			return commercePaymentMethodGroupRel;
 		}
 
-		throw new NoSuchPaymentMethodGroupRelException(
-			_collectionPersistenceFinderByG_A.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId, active}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", active=");
+		sb.append(active);
+
+		sb.append("}");
+
+		throw new NoSuchPaymentMethodGroupRelException(sb.toString());
 	}
 
 	/**
@@ -577,8 +815,14 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 		long groupId, boolean active,
 		OrderByComparator<CommercePaymentMethodGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_A.fetchFirst(
-			finderCache, new Object[] {groupId, active}, orderByComparator);
+		List<CommercePaymentMethodGroupRel> list = findByG_A(
+			groupId, active, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -744,8 +988,13 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByG_A(long groupId, boolean active) {
-		_collectionPersistenceFinderByG_A.remove(
-			finderCache, new Object[] {groupId, active});
+		for (CommercePaymentMethodGroupRel commercePaymentMethodGroupRel :
+				findByG_A(
+					groupId, active, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(commercePaymentMethodGroupRel);
+		}
 	}
 
 	/**
@@ -757,8 +1006,49 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	 */
 	@Override
 	public int countByG_A(long groupId, boolean active) {
-		return _collectionPersistenceFinderByG_A.count(
-			finderCache, new Object[] {groupId, active});
+		FinderPath finderPath = _finderPathCountByG_A;
+
+		Object[] finderArgs = new Object[] {groupId, active};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_COMMERCEPAYMENTMETHODGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_A_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_G_A_ACTIVE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				queryPos.add(active);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -827,12 +1117,13 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	private static final String _FINDER_COLUMN_G_A_GROUPID_2 =
 		"commercePaymentMethodGroupRel.groupId = ? AND ";
 
+	private static final String _FINDER_COLUMN_G_A_ACTIVE_2 =
+		"commercePaymentMethodGroupRel.active = ?";
+
 	private static final String _FINDER_COLUMN_G_A_ACTIVE_2_SQL =
 		"commercePaymentMethodGroupRel.active_ = ?";
 
 	private FinderPath _finderPathFetchByG_P;
-	private UniquePersistenceFinder<CommercePaymentMethodGroupRel>
-		_uniquePersistenceFinderByG_P;
 
 	/**
 	 * Returns the commerce payment method group rel where groupId = &#63; and paymentIntegrationKey = &#63; or throws a <code>NoSuchPaymentMethodGroupRelException</code> if it could not be found.
@@ -851,16 +1142,23 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 			fetchByG_P(groupId, paymentIntegrationKey);
 
 		if (commercePaymentMethodGroupRel == null) {
-			String message =
-				_uniquePersistenceFinderByG_P.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {groupId, paymentIntegrationKey});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append(", paymentIntegrationKey=");
+			sb.append(paymentIntegrationKey);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchPaymentMethodGroupRelException(message);
+			throw new NoSuchPaymentMethodGroupRelException(sb.toString());
 		}
 
 		return commercePaymentMethodGroupRel;
@@ -892,9 +1190,100 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	public CommercePaymentMethodGroupRel fetchByG_P(
 		long groupId, String paymentIntegrationKey, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByG_P.fetch(
-			finderCache, new Object[] {groupId, paymentIntegrationKey},
-			useFinderCache);
+		paymentIntegrationKey = Objects.toString(paymentIntegrationKey, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {groupId, paymentIntegrationKey};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByG_P, finderArgs, this);
+		}
+
+		if (result instanceof CommercePaymentMethodGroupRel) {
+			CommercePaymentMethodGroupRel commercePaymentMethodGroupRel =
+				(CommercePaymentMethodGroupRel)result;
+
+			if ((groupId != commercePaymentMethodGroupRel.getGroupId()) ||
+				!Objects.equals(
+					paymentIntegrationKey,
+					commercePaymentMethodGroupRel.getPaymentIntegrationKey())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_COMMERCEPAYMENTMETHODGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_P_GROUPID_2);
+
+			boolean bindPaymentIntegrationKey = false;
+
+			if (paymentIntegrationKey.isEmpty()) {
+				sb.append(_FINDER_COLUMN_G_P_PAYMENTINTEGRATIONKEY_3);
+			}
+			else {
+				bindPaymentIntegrationKey = true;
+
+				sb.append(_FINDER_COLUMN_G_P_PAYMENTINTEGRATIONKEY_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				if (bindPaymentIntegrationKey) {
+					queryPos.add(paymentIntegrationKey);
+				}
+
+				List<CommercePaymentMethodGroupRel> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByG_P, finderArgs, list);
+					}
+				}
+				else {
+					CommercePaymentMethodGroupRel
+						commercePaymentMethodGroupRel = list.get(0);
+
+					result = commercePaymentMethodGroupRel;
+
+					cacheResult(commercePaymentMethodGroupRel);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CommercePaymentMethodGroupRel)result;
+		}
 	}
 
 	/**
@@ -924,9 +1313,24 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	 */
 	@Override
 	public int countByG_P(long groupId, String paymentIntegrationKey) {
-		return _uniquePersistenceFinderByG_P.count(
-			finderCache, new Object[] {groupId, paymentIntegrationKey});
+		CommercePaymentMethodGroupRel commercePaymentMethodGroupRel =
+			fetchByG_P(groupId, paymentIntegrationKey);
+
+		if (commercePaymentMethodGroupRel == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_G_P_GROUPID_2 =
+		"commercePaymentMethodGroupRel.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_P_PAYMENTINTEGRATIONKEY_2 =
+		"commercePaymentMethodGroupRel.paymentIntegrationKey = ?";
+
+	private static final String _FINDER_COLUMN_G_P_PAYMENTINTEGRATIONKEY_3 =
+		"(commercePaymentMethodGroupRel.paymentIntegrationKey IS NULL OR commercePaymentMethodGroupRel.paymentIntegrationKey = '')";
 
 	public CommercePaymentMethodGroupRelPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -999,6 +1403,59 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all commerce payment method group rels.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CommercePaymentMethodGroupRelImpl.class);
+
+		finderCache.clearCache(CommercePaymentMethodGroupRelImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the commerce payment method group rel.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		CommercePaymentMethodGroupRel commercePaymentMethodGroupRel) {
+
+		entityCache.removeResult(
+			CommercePaymentMethodGroupRelImpl.class,
+			commercePaymentMethodGroupRel);
+	}
+
+	@Override
+	public void clearCache(
+		List<CommercePaymentMethodGroupRel> commercePaymentMethodGroupRels) {
+
+		for (CommercePaymentMethodGroupRel commercePaymentMethodGroupRel :
+				commercePaymentMethodGroupRels) {
+
+			entityCache.removeResult(
+				CommercePaymentMethodGroupRelImpl.class,
+				commercePaymentMethodGroupRel);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CommercePaymentMethodGroupRelImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				CommercePaymentMethodGroupRelImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CommercePaymentMethodGroupRelModelImpl
 			commercePaymentMethodGroupRelModelImpl) {
@@ -1049,6 +1506,48 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 		throws NoSuchPaymentMethodGroupRelException {
 
 		return remove((Serializable)commercePaymentMethodGroupRelId);
+	}
+
+	/**
+	 * Removes the commerce payment method group rel with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the commerce payment method group rel
+	 * @return the commerce payment method group rel that was removed
+	 * @throws NoSuchPaymentMethodGroupRelException if a commerce payment method group rel with the primary key could not be found
+	 */
+	@Override
+	public CommercePaymentMethodGroupRel remove(Serializable primaryKey)
+		throws NoSuchPaymentMethodGroupRelException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CommercePaymentMethodGroupRel commercePaymentMethodGroupRel =
+				(CommercePaymentMethodGroupRel)session.get(
+					CommercePaymentMethodGroupRelImpl.class, primaryKey);
+
+			if (commercePaymentMethodGroupRel == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchPaymentMethodGroupRelException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(commercePaymentMethodGroupRel);
+		}
+		catch (NoSuchPaymentMethodGroupRelException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1174,6 +1673,33 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 		}
 
 		commercePaymentMethodGroupRel.resetOriginalValues();
+
+		return commercePaymentMethodGroupRel;
+	}
+
+	/**
+	 * Returns the commerce payment method group rel with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the commerce payment method group rel
+	 * @return the commerce payment method group rel
+	 * @throws NoSuchPaymentMethodGroupRelException if a commerce payment method group rel with the primary key could not be found
+	 */
+	@Override
+	public CommercePaymentMethodGroupRel findByPrimaryKey(
+			Serializable primaryKey)
+		throws NoSuchPaymentMethodGroupRelException {
+
+		CommercePaymentMethodGroupRel commercePaymentMethodGroupRel =
+			fetchByPrimaryKey(primaryKey);
+
+		if (commercePaymentMethodGroupRel == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchPaymentMethodGroupRelException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return commercePaymentMethodGroupRel;
 	}
@@ -1454,20 +1980,6 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId,
-				_SQL_SELECT_COMMERCEPAYMENTMETHODGROUPREL_WHERE,
-				_SQL_COUNT_COMMERCEPAYMENTMETHODGROUPREL_WHERE,
-				CommercePaymentMethodGroupRelModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"commercePaymentMethodGroupRel.", "groupId",
-					FinderColumn.Type.LONG, "=", true, true,
-					CommercePaymentMethodGroupRel::getGroupId));
-
 		_finderPathWithPaginationFindByG_A = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_A",
 			new String[] {
@@ -1487,38 +1999,10 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 			new String[] {Long.class.getName(), Boolean.class.getName()},
 			new String[] {"groupId", "active_"}, false);
 
-		_collectionPersistenceFinderByG_A = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_A,
-			_finderPathWithoutPaginationFindByG_A, _finderPathCountByG_A,
-			_SQL_SELECT_COMMERCEPAYMENTMETHODGROUPREL_WHERE,
-			_SQL_COUNT_COMMERCEPAYMENTMETHODGROUPREL_WHERE,
-			CommercePaymentMethodGroupRelModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"commercePaymentMethodGroupRel.", "groupId",
-				FinderColumn.Type.LONG, "=", true, false,
-				CommercePaymentMethodGroupRel::getGroupId),
-			new FinderColumn<>(
-				"commercePaymentMethodGroupRel.", "active",
-				FinderColumn.Type.BOOLEAN, "=", true, true,
-				CommercePaymentMethodGroupRel::isActive));
-
 		_finderPathFetchByG_P = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByG_P",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"groupId", "paymentIntegrationKey"}, true);
-
-		_uniquePersistenceFinderByG_P = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByG_P,
-			_SQL_SELECT_COMMERCEPAYMENTMETHODGROUPREL_WHERE,
-			new FinderColumn<>(
-				"commercePaymentMethodGroupRel.", "groupId",
-				FinderColumn.Type.LONG, "=", true, false,
-				CommercePaymentMethodGroupRel::getGroupId),
-			new FinderColumn<>(
-				"commercePaymentMethodGroupRel.", "paymentIntegrationKey",
-				FinderColumn.Type.STRING, "=", true, true,
-				CommercePaymentMethodGroupRel::getPaymentIntegrationKey));
 
 		CommercePaymentMethodGroupRelUtil.setPersistence(this);
 	}
@@ -1607,6 +2091,9 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_TABLE =
 		"CommercePaymentMethodGroupRel.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CommercePaymentMethodGroupRel exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CommercePaymentMethodGroupRel exists with the key {";
 
@@ -1622,4 +2109,4 @@ public class CommercePaymentMethodGroupRelPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1864908743
+// LIFERAY-SERVICE-BUILDER-HASH:1810045437

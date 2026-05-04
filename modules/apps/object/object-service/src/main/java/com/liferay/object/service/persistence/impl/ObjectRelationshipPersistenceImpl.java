@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -33,9 +34,6 @@ import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -43,6 +41,7 @@ import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.SetUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 
@@ -50,6 +49,7 @@ import java.io.Serializable;
 
 import java.lang.reflect.InvocationHandler;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -76,8 +76,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = ObjectRelationshipPersistence.class)
 public class ObjectRelationshipPersistenceImpl
-	extends BasePersistenceImpl
-		<ObjectRelationship, NoSuchObjectRelationshipException>
+	extends BasePersistenceImpl<ObjectRelationship>
 	implements ObjectRelationshipPersistence {
 
 	/*
@@ -100,8 +99,6 @@ public class ObjectRelationshipPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the object relationships where uuid = &#63;.
@@ -174,9 +171,106 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid.find(
-			finderCache, new Object[] {uuid}, start, end, orderByComparator,
-			useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid;
+				finderArgs = new Object[] {uuid};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid;
+			finderArgs = new Object[] {uuid, start, end, orderByComparator};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if (!uuid.equals(objectRelationship.getUuid())) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -200,9 +294,16 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -216,8 +317,14 @@ public class ObjectRelationshipPersistenceImpl
 	public ObjectRelationship fetchByUuid_First(
 		String uuid, OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<ObjectRelationship> list = findByUuid(
+			uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -227,8 +334,11 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (ObjectRelationship objectRelationship :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -239,15 +349,69 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByUuid(String uuid) {
-		return _collectionPersistenceFinderByUuid.count(
-			finderCache, new Object[] {uuid});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid;
+
+		Object[] finderArgs = new Object[] {uuid};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"objectRelationship.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(objectRelationship.uuid IS NULL OR objectRelationship.uuid = '')";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the object relationships where uuid = &#63; and companyId = &#63;.
@@ -326,9 +490,114 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid_C.find(
-			finderCache, new Object[] {uuid, companyId}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid_C;
+				finderArgs = new Object[] {uuid, companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid_C;
+			finderArgs = new Object[] {
+				uuid, companyId, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if (!uuid.equals(objectRelationship.getUuid()) ||
+						(companyId != objectRelationship.getCompanyId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -353,9 +622,19 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -371,8 +650,14 @@ public class ObjectRelationshipPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<ObjectRelationship> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -383,8 +668,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (ObjectRelationship objectRelationship :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -396,15 +686,76 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByUuid_C(String uuid, long companyId) {
-		return _collectionPersistenceFinderByUuid_C.count(
-			finderCache, new Object[] {uuid, companyId});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid_C;
+
+		Object[] finderArgs = new Object[] {uuid, companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"objectRelationship.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(objectRelationship.uuid IS NULL OR objectRelationship.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"objectRelationship.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the object relationships where companyId = &#63;.
@@ -478,9 +829,95 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			finderCache, new Object[] {companyId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if (companyId != objectRelationship.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -504,9 +941,16 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -521,8 +965,14 @@ public class ObjectRelationshipPersistenceImpl
 		long companyId,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<ObjectRelationship> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -532,8 +982,12 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (ObjectRelationship objectRelationship :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -544,15 +998,53 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			finderCache, new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"objectRelationship.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByObjectDefinitionId1;
 	private FinderPath _finderPathWithoutPaginationFindByObjectDefinitionId1;
 	private FinderPath _finderPathCountByObjectDefinitionId1;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByObjectDefinitionId1;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId1 = &#63;.
@@ -629,9 +1121,98 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByObjectDefinitionId1.find(
-			finderCache, new Object[] {objectDefinitionId1}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByObjectDefinitionId1;
+				finderArgs = new Object[] {objectDefinitionId1};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByObjectDefinitionId1;
+			finderArgs = new Object[] {
+				objectDefinitionId1, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if (objectDefinitionId1 !=
+							objectRelationship.getObjectDefinitionId1()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_OBJECTDEFINITIONID1_OBJECTDEFINITIONID1_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -656,11 +1237,16 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByObjectDefinitionId1.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {objectDefinitionId1}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId1=");
+		sb.append(objectDefinitionId1);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -675,8 +1261,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByObjectDefinitionId1.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId1}, orderByComparator);
+		List<ObjectRelationship> list = findByObjectDefinitionId1(
+			objectDefinitionId1, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -686,8 +1278,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByObjectDefinitionId1(long objectDefinitionId1) {
-		_collectionPersistenceFinderByObjectDefinitionId1.remove(
-			finderCache, new Object[] {objectDefinitionId1});
+		for (ObjectRelationship objectRelationship :
+				findByObjectDefinitionId1(
+					objectDefinitionId1, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -698,15 +1295,54 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByObjectDefinitionId1(long objectDefinitionId1) {
-		return _collectionPersistenceFinderByObjectDefinitionId1.count(
-			finderCache, new Object[] {objectDefinitionId1});
+		FinderPath finderPath = _finderPathCountByObjectDefinitionId1;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId1};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_OBJECTDEFINITIONID1_OBJECTDEFINITIONID1_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_OBJECTDEFINITIONID1_OBJECTDEFINITIONID1_2 =
+			"objectRelationship.objectDefinitionId1 = ?";
 
 	private FinderPath _finderPathWithPaginationFindByObjectDefinitionId2;
 	private FinderPath _finderPathWithoutPaginationFindByObjectDefinitionId2;
 	private FinderPath _finderPathCountByObjectDefinitionId2;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByObjectDefinitionId2;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId2 = &#63;.
@@ -783,9 +1419,98 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByObjectDefinitionId2.find(
-			finderCache, new Object[] {objectDefinitionId2}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByObjectDefinitionId2;
+				finderArgs = new Object[] {objectDefinitionId2};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByObjectDefinitionId2;
+			finderArgs = new Object[] {
+				objectDefinitionId2, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if (objectDefinitionId2 !=
+							objectRelationship.getObjectDefinitionId2()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_OBJECTDEFINITIONID2_OBJECTDEFINITIONID2_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId2);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -810,11 +1535,16 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByObjectDefinitionId2.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {objectDefinitionId2}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId2=");
+		sb.append(objectDefinitionId2);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -829,8 +1559,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId2,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByObjectDefinitionId2.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId2}, orderByComparator);
+		List<ObjectRelationship> list = findByObjectDefinitionId2(
+			objectDefinitionId2, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -840,8 +1576,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByObjectDefinitionId2(long objectDefinitionId2) {
-		_collectionPersistenceFinderByObjectDefinitionId2.remove(
-			finderCache, new Object[] {objectDefinitionId2});
+		for (ObjectRelationship objectRelationship :
+				findByObjectDefinitionId2(
+					objectDefinitionId2, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -852,13 +1593,52 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByObjectDefinitionId2(long objectDefinitionId2) {
-		return _collectionPersistenceFinderByObjectDefinitionId2.count(
-			finderCache, new Object[] {objectDefinitionId2});
+		FinderPath finderPath = _finderPathCountByObjectDefinitionId2;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId2};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_OBJECTDEFINITIONID2_OBJECTDEFINITIONID2_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId2);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String
+		_FINDER_COLUMN_OBJECTDEFINITIONID2_OBJECTDEFINITIONID2_2 =
+			"objectRelationship.objectDefinitionId2 = ?";
+
 	private FinderPath _finderPathFetchByObjectFieldId2;
-	private UniquePersistenceFinder<ObjectRelationship>
-		_uniquePersistenceFinderByObjectFieldId2;
 
 	/**
 	 * Returns the object relationship where objectFieldId2 = &#63; or throws a <code>NoSuchObjectRelationshipException</code> if it could not be found.
@@ -875,15 +1655,20 @@ public class ObjectRelationshipPersistenceImpl
 			objectFieldId2);
 
 		if (objectRelationship == null) {
-			String message =
-				_uniquePersistenceFinderByObjectFieldId2.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {objectFieldId2});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("objectFieldId2=");
+			sb.append(objectFieldId2);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchObjectRelationshipException(message);
+			throw new NoSuchObjectRelationshipException(sb.toString());
 		}
 
 		return objectRelationship;
@@ -911,8 +1696,92 @@ public class ObjectRelationshipPersistenceImpl
 	public ObjectRelationship fetchByObjectFieldId2(
 		long objectFieldId2, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByObjectFieldId2.fetch(
-			finderCache, new Object[] {objectFieldId2}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {objectFieldId2};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByObjectFieldId2, finderArgs, this);
+		}
+
+		if (result instanceof ObjectRelationship) {
+			ObjectRelationship objectRelationship = (ObjectRelationship)result;
+
+			if (objectFieldId2 != objectRelationship.getObjectFieldId2()) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_OBJECTFIELDID2_OBJECTFIELDID2_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectFieldId2);
+
+				List<ObjectRelationship> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByObjectFieldId2, finderArgs, list);
+					}
+				}
+				else {
+					if (list.size() > 1) {
+						Collections.sort(list, Collections.reverseOrder());
+
+						if (_log.isWarnEnabled()) {
+							if (!useFinderCache) {
+								finderArgs = new Object[] {objectFieldId2};
+							}
+
+							_log.warn(
+								"ObjectRelationshipPersistenceImpl.fetchByObjectFieldId2(long, boolean) with parameters (" +
+									StringUtil.merge(finderArgs) +
+										") yields a result set with more than 1 result. This violates the logical unique restriction. There is no order guarantee on which result is returned by this finder.");
+						}
+					}
+
+					ObjectRelationship objectRelationship = list.get(0);
+
+					result = objectRelationship;
+
+					cacheResult(objectRelationship);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (ObjectRelationship)result;
+		}
 	}
 
 	/**
@@ -939,15 +1808,22 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByObjectFieldId2(long objectFieldId2) {
-		return _uniquePersistenceFinderByObjectFieldId2.count(
-			finderCache, new Object[] {objectFieldId2});
+		ObjectRelationship objectRelationship = fetchByObjectFieldId2(
+			objectFieldId2);
+
+		if (objectRelationship == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_OBJECTFIELDID2_OBJECTFIELDID2_2 =
+		"objectRelationship.objectFieldId2 = ?";
 
 	private FinderPath _finderPathWithPaginationFindByParameterObjectFieldId;
 	private FinderPath _finderPathWithoutPaginationFindByParameterObjectFieldId;
 	private FinderPath _finderPathCountByParameterObjectFieldId;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByParameterObjectFieldId;
 
 	/**
 	 * Returns all the object relationships where parameterObjectFieldId = &#63;.
@@ -1025,9 +1901,99 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByParameterObjectFieldId.find(
-			finderCache, new Object[] {parameterObjectFieldId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByParameterObjectFieldId;
+				finderArgs = new Object[] {parameterObjectFieldId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByParameterObjectFieldId;
+			finderArgs = new Object[] {
+				parameterObjectFieldId, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if (parameterObjectFieldId !=
+							objectRelationship.getParameterObjectFieldId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_PARAMETEROBJECTFIELDID_PARAMETEROBJECTFIELDID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(parameterObjectFieldId);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1052,11 +2018,16 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByParameterObjectFieldId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {parameterObjectFieldId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("parameterObjectFieldId=");
+		sb.append(parameterObjectFieldId);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -1071,9 +2042,14 @@ public class ObjectRelationshipPersistenceImpl
 		long parameterObjectFieldId,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByParameterObjectFieldId.fetchFirst(
-			finderCache, new Object[] {parameterObjectFieldId},
-			orderByComparator);
+		List<ObjectRelationship> list = findByParameterObjectFieldId(
+			parameterObjectFieldId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1083,8 +2059,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByParameterObjectFieldId(long parameterObjectFieldId) {
-		_collectionPersistenceFinderByParameterObjectFieldId.remove(
-			finderCache, new Object[] {parameterObjectFieldId});
+		for (ObjectRelationship objectRelationship :
+				findByParameterObjectFieldId(
+					parameterObjectFieldId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -1095,15 +2076,55 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByParameterObjectFieldId(long parameterObjectFieldId) {
-		return _collectionPersistenceFinderByParameterObjectFieldId.count(
-			finderCache, new Object[] {parameterObjectFieldId});
+		FinderPath finderPath = _finderPathCountByParameterObjectFieldId;
+
+		Object[] finderArgs = new Object[] {parameterObjectFieldId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_PARAMETEROBJECTFIELDID_PARAMETEROBJECTFIELDID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(parameterObjectFieldId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_PARAMETEROBJECTFIELDID_PARAMETEROBJECTFIELDID_2 =
+			"objectRelationship.parameterObjectFieldId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_U;
 	private FinderPath _finderPathWithoutPaginationFindByC_U;
 	private FinderPath _finderPathCountByC_U;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByC_U;
 
 	/**
 	 * Returns all the object relationships where companyId = &#63; and userId = &#63;.
@@ -1182,9 +2203,101 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_U.find(
-			finderCache, new Object[] {companyId, userId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_U;
+				finderArgs = new Object[] {companyId, userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_U;
+			finderArgs = new Object[] {
+				companyId, userId, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((companyId != objectRelationship.getCompanyId()) ||
+						(userId != objectRelationship.getUserId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1209,9 +2322,19 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByC_U.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, userId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -1227,8 +2350,14 @@ public class ObjectRelationshipPersistenceImpl
 		long companyId, long userId,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_U.fetchFirst(
-			finderCache, new Object[] {companyId, userId}, orderByComparator);
+		List<ObjectRelationship> list = findByC_U(
+			companyId, userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1239,8 +2368,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByC_U(long companyId, long userId) {
-		_collectionPersistenceFinderByC_U.remove(
-			finderCache, new Object[] {companyId, userId});
+		for (ObjectRelationship objectRelationship :
+				findByC_U(
+					companyId, userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -1252,15 +2386,60 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByC_U(long companyId, long userId) {
-		return _collectionPersistenceFinderByC_U.count(
-			finderCache, new Object[] {companyId, userId});
+		FinderPath finderPath = _finderPathCountByC_U;
+
+		Object[] finderArgs = new Object[] {companyId, userId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_C_U_COMPANYID_2 =
+		"objectRelationship.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_U_USERID_2 =
+		"objectRelationship.userId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByODI1_E;
 	private FinderPath _finderPathWithoutPaginationFindByODI1_E;
 	private FinderPath _finderPathCountByODI1_E;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI1_E;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId1 = &#63; and edge = &#63;.
@@ -1342,9 +2521,102 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI1_E.find(
-			finderCache, new Object[] {objectDefinitionId1, edge}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI1_E;
+				finderArgs = new Object[] {objectDefinitionId1, edge};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI1_E;
+			finderArgs = new Object[] {
+				objectDefinitionId1, edge, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId1 !=
+							objectRelationship.getObjectDefinitionId1()) ||
+						(edge != objectRelationship.isEdge())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_E_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_E_EDGE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(edge);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1369,10 +2641,19 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI1_E.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId1, edge}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId1=");
+		sb.append(objectDefinitionId1);
+
+		sb.append(", edge=");
+		sb.append(edge);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -1388,9 +2669,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, boolean edge,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI1_E.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId1, edge},
-			orderByComparator);
+		List<ObjectRelationship> list = findByODI1_E(
+			objectDefinitionId1, edge, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1401,8 +2687,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByODI1_E(long objectDefinitionId1, boolean edge) {
-		_collectionPersistenceFinderByODI1_E.remove(
-			finderCache, new Object[] {objectDefinitionId1, edge});
+		for (ObjectRelationship objectRelationship :
+				findByODI1_E(
+					objectDefinitionId1, edge, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -1414,15 +2705,60 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByODI1_E(long objectDefinitionId1, boolean edge) {
-		return _collectionPersistenceFinderByODI1_E.count(
-			finderCache, new Object[] {objectDefinitionId1, edge});
+		FinderPath finderPath = _finderPathCountByODI1_E;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId1, edge};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_E_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_E_EDGE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(edge);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_ODI1_E_OBJECTDEFINITIONID1_2 =
+		"objectRelationship.objectDefinitionId1 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_E_EDGE_2 =
+		"objectRelationship.edge = ?";
 
 	private FinderPath _finderPathWithPaginationFindByODI1_N;
 	private FinderPath _finderPathWithoutPaginationFindByODI1_N;
 	private FinderPath _finderPathCountByODI1_N;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI1_N;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId1 = &#63; and name = &#63;.
@@ -1504,9 +2840,115 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI1_N.find(
-			finderCache, new Object[] {objectDefinitionId1, name}, start, end,
-			orderByComparator, useFinderCache);
+		name = Objects.toString(name, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI1_N;
+				finderArgs = new Object[] {objectDefinitionId1, name};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI1_N;
+			finderArgs = new Object[] {
+				objectDefinitionId1, name, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId1 !=
+							objectRelationship.getObjectDefinitionId1()) ||
+						!name.equals(objectRelationship.getName())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_N_OBJECTDEFINITIONID1_2);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_N_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_N_NAME_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1531,10 +2973,19 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI1_N.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId1, name}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId1=");
+		sb.append(objectDefinitionId1);
+
+		sb.append(", name=");
+		sb.append(name);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -1550,9 +3001,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, String name,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI1_N.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId1, name},
-			orderByComparator);
+		List<ObjectRelationship> list = findByODI1_N(
+			objectDefinitionId1, name, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1563,8 +3019,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByODI1_N(long objectDefinitionId1, String name) {
-		_collectionPersistenceFinderByODI1_N.remove(
-			finderCache, new Object[] {objectDefinitionId1, name});
+		for (ObjectRelationship objectRelationship :
+				findByODI1_N(
+					objectDefinitionId1, name, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -1576,15 +3037,76 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByODI1_N(long objectDefinitionId1, String name) {
-		return _collectionPersistenceFinderByODI1_N.count(
-			finderCache, new Object[] {objectDefinitionId1, name});
+		name = Objects.toString(name, "");
+
+		FinderPath finderPath = _finderPathCountByODI1_N;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId1, name};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_N_OBJECTDEFINITIONID1_2);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_N_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_N_NAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_ODI1_N_OBJECTDEFINITIONID1_2 =
+		"objectRelationship.objectDefinitionId1 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_N_NAME_2 =
+		"objectRelationship.name = ?";
+
+	private static final String _FINDER_COLUMN_ODI1_N_NAME_3 =
+		"(objectRelationship.name IS NULL OR objectRelationship.name = '')";
 
 	private FinderPath _finderPathWithPaginationFindByODI1_R;
 	private FinderPath _finderPathWithoutPaginationFindByODI1_R;
 	private FinderPath _finderPathCountByODI1_R;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI1_R;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId1 = &#63; and reverse = &#63;.
@@ -1666,9 +3188,102 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI1_R.find(
-			finderCache, new Object[] {objectDefinitionId1, reverse}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI1_R;
+				finderArgs = new Object[] {objectDefinitionId1, reverse};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI1_R;
+			finderArgs = new Object[] {
+				objectDefinitionId1, reverse, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId1 !=
+							objectRelationship.getObjectDefinitionId1()) ||
+						(reverse != objectRelationship.isReverse())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_R_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_R_REVERSE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(reverse);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1693,10 +3308,19 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI1_R.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId1, reverse}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId1=");
+		sb.append(objectDefinitionId1);
+
+		sb.append(", reverse=");
+		sb.append(reverse);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -1712,9 +3336,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, boolean reverse,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI1_R.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId1, reverse},
-			orderByComparator);
+		List<ObjectRelationship> list = findByODI1_R(
+			objectDefinitionId1, reverse, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1725,8 +3354,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByODI1_R(long objectDefinitionId1, boolean reverse) {
-		_collectionPersistenceFinderByODI1_R.remove(
-			finderCache, new Object[] {objectDefinitionId1, reverse});
+		for (ObjectRelationship objectRelationship :
+				findByODI1_R(
+					objectDefinitionId1, reverse, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -1738,15 +3372,60 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByODI1_R(long objectDefinitionId1, boolean reverse) {
-		return _collectionPersistenceFinderByODI1_R.count(
-			finderCache, new Object[] {objectDefinitionId1, reverse});
+		FinderPath finderPath = _finderPathCountByODI1_R;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId1, reverse};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_R_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_R_REVERSE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(reverse);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_ODI1_R_OBJECTDEFINITIONID1_2 =
+		"objectRelationship.objectDefinitionId1 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_R_REVERSE_2 =
+		"objectRelationship.reverse = ?";
 
 	private FinderPath _finderPathWithPaginationFindByODI2_E;
 	private FinderPath _finderPathWithoutPaginationFindByODI2_E;
 	private FinderPath _finderPathCountByODI2_E;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI2_E;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId2 = &#63; and edge = &#63;.
@@ -1828,9 +3507,102 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI2_E.find(
-			finderCache, new Object[] {objectDefinitionId2, edge}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI2_E;
+				finderArgs = new Object[] {objectDefinitionId2, edge};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI2_E;
+			finderArgs = new Object[] {
+				objectDefinitionId2, edge, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId2 !=
+							objectRelationship.getObjectDefinitionId2()) ||
+						(edge != objectRelationship.isEdge())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI2_E_OBJECTDEFINITIONID2_2);
+
+			sb.append(_FINDER_COLUMN_ODI2_E_EDGE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId2);
+
+				queryPos.add(edge);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1855,10 +3627,19 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI2_E.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId2, edge}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId2=");
+		sb.append(objectDefinitionId2);
+
+		sb.append(", edge=");
+		sb.append(edge);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -1874,9 +3655,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId2, boolean edge,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI2_E.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId2, edge},
-			orderByComparator);
+		List<ObjectRelationship> list = findByODI2_E(
+			objectDefinitionId2, edge, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1887,8 +3673,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByODI2_E(long objectDefinitionId2, boolean edge) {
-		_collectionPersistenceFinderByODI2_E.remove(
-			finderCache, new Object[] {objectDefinitionId2, edge});
+		for (ObjectRelationship objectRelationship :
+				findByODI2_E(
+					objectDefinitionId2, edge, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -1900,15 +3691,60 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByODI2_E(long objectDefinitionId2, boolean edge) {
-		return _collectionPersistenceFinderByODI2_E.count(
-			finderCache, new Object[] {objectDefinitionId2, edge});
+		FinderPath finderPath = _finderPathCountByODI2_E;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId2, edge};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI2_E_OBJECTDEFINITIONID2_2);
+
+			sb.append(_FINDER_COLUMN_ODI2_E_EDGE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId2);
+
+				queryPos.add(edge);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_ODI2_E_OBJECTDEFINITIONID2_2 =
+		"objectRelationship.objectDefinitionId2 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI2_E_EDGE_2 =
+		"objectRelationship.edge = ?";
 
 	private FinderPath _finderPathWithPaginationFindByODI2_R;
 	private FinderPath _finderPathWithoutPaginationFindByODI2_R;
 	private FinderPath _finderPathCountByODI2_R;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI2_R;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId2 = &#63; and reverse = &#63;.
@@ -1990,9 +3826,102 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI2_R.find(
-			finderCache, new Object[] {objectDefinitionId2, reverse}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI2_R;
+				finderArgs = new Object[] {objectDefinitionId2, reverse};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI2_R;
+			finderArgs = new Object[] {
+				objectDefinitionId2, reverse, start, end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId2 !=
+							objectRelationship.getObjectDefinitionId2()) ||
+						(reverse != objectRelationship.isReverse())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI2_R_OBJECTDEFINITIONID2_2);
+
+			sb.append(_FINDER_COLUMN_ODI2_R_REVERSE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId2);
+
+				queryPos.add(reverse);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2017,10 +3946,19 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI2_R.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId2, reverse}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId2=");
+		sb.append(objectDefinitionId2);
+
+		sb.append(", reverse=");
+		sb.append(reverse);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -2036,9 +3974,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId2, boolean reverse,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI2_R.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId2, reverse},
-			orderByComparator);
+		List<ObjectRelationship> list = findByODI2_R(
+			objectDefinitionId2, reverse, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2049,8 +3992,13 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public void removeByODI2_R(long objectDefinitionId2, boolean reverse) {
-		_collectionPersistenceFinderByODI2_R.remove(
-			finderCache, new Object[] {objectDefinitionId2, reverse});
+		for (ObjectRelationship objectRelationship :
+				findByODI2_R(
+					objectDefinitionId2, reverse, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -2062,13 +4010,58 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByODI2_R(long objectDefinitionId2, boolean reverse) {
-		return _collectionPersistenceFinderByODI2_R.count(
-			finderCache, new Object[] {objectDefinitionId2, reverse});
+		FinderPath finderPath = _finderPathCountByODI2_R;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId2, reverse};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI2_R_OBJECTDEFINITIONID2_2);
+
+			sb.append(_FINDER_COLUMN_ODI2_R_REVERSE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId2);
+
+				queryPos.add(reverse);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_ODI2_R_OBJECTDEFINITIONID2_2 =
+		"objectRelationship.objectDefinitionId2 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI2_R_REVERSE_2 =
+		"objectRelationship.reverse = ?";
+
 	private FinderPath _finderPathFetchByDTN_R;
-	private UniquePersistenceFinder<ObjectRelationship>
-		_uniquePersistenceFinderByDTN_R;
 
 	/**
 	 * Returns the object relationship where dbTableName = &#63; and reverse = &#63; or throws a <code>NoSuchObjectRelationshipException</code> if it could not be found.
@@ -2086,16 +4079,23 @@ public class ObjectRelationshipPersistenceImpl
 			dbTableName, reverse);
 
 		if (objectRelationship == null) {
-			String message =
-				_uniquePersistenceFinderByDTN_R.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {dbTableName, reverse});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("dbTableName=");
+			sb.append(dbTableName);
+
+			sb.append(", reverse=");
+			sb.append(reverse);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchObjectRelationshipException(message);
+			throw new NoSuchObjectRelationshipException(sb.toString());
 		}
 
 		return objectRelationship;
@@ -2127,8 +4127,114 @@ public class ObjectRelationshipPersistenceImpl
 	public ObjectRelationship fetchByDTN_R(
 		String dbTableName, boolean reverse, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByDTN_R.fetch(
-			finderCache, new Object[] {dbTableName, reverse}, useFinderCache);
+		dbTableName = Objects.toString(dbTableName, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {dbTableName, reverse};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByDTN_R, finderArgs, this);
+		}
+
+		if (result instanceof ObjectRelationship) {
+			ObjectRelationship objectRelationship = (ObjectRelationship)result;
+
+			if (!Objects.equals(
+					dbTableName, objectRelationship.getDBTableName()) ||
+				(reverse != objectRelationship.isReverse())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			boolean bindDBTableName = false;
+
+			if (dbTableName.isEmpty()) {
+				sb.append(_FINDER_COLUMN_DTN_R_DBTABLENAME_3);
+			}
+			else {
+				bindDBTableName = true;
+
+				sb.append(_FINDER_COLUMN_DTN_R_DBTABLENAME_2);
+			}
+
+			sb.append(_FINDER_COLUMN_DTN_R_REVERSE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindDBTableName) {
+					queryPos.add(dbTableName);
+				}
+
+				queryPos.add(reverse);
+
+				List<ObjectRelationship> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByDTN_R, finderArgs, list);
+					}
+				}
+				else {
+					if (list.size() > 1) {
+						Collections.sort(list, Collections.reverseOrder());
+
+						if (_log.isWarnEnabled()) {
+							if (!useFinderCache) {
+								finderArgs = new Object[] {
+									dbTableName, reverse
+								};
+							}
+
+							_log.warn(
+								"ObjectRelationshipPersistenceImpl.fetchByDTN_R(String, boolean, boolean) with parameters (" +
+									StringUtil.merge(finderArgs) +
+										") yields a result set with more than 1 result. This violates the logical unique restriction. There is no order guarantee on which result is returned by this finder.");
+						}
+					}
+
+					ObjectRelationship objectRelationship = list.get(0);
+
+					result = objectRelationship;
+
+					cacheResult(objectRelationship);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (ObjectRelationship)result;
+		}
 	}
 
 	/**
@@ -2157,13 +4263,26 @@ public class ObjectRelationshipPersistenceImpl
 	 */
 	@Override
 	public int countByDTN_R(String dbTableName, boolean reverse) {
-		return _uniquePersistenceFinderByDTN_R.count(
-			finderCache, new Object[] {dbTableName, reverse});
+		ObjectRelationship objectRelationship = fetchByDTN_R(
+			dbTableName, reverse);
+
+		if (objectRelationship == null) {
+			return 0;
+		}
+
+		return 1;
 	}
 
+	private static final String _FINDER_COLUMN_DTN_R_DBTABLENAME_2 =
+		"objectRelationship.dbTableName = ? AND ";
+
+	private static final String _FINDER_COLUMN_DTN_R_DBTABLENAME_3 =
+		"(objectRelationship.dbTableName IS NULL OR objectRelationship.dbTableName = '') AND ";
+
+	private static final String _FINDER_COLUMN_DTN_R_REVERSE_2 =
+		"objectRelationship.reverse = ?";
+
 	private FinderPath _finderPathFetchByERC_C_ODI1;
-	private UniquePersistenceFinder<ObjectRelationship>
-		_uniquePersistenceFinderByERC_C_ODI1;
 
 	/**
 	 * Returns the object relationship where externalReferenceCode = &#63; and companyId = &#63; and objectDefinitionId1 = &#63; or throws a <code>NoSuchObjectRelationshipException</code> if it could not be found.
@@ -2184,18 +4303,26 @@ public class ObjectRelationshipPersistenceImpl
 			externalReferenceCode, companyId, objectDefinitionId1);
 
 		if (objectRelationship == null) {
-			String message =
-				_uniquePersistenceFinderByERC_C_ODI1.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {
-						externalReferenceCode, companyId, objectDefinitionId1
-					});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("externalReferenceCode=");
+			sb.append(externalReferenceCode);
+
+			sb.append(", companyId=");
+			sb.append(companyId);
+
+			sb.append(", objectDefinitionId1=");
+			sb.append(objectDefinitionId1);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchObjectRelationshipException(message);
+			throw new NoSuchObjectRelationshipException(sb.toString());
 		}
 
 		return objectRelationship;
@@ -2232,12 +4359,124 @@ public class ObjectRelationshipPersistenceImpl
 		String externalReferenceCode, long companyId, long objectDefinitionId1,
 		boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByERC_C_ODI1.fetch(
-			finderCache,
-			new Object[] {
+		externalReferenceCode = Objects.toString(externalReferenceCode, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {
 				externalReferenceCode, companyId, objectDefinitionId1
-			},
-			useFinderCache);
+			};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByERC_C_ODI1, finderArgs, this);
+		}
+
+		if (result instanceof ObjectRelationship) {
+			ObjectRelationship objectRelationship = (ObjectRelationship)result;
+
+			if (!Objects.equals(
+					externalReferenceCode,
+					objectRelationship.getExternalReferenceCode()) ||
+				(companyId != objectRelationship.getCompanyId()) ||
+				(objectDefinitionId1 !=
+					objectRelationship.getObjectDefinitionId1())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			boolean bindExternalReferenceCode = false;
+
+			if (externalReferenceCode.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ERC_C_ODI1_EXTERNALREFERENCECODE_3);
+			}
+			else {
+				bindExternalReferenceCode = true;
+
+				sb.append(_FINDER_COLUMN_ERC_C_ODI1_EXTERNALREFERENCECODE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_ERC_C_ODI1_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_ERC_C_ODI1_OBJECTDEFINITIONID1_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExternalReferenceCode) {
+					queryPos.add(externalReferenceCode);
+				}
+
+				queryPos.add(companyId);
+
+				queryPos.add(objectDefinitionId1);
+
+				List<ObjectRelationship> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByERC_C_ODI1, finderArgs, list);
+					}
+				}
+				else {
+					if (list.size() > 1) {
+						Collections.sort(list, Collections.reverseOrder());
+
+						if (_log.isWarnEnabled()) {
+							if (!useFinderCache) {
+								finderArgs = new Object[] {
+									externalReferenceCode, companyId,
+									objectDefinitionId1
+								};
+							}
+
+							_log.warn(
+								"ObjectRelationshipPersistenceImpl.fetchByERC_C_ODI1(String, long, long, boolean) with parameters (" +
+									StringUtil.merge(finderArgs) +
+										") yields a result set with more than 1 result. This violates the logical unique restriction. There is no order guarantee on which result is returned by this finder.");
+						}
+					}
+
+					ObjectRelationship objectRelationship = list.get(0);
+
+					result = objectRelationship;
+
+					cacheResult(objectRelationship);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (ObjectRelationship)result;
+		}
 	}
 
 	/**
@@ -2273,18 +4512,34 @@ public class ObjectRelationshipPersistenceImpl
 		String externalReferenceCode, long companyId,
 		long objectDefinitionId1) {
 
-		return _uniquePersistenceFinderByERC_C_ODI1.count(
-			finderCache,
-			new Object[] {
-				externalReferenceCode, companyId, objectDefinitionId1
-			});
+		ObjectRelationship objectRelationship = fetchByERC_C_ODI1(
+			externalReferenceCode, companyId, objectDefinitionId1);
+
+		if (objectRelationship == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_ERC_C_ODI1_EXTERNALREFERENCECODE_2 =
+			"objectRelationship.externalReferenceCode = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_ERC_C_ODI1_EXTERNALREFERENCECODE_3 =
+			"(objectRelationship.externalReferenceCode IS NULL OR objectRelationship.externalReferenceCode = '') AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_ODI1_COMPANYID_2 =
+		"objectRelationship.companyId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_ERC_C_ODI1_OBJECTDEFINITIONID1_2 =
+			"objectRelationship.objectDefinitionId1 = ?";
 
 	private FinderPath _finderPathWithPaginationFindByODI1_ODI2_T;
 	private FinderPath _finderPathWithoutPaginationFindByODI1_ODI2_T;
 	private FinderPath _finderPathCountByODI1_ODI2_T;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI1_ODI2_T;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId1 = &#63; and objectDefinitionId2 = &#63; and type = &#63;.
@@ -2375,10 +4630,124 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI1_ODI2_T.find(
-			finderCache,
-			new Object[] {objectDefinitionId1, objectDefinitionId2, type},
-			start, end, orderByComparator, useFinderCache);
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI1_ODI2_T;
+				finderArgs = new Object[] {
+					objectDefinitionId1, objectDefinitionId2, type
+				};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI1_ODI2_T;
+			finderArgs = new Object[] {
+				objectDefinitionId1, objectDefinitionId2, type, start, end,
+				orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId1 !=
+							objectRelationship.getObjectDefinitionId1()) ||
+						(objectDefinitionId2 !=
+							objectRelationship.getObjectDefinitionId2()) ||
+						!type.equals(objectRelationship.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_T_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_T_OBJECTDEFINITIONID2_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_T_TYPE_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(objectDefinitionId2);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2404,10 +4773,22 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI1_ODI2_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId1, objectDefinitionId2, type}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId1=");
+		sb.append(objectDefinitionId1);
+
+		sb.append(", objectDefinitionId2=");
+		sb.append(objectDefinitionId2);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -2424,10 +4805,15 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, long objectDefinitionId2, String type,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI1_ODI2_T.fetchFirst(
-			finderCache,
-			new Object[] {objectDefinitionId1, objectDefinitionId2, type},
+		List<ObjectRelationship> list = findByODI1_ODI2_T(
+			objectDefinitionId1, objectDefinitionId2, type, 0, 1,
 			orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2441,9 +4827,13 @@ public class ObjectRelationshipPersistenceImpl
 	public void removeByODI1_ODI2_T(
 		long objectDefinitionId1, long objectDefinitionId2, String type) {
 
-		_collectionPersistenceFinderByODI1_ODI2_T.remove(
-			finderCache,
-			new Object[] {objectDefinitionId1, objectDefinitionId2, type});
+		for (ObjectRelationship objectRelationship :
+				findByODI1_ODI2_T(
+					objectDefinitionId1, objectDefinitionId2, type,
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -2458,16 +4848,87 @@ public class ObjectRelationshipPersistenceImpl
 	public int countByODI1_ODI2_T(
 		long objectDefinitionId1, long objectDefinitionId2, String type) {
 
-		return _collectionPersistenceFinderByODI1_ODI2_T.count(
-			finderCache,
-			new Object[] {objectDefinitionId1, objectDefinitionId2, type});
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = _finderPathCountByODI1_ODI2_T;
+
+		Object[] finderArgs = new Object[] {
+			objectDefinitionId1, objectDefinitionId2, type
+		};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_T_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_T_OBJECTDEFINITIONID2_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_T_TYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(objectDefinitionId2);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_ODI1_ODI2_T_OBJECTDEFINITIONID1_2 =
+			"objectRelationship.objectDefinitionId1 = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_ODI1_ODI2_T_OBJECTDEFINITIONID2_2 =
+			"objectRelationship.objectDefinitionId2 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_T_TYPE_2 =
+		"objectRelationship.type = ?";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_T_TYPE_3 =
+		"(objectRelationship.type IS NULL OR objectRelationship.type = '')";
 
 	private FinderPath _finderPathWithPaginationFindByODI1_DT_R;
 	private FinderPath _finderPathWithoutPaginationFindByODI1_DT_R;
 	private FinderPath _finderPathCountByODI1_DT_R;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI1_DT_R;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId1 = &#63; and deletionType = &#63; and reverse = &#63;.
@@ -2558,10 +5019,124 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI1_DT_R.find(
-			finderCache,
-			new Object[] {objectDefinitionId1, deletionType, reverse}, start,
-			end, orderByComparator, useFinderCache);
+		deletionType = Objects.toString(deletionType, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI1_DT_R;
+				finderArgs = new Object[] {
+					objectDefinitionId1, deletionType, reverse
+				};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI1_DT_R;
+			finderArgs = new Object[] {
+				objectDefinitionId1, deletionType, reverse, start, end,
+				orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId1 !=
+							objectRelationship.getObjectDefinitionId1()) ||
+						!deletionType.equals(
+							objectRelationship.getDeletionType()) ||
+						(reverse != objectRelationship.isReverse())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_DT_R_OBJECTDEFINITIONID1_2);
+
+			boolean bindDeletionType = false;
+
+			if (deletionType.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_DT_R_DELETIONTYPE_3);
+			}
+			else {
+				bindDeletionType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_DT_R_DELETIONTYPE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_ODI1_DT_R_REVERSE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				if (bindDeletionType) {
+					queryPos.add(deletionType);
+				}
+
+				queryPos.add(reverse);
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2587,10 +5162,22 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI1_DT_R.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId1, deletionType, reverse}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId1=");
+		sb.append(objectDefinitionId1);
+
+		sb.append(", deletionType=");
+		sb.append(deletionType);
+
+		sb.append(", reverse=");
+		sb.append(reverse);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -2607,10 +5194,15 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, String deletionType, boolean reverse,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI1_DT_R.fetchFirst(
-			finderCache,
-			new Object[] {objectDefinitionId1, deletionType, reverse},
+		List<ObjectRelationship> list = findByODI1_DT_R(
+			objectDefinitionId1, deletionType, reverse, 0, 1,
 			orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2624,9 +5216,13 @@ public class ObjectRelationshipPersistenceImpl
 	public void removeByODI1_DT_R(
 		long objectDefinitionId1, String deletionType, boolean reverse) {
 
-		_collectionPersistenceFinderByODI1_DT_R.remove(
-			finderCache,
-			new Object[] {objectDefinitionId1, deletionType, reverse});
+		for (ObjectRelationship objectRelationship :
+				findByODI1_DT_R(
+					objectDefinitionId1, deletionType, reverse,
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -2641,16 +5237,85 @@ public class ObjectRelationshipPersistenceImpl
 	public int countByODI1_DT_R(
 		long objectDefinitionId1, String deletionType, boolean reverse) {
 
-		return _collectionPersistenceFinderByODI1_DT_R.count(
-			finderCache,
-			new Object[] {objectDefinitionId1, deletionType, reverse});
+		deletionType = Objects.toString(deletionType, "");
+
+		FinderPath finderPath = _finderPathCountByODI1_DT_R;
+
+		Object[] finderArgs = new Object[] {
+			objectDefinitionId1, deletionType, reverse
+		};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_DT_R_OBJECTDEFINITIONID1_2);
+
+			boolean bindDeletionType = false;
+
+			if (deletionType.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_DT_R_DELETIONTYPE_3);
+			}
+			else {
+				bindDeletionType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_DT_R_DELETIONTYPE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_ODI1_DT_R_REVERSE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				if (bindDeletionType) {
+					queryPos.add(deletionType);
+				}
+
+				queryPos.add(reverse);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_ODI1_DT_R_OBJECTDEFINITIONID1_2 =
+		"objectRelationship.objectDefinitionId1 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_DT_R_DELETIONTYPE_2 =
+		"objectRelationship.deletionType = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_DT_R_DELETIONTYPE_3 =
+		"(objectRelationship.deletionType IS NULL OR objectRelationship.deletionType = '') AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_DT_R_REVERSE_2 =
+		"objectRelationship.reverse = ?";
 
 	private FinderPath _finderPathWithPaginationFindByODI1_R_T;
 	private FinderPath _finderPathWithoutPaginationFindByODI1_R_T;
 	private FinderPath _finderPathCountByODI1_R_T;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI1_R_T;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId1 = &#63; and reverse = &#63; and type = &#63;.
@@ -2739,9 +5404,121 @@ public class ObjectRelationshipPersistenceImpl
 		int end, OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI1_R_T.find(
-			finderCache, new Object[] {objectDefinitionId1, reverse, type},
-			start, end, orderByComparator, useFinderCache);
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI1_R_T;
+				finderArgs = new Object[] {objectDefinitionId1, reverse, type};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI1_R_T;
+			finderArgs = new Object[] {
+				objectDefinitionId1, reverse, type, start, end,
+				orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId1 !=
+							objectRelationship.getObjectDefinitionId1()) ||
+						(reverse != objectRelationship.isReverse()) ||
+						!type.equals(objectRelationship.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_R_T_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_R_T_REVERSE_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_R_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_R_T_TYPE_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(reverse);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2767,10 +5544,22 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI1_R_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId1, reverse, type}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId1=");
+		sb.append(objectDefinitionId1);
+
+		sb.append(", reverse=");
+		sb.append(reverse);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -2787,9 +5576,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, boolean reverse, String type,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI1_R_T.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId1, reverse, type},
-			orderByComparator);
+		List<ObjectRelationship> list = findByODI1_R_T(
+			objectDefinitionId1, reverse, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2803,8 +5597,13 @@ public class ObjectRelationshipPersistenceImpl
 	public void removeByODI1_R_T(
 		long objectDefinitionId1, boolean reverse, String type) {
 
-		_collectionPersistenceFinderByODI1_R_T.remove(
-			finderCache, new Object[] {objectDefinitionId1, reverse, type});
+		for (ObjectRelationship objectRelationship :
+				findByODI1_R_T(
+					objectDefinitionId1, reverse, type, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -2819,15 +5618,83 @@ public class ObjectRelationshipPersistenceImpl
 	public int countByODI1_R_T(
 		long objectDefinitionId1, boolean reverse, String type) {
 
-		return _collectionPersistenceFinderByODI1_R_T.count(
-			finderCache, new Object[] {objectDefinitionId1, reverse, type});
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = _finderPathCountByODI1_R_T;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId1, reverse, type};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_R_T_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_R_T_REVERSE_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_R_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_R_T_TYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(reverse);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_ODI1_R_T_OBJECTDEFINITIONID1_2 =
+		"objectRelationship.objectDefinitionId1 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_R_T_REVERSE_2 =
+		"objectRelationship.reverse = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_R_T_TYPE_2 =
+		"objectRelationship.type = ?";
+
+	private static final String _FINDER_COLUMN_ODI1_R_T_TYPE_3 =
+		"(objectRelationship.type IS NULL OR objectRelationship.type = '')";
 
 	private FinderPath _finderPathWithPaginationFindByODI2_R_T;
 	private FinderPath _finderPathWithoutPaginationFindByODI2_R_T;
 	private FinderPath _finderPathCountByODI2_R_T;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI2_R_T;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId2 = &#63; and reverse = &#63; and type = &#63;.
@@ -2916,9 +5783,121 @@ public class ObjectRelationshipPersistenceImpl
 		int end, OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI2_R_T.find(
-			finderCache, new Object[] {objectDefinitionId2, reverse, type},
-			start, end, orderByComparator, useFinderCache);
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI2_R_T;
+				finderArgs = new Object[] {objectDefinitionId2, reverse, type};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI2_R_T;
+			finderArgs = new Object[] {
+				objectDefinitionId2, reverse, type, start, end,
+				orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId2 !=
+							objectRelationship.getObjectDefinitionId2()) ||
+						(reverse != objectRelationship.isReverse()) ||
+						!type.equals(objectRelationship.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI2_R_T_OBJECTDEFINITIONID2_2);
+
+			sb.append(_FINDER_COLUMN_ODI2_R_T_REVERSE_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI2_R_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI2_R_T_TYPE_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId2);
+
+				queryPos.add(reverse);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2944,10 +5923,22 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI2_R_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {objectDefinitionId2, reverse, type}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId2=");
+		sb.append(objectDefinitionId2);
+
+		sb.append(", reverse=");
+		sb.append(reverse);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -2964,9 +5955,14 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId2, boolean reverse, String type,
 		OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI2_R_T.fetchFirst(
-			finderCache, new Object[] {objectDefinitionId2, reverse, type},
-			orderByComparator);
+		List<ObjectRelationship> list = findByODI2_R_T(
+			objectDefinitionId2, reverse, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2980,8 +5976,13 @@ public class ObjectRelationshipPersistenceImpl
 	public void removeByODI2_R_T(
 		long objectDefinitionId2, boolean reverse, String type) {
 
-		_collectionPersistenceFinderByODI2_R_T.remove(
-			finderCache, new Object[] {objectDefinitionId2, reverse, type});
+		for (ObjectRelationship objectRelationship :
+				findByODI2_R_T(
+					objectDefinitionId2, reverse, type, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -2996,15 +5997,83 @@ public class ObjectRelationshipPersistenceImpl
 	public int countByODI2_R_T(
 		long objectDefinitionId2, boolean reverse, String type) {
 
-		return _collectionPersistenceFinderByODI2_R_T.count(
-			finderCache, new Object[] {objectDefinitionId2, reverse, type});
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = _finderPathCountByODI2_R_T;
+
+		Object[] finderArgs = new Object[] {objectDefinitionId2, reverse, type};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI2_R_T_OBJECTDEFINITIONID2_2);
+
+			sb.append(_FINDER_COLUMN_ODI2_R_T_REVERSE_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI2_R_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI2_R_T_TYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId2);
+
+				queryPos.add(reverse);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_ODI2_R_T_OBJECTDEFINITIONID2_2 =
+		"objectRelationship.objectDefinitionId2 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI2_R_T_REVERSE_2 =
+		"objectRelationship.reverse = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI2_R_T_TYPE_2 =
+		"objectRelationship.type = ?";
+
+	private static final String _FINDER_COLUMN_ODI2_R_T_TYPE_3 =
+		"(objectRelationship.type IS NULL OR objectRelationship.type = '')";
 
 	private FinderPath _finderPathWithPaginationFindByODI1_ODI2_N_T;
 	private FinderPath _finderPathWithoutPaginationFindByODI1_ODI2_N_T;
 	private FinderPath _finderPathCountByODI1_ODI2_N_T;
-	private CollectionPersistenceFinder<ObjectRelationship>
-		_collectionPersistenceFinderByODI1_ODI2_N_T;
 
 	/**
 	 * Returns all the object relationships where objectDefinitionId1 = &#63; and objectDefinitionId2 = &#63; and name = &#63; and type = &#63;.
@@ -3101,10 +6170,141 @@ public class ObjectRelationshipPersistenceImpl
 		OrderByComparator<ObjectRelationship> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByODI1_ODI2_N_T.find(
-			finderCache,
-			new Object[] {objectDefinitionId1, objectDefinitionId2, name, type},
-			start, end, orderByComparator, useFinderCache);
+		name = Objects.toString(name, "");
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByODI1_ODI2_N_T;
+				finderArgs = new Object[] {
+					objectDefinitionId1, objectDefinitionId2, name, type
+				};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByODI1_ODI2_N_T;
+			finderArgs = new Object[] {
+				objectDefinitionId1, objectDefinitionId2, name, type, start,
+				end, orderByComparator
+			};
+		}
+
+		List<ObjectRelationship> list = null;
+
+		if (useFinderCache) {
+			list = (List<ObjectRelationship>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (ObjectRelationship objectRelationship : list) {
+					if ((objectDefinitionId1 !=
+							objectRelationship.getObjectDefinitionId1()) ||
+						(objectDefinitionId2 !=
+							objectRelationship.getObjectDefinitionId2()) ||
+						!name.equals(objectRelationship.getName()) ||
+						!type.equals(objectRelationship.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					6 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(6);
+			}
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_OBJECTDEFINITIONID2_2);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_NAME_2);
+			}
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_TYPE_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(ObjectRelationshipModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(objectDefinitionId2);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				list = (List<ObjectRelationship>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -3133,12 +6333,25 @@ public class ObjectRelationshipPersistenceImpl
 			return objectRelationship;
 		}
 
-		throw new NoSuchObjectRelationshipException(
-			_collectionPersistenceFinderByODI1_ODI2_N_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {
-					objectDefinitionId1, objectDefinitionId2, name, type
-				}));
+		StringBundler sb = new StringBundler(10);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("objectDefinitionId1=");
+		sb.append(objectDefinitionId1);
+
+		sb.append(", objectDefinitionId2=");
+		sb.append(objectDefinitionId2);
+
+		sb.append(", name=");
+		sb.append(name);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchObjectRelationshipException(sb.toString());
 	}
 
 	/**
@@ -3156,10 +6369,15 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, long objectDefinitionId2, String name,
 		String type, OrderByComparator<ObjectRelationship> orderByComparator) {
 
-		return _collectionPersistenceFinderByODI1_ODI2_N_T.fetchFirst(
-			finderCache,
-			new Object[] {objectDefinitionId1, objectDefinitionId2, name, type},
+		List<ObjectRelationship> list = findByODI1_ODI2_N_T(
+			objectDefinitionId1, objectDefinitionId2, name, type, 0, 1,
 			orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -3175,11 +6393,13 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, long objectDefinitionId2, String name,
 		String type) {
 
-		_collectionPersistenceFinderByODI1_ODI2_N_T.remove(
-			finderCache,
-			new Object[] {
-				objectDefinitionId1, objectDefinitionId2, name, type
-			});
+		for (ObjectRelationship objectRelationship :
+				findByODI1_ODI2_N_T(
+					objectDefinitionId1, objectDefinitionId2, name, type,
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(objectRelationship);
+		}
 	}
 
 	/**
@@ -3196,16 +6416,107 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, long objectDefinitionId2, String name,
 		String type) {
 
-		return _collectionPersistenceFinderByODI1_ODI2_N_T.count(
-			finderCache,
-			new Object[] {
-				objectDefinitionId1, objectDefinitionId2, name, type
-			});
+		name = Objects.toString(name, "");
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = _finderPathCountByODI1_ODI2_N_T;
+
+		Object[] finderArgs = new Object[] {
+			objectDefinitionId1, objectDefinitionId2, name, type
+		};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_COUNT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_OBJECTDEFINITIONID2_2);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_NAME_2);
+			}
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_T_TYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(objectDefinitionId2);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String
+		_FINDER_COLUMN_ODI1_ODI2_N_T_OBJECTDEFINITIONID1_2 =
+			"objectRelationship.objectDefinitionId1 = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_ODI1_ODI2_N_T_OBJECTDEFINITIONID2_2 =
+			"objectRelationship.objectDefinitionId2 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_T_NAME_2 =
+		"objectRelationship.name = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_T_NAME_3 =
+		"(objectRelationship.name IS NULL OR objectRelationship.name = '') AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_T_TYPE_2 =
+		"objectRelationship.type = ?";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_T_TYPE_3 =
+		"(objectRelationship.type IS NULL OR objectRelationship.type = '')";
+
 	private FinderPath _finderPathFetchByODI1_ODI2_N_R_T;
-	private UniquePersistenceFinder<ObjectRelationship>
-		_uniquePersistenceFinderByODI1_ODI2_N_R_T;
 
 	/**
 	 * Returns the object relationship where objectDefinitionId1 = &#63; and objectDefinitionId2 = &#63; and name = &#63; and reverse = &#63; and type = &#63; or throws a <code>NoSuchObjectRelationshipException</code> if it could not be found.
@@ -3228,19 +6539,32 @@ public class ObjectRelationshipPersistenceImpl
 			objectDefinitionId1, objectDefinitionId2, name, reverse, type);
 
 		if (objectRelationship == null) {
-			String message =
-				_uniquePersistenceFinderByODI1_ODI2_N_R_T.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {
-						objectDefinitionId1, objectDefinitionId2, name, reverse,
-						type
-					});
+			StringBundler sb = new StringBundler(12);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("objectDefinitionId1=");
+			sb.append(objectDefinitionId1);
+
+			sb.append(", objectDefinitionId2=");
+			sb.append(objectDefinitionId2);
+
+			sb.append(", name=");
+			sb.append(name);
+
+			sb.append(", reverse=");
+			sb.append(reverse);
+
+			sb.append(", type=");
+			sb.append(type);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchObjectRelationshipException(message);
+			throw new NoSuchObjectRelationshipException(sb.toString());
 		}
 
 		return objectRelationship;
@@ -3282,12 +6606,146 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, long objectDefinitionId2, String name,
 		boolean reverse, String type, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByODI1_ODI2_N_R_T.fetch(
-			finderCache,
-			new Object[] {
+		name = Objects.toString(name, "");
+		type = Objects.toString(type, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {
 				objectDefinitionId1, objectDefinitionId2, name, reverse, type
-			},
-			useFinderCache);
+			};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByODI1_ODI2_N_R_T, finderArgs, this);
+		}
+
+		if (result instanceof ObjectRelationship) {
+			ObjectRelationship objectRelationship = (ObjectRelationship)result;
+
+			if ((objectDefinitionId1 !=
+					objectRelationship.getObjectDefinitionId1()) ||
+				(objectDefinitionId2 !=
+					objectRelationship.getObjectDefinitionId2()) ||
+				!Objects.equals(name, objectRelationship.getName()) ||
+				(reverse != objectRelationship.isReverse()) ||
+				!Objects.equals(type, objectRelationship.getType())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(7);
+
+			sb.append(_SQL_SELECT_OBJECTRELATIONSHIP_WHERE);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_N_R_T_OBJECTDEFINITIONID1_2);
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_N_R_T_OBJECTDEFINITIONID2_2);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_R_T_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_R_T_NAME_2);
+			}
+
+			sb.append(_FINDER_COLUMN_ODI1_ODI2_N_R_T_REVERSE_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_R_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_ODI1_ODI2_N_R_T_TYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(objectDefinitionId1);
+
+				queryPos.add(objectDefinitionId2);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				queryPos.add(reverse);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				List<ObjectRelationship> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByODI1_ODI2_N_R_T, finderArgs,
+							list);
+					}
+				}
+				else {
+					if (list.size() > 1) {
+						Collections.sort(list, Collections.reverseOrder());
+
+						if (_log.isWarnEnabled()) {
+							if (!useFinderCache) {
+								finderArgs = new Object[] {
+									objectDefinitionId1, objectDefinitionId2,
+									name, reverse, type
+								};
+							}
+
+							_log.warn(
+								"ObjectRelationshipPersistenceImpl.fetchByODI1_ODI2_N_R_T(long, long, String, boolean, String, boolean) with parameters (" +
+									StringUtil.merge(finderArgs) +
+										") yields a result set with more than 1 result. This violates the logical unique restriction. There is no order guarantee on which result is returned by this finder.");
+						}
+					}
+
+					ObjectRelationship objectRelationship = list.get(0);
+
+					result = objectRelationship;
+
+					cacheResult(objectRelationship);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (ObjectRelationship)result;
+		}
 	}
 
 	/**
@@ -3327,12 +6785,38 @@ public class ObjectRelationshipPersistenceImpl
 		long objectDefinitionId1, long objectDefinitionId2, String name,
 		boolean reverse, String type) {
 
-		return _uniquePersistenceFinderByODI1_ODI2_N_R_T.count(
-			finderCache,
-			new Object[] {
-				objectDefinitionId1, objectDefinitionId2, name, reverse, type
-			});
+		ObjectRelationship objectRelationship = fetchByODI1_ODI2_N_R_T(
+			objectDefinitionId1, objectDefinitionId2, name, reverse, type);
+
+		if (objectRelationship == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_ODI1_ODI2_N_R_T_OBJECTDEFINITIONID1_2 =
+			"objectRelationship.objectDefinitionId1 = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_ODI1_ODI2_N_R_T_OBJECTDEFINITIONID2_2 =
+			"objectRelationship.objectDefinitionId2 = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_R_T_NAME_2 =
+		"objectRelationship.name = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_R_T_NAME_3 =
+		"(objectRelationship.name IS NULL OR objectRelationship.name = '') AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_R_T_REVERSE_2 =
+		"objectRelationship.reverse = ? AND ";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_R_T_TYPE_2 =
+		"objectRelationship.type = ?";
+
+	private static final String _FINDER_COLUMN_ODI1_ODI2_N_R_T_TYPE_3 =
+		"(objectRelationship.type IS NULL OR objectRelationship.type = '')";
 
 	public ObjectRelationshipPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -3422,6 +6906,50 @@ public class ObjectRelationshipPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all object relationships.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(ObjectRelationshipImpl.class);
+
+		finderCache.clearCache(ObjectRelationshipImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the object relationship.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(ObjectRelationship objectRelationship) {
+		entityCache.removeResult(
+			ObjectRelationshipImpl.class, objectRelationship);
+	}
+
+	@Override
+	public void clearCache(List<ObjectRelationship> objectRelationships) {
+		for (ObjectRelationship objectRelationship : objectRelationships) {
+			entityCache.removeResult(
+				ObjectRelationshipImpl.class, objectRelationship);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(ObjectRelationshipImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(ObjectRelationshipImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		ObjectRelationshipModelImpl objectRelationshipModelImpl) {
 
@@ -3497,6 +7025,48 @@ public class ObjectRelationshipPersistenceImpl
 		throws NoSuchObjectRelationshipException {
 
 		return remove((Serializable)objectRelationshipId);
+	}
+
+	/**
+	 * Removes the object relationship with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the object relationship
+	 * @return the object relationship that was removed
+	 * @throws NoSuchObjectRelationshipException if a object relationship with the primary key could not be found
+	 */
+	@Override
+	public ObjectRelationship remove(Serializable primaryKey)
+		throws NoSuchObjectRelationshipException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ObjectRelationship objectRelationship =
+				(ObjectRelationship)session.get(
+					ObjectRelationshipImpl.class, primaryKey);
+
+			if (objectRelationship == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchObjectRelationshipException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(objectRelationship);
+		}
+		catch (NoSuchObjectRelationshipException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -3660,6 +7230,31 @@ public class ObjectRelationshipPersistenceImpl
 		}
 
 		objectRelationship.resetOriginalValues();
+
+		return objectRelationship;
+	}
+
+	/**
+	 * Returns the object relationship with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the object relationship
+	 * @return the object relationship
+	 * @throws NoSuchObjectRelationshipException if a object relationship with the primary key could not be found
+	 */
+	@Override
+	public ObjectRelationship findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchObjectRelationshipException {
+
+		ObjectRelationship objectRelationship = fetchByPrimaryKey(primaryKey);
+
+		if (objectRelationship == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchObjectRelationshipException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return objectRelationship;
 	}
@@ -3934,16 +7529,6 @@ public class ObjectRelationshipPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-			_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-			ObjectRelationshipModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"objectRelationship.", "uuid", FinderColumn.Type.STRING, "=",
-				true, true, ObjectRelationship::getUuid));
-
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
 			new String[] {
@@ -3963,21 +7548,6 @@ public class ObjectRelationshipPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "uuid", FinderColumn.Type.STRING,
-					"=", true, false, ObjectRelationship::getUuid),
-				new FinderColumn<>(
-					"objectRelationship.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, ObjectRelationship::getCompanyId));
-
 		_finderPathWithPaginationFindByCompanyId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCompanyId",
 			new String[] {
@@ -3995,19 +7565,6 @@ public class ObjectRelationshipPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByCompanyId",
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
-
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, ObjectRelationship::getCompanyId));
 
 		_finderPathWithPaginationFindByObjectDefinitionId1 = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByObjectDefinitionId1",
@@ -4027,20 +7584,6 @@ public class ObjectRelationshipPersistenceImpl
 			"countByObjectDefinitionId1", new String[] {Long.class.getName()},
 			new String[] {"objectDefinitionId1"}, false);
 
-		_collectionPersistenceFinderByObjectDefinitionId1 =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByObjectDefinitionId1,
-				_finderPathWithoutPaginationFindByObjectDefinitionId1,
-				_finderPathCountByObjectDefinitionId1,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, true,
-					ObjectRelationship::getObjectDefinitionId1));
-
 		_finderPathWithPaginationFindByObjectDefinitionId2 = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByObjectDefinitionId2",
 			new String[] {
@@ -4059,33 +7602,10 @@ public class ObjectRelationshipPersistenceImpl
 			"countByObjectDefinitionId2", new String[] {Long.class.getName()},
 			new String[] {"objectDefinitionId2"}, false);
 
-		_collectionPersistenceFinderByObjectDefinitionId2 =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByObjectDefinitionId2,
-				_finderPathWithoutPaginationFindByObjectDefinitionId2,
-				_finderPathCountByObjectDefinitionId2,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId2",
-					FinderColumn.Type.LONG, "=", true, true,
-					ObjectRelationship::getObjectDefinitionId2));
-
 		_finderPathFetchByObjectFieldId2 = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByObjectFieldId2",
 			new String[] {Long.class.getName()},
 			new String[] {"objectFieldId2"}, true);
-
-		_uniquePersistenceFinderByObjectFieldId2 =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByObjectFieldId2,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				new FinderColumn<>(
-					"objectRelationship.", "objectFieldId2",
-					FinderColumn.Type.LONG, "=", true, true,
-					ObjectRelationship::getObjectFieldId2));
 
 		_finderPathWithPaginationFindByParameterObjectFieldId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
@@ -4109,20 +7629,6 @@ public class ObjectRelationshipPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"parameterObjectFieldId"}, false);
 
-		_collectionPersistenceFinderByParameterObjectFieldId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByParameterObjectFieldId,
-				_finderPathWithoutPaginationFindByParameterObjectFieldId,
-				_finderPathCountByParameterObjectFieldId,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "parameterObjectFieldId",
-					FinderColumn.Type.LONG, "=", true, true,
-					ObjectRelationship::getParameterObjectFieldId));
-
 		_finderPathWithPaginationFindByC_U = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_U",
 			new String[] {
@@ -4141,19 +7647,6 @@ public class ObjectRelationshipPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByC_U",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "userId"}, false);
-
-		_collectionPersistenceFinderByC_U = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_U,
-			_finderPathWithoutPaginationFindByC_U, _finderPathCountByC_U,
-			_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-			_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-			ObjectRelationshipModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"objectRelationship.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, ObjectRelationship::getCompanyId),
-			new FinderColumn<>(
-				"objectRelationship.", "userId", FinderColumn.Type.LONG, "=",
-				true, true, ObjectRelationship::getUserId));
 
 		_finderPathWithPaginationFindByODI1_E = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI1_E",
@@ -4174,22 +7667,6 @@ public class ObjectRelationshipPersistenceImpl
 			new String[] {Long.class.getName(), Boolean.class.getName()},
 			new String[] {"objectDefinitionId1", "edge"}, false);
 
-		_collectionPersistenceFinderByODI1_E =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI1_E,
-				_finderPathWithoutPaginationFindByODI1_E,
-				_finderPathCountByODI1_E, _SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId1),
-				new FinderColumn<>(
-					"objectRelationship.", "edge", FinderColumn.Type.BOOLEAN,
-					"=", true, true, ObjectRelationship::isEdge));
-
 		_finderPathWithPaginationFindByODI1_N = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI1_N",
 			new String[] {
@@ -4208,22 +7685,6 @@ public class ObjectRelationshipPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByODI1_N",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"objectDefinitionId1", "name"}, false);
-
-		_collectionPersistenceFinderByODI1_N =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI1_N,
-				_finderPathWithoutPaginationFindByODI1_N,
-				_finderPathCountByODI1_N, _SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId1),
-				new FinderColumn<>(
-					"objectRelationship.", "name", FinderColumn.Type.STRING,
-					"=", true, true, ObjectRelationship::getName));
 
 		_finderPathWithPaginationFindByODI1_R = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI1_R",
@@ -4244,22 +7705,6 @@ public class ObjectRelationshipPersistenceImpl
 			new String[] {Long.class.getName(), Boolean.class.getName()},
 			new String[] {"objectDefinitionId1", "reverse"}, false);
 
-		_collectionPersistenceFinderByODI1_R =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI1_R,
-				_finderPathWithoutPaginationFindByODI1_R,
-				_finderPathCountByODI1_R, _SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId1),
-				new FinderColumn<>(
-					"objectRelationship.", "reverse", FinderColumn.Type.BOOLEAN,
-					"=", true, true, ObjectRelationship::isReverse));
-
 		_finderPathWithPaginationFindByODI2_E = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI2_E",
 			new String[] {
@@ -4278,22 +7723,6 @@ public class ObjectRelationshipPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByODI2_E",
 			new String[] {Long.class.getName(), Boolean.class.getName()},
 			new String[] {"objectDefinitionId2", "edge"}, false);
-
-		_collectionPersistenceFinderByODI2_E =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI2_E,
-				_finderPathWithoutPaginationFindByODI2_E,
-				_finderPathCountByODI2_E, _SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId2",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId2),
-				new FinderColumn<>(
-					"objectRelationship.", "edge", FinderColumn.Type.BOOLEAN,
-					"=", true, true, ObjectRelationship::isEdge));
 
 		_finderPathWithPaginationFindByODI2_R = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI2_R",
@@ -4314,35 +7743,10 @@ public class ObjectRelationshipPersistenceImpl
 			new String[] {Long.class.getName(), Boolean.class.getName()},
 			new String[] {"objectDefinitionId2", "reverse"}, false);
 
-		_collectionPersistenceFinderByODI2_R =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI2_R,
-				_finderPathWithoutPaginationFindByODI2_R,
-				_finderPathCountByODI2_R, _SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId2",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId2),
-				new FinderColumn<>(
-					"objectRelationship.", "reverse", FinderColumn.Type.BOOLEAN,
-					"=", true, true, ObjectRelationship::isReverse));
-
 		_finderPathFetchByDTN_R = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByDTN_R",
 			new String[] {String.class.getName(), Boolean.class.getName()},
 			new String[] {"dbTableName", "reverse"}, true);
-
-		_uniquePersistenceFinderByDTN_R = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByDTN_R, _SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-			new FinderColumn<>(
-				"objectRelationship.", "dbTableName", FinderColumn.Type.STRING,
-				"=", true, false, ObjectRelationship::getDBTableName),
-			new FinderColumn<>(
-				"objectRelationship.", "reverse", FinderColumn.Type.BOOLEAN,
-				"=", true, true, ObjectRelationship::isReverse));
 
 		_finderPathFetchByERC_C_ODI1 = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByERC_C_ODI1",
@@ -4354,21 +7758,6 @@ public class ObjectRelationshipPersistenceImpl
 				"externalReferenceCode", "companyId", "objectDefinitionId1"
 			},
 			true);
-
-		_uniquePersistenceFinderByERC_C_ODI1 = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByERC_C_ODI1,
-			_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-			new FinderColumn<>(
-				"objectRelationship.", "externalReferenceCode",
-				FinderColumn.Type.STRING, "=", true, false,
-				ObjectRelationship::getExternalReferenceCode),
-			new FinderColumn<>(
-				"objectRelationship.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, ObjectRelationship::getCompanyId),
-			new FinderColumn<>(
-				"objectRelationship.", "objectDefinitionId1",
-				FinderColumn.Type.LONG, "=", true, true,
-				ObjectRelationship::getObjectDefinitionId1));
 
 		_finderPathWithPaginationFindByODI1_ODI2_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI1_ODI2_T",
@@ -4404,27 +7793,6 @@ public class ObjectRelationshipPersistenceImpl
 			},
 			false);
 
-		_collectionPersistenceFinderByODI1_ODI2_T =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI1_ODI2_T,
-				_finderPathWithoutPaginationFindByODI1_ODI2_T,
-				_finderPathCountByODI1_ODI2_T,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId1),
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId2",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId2),
-				new FinderColumn<>(
-					"objectRelationship.", "type", FinderColumn.Type.STRING,
-					"=", true, true, ObjectRelationship::getType));
-
 		_finderPathWithPaginationFindByODI1_DT_R = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI1_DT_R",
 			new String[] {
@@ -4453,27 +7821,6 @@ public class ObjectRelationshipPersistenceImpl
 			new String[] {"objectDefinitionId1", "deletionType", "reverse"},
 			false);
 
-		_collectionPersistenceFinderByODI1_DT_R =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI1_DT_R,
-				_finderPathWithoutPaginationFindByODI1_DT_R,
-				_finderPathCountByODI1_DT_R,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId1),
-				new FinderColumn<>(
-					"objectRelationship.", "deletionType",
-					FinderColumn.Type.STRING, "=", true, false,
-					ObjectRelationship::getDeletionType),
-				new FinderColumn<>(
-					"objectRelationship.", "reverse", FinderColumn.Type.BOOLEAN,
-					"=", true, true, ObjectRelationship::isReverse));
-
 		_finderPathWithPaginationFindByODI1_R_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI1_R_T",
 			new String[] {
@@ -4499,26 +7846,6 @@ public class ObjectRelationshipPersistenceImpl
 			},
 			new String[] {"objectDefinitionId1", "reverse", "type_"}, false);
 
-		_collectionPersistenceFinderByODI1_R_T =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI1_R_T,
-				_finderPathWithoutPaginationFindByODI1_R_T,
-				_finderPathCountByODI1_R_T,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId1),
-				new FinderColumn<>(
-					"objectRelationship.", "reverse", FinderColumn.Type.BOOLEAN,
-					"=", true, false, ObjectRelationship::isReverse),
-				new FinderColumn<>(
-					"objectRelationship.", "type", FinderColumn.Type.STRING,
-					"=", true, true, ObjectRelationship::getType));
-
 		_finderPathWithPaginationFindByODI2_R_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI2_R_T",
 			new String[] {
@@ -4543,26 +7870,6 @@ public class ObjectRelationshipPersistenceImpl
 				String.class.getName()
 			},
 			new String[] {"objectDefinitionId2", "reverse", "type_"}, false);
-
-		_collectionPersistenceFinderByODI2_R_T =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI2_R_T,
-				_finderPathWithoutPaginationFindByODI2_R_T,
-				_finderPathCountByODI2_R_T,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId2",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId2),
-				new FinderColumn<>(
-					"objectRelationship.", "reverse", FinderColumn.Type.BOOLEAN,
-					"=", true, false, ObjectRelationship::isReverse),
-				new FinderColumn<>(
-					"objectRelationship.", "type", FinderColumn.Type.STRING,
-					"=", true, true, ObjectRelationship::getType));
 
 		_finderPathWithPaginationFindByODI1_ODI2_N_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByODI1_ODI2_N_T",
@@ -4599,30 +7906,6 @@ public class ObjectRelationshipPersistenceImpl
 			},
 			false);
 
-		_collectionPersistenceFinderByODI1_ODI2_N_T =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByODI1_ODI2_N_T,
-				_finderPathWithoutPaginationFindByODI1_ODI2_N_T,
-				_finderPathCountByODI1_ODI2_N_T,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				_SQL_COUNT_OBJECTRELATIONSHIP_WHERE,
-				ObjectRelationshipModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId1),
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId2",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId2),
-				new FinderColumn<>(
-					"objectRelationship.", "name", FinderColumn.Type.STRING,
-					"=", true, false, ObjectRelationship::getName),
-				new FinderColumn<>(
-					"objectRelationship.", "type", FinderColumn.Type.STRING,
-					"=", true, true, ObjectRelationship::getType));
-
 		_finderPathFetchByODI1_ODI2_N_R_T = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByODI1_ODI2_N_R_T",
 			new String[] {
@@ -4635,28 +7918,6 @@ public class ObjectRelationshipPersistenceImpl
 				"type_"
 			},
 			true);
-
-		_uniquePersistenceFinderByODI1_ODI2_N_R_T =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByODI1_ODI2_N_R_T,
-				_SQL_SELECT_OBJECTRELATIONSHIP_WHERE,
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId1",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId1),
-				new FinderColumn<>(
-					"objectRelationship.", "objectDefinitionId2",
-					FinderColumn.Type.LONG, "=", true, false,
-					ObjectRelationship::getObjectDefinitionId2),
-				new FinderColumn<>(
-					"objectRelationship.", "name", FinderColumn.Type.STRING,
-					"=", true, false, ObjectRelationship::getName),
-				new FinderColumn<>(
-					"objectRelationship.", "reverse", FinderColumn.Type.BOOLEAN,
-					"=", true, false, ObjectRelationship::isReverse),
-				new FinderColumn<>(
-					"objectRelationship.", "type", FinderColumn.Type.STRING,
-					"=", true, true, ObjectRelationship::getType));
 
 		ObjectRelationshipUtil.setPersistence(this);
 	}
@@ -4714,6 +7975,9 @@ public class ObjectRelationshipPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "objectRelationship.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No ObjectRelationship exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No ObjectRelationship exists with the key {";
 
@@ -4729,4 +7993,4 @@ public class ObjectRelationshipPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:2068718998
+// LIFERAY-SERVICE-BUILDER-HASH:1052258856

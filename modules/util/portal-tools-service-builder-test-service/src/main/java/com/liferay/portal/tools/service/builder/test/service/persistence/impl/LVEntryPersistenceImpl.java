@@ -18,11 +18,8 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.service.persistence.impl.TableMapper;
 import com.liferay.portal.kernel.service.persistence.impl.TableMapperFactory;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
@@ -55,6 +52,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -68,8 +66,7 @@ import java.util.Set;
  * @generated
  */
 public class LVEntryPersistenceImpl
-	extends BasePersistenceImpl<LVEntry, NoSuchLVEntryException>
-	implements LVEntryPersistence {
+	extends BasePersistenceImpl<LVEntry> implements LVEntryPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -91,8 +88,6 @@ public class LVEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<LVEntry>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the lv entries where uuid = &#63;.
@@ -162,9 +157,106 @@ public class LVEntryPersistenceImpl
 		String uuid, int start, int end,
 		OrderByComparator<LVEntry> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid.find(
-			finderCache, new Object[] {uuid}, start, end, orderByComparator,
-			useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid;
+				finderArgs = new Object[] {uuid};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid;
+			finderArgs = new Object[] {uuid, start, end, orderByComparator};
+		}
+
+		List<LVEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntry lvEntry : list) {
+					if (!uuid.equals(lvEntry.getUuid())) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				list = (List<LVEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -186,9 +278,16 @@ public class LVEntryPersistenceImpl
 			return lvEntry;
 		}
 
-		throw new NoSuchLVEntryException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryException(sb.toString());
 	}
 
 	/**
@@ -202,8 +301,13 @@ public class LVEntryPersistenceImpl
 	public LVEntry fetchByUuid_First(
 		String uuid, OrderByComparator<LVEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<LVEntry> list = findByUuid(uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -213,8 +317,11 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (LVEntry lvEntry :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(lvEntry);
+		}
 	}
 
 	/**
@@ -225,15 +332,68 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUuid(String uuid) {
-		return _collectionPersistenceFinderByUuid.count(
-			finderCache, new Object[] {uuid});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid;
+
+		Object[] finderArgs = new Object[] {uuid};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_UUID_2 = "lvEntry.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(lvEntry.uuid IS NULL OR lvEntry.uuid = '')";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_Head;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_Head;
 	private FinderPath _finderPathCountByUuid_Head;
-	private CollectionPersistenceFinder<LVEntry>
-		_collectionPersistenceFinderByUuid_Head;
 
 	/**
 	 * Returns all the lv entries where uuid = &#63; and head = &#63;.
@@ -310,9 +470,114 @@ public class LVEntryPersistenceImpl
 		String uuid, boolean head, int start, int end,
 		OrderByComparator<LVEntry> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid_Head.find(
-			finderCache, new Object[] {uuid, head}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid_Head;
+				finderArgs = new Object[] {uuid, head};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid_Head;
+			finderArgs = new Object[] {
+				uuid, head, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntry lvEntry : list) {
+					if (!uuid.equals(lvEntry.getUuid()) ||
+						(head != lvEntry.isHead())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_HEAD_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_HEAD_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_HEAD_HEAD_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(head);
+
+				list = (List<LVEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -336,9 +601,19 @@ public class LVEntryPersistenceImpl
 			return lvEntry;
 		}
 
-		throw new NoSuchLVEntryException(
-			_collectionPersistenceFinderByUuid_Head.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, head}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", head=");
+		sb.append(head);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryException(sb.toString());
 	}
 
 	/**
@@ -354,8 +629,14 @@ public class LVEntryPersistenceImpl
 		String uuid, boolean head,
 		OrderByComparator<LVEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_Head.fetchFirst(
-			finderCache, new Object[] {uuid, head}, orderByComparator);
+		List<LVEntry> list = findByUuid_Head(
+			uuid, head, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -366,8 +647,12 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_Head(String uuid, boolean head) {
-		_collectionPersistenceFinderByUuid_Head.remove(
-			finderCache, new Object[] {uuid, head});
+		for (LVEntry lvEntry :
+				findByUuid_Head(
+					uuid, head, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(lvEntry);
+		}
 	}
 
 	/**
@@ -379,15 +664,76 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUuid_Head(String uuid, boolean head) {
-		return _collectionPersistenceFinderByUuid_Head.count(
-			finderCache, new Object[] {uuid, head});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid_Head;
+
+		Object[] finderArgs = new Object[] {uuid, head};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_HEAD_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_HEAD_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_HEAD_HEAD_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(head);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_HEAD_UUID_2 =
+		"lvEntry.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_HEAD_UUID_3 =
+		"(lvEntry.uuid IS NULL OR lvEntry.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_HEAD_HEAD_2 =
+		"lvEntry.head = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUUID_G;
 	private FinderPath _finderPathWithoutPaginationFindByUUID_G;
 	private FinderPath _finderPathCountByUUID_G;
-	private CollectionPersistenceFinder<LVEntry>
-		_collectionPersistenceFinderByUUID_G;
 
 	/**
 	 * Returns all the lv entries where uuid = &#63; and groupId = &#63;.
@@ -464,9 +810,114 @@ public class LVEntryPersistenceImpl
 		String uuid, long groupId, int start, int end,
 		OrderByComparator<LVEntry> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUUID_G.find(
-			finderCache, new Object[] {uuid, groupId}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUUID_G;
+				finderArgs = new Object[] {uuid, groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUUID_G;
+			finderArgs = new Object[] {
+				uuid, groupId, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntry lvEntry : list) {
+					if (!uuid.equals(lvEntry.getUuid()) ||
+						(groupId != lvEntry.getGroupId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_G_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_G_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_G_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(groupId);
+
+				list = (List<LVEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -490,9 +941,19 @@ public class LVEntryPersistenceImpl
 			return lvEntry;
 		}
 
-		throw new NoSuchLVEntryException(
-			_collectionPersistenceFinderByUUID_G.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, groupId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryException(sb.toString());
 	}
 
 	/**
@@ -508,8 +969,14 @@ public class LVEntryPersistenceImpl
 		String uuid, long groupId,
 		OrderByComparator<LVEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUUID_G.fetchFirst(
-			finderCache, new Object[] {uuid, groupId}, orderByComparator);
+		List<LVEntry> list = findByUUID_G(
+			uuid, groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -520,8 +987,13 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUUID_G(String uuid, long groupId) {
-		_collectionPersistenceFinderByUUID_G.remove(
-			finderCache, new Object[] {uuid, groupId});
+		for (LVEntry lvEntry :
+				findByUUID_G(
+					uuid, groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lvEntry);
+		}
 	}
 
 	/**
@@ -533,13 +1005,74 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUUID_G(String uuid, long groupId) {
-		return _collectionPersistenceFinderByUUID_G.count(
-			finderCache, new Object[] {uuid, groupId});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUUID_G;
+
+		Object[] finderArgs = new Object[] {uuid, groupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_G_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_G_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_G_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_UUID_G_UUID_2 =
+		"lvEntry.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_3 =
+		"(lvEntry.uuid IS NULL OR lvEntry.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_GROUPID_2 =
+		"lvEntry.groupId = ?";
+
 	private FinderPath _finderPathFetchByUUID_G_Head;
-	private UniquePersistenceFinder<LVEntry>
-		_uniquePersistenceFinderByUUID_G_Head;
 
 	/**
 	 * Returns the lv entry where uuid = &#63; and groupId = &#63; and head = &#63; or throws a <code>NoSuchLVEntryException</code> if it could not be found.
@@ -557,16 +1090,26 @@ public class LVEntryPersistenceImpl
 		LVEntry lvEntry = fetchByUUID_G_Head(uuid, groupId, head);
 
 		if (lvEntry == null) {
-			String message =
-				_uniquePersistenceFinderByUUID_G_Head.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {uuid, groupId, head});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("uuid=");
+			sb.append(uuid);
+
+			sb.append(", groupId=");
+			sb.append(groupId);
+
+			sb.append(", head=");
+			sb.append(head);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLVEntryException(message);
+			throw new NoSuchLVEntryException(sb.toString());
 		}
 
 		return lvEntry;
@@ -598,8 +1141,101 @@ public class LVEntryPersistenceImpl
 	public LVEntry fetchByUUID_G_Head(
 		String uuid, long groupId, boolean head, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByUUID_G_Head.fetch(
-			finderCache, new Object[] {uuid, groupId, head}, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {uuid, groupId, head};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByUUID_G_Head, finderArgs, this);
+		}
+
+		if (result instanceof LVEntry) {
+			LVEntry lvEntry = (LVEntry)result;
+
+			if (!Objects.equals(uuid, lvEntry.getUuid()) ||
+				(groupId != lvEntry.getGroupId()) ||
+				(head != lvEntry.isHead())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_G_HEAD_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_G_HEAD_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_G_HEAD_GROUPID_2);
+
+			sb.append(_FINDER_COLUMN_UUID_G_HEAD_HEAD_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(groupId);
+
+				queryPos.add(head);
+
+				List<LVEntry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByUUID_G_Head, finderArgs, list);
+					}
+				}
+				else {
+					LVEntry lvEntry = list.get(0);
+
+					result = lvEntry;
+
+					cacheResult(lvEntry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (LVEntry)result;
+		}
 	}
 
 	/**
@@ -629,15 +1265,30 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUUID_G_Head(String uuid, long groupId, boolean head) {
-		return _uniquePersistenceFinderByUUID_G_Head.count(
-			finderCache, new Object[] {uuid, groupId, head});
+		LVEntry lvEntry = fetchByUUID_G_Head(uuid, groupId, head);
+
+		if (lvEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_UUID_G_HEAD_UUID_2 =
+		"lvEntry.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_HEAD_UUID_3 =
+		"(lvEntry.uuid IS NULL OR lvEntry.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_HEAD_GROUPID_2 =
+		"lvEntry.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_HEAD_HEAD_2 =
+		"lvEntry.head = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<LVEntry>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the lv entries where uuid = &#63; and companyId = &#63;.
@@ -715,9 +1366,114 @@ public class LVEntryPersistenceImpl
 		String uuid, long companyId, int start, int end,
 		OrderByComparator<LVEntry> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid_C.find(
-			finderCache, new Object[] {uuid, companyId}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid_C;
+				finderArgs = new Object[] {uuid, companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid_C;
+			finderArgs = new Object[] {
+				uuid, companyId, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntry lvEntry : list) {
+					if (!uuid.equals(lvEntry.getUuid()) ||
+						(companyId != lvEntry.getCompanyId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				list = (List<LVEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -742,9 +1498,19 @@ public class LVEntryPersistenceImpl
 			return lvEntry;
 		}
 
-		throw new NoSuchLVEntryException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryException(sb.toString());
 	}
 
 	/**
@@ -760,8 +1526,14 @@ public class LVEntryPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<LVEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<LVEntry> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -772,8 +1544,13 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (LVEntry lvEntry :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lvEntry);
+		}
 	}
 
 	/**
@@ -785,15 +1562,76 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUuid_C(String uuid, long companyId) {
-		return _collectionPersistenceFinderByUuid_C.count(
-			finderCache, new Object[] {uuid, companyId});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid_C;
+
+		Object[] finderArgs = new Object[] {uuid, companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"lvEntry.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(lvEntry.uuid IS NULL OR lvEntry.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"lvEntry.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C_Head;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C_Head;
 	private FinderPath _finderPathCountByUuid_C_Head;
-	private CollectionPersistenceFinder<LVEntry>
-		_collectionPersistenceFinderByUuid_C_Head;
 
 	/**
 	 * Returns all the lv entries where uuid = &#63; and companyId = &#63; and head = &#63;.
@@ -877,9 +1715,119 @@ public class LVEntryPersistenceImpl
 		String uuid, long companyId, boolean head, int start, int end,
 		OrderByComparator<LVEntry> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid_C_Head.find(
-			finderCache, new Object[] {uuid, companyId, head}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid_C_Head;
+				finderArgs = new Object[] {uuid, companyId, head};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid_C_Head;
+			finderArgs = new Object[] {
+				uuid, companyId, head, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntry lvEntry : list) {
+					if (!uuid.equals(lvEntry.getUuid()) ||
+						(companyId != lvEntry.getCompanyId()) ||
+						(head != lvEntry.isHead())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_HEAD_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_HEAD_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_HEAD_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_UUID_C_HEAD_HEAD_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				queryPos.add(head);
+
+				list = (List<LVEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -905,10 +1853,22 @@ public class LVEntryPersistenceImpl
 			return lvEntry;
 		}
 
-		throw new NoSuchLVEntryException(
-			_collectionPersistenceFinderByUuid_C_Head.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {uuid, companyId, head}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append(", head=");
+		sb.append(head);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryException(sb.toString());
 	}
 
 	/**
@@ -925,9 +1885,14 @@ public class LVEntryPersistenceImpl
 		String uuid, long companyId, boolean head,
 		OrderByComparator<LVEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C_Head.fetchFirst(
-			finderCache, new Object[] {uuid, companyId, head},
-			orderByComparator);
+		List<LVEntry> list = findByUuid_C_Head(
+			uuid, companyId, head, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -939,8 +1904,13 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C_Head(String uuid, long companyId, boolean head) {
-		_collectionPersistenceFinderByUuid_C_Head.remove(
-			finderCache, new Object[] {uuid, companyId, head});
+		for (LVEntry lvEntry :
+				findByUuid_C_Head(
+					uuid, companyId, head, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lvEntry);
+		}
 	}
 
 	/**
@@ -953,9 +1923,79 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUuid_C_Head(String uuid, long companyId, boolean head) {
-		return _collectionPersistenceFinderByUuid_C_Head.count(
-			finderCache, new Object[] {uuid, companyId, head});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid_C_Head;
+
+		Object[] finderArgs = new Object[] {uuid, companyId, head};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_LVENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_HEAD_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_HEAD_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_HEAD_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_UUID_C_HEAD_HEAD_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				queryPos.add(head);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_HEAD_UUID_2 =
+		"lvEntry.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_HEAD_UUID_3 =
+		"(lvEntry.uuid IS NULL OR lvEntry.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_HEAD_COMPANYID_2 =
+		"lvEntry.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_HEAD_HEAD_2 =
+		"lvEntry.head = ?";
 
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
@@ -2212,8 +3252,6 @@ public class LVEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByG_UGK;
 	private FinderPath _finderPathWithoutPaginationFindByG_UGK;
 	private FinderPath _finderPathCountByG_UGK;
-	private CollectionPersistenceFinder<LVEntry>
-		_collectionPersistenceFinderByG_UGK;
 
 	/**
 	 * Returns all the lv entries where groupId = &#63; and uniqueGroupKey = &#63;.
@@ -2292,9 +3330,114 @@ public class LVEntryPersistenceImpl
 		long groupId, String uniqueGroupKey, int start, int end,
 		OrderByComparator<LVEntry> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByG_UGK.find(
-			finderCache, new Object[] {groupId, uniqueGroupKey}, start, end,
-			orderByComparator, useFinderCache);
+		uniqueGroupKey = Objects.toString(uniqueGroupKey, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByG_UGK;
+				finderArgs = new Object[] {groupId, uniqueGroupKey};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByG_UGK;
+			finderArgs = new Object[] {
+				groupId, uniqueGroupKey, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntry lvEntry : list) {
+					if ((groupId != lvEntry.getGroupId()) ||
+						!uniqueGroupKey.equals(lvEntry.getUniqueGroupKey())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_UGK_GROUPID_2);
+
+			boolean bindUniqueGroupKey = false;
+
+			if (uniqueGroupKey.isEmpty()) {
+				sb.append(_FINDER_COLUMN_G_UGK_UNIQUEGROUPKEY_3);
+			}
+			else {
+				bindUniqueGroupKey = true;
+
+				sb.append(_FINDER_COLUMN_G_UGK_UNIQUEGROUPKEY_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				if (bindUniqueGroupKey) {
+					queryPos.add(uniqueGroupKey);
+				}
+
+				list = (List<LVEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2319,10 +3462,19 @@ public class LVEntryPersistenceImpl
 			return lvEntry;
 		}
 
-		throw new NoSuchLVEntryException(
-			_collectionPersistenceFinderByG_UGK.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {groupId, uniqueGroupKey}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append(", uniqueGroupKey=");
+		sb.append(uniqueGroupKey);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryException(sb.toString());
 	}
 
 	/**
@@ -2338,9 +3490,14 @@ public class LVEntryPersistenceImpl
 		long groupId, String uniqueGroupKey,
 		OrderByComparator<LVEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByG_UGK.fetchFirst(
-			finderCache, new Object[] {groupId, uniqueGroupKey},
-			orderByComparator);
+		List<LVEntry> list = findByG_UGK(
+			groupId, uniqueGroupKey, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2351,8 +3508,13 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByG_UGK(long groupId, String uniqueGroupKey) {
-		_collectionPersistenceFinderByG_UGK.remove(
-			finderCache, new Object[] {groupId, uniqueGroupKey});
+		for (LVEntry lvEntry :
+				findByG_UGK(
+					groupId, uniqueGroupKey, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(lvEntry);
+		}
 	}
 
 	/**
@@ -2364,13 +3526,74 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public int countByG_UGK(long groupId, String uniqueGroupKey) {
-		return _collectionPersistenceFinderByG_UGK.count(
-			finderCache, new Object[] {groupId, uniqueGroupKey});
+		uniqueGroupKey = Objects.toString(uniqueGroupKey, "");
+
+		FinderPath finderPath = _finderPathCountByG_UGK;
+
+		Object[] finderArgs = new Object[] {groupId, uniqueGroupKey};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LVENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_UGK_GROUPID_2);
+
+			boolean bindUniqueGroupKey = false;
+
+			if (uniqueGroupKey.isEmpty()) {
+				sb.append(_FINDER_COLUMN_G_UGK_UNIQUEGROUPKEY_3);
+			}
+			else {
+				bindUniqueGroupKey = true;
+
+				sb.append(_FINDER_COLUMN_G_UGK_UNIQUEGROUPKEY_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				if (bindUniqueGroupKey) {
+					queryPos.add(uniqueGroupKey);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_G_UGK_GROUPID_2 =
+		"lvEntry.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_UGK_UNIQUEGROUPKEY_2 =
+		"lvEntry.uniqueGroupKey = ?";
+
+	private static final String _FINDER_COLUMN_G_UGK_UNIQUEGROUPKEY_3 =
+		"(lvEntry.uniqueGroupKey IS NULL OR lvEntry.uniqueGroupKey = '')";
+
 	private FinderPath _finderPathFetchByG_UGK_Head;
-	private UniquePersistenceFinder<LVEntry>
-		_uniquePersistenceFinderByG_UGK_Head;
 
 	/**
 	 * Returns the lv entry where groupId = &#63; and uniqueGroupKey = &#63; and head = &#63; or throws a <code>NoSuchLVEntryException</code> if it could not be found.
@@ -2389,16 +3612,26 @@ public class LVEntryPersistenceImpl
 		LVEntry lvEntry = fetchByG_UGK_Head(groupId, uniqueGroupKey, head);
 
 		if (lvEntry == null) {
-			String message =
-				_uniquePersistenceFinderByG_UGK_Head.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {groupId, uniqueGroupKey, head});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("groupId=");
+			sb.append(groupId);
+
+			sb.append(", uniqueGroupKey=");
+			sb.append(uniqueGroupKey);
+
+			sb.append(", head=");
+			sb.append(head);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLVEntryException(message);
+			throw new NoSuchLVEntryException(sb.toString());
 		}
 
 		return lvEntry;
@@ -2433,9 +3666,101 @@ public class LVEntryPersistenceImpl
 		long groupId, String uniqueGroupKey, boolean head,
 		boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByG_UGK_Head.fetch(
-			finderCache, new Object[] {groupId, uniqueGroupKey, head},
-			useFinderCache);
+		uniqueGroupKey = Objects.toString(uniqueGroupKey, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {groupId, uniqueGroupKey, head};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByG_UGK_Head, finderArgs, this);
+		}
+
+		if (result instanceof LVEntry) {
+			LVEntry lvEntry = (LVEntry)result;
+
+			if ((groupId != lvEntry.getGroupId()) ||
+				!Objects.equals(uniqueGroupKey, lvEntry.getUniqueGroupKey()) ||
+				(head != lvEntry.isHead())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_G_UGK_HEAD_GROUPID_2);
+
+			boolean bindUniqueGroupKey = false;
+
+			if (uniqueGroupKey.isEmpty()) {
+				sb.append(_FINDER_COLUMN_G_UGK_HEAD_UNIQUEGROUPKEY_3);
+			}
+			else {
+				bindUniqueGroupKey = true;
+
+				sb.append(_FINDER_COLUMN_G_UGK_HEAD_UNIQUEGROUPKEY_2);
+			}
+
+			sb.append(_FINDER_COLUMN_G_UGK_HEAD_HEAD_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				if (bindUniqueGroupKey) {
+					queryPos.add(uniqueGroupKey);
+				}
+
+				queryPos.add(head);
+
+				List<LVEntry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByG_UGK_Head, finderArgs, list);
+					}
+				}
+				else {
+					LVEntry lvEntry = list.get(0);
+
+					result = lvEntry;
+
+					cacheResult(lvEntry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (LVEntry)result;
+		}
 	}
 
 	/**
@@ -2468,12 +3793,28 @@ public class LVEntryPersistenceImpl
 	public int countByG_UGK_Head(
 		long groupId, String uniqueGroupKey, boolean head) {
 
-		return _uniquePersistenceFinderByG_UGK_Head.count(
-			finderCache, new Object[] {groupId, uniqueGroupKey, head});
+		LVEntry lvEntry = fetchByG_UGK_Head(groupId, uniqueGroupKey, head);
+
+		if (lvEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
 
+	private static final String _FINDER_COLUMN_G_UGK_HEAD_GROUPID_2 =
+		"lvEntry.groupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_UGK_HEAD_UNIQUEGROUPKEY_2 =
+		"lvEntry.uniqueGroupKey = ? AND ";
+
+	private static final String _FINDER_COLUMN_G_UGK_HEAD_UNIQUEGROUPKEY_3 =
+		"(lvEntry.uniqueGroupKey IS NULL OR lvEntry.uniqueGroupKey = '') AND ";
+
+	private static final String _FINDER_COLUMN_G_UGK_HEAD_HEAD_2 =
+		"lvEntry.head = ?";
+
 	private FinderPath _finderPathFetchByHeadId;
-	private UniquePersistenceFinder<LVEntry> _uniquePersistenceFinderByHeadId;
 
 	/**
 	 * Returns the lv entry where headId = &#63; or throws a <code>NoSuchLVEntryException</code> if it could not be found.
@@ -2487,15 +3828,20 @@ public class LVEntryPersistenceImpl
 		LVEntry lvEntry = fetchByHeadId(headId);
 
 		if (lvEntry == null) {
-			String message =
-				_uniquePersistenceFinderByHeadId.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {headId});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("headId=");
+			sb.append(headId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLVEntryException(message);
+			throw new NoSuchLVEntryException(sb.toString());
 		}
 
 		return lvEntry;
@@ -2521,8 +3867,77 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public LVEntry fetchByHeadId(long headId, boolean useFinderCache) {
-		return _uniquePersistenceFinderByHeadId.fetch(
-			finderCache, new Object[] {headId}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {headId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByHeadId, finderArgs, this);
+		}
+
+		if (result instanceof LVEntry) {
+			LVEntry lvEntry = (LVEntry)result;
+
+			if (headId != lvEntry.getHeadId()) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_LVENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_HEADID_HEADID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(headId);
+
+				List<LVEntry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByHeadId, finderArgs, list);
+					}
+				}
+				else {
+					LVEntry lvEntry = list.get(0);
+
+					result = lvEntry;
+
+					cacheResult(lvEntry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (LVEntry)result;
+		}
 	}
 
 	/**
@@ -2546,9 +3961,17 @@ public class LVEntryPersistenceImpl
 	 */
 	@Override
 	public int countByHeadId(long headId) {
-		return _uniquePersistenceFinderByHeadId.count(
-			finderCache, new Object[] {headId});
+		LVEntry lvEntry = fetchByHeadId(headId);
+
+		if (lvEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_HEADID_HEADID_2 =
+		"lvEntry.headId = ?";
 
 	public LVEntryPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -2620,6 +4043,48 @@ public class LVEntryPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all lv entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(LVEntryImpl.class);
+
+		finderCache.clearCache(LVEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the lv entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(LVEntry lvEntry) {
+		entityCache.removeResult(LVEntryImpl.class, lvEntry);
+	}
+
+	@Override
+	public void clearCache(List<LVEntry> lvEntries) {
+		for (LVEntry lvEntry : lvEntries) {
+			entityCache.removeResult(LVEntryImpl.class, lvEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(LVEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(LVEntryImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(LVEntryModelImpl lvEntryModelImpl) {
 		Object[] args = new Object[] {
 			lvEntryModelImpl.getUuid(), lvEntryModelImpl.getGroupId(),
@@ -2674,6 +4139,47 @@ public class LVEntryPersistenceImpl
 	@Override
 	public LVEntry remove(long lvEntryId) throws NoSuchLVEntryException {
 		return remove((Serializable)lvEntryId);
+	}
+
+	/**
+	 * Removes the lv entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the lv entry
+	 * @return the lv entry that was removed
+	 * @throws NoSuchLVEntryException if a lv entry with the primary key could not be found
+	 */
+	@Override
+	public LVEntry remove(Serializable primaryKey)
+		throws NoSuchLVEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			LVEntry lvEntry = (LVEntry)session.get(
+				LVEntryImpl.class, primaryKey);
+
+			if (lvEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchLVEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(lvEntry);
+		}
+		catch (NoSuchLVEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -2768,6 +4274,31 @@ public class LVEntryPersistenceImpl
 		}
 
 		lvEntry.resetOriginalValues();
+
+		return lvEntry;
+	}
+
+	/**
+	 * Returns the lv entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the lv entry
+	 * @return the lv entry
+	 * @throws NoSuchLVEntryException if a lv entry with the primary key could not be found
+	 */
+	@Override
+	public LVEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchLVEntryException {
+
+		LVEntry lvEntry = fetchByPrimaryKey(primaryKey);
+
+		if (lvEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchLVEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return lvEntry;
 	}
@@ -3398,15 +4929,6 @@ public class LVEntryPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_LVENTRY_WHERE, _SQL_COUNT_LVENTRY_WHERE,
-			LVEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"lvEntry.", "uuid", FinderColumn.Type.STRING, "=", true, true,
-				LVEntry::getUuid));
-
 		_finderPathWithPaginationFindByUuid_Head = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_Head",
 			new String[] {
@@ -3425,20 +4947,6 @@ public class LVEntryPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUuid_Head",
 			new String[] {String.class.getName(), Boolean.class.getName()},
 			new String[] {"uuid_", "head"}, false);
-
-		_collectionPersistenceFinderByUuid_Head =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_Head,
-				_finderPathWithoutPaginationFindByUuid_Head,
-				_finderPathCountByUuid_Head, _SQL_SELECT_LVENTRY_WHERE,
-				_SQL_COUNT_LVENTRY_WHERE, LVEntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lvEntry.", "uuid", FinderColumn.Type.STRING, "=", true,
-					false, LVEntry::getUuid),
-				new FinderColumn<>(
-					"lvEntry.", "head", FinderColumn.Type.BOOLEAN, "=", true,
-					true, LVEntry::isHead));
 
 		_finderPathWithPaginationFindByUUID_G = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUUID_G",
@@ -3459,20 +4967,6 @@ public class LVEntryPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "groupId"}, false);
 
-		_collectionPersistenceFinderByUUID_G =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUUID_G,
-				_finderPathWithoutPaginationFindByUUID_G,
-				_finderPathCountByUUID_G, _SQL_SELECT_LVENTRY_WHERE,
-				_SQL_COUNT_LVENTRY_WHERE, LVEntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lvEntry.", "uuid", FinderColumn.Type.STRING, "=", true,
-					false, LVEntry::getUuid),
-				new FinderColumn<>(
-					"lvEntry.", "groupId", FinderColumn.Type.LONG, "=", true,
-					true, LVEntry::getGroupId));
-
 		_finderPathFetchByUUID_G_Head = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByUUID_G_Head",
 			new String[] {
@@ -3480,18 +4974,6 @@ public class LVEntryPersistenceImpl
 				Boolean.class.getName()
 			},
 			new String[] {"uuid_", "groupId", "head"}, true);
-
-		_uniquePersistenceFinderByUUID_G_Head = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByUUID_G_Head, _SQL_SELECT_LVENTRY_WHERE,
-			new FinderColumn<>(
-				"lvEntry.", "uuid", FinderColumn.Type.STRING, "=", true, false,
-				LVEntry::getUuid),
-			new FinderColumn<>(
-				"lvEntry.", "groupId", FinderColumn.Type.LONG, "=", true, false,
-				LVEntry::getGroupId),
-			new FinderColumn<>(
-				"lvEntry.", "head", FinderColumn.Type.BOOLEAN, "=", true, true,
-				LVEntry::isHead));
 
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
@@ -3511,20 +4993,6 @@ public class LVEntryPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUuid_C",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
-
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_LVENTRY_WHERE,
-				_SQL_COUNT_LVENTRY_WHERE, LVEntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lvEntry.", "uuid", FinderColumn.Type.STRING, "=", true,
-					false, LVEntry::getUuid),
-				new FinderColumn<>(
-					"lvEntry.", "companyId", FinderColumn.Type.LONG, "=", true,
-					true, LVEntry::getCompanyId));
 
 		_finderPathWithPaginationFindByUuid_C_Head = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C_Head",
@@ -3550,23 +5018,6 @@ public class LVEntryPersistenceImpl
 				Boolean.class.getName()
 			},
 			new String[] {"uuid_", "companyId", "head"}, false);
-
-		_collectionPersistenceFinderByUuid_C_Head =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C_Head,
-				_finderPathWithoutPaginationFindByUuid_C_Head,
-				_finderPathCountByUuid_C_Head, _SQL_SELECT_LVENTRY_WHERE,
-				_SQL_COUNT_LVENTRY_WHERE, LVEntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lvEntry.", "uuid", FinderColumn.Type.STRING, "=", true,
-					false, LVEntry::getUuid),
-				new FinderColumn<>(
-					"lvEntry.", "companyId", FinderColumn.Type.LONG, "=", true,
-					false, LVEntry::getCompanyId),
-				new FinderColumn<>(
-					"lvEntry.", "head", FinderColumn.Type.BOOLEAN, "=", true,
-					true, LVEntry::isHead));
 
 		_finderPathWithPaginationFindByGroupId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByGroupId",
@@ -3634,18 +5085,6 @@ public class LVEntryPersistenceImpl
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"groupId", "uniqueGroupKey"}, false);
 
-		_collectionPersistenceFinderByG_UGK = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByG_UGK,
-			_finderPathWithoutPaginationFindByG_UGK, _finderPathCountByG_UGK,
-			_SQL_SELECT_LVENTRY_WHERE, _SQL_COUNT_LVENTRY_WHERE,
-			LVEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"lvEntry.", "groupId", FinderColumn.Type.LONG, "=", true, false,
-				LVEntry::getGroupId),
-			new FinderColumn<>(
-				"lvEntry.", "uniqueGroupKey", FinderColumn.Type.STRING, "=",
-				true, true, LVEntry::getUniqueGroupKey));
-
 		_finderPathFetchByG_UGK_Head = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByG_UGK_Head",
 			new String[] {
@@ -3654,27 +5093,9 @@ public class LVEntryPersistenceImpl
 			},
 			new String[] {"groupId", "uniqueGroupKey", "head"}, true);
 
-		_uniquePersistenceFinderByG_UGK_Head = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByG_UGK_Head, _SQL_SELECT_LVENTRY_WHERE,
-			new FinderColumn<>(
-				"lvEntry.", "groupId", FinderColumn.Type.LONG, "=", true, false,
-				LVEntry::getGroupId),
-			new FinderColumn<>(
-				"lvEntry.", "uniqueGroupKey", FinderColumn.Type.STRING, "=",
-				true, false, LVEntry::getUniqueGroupKey),
-			new FinderColumn<>(
-				"lvEntry.", "head", FinderColumn.Type.BOOLEAN, "=", true, true,
-				LVEntry::isHead));
-
 		_finderPathFetchByHeadId = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByHeadId",
 			new String[] {Long.class.getName()}, new String[] {"headId"}, true);
-
-		_uniquePersistenceFinderByHeadId = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByHeadId, _SQL_SELECT_LVENTRY_WHERE,
-			new FinderColumn<>(
-				"lvEntry.", "headId", FinderColumn.Type.LONG, "=", true, true,
-				LVEntry::getHeadId));
 
 		LVEntryUtil.setPersistence(this);
 	}
@@ -3718,6 +5139,9 @@ public class LVEntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "lvEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No LVEntry exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No LVEntry exists with the key {";
 
@@ -3733,4 +5157,4 @@ public class LVEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-716605546
+// LIFERAY-SERVICE-BUILDER-HASH:2083627047

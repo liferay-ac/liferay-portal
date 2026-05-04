@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,8 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -40,6 +39,7 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -60,7 +60,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTSchemaVersionPersistence.class)
 public class CTSchemaVersionPersistenceImpl
-	extends BasePersistenceImpl<CTSchemaVersion, NoSuchSchemaVersionException>
+	extends BasePersistenceImpl<CTSchemaVersion>
 	implements CTSchemaVersionPersistence {
 
 	/*
@@ -83,8 +83,6 @@ public class CTSchemaVersionPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<CTSchemaVersion>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the ct schema versions where companyId = &#63;.
@@ -158,9 +156,95 @@ public class CTSchemaVersionPersistenceImpl
 		OrderByComparator<CTSchemaVersion> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			finderCache, new Object[] {companyId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<CTSchemaVersion> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTSchemaVersion>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTSchemaVersion ctSchemaVersion : list) {
+					if (companyId != ctSchemaVersion.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTSCHEMAVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTSchemaVersionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<CTSchemaVersion>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -184,9 +268,16 @@ public class CTSchemaVersionPersistenceImpl
 			return ctSchemaVersion;
 		}
 
-		throw new NoSuchSchemaVersionException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchSchemaVersionException(sb.toString());
 	}
 
 	/**
@@ -200,8 +291,14 @@ public class CTSchemaVersionPersistenceImpl
 	public CTSchemaVersion fetchByCompanyId_First(
 		long companyId, OrderByComparator<CTSchemaVersion> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<CTSchemaVersion> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -211,8 +308,12 @@ public class CTSchemaVersionPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (CTSchemaVersion ctSchemaVersion :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(ctSchemaVersion);
+		}
 	}
 
 	/**
@@ -223,9 +324,49 @@ public class CTSchemaVersionPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			finderCache, new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTSCHEMAVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"ctSchemaVersion.companyId = ?";
 
 	public CTSchemaVersionPersistenceImpl() {
 		setModelClass(CTSchemaVersion.class);
@@ -276,6 +417,49 @@ public class CTSchemaVersionPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all ct schema versions.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTSchemaVersionImpl.class);
+
+		finderCache.clearCache(CTSchemaVersionImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ct schema version.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTSchemaVersion ctSchemaVersion) {
+		entityCache.removeResult(CTSchemaVersionImpl.class, ctSchemaVersion);
+	}
+
+	@Override
+	public void clearCache(List<CTSchemaVersion> ctSchemaVersions) {
+		for (CTSchemaVersion ctSchemaVersion : ctSchemaVersions) {
+			entityCache.removeResult(
+				CTSchemaVersionImpl.class, ctSchemaVersion);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTSchemaVersionImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CTSchemaVersionImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new ct schema version with the primary key. Does not add the ct schema version to the database.
 	 *
 	 * @param schemaVersionId the primary key for the new ct schema version
@@ -305,6 +489,47 @@ public class CTSchemaVersionPersistenceImpl
 		throws NoSuchSchemaVersionException {
 
 		return remove((Serializable)schemaVersionId);
+	}
+
+	/**
+	 * Removes the ct schema version with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ct schema version
+	 * @return the ct schema version that was removed
+	 * @throws NoSuchSchemaVersionException if a ct schema version with the primary key could not be found
+	 */
+	@Override
+	public CTSchemaVersion remove(Serializable primaryKey)
+		throws NoSuchSchemaVersionException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTSchemaVersion ctSchemaVersion = (CTSchemaVersion)session.get(
+				CTSchemaVersionImpl.class, primaryKey);
+
+			if (ctSchemaVersion == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchSchemaVersionException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctSchemaVersion);
+		}
+		catch (NoSuchSchemaVersionException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -390,6 +615,31 @@ public class CTSchemaVersionPersistenceImpl
 		}
 
 		ctSchemaVersion.resetOriginalValues();
+
+		return ctSchemaVersion;
+	}
+
+	/**
+	 * Returns the ct schema version with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ct schema version
+	 * @return the ct schema version
+	 * @throws NoSuchSchemaVersionException if a ct schema version with the primary key could not be found
+	 */
+	@Override
+	public CTSchemaVersion findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchSchemaVersionException {
+
+		CTSchemaVersion ctSchemaVersion = fetchByPrimaryKey(primaryKey);
+
+		if (ctSchemaVersion == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchSchemaVersionException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return ctSchemaVersion;
 	}
@@ -658,17 +908,6 @@ public class CTSchemaVersionPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_CTSCHEMAVERSION_WHERE,
-				_SQL_COUNT_CTSCHEMAVERSION_WHERE,
-				CTSchemaVersionModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctSchemaVersion.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, CTSchemaVersion::getCompanyId));
-
 		CTSchemaVersionUtil.setPersistence(this);
 	}
 
@@ -725,6 +964,9 @@ public class CTSchemaVersionPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ctSchemaVersion.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTSchemaVersion exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTSchemaVersion exists with the key {";
 
@@ -737,4 +979,4 @@ public class CTSchemaVersionPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:90822448
+// LIFERAY-SERVICE-BUILDER-HASH:857631846

@@ -99,4 +99,4 @@ public interface AddressService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:2028494213
+// LIFERAY-SERVICE-BUILDER-HASH:833229093

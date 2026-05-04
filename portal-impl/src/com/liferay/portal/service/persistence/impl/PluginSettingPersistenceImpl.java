@@ -12,6 +12,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchPluginSettingException;
@@ -23,9 +24,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.PluginSettingPersistence;
 import com.liferay.portal.kernel.service.persistence.PluginSettingUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -42,6 +40,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -55,7 +54,7 @@ import java.util.Set;
  * @generated
  */
 public class PluginSettingPersistenceImpl
-	extends BasePersistenceImpl<PluginSetting, NoSuchPluginSettingException>
+	extends BasePersistenceImpl<PluginSetting>
 	implements PluginSettingPersistence {
 
 	/*
@@ -78,8 +77,6 @@ public class PluginSettingPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<PluginSetting>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the plugin settings where companyId = &#63;.
@@ -153,9 +150,95 @@ public class PluginSettingPersistenceImpl
 		OrderByComparator<PluginSetting> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<PluginSetting> list = null;
+
+		if (useFinderCache) {
+			list = (List<PluginSetting>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (PluginSetting pluginSetting : list) {
+					if (companyId != pluginSetting.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_PLUGINSETTING_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(PluginSettingModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<PluginSetting>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -178,9 +261,16 @@ public class PluginSettingPersistenceImpl
 			return pluginSetting;
 		}
 
-		throw new NoSuchPluginSettingException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchPluginSettingException(sb.toString());
 	}
 
 	/**
@@ -194,9 +284,14 @@ public class PluginSettingPersistenceImpl
 	public PluginSetting fetchByCompanyId_First(
 		long companyId, OrderByComparator<PluginSetting> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId},
-			orderByComparator);
+		List<PluginSetting> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -206,8 +301,12 @@ public class PluginSettingPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		for (PluginSetting pluginSetting :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(pluginSetting);
+		}
 	}
 
 	/**
@@ -218,13 +317,52 @@ public class PluginSettingPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_PLUGINSETTING_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"pluginSetting.companyId = ?";
+
 	private FinderPath _finderPathFetchByC_P_P;
-	private UniquePersistenceFinder<PluginSetting>
-		_uniquePersistenceFinderByC_P_P;
 
 	/**
 	 * Returns the plugin setting where companyId = &#63; and pluginId = &#63; and pluginType = &#63; or throws a <code>NoSuchPluginSettingException</code> if it could not be found.
@@ -244,16 +382,26 @@ public class PluginSettingPersistenceImpl
 			companyId, pluginId, pluginType);
 
 		if (pluginSetting == null) {
-			String message =
-				_uniquePersistenceFinderByC_P_P.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {companyId, pluginId, pluginType});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append(", pluginId=");
+			sb.append(pluginId);
+
+			sb.append(", pluginType=");
+			sb.append(pluginType);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchPluginSettingException(message);
+			throw new NoSuchPluginSettingException(sb.toString());
 		}
 
 		return pluginSetting;
@@ -288,9 +436,113 @@ public class PluginSettingPersistenceImpl
 		long companyId, String pluginId, String pluginType,
 		boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_P_P.fetch(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, pluginId, pluginType}, useFinderCache);
+		pluginId = Objects.toString(pluginId, "");
+		pluginType = Objects.toString(pluginType, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {companyId, pluginId, pluginType};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = FinderCacheUtil.getResult(
+				_finderPathFetchByC_P_P, finderArgs, this);
+		}
+
+		if (result instanceof PluginSetting) {
+			PluginSetting pluginSetting = (PluginSetting)result;
+
+			if ((companyId != pluginSetting.getCompanyId()) ||
+				!Objects.equals(pluginId, pluginSetting.getPluginId()) ||
+				!Objects.equals(pluginType, pluginSetting.getPluginType())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_PLUGINSETTING_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_P_P_COMPANYID_2);
+
+			boolean bindPluginId = false;
+
+			if (pluginId.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_P_P_PLUGINID_3);
+			}
+			else {
+				bindPluginId = true;
+
+				sb.append(_FINDER_COLUMN_C_P_P_PLUGINID_2);
+			}
+
+			boolean bindPluginType = false;
+
+			if (pluginType.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_P_P_PLUGINTYPE_3);
+			}
+			else {
+				bindPluginType = true;
+
+				sb.append(_FINDER_COLUMN_C_P_P_PLUGINTYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindPluginId) {
+					queryPos.add(pluginId);
+				}
+
+				if (bindPluginType) {
+					queryPos.add(pluginType);
+				}
+
+				List<PluginSetting> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(
+							_finderPathFetchByC_P_P, finderArgs, list);
+					}
+				}
+				else {
+					PluginSetting pluginSetting = list.get(0);
+
+					result = pluginSetting;
+
+					cacheResult(pluginSetting);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (PluginSetting)result;
+		}
 	}
 
 	/**
@@ -324,10 +576,30 @@ public class PluginSettingPersistenceImpl
 	public int countByC_P_P(
 		long companyId, String pluginId, String pluginType) {
 
-		return _uniquePersistenceFinderByC_P_P.count(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, pluginId, pluginType});
+		PluginSetting pluginSetting = fetchByC_P_P(
+			companyId, pluginId, pluginType);
+
+		if (pluginSetting == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_P_P_COMPANYID_2 =
+		"pluginSetting.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_P_P_PLUGINID_2 =
+		"pluginSetting.pluginId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_P_P_PLUGINID_3 =
+		"(pluginSetting.pluginId IS NULL OR pluginSetting.pluginId = '') AND ";
+
+	private static final String _FINDER_COLUMN_C_P_P_PLUGINTYPE_2 =
+		"pluginSetting.pluginType = ?";
+
+	private static final String _FINDER_COLUMN_C_P_P_PLUGINTYPE_3 =
+		"(pluginSetting.pluginType IS NULL OR pluginSetting.pluginType = '')";
 
 	public PluginSettingPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -390,6 +662,49 @@ public class PluginSettingPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all plugin settings.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(PluginSettingImpl.class);
+
+		FinderCacheUtil.clearCache(PluginSettingImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the plugin setting.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(PluginSetting pluginSetting) {
+		EntityCacheUtil.removeResult(PluginSettingImpl.class, pluginSetting);
+	}
+
+	@Override
+	public void clearCache(List<PluginSetting> pluginSettings) {
+		for (PluginSetting pluginSetting : pluginSettings) {
+			EntityCacheUtil.removeResult(
+				PluginSettingImpl.class, pluginSetting);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(PluginSettingImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(PluginSettingImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		PluginSettingModelImpl pluginSettingModelImpl) {
 
@@ -433,6 +748,47 @@ public class PluginSettingPersistenceImpl
 		throws NoSuchPluginSettingException {
 
 		return remove((Serializable)pluginSettingId);
+	}
+
+	/**
+	 * Removes the plugin setting with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the plugin setting
+	 * @return the plugin setting that was removed
+	 * @throws NoSuchPluginSettingException if a plugin setting with the primary key could not be found
+	 */
+	@Override
+	public PluginSetting remove(Serializable primaryKey)
+		throws NoSuchPluginSettingException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			PluginSetting pluginSetting = (PluginSetting)session.get(
+				PluginSettingImpl.class, primaryKey);
+
+			if (pluginSetting == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchPluginSettingException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(pluginSetting);
+		}
+		catch (NoSuchPluginSettingException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -518,6 +874,31 @@ public class PluginSettingPersistenceImpl
 		}
 
 		pluginSetting.resetOriginalValues();
+
+		return pluginSetting;
+	}
+
+	/**
+	 * Returns the plugin setting with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the plugin setting
+	 * @return the plugin setting
+	 * @throws NoSuchPluginSettingException if a plugin setting with the primary key could not be found
+	 */
+	@Override
+	public PluginSetting findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchPluginSettingException {
+
+		PluginSetting pluginSetting = fetchByPrimaryKey(primaryKey);
+
+		if (pluginSetting == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchPluginSettingException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return pluginSetting;
 	}
@@ -789,17 +1170,6 @@ public class PluginSettingPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_PLUGINSETTING_WHERE,
-				_SQL_COUNT_PLUGINSETTING_WHERE,
-				PluginSettingModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"pluginSetting.", "companyId", FinderColumn.Type.LONG, "=",
-					true, true, PluginSetting::getCompanyId));
-
 		_finderPathFetchByC_P_P = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_P_P",
 			new String[] {
@@ -807,18 +1177,6 @@ public class PluginSettingPersistenceImpl
 				String.class.getName()
 			},
 			new String[] {"companyId", "pluginId", "pluginType"}, true);
-
-		_uniquePersistenceFinderByC_P_P = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_P_P, _SQL_SELECT_PLUGINSETTING_WHERE,
-			new FinderColumn<>(
-				"pluginSetting.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, PluginSetting::getCompanyId),
-			new FinderColumn<>(
-				"pluginSetting.", "pluginId", FinderColumn.Type.STRING, "=",
-				true, false, PluginSetting::getPluginId),
-			new FinderColumn<>(
-				"pluginSetting.", "pluginType", FinderColumn.Type.STRING, "=",
-				true, true, PluginSetting::getPluginType));
 
 		PluginSettingUtil.setPersistence(this);
 	}
@@ -843,6 +1201,9 @@ public class PluginSettingPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "pluginSetting.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No PluginSetting exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No PluginSetting exists with the key {";
 
@@ -858,4 +1219,4 @@ public class PluginSettingPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1561108159
+// LIFERAY-SERVICE-BUILDER-HASH:426525864

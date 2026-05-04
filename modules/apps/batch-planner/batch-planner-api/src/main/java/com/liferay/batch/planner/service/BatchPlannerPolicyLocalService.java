@@ -293,4 +293,4 @@ public interface BatchPlannerPolicyLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1510913096
+// LIFERAY-SERVICE-BUILDER-HASH:-485864195

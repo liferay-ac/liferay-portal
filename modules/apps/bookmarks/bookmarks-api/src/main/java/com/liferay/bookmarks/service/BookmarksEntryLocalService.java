@@ -461,4 +461,4 @@ public interface BookmarksEntryLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-650601510
+// LIFERAY-SERVICE-BUILDER-HASH:1219861158

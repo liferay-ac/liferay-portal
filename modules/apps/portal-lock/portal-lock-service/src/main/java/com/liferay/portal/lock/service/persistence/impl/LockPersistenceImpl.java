@@ -11,6 +11,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -20,9 +21,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -44,10 +42,13 @@ import java.io.Serializable;
 
 import java.lang.reflect.InvocationHandler;
 
+import java.sql.Timestamp;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -69,8 +70,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = LockPersistence.class)
 public class LockPersistenceImpl
-	extends BasePersistenceImpl<Lock, NoSuchLockException>
-	implements LockPersistence {
+	extends BasePersistenceImpl<Lock> implements LockPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -92,8 +92,6 @@ public class LockPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<Lock>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the locks where uuid = &#63;.
@@ -163,9 +161,106 @@ public class LockPersistenceImpl
 		String uuid, int start, int end,
 		OrderByComparator<Lock> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid.find(
-			finderCache, new Object[] {uuid}, start, end, orderByComparator,
-			useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid;
+				finderArgs = new Object[] {uuid};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid;
+			finderArgs = new Object[] {uuid, start, end, orderByComparator};
+		}
+
+		List<Lock> list = null;
+
+		if (useFinderCache) {
+			list = (List<Lock>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Lock lock : list) {
+					if (!uuid.equals(lock.getUuid())) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_LOCK__WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LockModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				list = (List<Lock>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -187,9 +282,16 @@ public class LockPersistenceImpl
 			return lock;
 		}
 
-		throw new NoSuchLockException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchLockException(sb.toString());
 	}
 
 	/**
@@ -203,8 +305,13 @@ public class LockPersistenceImpl
 	public Lock fetchByUuid_First(
 		String uuid, OrderByComparator<Lock> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<Lock> list = findByUuid(uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -214,8 +321,11 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (Lock lock :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(lock);
+		}
 	}
 
 	/**
@@ -226,15 +336,68 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public int countByUuid(String uuid) {
-		return _collectionPersistenceFinderByUuid.count(
-			finderCache, new Object[] {uuid});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid;
+
+		Object[] finderArgs = new Object[] {uuid};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_LOCK__WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_UUID_2 = "lock_.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(lock_.uuid IS NULL OR lock_.uuid = '')";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<Lock>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the locks where uuid = &#63; and companyId = &#63;.
@@ -312,9 +475,114 @@ public class LockPersistenceImpl
 		String uuid, long companyId, int start, int end,
 		OrderByComparator<Lock> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid_C.find(
-			finderCache, new Object[] {uuid, companyId}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid_C;
+				finderArgs = new Object[] {uuid, companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid_C;
+			finderArgs = new Object[] {
+				uuid, companyId, start, end, orderByComparator
+			};
+		}
+
+		List<Lock> list = null;
+
+		if (useFinderCache) {
+			list = (List<Lock>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Lock lock : list) {
+					if (!uuid.equals(lock.getUuid()) ||
+						(companyId != lock.getCompanyId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LOCK__WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LockModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				list = (List<Lock>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -338,9 +606,19 @@ public class LockPersistenceImpl
 			return lock;
 		}
 
-		throw new NoSuchLockException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchLockException(sb.toString());
 	}
 
 	/**
@@ -356,8 +634,14 @@ public class LockPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<Lock> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<Lock> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -368,8 +652,13 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (Lock lock :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lock);
+		}
 	}
 
 	/**
@@ -381,15 +670,76 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public int countByUuid_C(String uuid, long companyId) {
-		return _collectionPersistenceFinderByUuid_C.count(
-			finderCache, new Object[] {uuid, companyId});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid_C;
+
+		Object[] finderArgs = new Object[] {uuid, companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LOCK__WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"lock_.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(lock_.uuid IS NULL OR lock_.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"lock_.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByClassName;
 	private FinderPath _finderPathWithoutPaginationFindByClassName;
 	private FinderPath _finderPathCountByClassName;
-	private CollectionPersistenceFinder<Lock>
-		_collectionPersistenceFinderByClassName;
 
 	/**
 	 * Returns all the locks where className = &#63;.
@@ -460,9 +810,108 @@ public class LockPersistenceImpl
 		String className, int start, int end,
 		OrderByComparator<Lock> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByClassName.find(
-			finderCache, new Object[] {className}, start, end,
-			orderByComparator, useFinderCache);
+		className = Objects.toString(className, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByClassName;
+				finderArgs = new Object[] {className};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByClassName;
+			finderArgs = new Object[] {
+				className, start, end, orderByComparator
+			};
+		}
+
+		List<Lock> list = null;
+
+		if (useFinderCache) {
+			list = (List<Lock>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Lock lock : list) {
+					if (!className.equals(lock.getClassName())) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_LOCK__WHERE);
+
+			boolean bindClassName = false;
+
+			if (className.isEmpty()) {
+				sb.append(_FINDER_COLUMN_CLASSNAME_CLASSNAME_3);
+			}
+			else {
+				bindClassName = true;
+
+				sb.append(_FINDER_COLUMN_CLASSNAME_CLASSNAME_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LockModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindClassName) {
+					queryPos.add(className);
+				}
+
+				list = (List<Lock>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -484,9 +933,16 @@ public class LockPersistenceImpl
 			return lock;
 		}
 
-		throw new NoSuchLockException(
-			_collectionPersistenceFinderByClassName.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {className}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("className=");
+		sb.append(className);
+
+		sb.append("}");
+
+		throw new NoSuchLockException(sb.toString());
 	}
 
 	/**
@@ -500,8 +956,13 @@ public class LockPersistenceImpl
 	public Lock fetchByClassName_First(
 		String className, OrderByComparator<Lock> orderByComparator) {
 
-		return _collectionPersistenceFinderByClassName.fetchFirst(
-			finderCache, new Object[] {className}, orderByComparator);
+		List<Lock> list = findByClassName(className, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -511,8 +972,12 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public void removeByClassName(String className) {
-		_collectionPersistenceFinderByClassName.remove(
-			finderCache, new Object[] {className});
+		for (Lock lock :
+				findByClassName(
+					className, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(lock);
+		}
 	}
 
 	/**
@@ -523,14 +988,68 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public int countByClassName(String className) {
-		return _collectionPersistenceFinderByClassName.count(
-			finderCache, new Object[] {className});
+		className = Objects.toString(className, "");
+
+		FinderPath finderPath = _finderPathCountByClassName;
+
+		Object[] finderArgs = new Object[] {className};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_LOCK__WHERE);
+
+			boolean bindClassName = false;
+
+			if (className.isEmpty()) {
+				sb.append(_FINDER_COLUMN_CLASSNAME_CLASSNAME_3);
+			}
+			else {
+				bindClassName = true;
+
+				sb.append(_FINDER_COLUMN_CLASSNAME_CLASSNAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindClassName) {
+					queryPos.add(className);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_CLASSNAME_CLASSNAME_2 =
+		"lock_.className = ?";
+
+	private static final String _FINDER_COLUMN_CLASSNAME_CLASSNAME_3 =
+		"(lock_.className IS NULL OR lock_.className = '')";
 
 	private FinderPath _finderPathWithPaginationFindByLtExpirationDate;
 	private FinderPath _finderPathWithPaginationCountByLtExpirationDate;
-	private CollectionPersistenceFinder<Lock>
-		_collectionPersistenceFinderByLtExpirationDate;
 
 	/**
 	 * Returns all the locks where expirationDate &lt; &#63;.
@@ -604,9 +1123,98 @@ public class LockPersistenceImpl
 		Date expirationDate, int start, int end,
 		OrderByComparator<Lock> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLtExpirationDate.find(
-			finderCache, new Object[] {expirationDate}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		finderPath = _finderPathWithPaginationFindByLtExpirationDate;
+		finderArgs = new Object[] {
+			_getTime(expirationDate), start, end, orderByComparator
+		};
+
+		List<Lock> list = null;
+
+		if (useFinderCache) {
+			list = (List<Lock>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Lock lock : list) {
+					if (expirationDate.getTime() <= lock.getExpirationDate(
+						).getTime()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_LOCK__WHERE);
+
+			boolean bindExpirationDate = false;
+
+			if (expirationDate == null) {
+				sb.append(_FINDER_COLUMN_LTEXPIRATIONDATE_EXPIRATIONDATE_1);
+			}
+			else {
+				bindExpirationDate = true;
+
+				sb.append(_FINDER_COLUMN_LTEXPIRATIONDATE_EXPIRATIONDATE_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LockModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExpirationDate) {
+					queryPos.add(new Timestamp(expirationDate.getTime()));
+				}
+
+				list = (List<Lock>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -629,10 +1237,16 @@ public class LockPersistenceImpl
 			return lock;
 		}
 
-		throw new NoSuchLockException(
-			_collectionPersistenceFinderByLtExpirationDate.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {expirationDate}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("expirationDate<");
+		sb.append(expirationDate);
+
+		sb.append("}");
+
+		throw new NoSuchLockException(sb.toString());
 	}
 
 	/**
@@ -646,8 +1260,14 @@ public class LockPersistenceImpl
 	public Lock fetchByLtExpirationDate_First(
 		Date expirationDate, OrderByComparator<Lock> orderByComparator) {
 
-		return _collectionPersistenceFinderByLtExpirationDate.fetchFirst(
-			finderCache, new Object[] {expirationDate}, orderByComparator);
+		List<Lock> list = findByLtExpirationDate(
+			expirationDate, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -657,8 +1277,13 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public void removeByLtExpirationDate(Date expirationDate) {
-		_collectionPersistenceFinderByLtExpirationDate.remove(
-			finderCache, new Object[] {expirationDate});
+		for (Lock lock :
+				findByLtExpirationDate(
+					expirationDate, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lock);
+		}
 	}
 
 	/**
@@ -669,14 +1294,70 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public int countByLtExpirationDate(Date expirationDate) {
-		return _collectionPersistenceFinderByLtExpirationDate.count(
-			finderCache, new Object[] {expirationDate});
+		FinderPath finderPath =
+			_finderPathWithPaginationCountByLtExpirationDate;
+
+		Object[] finderArgs = new Object[] {_getTime(expirationDate)};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_LOCK__WHERE);
+
+			boolean bindExpirationDate = false;
+
+			if (expirationDate == null) {
+				sb.append(_FINDER_COLUMN_LTEXPIRATIONDATE_EXPIRATIONDATE_1);
+			}
+			else {
+				bindExpirationDate = true;
+
+				sb.append(_FINDER_COLUMN_LTEXPIRATIONDATE_EXPIRATIONDATE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExpirationDate) {
+					queryPos.add(new Timestamp(expirationDate.getTime()));
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_LTEXPIRATIONDATE_EXPIRATIONDATE_1 =
+			"lock_.expirationDate IS NULL";
+
+	private static final String
+		_FINDER_COLUMN_LTEXPIRATIONDATE_EXPIRATIONDATE_2 =
+			"lock_.expirationDate < ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C;
 	private FinderPath _finderPathWithoutPaginationFindByC_C;
 	private FinderPath _finderPathCountByC_C;
-	private CollectionPersistenceFinder<Lock> _collectionPersistenceFinderByC_C;
 
 	/**
 	 * Returns all the locks where companyId = &#63; and className = &#63;.
@@ -754,9 +1435,114 @@ public class LockPersistenceImpl
 		long companyId, String className, int start, int end,
 		OrderByComparator<Lock> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_C.find(
-			finderCache, new Object[] {companyId, className}, start, end,
-			orderByComparator, useFinderCache);
+		className = Objects.toString(className, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_C;
+				finderArgs = new Object[] {companyId, className};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_C;
+			finderArgs = new Object[] {
+				companyId, className, start, end, orderByComparator
+			};
+		}
+
+		List<Lock> list = null;
+
+		if (useFinderCache) {
+			list = (List<Lock>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Lock lock : list) {
+					if ((companyId != lock.getCompanyId()) ||
+						!className.equals(lock.getClassName())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LOCK__WHERE);
+
+			sb.append(_FINDER_COLUMN_C_C_COMPANYID_2);
+
+			boolean bindClassName = false;
+
+			if (className.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAME_3);
+			}
+			else {
+				bindClassName = true;
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAME_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LockModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindClassName) {
+					queryPos.add(className);
+				}
+
+				list = (List<Lock>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -780,9 +1566,19 @@ public class LockPersistenceImpl
 			return lock;
 		}
 
-		throw new NoSuchLockException(
-			_collectionPersistenceFinderByC_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, className}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", className=");
+		sb.append(className);
+
+		sb.append("}");
+
+		throw new NoSuchLockException(sb.toString());
 	}
 
 	/**
@@ -798,9 +1594,14 @@ public class LockPersistenceImpl
 		long companyId, String className,
 		OrderByComparator<Lock> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C.fetchFirst(
-			finderCache, new Object[] {companyId, className},
-			orderByComparator);
+		List<Lock> list = findByC_C(
+			companyId, className, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -811,8 +1612,13 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public void removeByC_C(long companyId, String className) {
-		_collectionPersistenceFinderByC_C.remove(
-			finderCache, new Object[] {companyId, className});
+		for (Lock lock :
+				findByC_C(
+					companyId, className, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lock);
+		}
 	}
 
 	/**
@@ -824,12 +1630,74 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public int countByC_C(long companyId, String className) {
-		return _collectionPersistenceFinderByC_C.count(
-			finderCache, new Object[] {companyId, className});
+		className = Objects.toString(className, "");
+
+		FinderPath finderPath = _finderPathCountByC_C;
+
+		Object[] finderArgs = new Object[] {companyId, className};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LOCK__WHERE);
+
+			sb.append(_FINDER_COLUMN_C_C_COMPANYID_2);
+
+			boolean bindClassName = false;
+
+			if (className.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAME_3);
+			}
+			else {
+				bindClassName = true;
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindClassName) {
+					queryPos.add(className);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_C_C_COMPANYID_2 =
+		"lock_.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_CLASSNAME_2 =
+		"lock_.className = ?";
+
+	private static final String _FINDER_COLUMN_C_C_CLASSNAME_3 =
+		"(lock_.className IS NULL OR lock_.className = '')";
+
 	private FinderPath _finderPathFetchByC_K;
-	private UniquePersistenceFinder<Lock> _uniquePersistenceFinderByC_K;
 
 	/**
 	 * Returns the lock where className = &#63; and key = &#63; or throws a <code>NoSuchLockException</code> if it could not be found.
@@ -846,15 +1714,23 @@ public class LockPersistenceImpl
 		Lock lock = fetchByC_K(className, key);
 
 		if (lock == null) {
-			String message =
-				_uniquePersistenceFinderByC_K.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {className, key});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("className=");
+			sb.append(className);
+
+			sb.append(", key=");
+			sb.append(key);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLockException(message);
+			throw new NoSuchLockException(sb.toString());
 		}
 
 		return lock;
@@ -884,8 +1760,108 @@ public class LockPersistenceImpl
 	public Lock fetchByC_K(
 		String className, String key, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_K.fetch(
-			finderCache, new Object[] {className, key}, useFinderCache);
+		className = Objects.toString(className, "");
+		key = Objects.toString(key, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {className, key};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByC_K, finderArgs, this);
+		}
+
+		if (result instanceof Lock) {
+			Lock lock = (Lock)result;
+
+			if (!Objects.equals(className, lock.getClassName()) ||
+				!Objects.equals(key, lock.getKey())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_LOCK__WHERE);
+
+			boolean bindClassName = false;
+
+			if (className.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_K_CLASSNAME_3);
+			}
+			else {
+				bindClassName = true;
+
+				sb.append(_FINDER_COLUMN_C_K_CLASSNAME_2);
+			}
+
+			boolean bindKey = false;
+
+			if (key.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_K_KEY_3);
+			}
+			else {
+				bindKey = true;
+
+				sb.append(_FINDER_COLUMN_C_K_KEY_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindClassName) {
+					queryPos.add(className);
+				}
+
+				if (bindKey) {
+					queryPos.add(key);
+				}
+
+				List<Lock> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByC_K, finderArgs, list);
+					}
+				}
+				else {
+					Lock lock = list.get(0);
+
+					result = lock;
+
+					cacheResult(lock);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (Lock)result;
+		}
 	}
 
 	/**
@@ -913,15 +1889,29 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public int countByC_K(String className, String key) {
-		return _uniquePersistenceFinderByC_K.count(
-			finderCache, new Object[] {className, key});
+		Lock lock = fetchByC_K(className, key);
+
+		if (lock == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_K_CLASSNAME_2 =
+		"lock_.className = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_K_CLASSNAME_3 =
+		"(lock_.className IS NULL OR lock_.className = '') AND ";
+
+	private static final String _FINDER_COLUMN_C_K_KEY_2 = "lock_.key = ?";
+
+	private static final String _FINDER_COLUMN_C_K_KEY_3 =
+		"(lock_.key IS NULL OR lock_.key = '')";
 
 	private FinderPath _finderPathWithPaginationFindByC_U_C;
 	private FinderPath _finderPathWithoutPaginationFindByC_U_C;
 	private FinderPath _finderPathCountByC_U_C;
-	private CollectionPersistenceFinder<Lock>
-		_collectionPersistenceFinderByC_U_C;
 
 	/**
 	 * Returns all the locks where companyId = &#63; and userId = &#63; and className = &#63;.
@@ -1006,9 +1996,119 @@ public class LockPersistenceImpl
 		long companyId, long userId, String className, int start, int end,
 		OrderByComparator<Lock> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_U_C.find(
-			finderCache, new Object[] {companyId, userId, className}, start,
-			end, orderByComparator, useFinderCache);
+		className = Objects.toString(className, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_U_C;
+				finderArgs = new Object[] {companyId, userId, className};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_U_C;
+			finderArgs = new Object[] {
+				companyId, userId, className, start, end, orderByComparator
+			};
+		}
+
+		List<Lock> list = null;
+
+		if (useFinderCache) {
+			list = (List<Lock>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Lock lock : list) {
+					if ((companyId != lock.getCompanyId()) ||
+						(userId != lock.getUserId()) ||
+						!className.equals(lock.getClassName())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_LOCK__WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_C_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_C_USERID_2);
+
+			boolean bindClassName = false;
+
+			if (className.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_U_C_CLASSNAME_3);
+			}
+			else {
+				bindClassName = true;
+
+				sb.append(_FINDER_COLUMN_C_U_C_CLASSNAME_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LockModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				if (bindClassName) {
+					queryPos.add(className);
+				}
+
+				list = (List<Lock>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1034,10 +2134,22 @@ public class LockPersistenceImpl
 			return lock;
 		}
 
-		throw new NoSuchLockException(
-			_collectionPersistenceFinderByC_U_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, userId, className}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", userId=");
+		sb.append(userId);
+
+		sb.append(", className=");
+		sb.append(className);
+
+		sb.append("}");
+
+		throw new NoSuchLockException(sb.toString());
 	}
 
 	/**
@@ -1054,9 +2166,14 @@ public class LockPersistenceImpl
 		long companyId, long userId, String className,
 		OrderByComparator<Lock> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_U_C.fetchFirst(
-			finderCache, new Object[] {companyId, userId, className},
-			orderByComparator);
+		List<Lock> list = findByC_U_C(
+			companyId, userId, className, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1068,8 +2185,13 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public void removeByC_U_C(long companyId, long userId, String className) {
-		_collectionPersistenceFinderByC_U_C.remove(
-			finderCache, new Object[] {companyId, userId, className});
+		for (Lock lock :
+				findByC_U_C(
+					companyId, userId, className, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(lock);
+		}
 	}
 
 	/**
@@ -1082,9 +2204,79 @@ public class LockPersistenceImpl
 	 */
 	@Override
 	public int countByC_U_C(long companyId, long userId, String className) {
-		return _collectionPersistenceFinderByC_U_C.count(
-			finderCache, new Object[] {companyId, userId, className});
+		className = Objects.toString(className, "");
+
+		FinderPath finderPath = _finderPathCountByC_U_C;
+
+		Object[] finderArgs = new Object[] {companyId, userId, className};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_LOCK__WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_C_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_C_USERID_2);
+
+			boolean bindClassName = false;
+
+			if (className.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_U_C_CLASSNAME_3);
+			}
+			else {
+				bindClassName = true;
+
+				sb.append(_FINDER_COLUMN_C_U_C_CLASSNAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				if (bindClassName) {
+					queryPos.add(className);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_C_U_C_COMPANYID_2 =
+		"lock_.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_U_C_USERID_2 =
+		"lock_.userId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_U_C_CLASSNAME_2 =
+		"lock_.className = ?";
+
+	private static final String _FINDER_COLUMN_C_U_C_CLASSNAME_3 =
+		"(lock_.className IS NULL OR lock_.className = '')";
 
 	public LockPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -1141,6 +2333,48 @@ public class LockPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all locks.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(LockImpl.class);
+
+		finderCache.clearCache(LockImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the lock.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(Lock lock) {
+		entityCache.removeResult(LockImpl.class, lock);
+	}
+
+	@Override
+	public void clearCache(List<Lock> locks) {
+		for (Lock lock : locks) {
+			entityCache.removeResult(LockImpl.class, lock);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(LockImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(LockImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(LockModelImpl lockModelImpl) {
 		Object[] args = new Object[] {
 			lockModelImpl.getClassName(), lockModelImpl.getKey()
@@ -1181,6 +2415,44 @@ public class LockPersistenceImpl
 	@Override
 	public Lock remove(long lockId) throws NoSuchLockException {
 		return remove((Serializable)lockId);
+	}
+
+	/**
+	 * Removes the lock with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the lock
+	 * @return the lock that was removed
+	 * @throws NoSuchLockException if a lock with the primary key could not be found
+	 */
+	@Override
+	public Lock remove(Serializable primaryKey) throws NoSuchLockException {
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Lock lock = (Lock)session.get(LockImpl.class, primaryKey);
+
+			if (lock == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchLockException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(lock);
+		}
+		catch (NoSuchLockException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1283,6 +2555,31 @@ public class LockPersistenceImpl
 		}
 
 		lock.resetOriginalValues();
+
+		return lock;
+	}
+
+	/**
+	 * Returns the lock with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the lock
+	 * @return the lock
+	 * @throws NoSuchLockException if a lock with the primary key could not be found
+	 */
+	@Override
+	public Lock findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchLockException {
+
+		Lock lock = fetchByPrimaryKey(primaryKey);
+
+		if (lock == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchLockException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return lock;
 	}
@@ -1552,15 +2849,6 @@ public class LockPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_LOCK__WHERE, _SQL_COUNT_LOCK__WHERE,
-			LockModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"lock_.", "uuid", FinderColumn.Type.STRING, "=", true, true,
-				Lock::getUuid));
-
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
 			new String[] {
@@ -1580,20 +2868,6 @@ public class LockPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_LOCK__WHERE,
-				_SQL_COUNT_LOCK__WHERE, LockModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lock_.", "uuid", FinderColumn.Type.STRING, "=", true,
-					false, Lock::getUuid),
-				new FinderColumn<>(
-					"lock_.", "companyId", FinderColumn.Type.LONG, "=", true,
-					true, Lock::getCompanyId));
-
 		_finderPathWithPaginationFindByClassName = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByClassName",
 			new String[] {
@@ -1612,17 +2886,6 @@ public class LockPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"className"},
 			false);
 
-		_collectionPersistenceFinderByClassName =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByClassName,
-				_finderPathWithoutPaginationFindByClassName,
-				_finderPathCountByClassName, _SQL_SELECT_LOCK__WHERE,
-				_SQL_COUNT_LOCK__WHERE, LockModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lock_.", "className", FinderColumn.Type.STRING, "=", true,
-					true, Lock::getClassName));
-
 		_finderPathWithPaginationFindByLtExpirationDate = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLtExpirationDate",
 			new String[] {
@@ -1635,16 +2898,6 @@ public class LockPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByLtExpirationDate",
 			new String[] {Date.class.getName()},
 			new String[] {"expirationDate"}, false);
-
-		_collectionPersistenceFinderByLtExpirationDate =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLtExpirationDate, null,
-				_finderPathWithPaginationCountByLtExpirationDate,
-				_SQL_SELECT_LOCK__WHERE, _SQL_COUNT_LOCK__WHERE,
-				LockModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lock_.", "expirationDate", FinderColumn.Type.DATE, "<",
-					true, true, Lock::getExpirationDate));
 
 		_finderPathWithPaginationFindByC_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C",
@@ -1665,31 +2918,10 @@ public class LockPersistenceImpl
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"companyId", "className"}, false);
 
-		_collectionPersistenceFinderByC_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_C,
-			_finderPathWithoutPaginationFindByC_C, _finderPathCountByC_C,
-			_SQL_SELECT_LOCK__WHERE, _SQL_COUNT_LOCK__WHERE,
-			LockModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"lock_.", "companyId", FinderColumn.Type.LONG, "=", true, false,
-				Lock::getCompanyId),
-			new FinderColumn<>(
-				"lock_.", "className", FinderColumn.Type.STRING, "=", true,
-				true, Lock::getClassName));
-
 		_finderPathFetchByC_K = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_K",
 			new String[] {String.class.getName(), String.class.getName()},
 			new String[] {"className", "key_"}, true);
-
-		_uniquePersistenceFinderByC_K = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_K, _SQL_SELECT_LOCK__WHERE,
-			new FinderColumn<>(
-				"lock_.", "className", FinderColumn.Type.STRING, "=", true,
-				false, Lock::getClassName),
-			new FinderColumn<>(
-				"lock_.", "key", FinderColumn.Type.STRING, "=", true, true,
-				Lock::getKey));
 
 		_finderPathWithPaginationFindByC_U_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_U_C",
@@ -1715,21 +2947,6 @@ public class LockPersistenceImpl
 				String.class.getName()
 			},
 			new String[] {"companyId", "userId", "className"}, false);
-
-		_collectionPersistenceFinderByC_U_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_U_C,
-			_finderPathWithoutPaginationFindByC_U_C, _finderPathCountByC_U_C,
-			_SQL_SELECT_LOCK__WHERE, _SQL_COUNT_LOCK__WHERE,
-			LockModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"lock_.", "companyId", FinderColumn.Type.LONG, "=", true, false,
-				Lock::getCompanyId),
-			new FinderColumn<>(
-				"lock_.", "userId", FinderColumn.Type.LONG, "=", true, false,
-				Lock::getUserId),
-			new FinderColumn<>(
-				"lock_.", "className", FinderColumn.Type.STRING, "=", true,
-				true, Lock::getClassName));
 
 		LockUtil.setPersistence(this);
 	}
@@ -1773,6 +2990,14 @@ public class LockPersistenceImpl
 	@Reference
 	protected FinderCache finderCache;
 
+	private static Long _getTime(Date date) {
+		if (date == null) {
+			return null;
+		}
+
+		return date.getTime();
+	}
+
 	private static final String _SQL_SELECT_LOCK_ =
 		"SELECT lock_ FROM Lock lock_";
 
@@ -1786,6 +3011,9 @@ public class LockPersistenceImpl
 		"SELECT COUNT(lock_) FROM Lock lock_ WHERE ";
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "lock_.";
+
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No Lock exists with the primary key ";
 
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No Lock exists with the key {";
@@ -1802,4 +3030,4 @@ public class LockPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:2096599009
+// LIFERAY-SERVICE-BUILDER-HASH:72668947

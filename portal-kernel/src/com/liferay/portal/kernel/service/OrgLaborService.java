@@ -72,4 +72,4 @@ public interface OrgLaborService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:570749211
+// LIFERAY-SERVICE-BUILDER-HASH:-1186843056

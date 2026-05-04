@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -28,8 +29,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -43,6 +42,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -63,8 +63,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = BatchEngineImportTaskErrorPersistence.class)
 public class BatchEngineImportTaskErrorPersistenceImpl
-	extends BasePersistenceImpl
-		<BatchEngineImportTaskError, NoSuchImportTaskErrorException>
+	extends BasePersistenceImpl<BatchEngineImportTaskError>
 	implements BatchEngineImportTaskErrorPersistence {
 
 	/*
@@ -88,8 +87,6 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 	private FinderPath
 		_finderPathWithoutPaginationFindByBatchEngineImportTaskId;
 	private FinderPath _finderPathCountByBatchEngineImportTaskId;
-	private CollectionPersistenceFinder<BatchEngineImportTaskError>
-		_collectionPersistenceFinderByBatchEngineImportTaskId;
 
 	/**
 	 * Returns all the batch engine import task errors where batchEngineImportTaskId = &#63;.
@@ -168,9 +165,102 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 		OrderByComparator<BatchEngineImportTaskError> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByBatchEngineImportTaskId.find(
-			finderCache, new Object[] {batchEngineImportTaskId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByBatchEngineImportTaskId;
+				finderArgs = new Object[] {batchEngineImportTaskId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByBatchEngineImportTaskId;
+			finderArgs = new Object[] {
+				batchEngineImportTaskId, start, end, orderByComparator
+			};
+		}
+
+		List<BatchEngineImportTaskError> list = null;
+
+		if (useFinderCache) {
+			list = (List<BatchEngineImportTaskError>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (BatchEngineImportTaskError batchEngineImportTaskError :
+						list) {
+
+					if (batchEngineImportTaskId !=
+							batchEngineImportTaskError.
+								getBatchEngineImportTaskId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_BATCHENGINEIMPORTTASKERROR_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_BATCHENGINEIMPORTTASKID_BATCHENGINEIMPORTTASKID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(BatchEngineImportTaskErrorModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(batchEngineImportTaskId);
+
+				list = (List<BatchEngineImportTaskError>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -195,11 +285,16 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 			return batchEngineImportTaskError;
 		}
 
-		throw new NoSuchImportTaskErrorException(
-			_collectionPersistenceFinderByBatchEngineImportTaskId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {batchEngineImportTaskId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("batchEngineImportTaskId=");
+		sb.append(batchEngineImportTaskId);
+
+		sb.append("}");
+
+		throw new NoSuchImportTaskErrorException(sb.toString());
 	}
 
 	/**
@@ -214,9 +309,14 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 		long batchEngineImportTaskId,
 		OrderByComparator<BatchEngineImportTaskError> orderByComparator) {
 
-		return _collectionPersistenceFinderByBatchEngineImportTaskId.fetchFirst(
-			finderCache, new Object[] {batchEngineImportTaskId},
-			orderByComparator);
+		List<BatchEngineImportTaskError> list = findByBatchEngineImportTaskId(
+			batchEngineImportTaskId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -226,8 +326,13 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 	 */
 	@Override
 	public void removeByBatchEngineImportTaskId(long batchEngineImportTaskId) {
-		_collectionPersistenceFinderByBatchEngineImportTaskId.remove(
-			finderCache, new Object[] {batchEngineImportTaskId});
+		for (BatchEngineImportTaskError batchEngineImportTaskError :
+				findByBatchEngineImportTaskId(
+					batchEngineImportTaskId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(batchEngineImportTaskError);
+		}
 	}
 
 	/**
@@ -238,9 +343,51 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 	 */
 	@Override
 	public int countByBatchEngineImportTaskId(long batchEngineImportTaskId) {
-		return _collectionPersistenceFinderByBatchEngineImportTaskId.count(
-			finderCache, new Object[] {batchEngineImportTaskId});
+		FinderPath finderPath = _finderPathCountByBatchEngineImportTaskId;
+
+		Object[] finderArgs = new Object[] {batchEngineImportTaskId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_BATCHENGINEIMPORTTASKERROR_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_BATCHENGINEIMPORTTASKID_BATCHENGINEIMPORTTASKID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(batchEngineImportTaskId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_BATCHENGINEIMPORTTASKID_BATCHENGINEIMPORTTASKID_2 =
+			"batchEngineImportTaskError.batchEngineImportTaskId = ?";
 
 	public BatchEngineImportTaskErrorPersistenceImpl() {
 		setModelClass(BatchEngineImportTaskError.class);
@@ -298,6 +445,58 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all batch engine import task errors.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(BatchEngineImportTaskErrorImpl.class);
+
+		finderCache.clearCache(BatchEngineImportTaskErrorImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the batch engine import task error.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		BatchEngineImportTaskError batchEngineImportTaskError) {
+
+		entityCache.removeResult(
+			BatchEngineImportTaskErrorImpl.class, batchEngineImportTaskError);
+	}
+
+	@Override
+	public void clearCache(
+		List<BatchEngineImportTaskError> batchEngineImportTaskErrors) {
+
+		for (BatchEngineImportTaskError batchEngineImportTaskError :
+				batchEngineImportTaskErrors) {
+
+			entityCache.removeResult(
+				BatchEngineImportTaskErrorImpl.class,
+				batchEngineImportTaskError);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(BatchEngineImportTaskErrorImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				BatchEngineImportTaskErrorImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new batch engine import task error with the primary key. Does not add the batch engine import task error to the database.
 	 *
 	 * @param batchEngineImportTaskErrorId the primary key for the new batch engine import task error
@@ -331,6 +530,48 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 		throws NoSuchImportTaskErrorException {
 
 		return remove((Serializable)batchEngineImportTaskErrorId);
+	}
+
+	/**
+	 * Removes the batch engine import task error with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the batch engine import task error
+	 * @return the batch engine import task error that was removed
+	 * @throws NoSuchImportTaskErrorException if a batch engine import task error with the primary key could not be found
+	 */
+	@Override
+	public BatchEngineImportTaskError remove(Serializable primaryKey)
+		throws NoSuchImportTaskErrorException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			BatchEngineImportTaskError batchEngineImportTaskError =
+				(BatchEngineImportTaskError)session.get(
+					BatchEngineImportTaskErrorImpl.class, primaryKey);
+
+			if (batchEngineImportTaskError == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchImportTaskErrorException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(batchEngineImportTaskError);
+		}
+		catch (NoSuchImportTaskErrorException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -451,6 +692,32 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 		}
 
 		batchEngineImportTaskError.resetOriginalValues();
+
+		return batchEngineImportTaskError;
+	}
+
+	/**
+	 * Returns the batch engine import task error with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the batch engine import task error
+	 * @return the batch engine import task error
+	 * @throws NoSuchImportTaskErrorException if a batch engine import task error with the primary key could not be found
+	 */
+	@Override
+	public BatchEngineImportTaskError findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchImportTaskErrorException {
+
+		BatchEngineImportTaskError batchEngineImportTaskError =
+			fetchByPrimaryKey(primaryKey);
+
+		if (batchEngineImportTaskError == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchImportTaskErrorException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return batchEngineImportTaskError;
 	}
@@ -730,20 +997,6 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"batchEngineImportTaskId"}, false);
 
-		_collectionPersistenceFinderByBatchEngineImportTaskId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByBatchEngineImportTaskId,
-				_finderPathWithoutPaginationFindByBatchEngineImportTaskId,
-				_finderPathCountByBatchEngineImportTaskId,
-				_SQL_SELECT_BATCHENGINEIMPORTTASKERROR_WHERE,
-				_SQL_COUNT_BATCHENGINEIMPORTTASKERROR_WHERE,
-				BatchEngineImportTaskErrorModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"batchEngineImportTaskError.", "batchEngineImportTaskId",
-					FinderColumn.Type.LONG, "=", true, true,
-					BatchEngineImportTaskError::getBatchEngineImportTaskId));
-
 		BatchEngineImportTaskErrorUtil.setPersistence(this);
 	}
 
@@ -801,6 +1054,9 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"batchEngineImportTaskError.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No BatchEngineImportTaskError exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No BatchEngineImportTaskError exists with the key {";
 
@@ -813,4 +1069,4 @@ public class BatchEngineImportTaskErrorPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1048128298
+// LIFERAY-SERVICE-BUILDER-HASH:-961338414

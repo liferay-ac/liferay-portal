@@ -5,7 +5,6 @@
 
 package com.liferay.journal.service.persistence.impl;
 
-import com.liferay.journal.exception.NoSuchArticleException;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.service.persistence.JournalArticlePersistence;
 import com.liferay.journal.service.persistence.impl.constants.JournalPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class JournalArticleFinderBaseImpl
-	extends BasePersistenceImpl<JournalArticle, NoSuchArticleException> {
+	extends BasePersistenceImpl<JournalArticle> {
 
 	public JournalArticleFinderBaseImpl() {
 		setModelClass(JournalArticle.class);
@@ -79,4 +78,4 @@ public abstract class JournalArticleFinderBaseImpl
 		JournalArticleFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-347434492
+// LIFERAY-SERVICE-BUILDER-HASH:-376733964

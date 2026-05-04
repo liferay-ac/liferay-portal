@@ -273,4 +273,4 @@ public interface CTSchemaVersionLocalService
 		CTSchemaVersion ctSchemaVersion);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-845323048
+// LIFERAY-SERVICE-BUILDER-HASH:1073168188

@@ -37,7 +37,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,7 +55,7 @@ import java.util.Set;
  * @generated
  */
 public class CacheMissEntryPersistenceImpl
-	extends BasePersistenceImpl<CacheMissEntry, NoSuchCacheMissEntryException>
+	extends BasePersistenceImpl<CacheMissEntry>
 	implements CacheMissEntryPersistence {
 
 	/*
@@ -133,6 +135,49 @@ public class CacheMissEntryPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all cache miss entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		dummyEntityCache.clearCache(CacheMissEntryImpl.class);
+
+		dummyFinderCache.clearCache(CacheMissEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cache miss entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CacheMissEntry cacheMissEntry) {
+		dummyEntityCache.removeResult(CacheMissEntryImpl.class, cacheMissEntry);
+	}
+
+	@Override
+	public void clearCache(List<CacheMissEntry> cacheMissEntries) {
+		for (CacheMissEntry cacheMissEntry : cacheMissEntries) {
+			dummyEntityCache.removeResult(
+				CacheMissEntryImpl.class, cacheMissEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		dummyFinderCache.clearCache(CacheMissEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			dummyEntityCache.removeResult(CacheMissEntryImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new cache miss entry with the primary key. Does not add the cache miss entry to the database.
 	 *
 	 * @param cacheMissEntryId the primary key for the new cache miss entry
@@ -160,6 +205,47 @@ public class CacheMissEntryPersistenceImpl
 		throws NoSuchCacheMissEntryException {
 
 		return remove((Serializable)cacheMissEntryId);
+	}
+
+	/**
+	 * Removes the cache miss entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cache miss entry
+	 * @return the cache miss entry that was removed
+	 * @throws NoSuchCacheMissEntryException if a cache miss entry with the primary key could not be found
+	 */
+	@Override
+	public CacheMissEntry remove(Serializable primaryKey)
+		throws NoSuchCacheMissEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CacheMissEntry cacheMissEntry = (CacheMissEntry)session.get(
+				CacheMissEntryImpl.class, primaryKey);
+
+			if (cacheMissEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCacheMissEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(cacheMissEntry);
+		}
+		catch (NoSuchCacheMissEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -237,6 +323,31 @@ public class CacheMissEntryPersistenceImpl
 	}
 
 	/**
+	 * Returns the cache miss entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cache miss entry
+	 * @return the cache miss entry
+	 * @throws NoSuchCacheMissEntryException if a cache miss entry with the primary key could not be found
+	 */
+	@Override
+	public CacheMissEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCacheMissEntryException {
+
+		CacheMissEntry cacheMissEntry = fetchByPrimaryKey(primaryKey);
+
+		if (cacheMissEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCacheMissEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return cacheMissEntry;
+	}
+
+	/**
 	 * Returns the cache miss entry with the primary key or throws a <code>NoSuchCacheMissEntryException</code> if it could not be found.
 	 *
 	 * @param cacheMissEntryId the primary key of the cache miss entry
@@ -250,9 +361,53 @@ public class CacheMissEntryPersistenceImpl
 		return findByPrimaryKey((Serializable)cacheMissEntryId);
 	}
 
+	/**
+	 * Returns the cache miss entry with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cache miss entry
+	 * @return the cache miss entry, or <code>null</code> if a cache miss entry with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public CacheMissEntry fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				CacheMissEntry.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		CacheMissEntry cacheMissEntry =
+			(CacheMissEntry)dummyEntityCache.getResult(
+				CacheMissEntryImpl.class, primaryKey);
+
+		if (cacheMissEntry != null) {
+			return cacheMissEntry;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			cacheMissEntry = (CacheMissEntry)session.get(
+				CacheMissEntryImpl.class, primaryKey);
+
+			if (cacheMissEntry != null) {
+				cacheResult(cacheMissEntry);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return cacheMissEntry;
 	}
 
 	/**
@@ -264,6 +419,132 @@ public class CacheMissEntryPersistenceImpl
 	@Override
 	public CacheMissEntry fetchByPrimaryKey(long cacheMissEntryId) {
 		return fetchByPrimaryKey((Serializable)cacheMissEntryId);
+	}
+
+	@Override
+	public Map<Serializable, CacheMissEntry> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(CacheMissEntry.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, CacheMissEntry> map =
+			new HashMap<Serializable, CacheMissEntry>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			CacheMissEntry cacheMissEntry = fetchByPrimaryKey(primaryKey);
+
+			if (cacheMissEntry != null) {
+				map.put(primaryKey, cacheMissEntry);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						CacheMissEntry.class, primaryKey)) {
+
+				CacheMissEntry cacheMissEntry =
+					(CacheMissEntry)dummyEntityCache.getResult(
+						CacheMissEntryImpl.class, primaryKey);
+
+				if (cacheMissEntry == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, cacheMissEntry);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (CacheMissEntry cacheMissEntry :
+					(List<CacheMissEntry>)query.list()) {
+
+				map.put(cacheMissEntry.getPrimaryKeyObj(), cacheMissEntry);
+
+				cacheResult(cacheMissEntry);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -561,6 +842,9 @@ public class CacheMissEntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "cacheMissEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CacheMissEntry exists with the primary key ";
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		CacheMissEntryPersistenceImpl.class);
 
@@ -570,4 +854,4 @@ public class CacheMissEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-493076833
+// LIFERAY-SERVICE-BUILDER-HASH:-1345533513

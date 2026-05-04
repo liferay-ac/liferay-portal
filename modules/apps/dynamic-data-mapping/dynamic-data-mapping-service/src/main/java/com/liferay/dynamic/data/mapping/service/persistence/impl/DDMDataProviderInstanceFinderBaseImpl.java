@@ -5,7 +5,6 @@
 
 package com.liferay.dynamic.data.mapping.service.persistence.impl;
 
-import com.liferay.dynamic.data.mapping.exception.NoSuchDataProviderInstanceException;
 import com.liferay.dynamic.data.mapping.model.DDMDataProviderInstance;
 import com.liferay.dynamic.data.mapping.service.persistence.DDMDataProviderInstancePersistence;
 import com.liferay.dynamic.data.mapping.service.persistence.impl.constants.DDMPersistenceConstants;
@@ -28,8 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class DDMDataProviderInstanceFinderBaseImpl
-	extends BasePersistenceImpl
-		<DDMDataProviderInstance, NoSuchDataProviderInstanceException> {
+	extends BasePersistenceImpl<DDMDataProviderInstance> {
 
 	public DDMDataProviderInstanceFinderBaseImpl() {
 		setModelClass(DDMDataProviderInstance.class);
@@ -81,4 +79,4 @@ public abstract class DDMDataProviderInstanceFinderBaseImpl
 		DDMDataProviderInstanceFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:477829076
+// LIFERAY-SERVICE-BUILDER-HASH:-1135637744

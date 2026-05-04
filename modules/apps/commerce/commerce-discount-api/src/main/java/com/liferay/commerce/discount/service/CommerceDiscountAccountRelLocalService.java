@@ -341,4 +341,4 @@ public interface CommerceDiscountAccountRelLocalService
 		CommerceDiscountAccountRel commerceDiscountAccountRel);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1626942591
+// LIFERAY-SERVICE-BUILDER-HASH:-510923552

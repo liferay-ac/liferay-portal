@@ -12,6 +12,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchRecentLayoutBranchException;
@@ -23,9 +24,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.RecentLayoutBranchPersistence;
 import com.liferay.portal.kernel.service.persistence.RecentLayoutBranchUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -40,6 +38,7 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The persistence implementation for the recent layout branch service.
@@ -52,8 +51,7 @@ import java.util.Map;
  * @generated
  */
 public class RecentLayoutBranchPersistenceImpl
-	extends BasePersistenceImpl
-		<RecentLayoutBranch, NoSuchRecentLayoutBranchException>
+	extends BasePersistenceImpl<RecentLayoutBranch>
 	implements RecentLayoutBranchPersistence {
 
 	/*
@@ -76,8 +74,6 @@ public class RecentLayoutBranchPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<RecentLayoutBranch>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the recent layout branches where groupId = &#63;.
@@ -151,9 +147,93 @@ public class RecentLayoutBranchPersistenceImpl
 		OrderByComparator<RecentLayoutBranch> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<RecentLayoutBranch> list = null;
+
+		if (useFinderCache) {
+			list = (List<RecentLayoutBranch>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (RecentLayoutBranch recentLayoutBranch : list) {
+					if (groupId != recentLayoutBranch.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_RECENTLAYOUTBRANCH_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(RecentLayoutBranchModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<RecentLayoutBranch>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -177,9 +257,16 @@ public class RecentLayoutBranchPersistenceImpl
 			return recentLayoutBranch;
 		}
 
-		throw new NoSuchRecentLayoutBranchException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchRecentLayoutBranchException(sb.toString());
 	}
 
 	/**
@@ -193,9 +280,14 @@ public class RecentLayoutBranchPersistenceImpl
 	public RecentLayoutBranch fetchByGroupId_First(
 		long groupId, OrderByComparator<RecentLayoutBranch> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId},
-			orderByComparator);
+		List<RecentLayoutBranch> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -205,8 +297,12 @@ public class RecentLayoutBranchPersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId});
+		for (RecentLayoutBranch recentLayoutBranch :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(recentLayoutBranch);
+		}
 	}
 
 	/**
@@ -217,15 +313,54 @@ public class RecentLayoutBranchPersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_RECENTLAYOUTBRANCH_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"recentLayoutBranch.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUserId;
 	private FinderPath _finderPathWithoutPaginationFindByUserId;
 	private FinderPath _finderPathCountByUserId;
-	private CollectionPersistenceFinder<RecentLayoutBranch>
-		_collectionPersistenceFinderByUserId;
 
 	/**
 	 * Returns all the recent layout branches where userId = &#63;.
@@ -298,9 +433,93 @@ public class RecentLayoutBranchPersistenceImpl
 		OrderByComparator<RecentLayoutBranch> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUserId.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {userId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUserId;
+				finderArgs = new Object[] {userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUserId;
+			finderArgs = new Object[] {userId, start, end, orderByComparator};
+		}
+
+		List<RecentLayoutBranch> list = null;
+
+		if (useFinderCache) {
+			list = (List<RecentLayoutBranch>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (RecentLayoutBranch recentLayoutBranch : list) {
+					if (userId != recentLayoutBranch.getUserId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_RECENTLAYOUTBRANCH_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(RecentLayoutBranchModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				list = (List<RecentLayoutBranch>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -324,9 +543,16 @@ public class RecentLayoutBranchPersistenceImpl
 			return recentLayoutBranch;
 		}
 
-		throw new NoSuchRecentLayoutBranchException(
-			_collectionPersistenceFinderByUserId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {userId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchRecentLayoutBranchException(sb.toString());
 	}
 
 	/**
@@ -340,9 +566,14 @@ public class RecentLayoutBranchPersistenceImpl
 	public RecentLayoutBranch fetchByUserId_First(
 		long userId, OrderByComparator<RecentLayoutBranch> orderByComparator) {
 
-		return _collectionPersistenceFinderByUserId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {userId},
-			orderByComparator);
+		List<RecentLayoutBranch> list = findByUserId(
+			userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -352,8 +583,12 @@ public class RecentLayoutBranchPersistenceImpl
 	 */
 	@Override
 	public void removeByUserId(long userId) {
-		_collectionPersistenceFinderByUserId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {userId});
+		for (RecentLayoutBranch recentLayoutBranch :
+				findByUserId(
+					userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(recentLayoutBranch);
+		}
 	}
 
 	/**
@@ -364,15 +599,54 @@ public class RecentLayoutBranchPersistenceImpl
 	 */
 	@Override
 	public int countByUserId(long userId) {
-		return _collectionPersistenceFinderByUserId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {userId});
+		FinderPath finderPath = _finderPathCountByUserId;
+
+		Object[] finderArgs = new Object[] {userId};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_RECENTLAYOUTBRANCH_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_USERID_USERID_2 =
+		"recentLayoutBranch.userId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByLayoutBranchId;
 	private FinderPath _finderPathWithoutPaginationFindByLayoutBranchId;
 	private FinderPath _finderPathCountByLayoutBranchId;
-	private CollectionPersistenceFinder<RecentLayoutBranch>
-		_collectionPersistenceFinderByLayoutBranchId;
 
 	/**
 	 * Returns all the recent layout branches where layoutBranchId = &#63;.
@@ -447,9 +721,97 @@ public class RecentLayoutBranchPersistenceImpl
 		OrderByComparator<RecentLayoutBranch> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLayoutBranchId.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {layoutBranchId},
-			start, end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByLayoutBranchId;
+				finderArgs = new Object[] {layoutBranchId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByLayoutBranchId;
+			finderArgs = new Object[] {
+				layoutBranchId, start, end, orderByComparator
+			};
+		}
+
+		List<RecentLayoutBranch> list = null;
+
+		if (useFinderCache) {
+			list = (List<RecentLayoutBranch>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (RecentLayoutBranch recentLayoutBranch : list) {
+					if (layoutBranchId !=
+							recentLayoutBranch.getLayoutBranchId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_RECENTLAYOUTBRANCH_WHERE);
+
+			sb.append(_FINDER_COLUMN_LAYOUTBRANCHID_LAYOUTBRANCHID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(RecentLayoutBranchModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(layoutBranchId);
+
+				list = (List<RecentLayoutBranch>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -473,9 +835,16 @@ public class RecentLayoutBranchPersistenceImpl
 			return recentLayoutBranch;
 		}
 
-		throw new NoSuchRecentLayoutBranchException(
-			_collectionPersistenceFinderByLayoutBranchId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {layoutBranchId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("layoutBranchId=");
+		sb.append(layoutBranchId);
+
+		sb.append("}");
+
+		throw new NoSuchRecentLayoutBranchException(sb.toString());
 	}
 
 	/**
@@ -490,9 +859,14 @@ public class RecentLayoutBranchPersistenceImpl
 		long layoutBranchId,
 		OrderByComparator<RecentLayoutBranch> orderByComparator) {
 
-		return _collectionPersistenceFinderByLayoutBranchId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {layoutBranchId},
-			orderByComparator);
+		List<RecentLayoutBranch> list = findByLayoutBranchId(
+			layoutBranchId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -502,8 +876,13 @@ public class RecentLayoutBranchPersistenceImpl
 	 */
 	@Override
 	public void removeByLayoutBranchId(long layoutBranchId) {
-		_collectionPersistenceFinderByLayoutBranchId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {layoutBranchId});
+		for (RecentLayoutBranch recentLayoutBranch :
+				findByLayoutBranchId(
+					layoutBranchId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(recentLayoutBranch);
+		}
 	}
 
 	/**
@@ -514,13 +893,52 @@ public class RecentLayoutBranchPersistenceImpl
 	 */
 	@Override
 	public int countByLayoutBranchId(long layoutBranchId) {
-		return _collectionPersistenceFinderByLayoutBranchId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {layoutBranchId});
+		FinderPath finderPath = _finderPathCountByLayoutBranchId;
+
+		Object[] finderArgs = new Object[] {layoutBranchId};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_RECENTLAYOUTBRANCH_WHERE);
+
+			sb.append(_FINDER_COLUMN_LAYOUTBRANCHID_LAYOUTBRANCHID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(layoutBranchId);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_LAYOUTBRANCHID_LAYOUTBRANCHID_2 =
+		"recentLayoutBranch.layoutBranchId = ?";
+
 	private FinderPath _finderPathFetchByU_L_P;
-	private UniquePersistenceFinder<RecentLayoutBranch>
-		_uniquePersistenceFinderByU_L_P;
 
 	/**
 	 * Returns the recent layout branch where userId = &#63; and layoutSetBranchId = &#63; and plid = &#63; or throws a <code>NoSuchRecentLayoutBranchException</code> if it could not be found.
@@ -540,16 +958,26 @@ public class RecentLayoutBranchPersistenceImpl
 			userId, layoutSetBranchId, plid);
 
 		if (recentLayoutBranch == null) {
-			String message =
-				_uniquePersistenceFinderByU_L_P.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {userId, layoutSetBranchId, plid});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("userId=");
+			sb.append(userId);
+
+			sb.append(", layoutSetBranchId=");
+			sb.append(layoutSetBranchId);
+
+			sb.append(", plid=");
+			sb.append(plid);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchRecentLayoutBranchException(message);
+			throw new NoSuchRecentLayoutBranchException(sb.toString());
 		}
 
 		return recentLayoutBranch;
@@ -584,9 +1012,89 @@ public class RecentLayoutBranchPersistenceImpl
 		long userId, long layoutSetBranchId, long plid,
 		boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByU_L_P.fetch(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {userId, layoutSetBranchId, plid}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {userId, layoutSetBranchId, plid};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = FinderCacheUtil.getResult(
+				_finderPathFetchByU_L_P, finderArgs, this);
+		}
+
+		if (result instanceof RecentLayoutBranch) {
+			RecentLayoutBranch recentLayoutBranch = (RecentLayoutBranch)result;
+
+			if ((userId != recentLayoutBranch.getUserId()) ||
+				(layoutSetBranchId !=
+					recentLayoutBranch.getLayoutSetBranchId()) ||
+				(plid != recentLayoutBranch.getPlid())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_RECENTLAYOUTBRANCH_WHERE);
+
+			sb.append(_FINDER_COLUMN_U_L_P_USERID_2);
+
+			sb.append(_FINDER_COLUMN_U_L_P_LAYOUTSETBRANCHID_2);
+
+			sb.append(_FINDER_COLUMN_U_L_P_PLID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				queryPos.add(layoutSetBranchId);
+
+				queryPos.add(plid);
+
+				List<RecentLayoutBranch> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(
+							_finderPathFetchByU_L_P, finderArgs, list);
+					}
+				}
+				else {
+					RecentLayoutBranch recentLayoutBranch = list.get(0);
+
+					result = recentLayoutBranch;
+
+					cacheResult(recentLayoutBranch);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (RecentLayoutBranch)result;
+		}
 	}
 
 	/**
@@ -618,10 +1126,24 @@ public class RecentLayoutBranchPersistenceImpl
 	 */
 	@Override
 	public int countByU_L_P(long userId, long layoutSetBranchId, long plid) {
-		return _uniquePersistenceFinderByU_L_P.count(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {userId, layoutSetBranchId, plid});
+		RecentLayoutBranch recentLayoutBranch = fetchByU_L_P(
+			userId, layoutSetBranchId, plid);
+
+		if (recentLayoutBranch == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_U_L_P_USERID_2 =
+		"recentLayoutBranch.userId = ? AND ";
+
+	private static final String _FINDER_COLUMN_U_L_P_LAYOUTSETBRANCHID_2 =
+		"recentLayoutBranch.layoutSetBranchId = ? AND ";
+
+	private static final String _FINDER_COLUMN_U_L_P_PLID_2 =
+		"recentLayoutBranch.plid = ?";
 
 	public RecentLayoutBranchPersistenceImpl() {
 		setModelClass(RecentLayoutBranch.class);
@@ -680,6 +1202,51 @@ public class RecentLayoutBranchPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all recent layout branches.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(RecentLayoutBranchImpl.class);
+
+		FinderCacheUtil.clearCache(RecentLayoutBranchImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the recent layout branch.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(RecentLayoutBranch recentLayoutBranch) {
+		EntityCacheUtil.removeResult(
+			RecentLayoutBranchImpl.class, recentLayoutBranch);
+	}
+
+	@Override
+	public void clearCache(List<RecentLayoutBranch> recentLayoutBranchs) {
+		for (RecentLayoutBranch recentLayoutBranch : recentLayoutBranchs) {
+			EntityCacheUtil.removeResult(
+				RecentLayoutBranchImpl.class, recentLayoutBranch);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(RecentLayoutBranchImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(
+				RecentLayoutBranchImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		RecentLayoutBranchModelImpl recentLayoutBranchModelImpl) {
 
@@ -723,6 +1290,48 @@ public class RecentLayoutBranchPersistenceImpl
 		throws NoSuchRecentLayoutBranchException {
 
 		return remove((Serializable)recentLayoutBranchId);
+	}
+
+	/**
+	 * Removes the recent layout branch with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the recent layout branch
+	 * @return the recent layout branch that was removed
+	 * @throws NoSuchRecentLayoutBranchException if a recent layout branch with the primary key could not be found
+	 */
+	@Override
+	public RecentLayoutBranch remove(Serializable primaryKey)
+		throws NoSuchRecentLayoutBranchException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			RecentLayoutBranch recentLayoutBranch =
+				(RecentLayoutBranch)session.get(
+					RecentLayoutBranchImpl.class, primaryKey);
+
+			if (recentLayoutBranch == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchRecentLayoutBranchException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(recentLayoutBranch);
+		}
+		catch (NoSuchRecentLayoutBranchException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -815,6 +1424,31 @@ public class RecentLayoutBranchPersistenceImpl
 		}
 
 		recentLayoutBranch.resetOriginalValues();
+
+		return recentLayoutBranch;
+	}
+
+	/**
+	 * Returns the recent layout branch with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the recent layout branch
+	 * @return the recent layout branch
+	 * @throws NoSuchRecentLayoutBranchException if a recent layout branch with the primary key could not be found
+	 */
+	@Override
+	public RecentLayoutBranch findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchRecentLayoutBranchException {
+
+		RecentLayoutBranch recentLayoutBranch = fetchByPrimaryKey(primaryKey);
+
+		if (recentLayoutBranch == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchRecentLayoutBranchException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return recentLayoutBranch;
 	}
@@ -1083,18 +1717,6 @@ public class RecentLayoutBranchPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId, _SQL_SELECT_RECENTLAYOUTBRANCH_WHERE,
-				_SQL_COUNT_RECENTLAYOUTBRANCH_WHERE,
-				RecentLayoutBranchModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"recentLayoutBranch.", "groupId", FinderColumn.Type.LONG,
-					"=", true, true, RecentLayoutBranch::getGroupId));
-
 		_finderPathWithPaginationFindByUserId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUserId",
 			new String[] {
@@ -1111,18 +1733,6 @@ public class RecentLayoutBranchPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUserId",
 			new String[] {Long.class.getName()}, new String[] {"userId"},
 			false);
-
-		_collectionPersistenceFinderByUserId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUserId,
-				_finderPathWithoutPaginationFindByUserId,
-				_finderPathCountByUserId, _SQL_SELECT_RECENTLAYOUTBRANCH_WHERE,
-				_SQL_COUNT_RECENTLAYOUTBRANCH_WHERE,
-				RecentLayoutBranchModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"recentLayoutBranch.", "userId", FinderColumn.Type.LONG,
-					"=", true, true, RecentLayoutBranch::getUserId));
 
 		_finderPathWithPaginationFindByLayoutBranchId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLayoutBranchId",
@@ -1142,39 +1752,12 @@ public class RecentLayoutBranchPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"layoutBranchId"}, false);
 
-		_collectionPersistenceFinderByLayoutBranchId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLayoutBranchId,
-				_finderPathWithoutPaginationFindByLayoutBranchId,
-				_finderPathCountByLayoutBranchId,
-				_SQL_SELECT_RECENTLAYOUTBRANCH_WHERE,
-				_SQL_COUNT_RECENTLAYOUTBRANCH_WHERE,
-				RecentLayoutBranchModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"recentLayoutBranch.", "layoutBranchId",
-					FinderColumn.Type.LONG, "=", true, true,
-					RecentLayoutBranch::getLayoutBranchId));
-
 		_finderPathFetchByU_L_P = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByU_L_P",
 			new String[] {
 				Long.class.getName(), Long.class.getName(), Long.class.getName()
 			},
 			new String[] {"userId", "layoutSetBranchId", "plid"}, true);
-
-		_uniquePersistenceFinderByU_L_P = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByU_L_P, _SQL_SELECT_RECENTLAYOUTBRANCH_WHERE,
-			new FinderColumn<>(
-				"recentLayoutBranch.", "userId", FinderColumn.Type.LONG, "=",
-				true, false, RecentLayoutBranch::getUserId),
-			new FinderColumn<>(
-				"recentLayoutBranch.", "layoutSetBranchId",
-				FinderColumn.Type.LONG, "=", true, false,
-				RecentLayoutBranch::getLayoutSetBranchId),
-			new FinderColumn<>(
-				"recentLayoutBranch.", "plid", FinderColumn.Type.LONG, "=",
-				true, true, RecentLayoutBranch::getPlid));
 
 		RecentLayoutBranchUtil.setPersistence(this);
 	}
@@ -1199,6 +1782,9 @@ public class RecentLayoutBranchPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "recentLayoutBranch.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No RecentLayoutBranch exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No RecentLayoutBranch exists with the key {";
 
@@ -1211,4 +1797,4 @@ public class RecentLayoutBranchPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1851254903
+// LIFERAY-SERVICE-BUILDER-HASH:-1489417397

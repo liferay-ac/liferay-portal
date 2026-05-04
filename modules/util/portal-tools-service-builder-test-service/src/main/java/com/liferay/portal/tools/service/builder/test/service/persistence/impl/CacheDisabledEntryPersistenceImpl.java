@@ -10,13 +10,12 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -36,6 +35,8 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * The persistence implementation for the cache disabled entry service.
@@ -48,8 +49,7 @@ import java.util.Map;
  * @generated
  */
 public class CacheDisabledEntryPersistenceImpl
-	extends BasePersistenceImpl
-		<CacheDisabledEntry, NoSuchCacheDisabledEntryException>
+	extends BasePersistenceImpl<CacheDisabledEntry>
 	implements CacheDisabledEntryPersistence {
 
 	/*
@@ -70,8 +70,6 @@ public class CacheDisabledEntryPersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByName;
-	private UniquePersistenceFinder<CacheDisabledEntry>
-		_uniquePersistenceFinderByName;
 
 	/**
 	 * Returns the cache disabled entry where name = &#63; or throws a <code>NoSuchCacheDisabledEntryException</code> if it could not be found.
@@ -87,15 +85,20 @@ public class CacheDisabledEntryPersistenceImpl
 		CacheDisabledEntry cacheDisabledEntry = fetchByName(name);
 
 		if (cacheDisabledEntry == null) {
-			String message =
-				_uniquePersistenceFinderByName.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {name});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("name=");
+			sb.append(name);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchCacheDisabledEntryException(message);
+			throw new NoSuchCacheDisabledEntryException(sb.toString());
 		}
 
 		return cacheDisabledEntry;
@@ -121,8 +124,90 @@ public class CacheDisabledEntryPersistenceImpl
 	 */
 	@Override
 	public CacheDisabledEntry fetchByName(String name, boolean useFinderCache) {
-		return _uniquePersistenceFinderByName.fetch(
-			dummyFinderCache, new Object[] {name}, useFinderCache);
+		name = Objects.toString(name, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {name};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = dummyFinderCache.getResult(
+				_finderPathFetchByName, finderArgs, this);
+		}
+
+		if (result instanceof CacheDisabledEntry) {
+			CacheDisabledEntry cacheDisabledEntry = (CacheDisabledEntry)result;
+
+			if (!Objects.equals(name, cacheDisabledEntry.getName())) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_CACHEDISABLEDENTRY_WHERE);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_NAME_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_NAME_NAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				List<CacheDisabledEntry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						dummyFinderCache.putResult(
+							_finderPathFetchByName, finderArgs, list);
+					}
+				}
+				else {
+					CacheDisabledEntry cacheDisabledEntry = list.get(0);
+
+					result = cacheDisabledEntry;
+
+					cacheResult(cacheDisabledEntry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CacheDisabledEntry)result;
+		}
 	}
 
 	/**
@@ -148,9 +233,20 @@ public class CacheDisabledEntryPersistenceImpl
 	 */
 	@Override
 	public int countByName(String name) {
-		return _uniquePersistenceFinderByName.count(
-			dummyFinderCache, new Object[] {name});
+		CacheDisabledEntry cacheDisabledEntry = fetchByName(name);
+
+		if (cacheDisabledEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_NAME_NAME_2 =
+		"cacheDisabledEntry.name = ?";
+
+	private static final String _FINDER_COLUMN_NAME_NAME_3 =
+		"(cacheDisabledEntry.name IS NULL OR cacheDisabledEntry.name = '')";
 
 	public CacheDisabledEntryPersistenceImpl() {
 		setModelClass(CacheDisabledEntry.class);
@@ -204,6 +300,51 @@ public class CacheDisabledEntryPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all cache disabled entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		dummyEntityCache.clearCache(CacheDisabledEntryImpl.class);
+
+		dummyFinderCache.clearCache(CacheDisabledEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cache disabled entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CacheDisabledEntry cacheDisabledEntry) {
+		dummyEntityCache.removeResult(
+			CacheDisabledEntryImpl.class, cacheDisabledEntry);
+	}
+
+	@Override
+	public void clearCache(List<CacheDisabledEntry> cacheDisabledEntries) {
+		for (CacheDisabledEntry cacheDisabledEntry : cacheDisabledEntries) {
+			dummyEntityCache.removeResult(
+				CacheDisabledEntryImpl.class, cacheDisabledEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		dummyFinderCache.clearCache(CacheDisabledEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			dummyEntityCache.removeResult(
+				CacheDisabledEntryImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CacheDisabledEntryModelImpl cacheDisabledEntryModelImpl) {
 
@@ -241,6 +382,48 @@ public class CacheDisabledEntryPersistenceImpl
 		throws NoSuchCacheDisabledEntryException {
 
 		return remove((Serializable)cacheDisabledEntryId);
+	}
+
+	/**
+	 * Removes the cache disabled entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cache disabled entry
+	 * @return the cache disabled entry that was removed
+	 * @throws NoSuchCacheDisabledEntryException if a cache disabled entry with the primary key could not be found
+	 */
+	@Override
+	public CacheDisabledEntry remove(Serializable primaryKey)
+		throws NoSuchCacheDisabledEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CacheDisabledEntry cacheDisabledEntry =
+				(CacheDisabledEntry)session.get(
+					CacheDisabledEntryImpl.class, primaryKey);
+
+			if (cacheDisabledEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCacheDisabledEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(cacheDisabledEntry);
+		}
+		catch (NoSuchCacheDisabledEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -333,6 +516,31 @@ public class CacheDisabledEntryPersistenceImpl
 		}
 
 		cacheDisabledEntry.resetOriginalValues();
+
+		return cacheDisabledEntry;
+	}
+
+	/**
+	 * Returns the cache disabled entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cache disabled entry
+	 * @return the cache disabled entry
+	 * @throws NoSuchCacheDisabledEntryException if a cache disabled entry with the primary key could not be found
+	 */
+	@Override
+	public CacheDisabledEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCacheDisabledEntryException {
+
+		CacheDisabledEntry cacheDisabledEntry = fetchByPrimaryKey(primaryKey);
+
+		if (cacheDisabledEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCacheDisabledEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return cacheDisabledEntry;
 	}
@@ -587,12 +795,6 @@ public class CacheDisabledEntryPersistenceImpl
 			FINDER_CLASS_NAME_ENTITY, "fetchByName",
 			new String[] {String.class.getName()}, new String[] {"name"}, true);
 
-		_uniquePersistenceFinderByName = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByName, _SQL_SELECT_CACHEDISABLEDENTRY_WHERE,
-			new FinderColumn<>(
-				"cacheDisabledEntry.", "name", FinderColumn.Type.STRING, "=",
-				true, true, CacheDisabledEntry::getName));
-
 		CacheDisabledEntryUtil.setPersistence(this);
 	}
 
@@ -611,7 +813,13 @@ public class CacheDisabledEntryPersistenceImpl
 	private static final String _SQL_COUNT_CACHEDISABLEDENTRY =
 		"SELECT COUNT(cacheDisabledEntry) FROM CacheDisabledEntry cacheDisabledEntry";
 
+	private static final String _SQL_COUNT_CACHEDISABLEDENTRY_WHERE =
+		"SELECT COUNT(cacheDisabledEntry) FROM CacheDisabledEntry cacheDisabledEntry WHERE ";
+
 	private static final String _ORDER_BY_ENTITY_ALIAS = "cacheDisabledEntry.";
+
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CacheDisabledEntry exists with the primary key ";
 
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CacheDisabledEntry exists with the key {";
@@ -625,4 +833,4 @@ public class CacheDisabledEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1713856451
+// LIFERAY-SERVICE-BUILDER-HASH:-1445992005

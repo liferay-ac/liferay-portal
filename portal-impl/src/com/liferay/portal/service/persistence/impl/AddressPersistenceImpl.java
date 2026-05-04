@@ -34,12 +34,8 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.AddressPersistence;
 import com.liferay.portal.kernel.service.persistence.AddressUtil;
-import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelperUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -64,6 +60,7 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -80,8 +77,7 @@ import java.util.Set;
  * @generated
  */
 public class AddressPersistenceImpl
-	extends BasePersistenceImpl<Address, NoSuchAddressException>
-	implements AddressPersistence {
+	extends BasePersistenceImpl<Address> implements AddressPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -103,8 +99,6 @@ public class AddressPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the addresses where uuid = &#63;.
@@ -178,9 +172,106 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByUuid.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {uuid}, start,
-				end, orderByComparator, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid;
+					finderArgs = new Object[] {uuid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid;
+				finderArgs = new Object[] {uuid, start, end, orderByComparator};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if (!uuid.equals(address.getUuid())) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -203,9 +294,16 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -219,9 +317,13 @@ public class AddressPersistenceImpl
 	public Address fetchByUuid_First(
 		String uuid, OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid},
-			orderByComparator);
+		List<Address> list = findByUuid(uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -231,8 +333,11 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid});
+		for (Address address :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -247,16 +352,70 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByUuid.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {uuid});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid;
+
+			Object[] finderArgs = new Object[] {uuid};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_UUID_UUID_2 = "address.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(address.uuid IS NULL OR address.uuid = '')";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the addresses where uuid = &#63; and companyId = &#63;.
@@ -338,10 +497,114 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {uuid, companyId}, start, end, orderByComparator,
-				useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid_C;
+					finderArgs = new Object[] {uuid, companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid_C;
+				finderArgs = new Object[] {
+					uuid, companyId, start, end, orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if (!uuid.equals(address.getUuid()) ||
+							(companyId != address.getCompanyId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -367,9 +630,19 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -385,9 +658,14 @@ public class AddressPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid, companyId},
-			orderByComparator);
+		List<Address> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -398,8 +676,13 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid, companyId});
+		for (Address address :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -415,17 +698,78 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {uuid, companyId});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid_C;
+
+			Object[] finderArgs = new Object[] {uuid, companyId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"address.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(address.uuid IS NULL OR address.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"address.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the addresses where companyId = &#63;.
@@ -500,9 +844,95 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {companyId},
-				start, end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByCompanyId;
+					finderArgs = new Object[] {companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByCompanyId;
+				finderArgs = new Object[] {
+					companyId, start, end, orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if (companyId != address.getCompanyId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -525,9 +955,16 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -541,9 +978,14 @@ public class AddressPersistenceImpl
 	public Address fetchByCompanyId_First(
 		long companyId, OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId},
-			orderByComparator);
+		List<Address> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -553,8 +995,12 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		for (Address address :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -569,16 +1015,55 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+			FinderPath finderPath = _finderPathCountByCompanyId;
+
+			Object[] finderArgs = new Object[] {companyId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"address.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUserId;
 	private FinderPath _finderPathWithoutPaginationFindByUserId;
 	private FinderPath _finderPathCountByUserId;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByUserId;
 
 	/**
 	 * Returns all the addresses where userId = &#63;.
@@ -652,9 +1137,95 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByUserId.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {userId}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUserId;
+					finderArgs = new Object[] {userId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUserId;
+				finderArgs = new Object[] {
+					userId, start, end, orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if (userId != address.getUserId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(userId);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -677,9 +1248,16 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByUserId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {userId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -693,9 +1271,13 @@ public class AddressPersistenceImpl
 	public Address fetchByUserId_First(
 		long userId, OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByUserId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {userId},
-			orderByComparator);
+		List<Address> list = findByUserId(userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -705,8 +1287,12 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByUserId(long userId) {
-		_collectionPersistenceFinderByUserId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {userId});
+		for (Address address :
+				findByUserId(
+					userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -721,16 +1307,55 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByUserId.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {userId});
+			FinderPath finderPath = _finderPathCountByUserId;
+
+			Object[] finderArgs = new Object[] {userId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(userId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_USERID_USERID_2 =
+		"address.userId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByCountryId;
 	private FinderPath _finderPathWithoutPaginationFindByCountryId;
 	private FinderPath _finderPathCountByCountryId;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByCountryId;
 
 	/**
 	 * Returns all the addresses where countryId = &#63;.
@@ -805,9 +1430,95 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByCountryId.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {countryId},
-				start, end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByCountryId;
+					finderArgs = new Object[] {countryId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByCountryId;
+				finderArgs = new Object[] {
+					countryId, start, end, orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if (countryId != address.getCountryId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_COUNTRYID_COUNTRYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(countryId);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -830,9 +1541,16 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByCountryId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {countryId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("countryId=");
+		sb.append(countryId);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -846,9 +1564,14 @@ public class AddressPersistenceImpl
 	public Address fetchByCountryId_First(
 		long countryId, OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByCountryId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {countryId},
-			orderByComparator);
+		List<Address> list = findByCountryId(
+			countryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -858,8 +1581,12 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByCountryId(long countryId) {
-		_collectionPersistenceFinderByCountryId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {countryId});
+		for (Address address :
+				findByCountryId(
+					countryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -874,16 +1601,55 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByCountryId.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {countryId});
+			FinderPath finderPath = _finderPathCountByCountryId;
+
+			Object[] finderArgs = new Object[] {countryId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_COUNTRYID_COUNTRYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(countryId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_COUNTRYID_COUNTRYID_2 =
+		"address.countryId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByRegionId;
 	private FinderPath _finderPathWithoutPaginationFindByRegionId;
 	private FinderPath _finderPathCountByRegionId;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByRegionId;
 
 	/**
 	 * Returns all the addresses where regionId = &#63;.
@@ -958,9 +1724,95 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByRegionId.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {regionId},
-				start, end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByRegionId;
+					finderArgs = new Object[] {regionId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByRegionId;
+				finderArgs = new Object[] {
+					regionId, start, end, orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if (regionId != address.getRegionId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_REGIONID_REGIONID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(regionId);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -983,9 +1835,16 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByRegionId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {regionId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("regionId=");
+		sb.append(regionId);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -999,9 +1858,13 @@ public class AddressPersistenceImpl
 	public Address fetchByRegionId_First(
 		long regionId, OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByRegionId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {regionId},
-			orderByComparator);
+		List<Address> list = findByRegionId(regionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1011,8 +1874,12 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByRegionId(long regionId) {
-		_collectionPersistenceFinderByRegionId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {regionId});
+		for (Address address :
+				findByRegionId(
+					regionId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -1027,16 +1894,55 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByRegionId.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {regionId});
+			FinderPath finderPath = _finderPathCountByRegionId;
+
+			Object[] finderArgs = new Object[] {regionId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_REGIONID_REGIONID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(regionId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_REGIONID_REGIONID_2 =
+		"address.regionId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C;
 	private FinderPath _finderPathWithoutPaginationFindByC_C;
 	private FinderPath _finderPathCountByC_C;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByC_C;
 
 	/**
 	 * Returns all the addresses where companyId = &#63; and classNameId = &#63;.
@@ -1118,10 +2024,101 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByC_C.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, classNameId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_C;
+					finderArgs = new Object[] {companyId, classNameId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_C;
+				finderArgs = new Object[] {
+					companyId, classNameId, start, end, orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if ((companyId != address.getCompanyId()) ||
+							(classNameId != address.getClassNameId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(classNameId);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1147,10 +2144,19 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByC_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, classNameId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -1166,9 +2172,14 @@ public class AddressPersistenceImpl
 		long companyId, long classNameId,
 		OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C.fetchFirst(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, classNameId}, orderByComparator);
+		List<Address> list = findByC_C(
+			companyId, classNameId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1179,9 +2190,13 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByC_C(long companyId, long classNameId) {
-		_collectionPersistenceFinderByC_C.remove(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, classNameId});
+		for (Address address :
+				findByC_C(
+					companyId, classNameId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -1197,17 +2212,62 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByC_C.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, classNameId});
+			FinderPath finderPath = _finderPathCountByC_C;
+
+			Object[] finderArgs = new Object[] {companyId, classNameId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(classNameId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_C_C_COMPANYID_2 =
+		"address.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_CLASSNAMEID_2 =
+		"address.classNameId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByCN_CPK;
 	private FinderPath _finderPathWithoutPaginationFindByCN_CPK;
 	private FinderPath _finderPathCountByCN_CPK;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByCN_CPK;
 
 	/**
 	 * Returns all the addresses where classNameId = &#63; and classPK = &#63;.
@@ -1289,10 +2349,101 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByCN_CPK.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {classNameId, classPK}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByCN_CPK;
+					finderArgs = new Object[] {classNameId, classPK};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByCN_CPK;
+				finderArgs = new Object[] {
+					classNameId, classPK, start, end, orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if ((classNameId != address.getClassNameId()) ||
+							(classPK != address.getClassPK())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_CN_CPK_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_CN_CPK_CLASSPK_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1318,9 +2469,19 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByCN_CPK.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {classNameId, classPK}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", classPK=");
+		sb.append(classPK);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -1336,9 +2497,14 @@ public class AddressPersistenceImpl
 		long classNameId, long classPK,
 		OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByCN_CPK.fetchFirst(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {classNameId, classPK}, orderByComparator);
+		List<Address> list = findByCN_CPK(
+			classNameId, classPK, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1349,9 +2515,13 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByCN_CPK(long classNameId, long classPK) {
-		_collectionPersistenceFinderByCN_CPK.remove(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {classNameId, classPK});
+		for (Address address :
+				findByCN_CPK(
+					classNameId, classPK, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -1367,17 +2537,62 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByCN_CPK.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {classNameId, classPK});
+			FinderPath finderPath = _finderPathCountByCN_CPK;
+
+			Object[] finderArgs = new Object[] {classNameId, classPK};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_CN_CPK_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_CN_CPK_CLASSPK_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_CN_CPK_CLASSNAMEID_2 =
+		"address.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_CN_CPK_CLASSPK_2 =
+		"address.classPK = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C_C;
 	private FinderPath _finderPathWithoutPaginationFindByC_C_C;
 	private FinderPath _finderPathCountByC_C_C;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByC_C_C;
 
 	/**
 	 * Returns all the addresses where companyId = &#63; and classNameId = &#63; and classPK = &#63;.
@@ -1467,10 +2682,107 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByC_C_C.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, classNameId, classPK}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_C_C;
+					finderArgs = new Object[] {companyId, classNameId, classPK};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_C_C;
+				finderArgs = new Object[] {
+					companyId, classNameId, classPK, start, end,
+					orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if ((companyId != address.getCompanyId()) ||
+							(classNameId != address.getClassNameId()) ||
+							(classPK != address.getClassPK())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						5 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(5);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_C_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_CLASSPK_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -1497,10 +2809,22 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByC_C_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, classNameId, classPK}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", classPK=");
+		sb.append(classPK);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -1517,9 +2841,14 @@ public class AddressPersistenceImpl
 		long companyId, long classNameId, long classPK,
 		OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C_C.fetchFirst(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, classNameId, classPK}, orderByComparator);
+		List<Address> list = findByC_C_C(
+			companyId, classNameId, classPK, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1531,9 +2860,13 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public void removeByC_C_C(long companyId, long classNameId, long classPK) {
-		_collectionPersistenceFinderByC_C_C.remove(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, classNameId, classPK});
+		for (Address address :
+				findByC_C_C(
+					companyId, classNameId, classPK, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -1550,11 +2883,67 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByC_C_C.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, classNameId, classPK});
+			FinderPath finderPath = _finderPathCountByC_C_C;
+
+			Object[] finderArgs = new Object[] {
+				companyId, classNameId, classPK
+			};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_C_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_CLASSPK_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_C_C_C_COMPANYID_2 =
+		"address.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_CLASSNAMEID_2 =
+		"address.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_CLASSPK_2 =
+		"address.classPK = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C_C_L;
 	private FinderPath _finderPathWithoutPaginationFindByC_C_C_L;
@@ -2272,8 +3661,6 @@ public class AddressPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByC_C_C_M;
 	private FinderPath _finderPathWithoutPaginationFindByC_C_C_M;
 	private FinderPath _finderPathCountByC_C_C_M;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByC_C_C_M;
 
 	/**
 	 * Returns all the addresses where companyId = &#63; and classNameId = &#63; and classPK = &#63; and mailing = &#63;.
@@ -2370,10 +3757,114 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByC_C_C_M.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, classNameId, classPK, mailing}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_C_C_M;
+					finderArgs = new Object[] {
+						companyId, classNameId, classPK, mailing
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_C_C_M;
+				finderArgs = new Object[] {
+					companyId, classNameId, classPK, mailing, start, end,
+					orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if ((companyId != address.getCompanyId()) ||
+							(classNameId != address.getClassNameId()) ||
+							(classPK != address.getClassPK()) ||
+							(mailing != address.isMailing())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						6 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(6);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_C_M_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_M_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_M_CLASSPK_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_M_MAILING_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					queryPos.add(mailing);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -2401,10 +3892,25 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByC_C_C_M.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, classNameId, classPK, mailing}));
+		StringBundler sb = new StringBundler(10);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", classPK=");
+		sb.append(classPK);
+
+		sb.append(", mailing=");
+		sb.append(mailing);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -2422,10 +3928,14 @@ public class AddressPersistenceImpl
 		long companyId, long classNameId, long classPK, boolean mailing,
 		OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C_C_M.fetchFirst(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, classNameId, classPK, mailing},
-			orderByComparator);
+		List<Address> list = findByC_C_C_M(
+			companyId, classNameId, classPK, mailing, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2440,9 +3950,13 @@ public class AddressPersistenceImpl
 	public void removeByC_C_C_M(
 		long companyId, long classNameId, long classPK, boolean mailing) {
 
-		_collectionPersistenceFinderByC_C_C_M.remove(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, classNameId, classPK, mailing});
+		for (Address address :
+				findByC_C_C_M(
+					companyId, classNameId, classPK, mailing, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -2462,17 +3976,78 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByC_C_C_M.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, classNameId, classPK, mailing});
+			FinderPath finderPath = _finderPathCountByC_C_C_M;
+
+			Object[] finderArgs = new Object[] {
+				companyId, classNameId, classPK, mailing
+			};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_C_M_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_M_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_M_CLASSPK_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_M_MAILING_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					queryPos.add(mailing);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_C_C_C_M_COMPANYID_2 =
+		"address.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_M_CLASSNAMEID_2 =
+		"address.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_M_CLASSPK_2 =
+		"address.classPK = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_M_MAILING_2 =
+		"address.mailing = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C_C_P;
 	private FinderPath _finderPathWithoutPaginationFindByC_C_C_P;
 	private FinderPath _finderPathCountByC_C_C_P;
-	private CollectionPersistenceFinder<Address>
-		_collectionPersistenceFinderByC_C_C_P;
 
 	/**
 	 * Returns all the addresses where companyId = &#63; and classNameId = &#63; and classPK = &#63; and primary = &#63;.
@@ -2569,10 +4144,114 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByC_C_C_P.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, classNameId, classPK, primary}, start,
-				end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByC_C_C_P;
+					finderArgs = new Object[] {
+						companyId, classNameId, classPK, primary
+					};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByC_C_C_P;
+				finderArgs = new Object[] {
+					companyId, classNameId, classPK, primary, start, end,
+					orderByComparator
+				};
+			}
+
+			List<Address> list = null;
+
+			if (useFinderCache) {
+				list = (List<Address>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (Address address : list) {
+						if ((companyId != address.getCompanyId()) ||
+							(classNameId != address.getClassNameId()) ||
+							(classPK != address.getClassPK()) ||
+							(primary != address.isPrimary())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						6 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(6);
+				}
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_C_P_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_P_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_P_CLASSPK_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_P_PRIMARY_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AddressModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					queryPos.add(primary);
+
+					list = (List<Address>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -2600,10 +4279,25 @@ public class AddressPersistenceImpl
 			return address;
 		}
 
-		throw new NoSuchAddressException(
-			_collectionPersistenceFinderByC_C_C_P.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, classNameId, classPK, primary}));
+		StringBundler sb = new StringBundler(10);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", classPK=");
+		sb.append(classPK);
+
+		sb.append(", primary=");
+		sb.append(primary);
+
+		sb.append("}");
+
+		throw new NoSuchAddressException(sb.toString());
 	}
 
 	/**
@@ -2621,10 +4315,14 @@ public class AddressPersistenceImpl
 		long companyId, long classNameId, long classPK, boolean primary,
 		OrderByComparator<Address> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C_C_P.fetchFirst(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, classNameId, classPK, primary},
-			orderByComparator);
+		List<Address> list = findByC_C_C_P(
+			companyId, classNameId, classPK, primary, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2639,9 +4337,13 @@ public class AddressPersistenceImpl
 	public void removeByC_C_C_P(
 		long companyId, long classNameId, long classPK, boolean primary) {
 
-		_collectionPersistenceFinderByC_C_C_P.remove(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, classNameId, classPK, primary});
+		for (Address address :
+				findByC_C_C_P(
+					companyId, classNameId, classPK, primary, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(address);
+		}
 	}
 
 	/**
@@ -2661,14 +4363,76 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _collectionPersistenceFinderByC_C_C_P.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {companyId, classNameId, classPK, primary});
+			FinderPath finderPath = _finderPathCountByC_C_C_P;
+
+			Object[] finderArgs = new Object[] {
+				companyId, classNameId, classPK, primary
+			};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(5);
+
+				sb.append(_SQL_COUNT_ADDRESS_WHERE);
+
+				sb.append(_FINDER_COLUMN_C_C_C_P_COMPANYID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_P_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_P_CLASSPK_2);
+
+				sb.append(_FINDER_COLUMN_C_C_C_P_PRIMARY_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					queryPos.add(primary);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_C_C_C_P_COMPANYID_2 =
+		"address.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_P_CLASSNAMEID_2 =
+		"address.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_P_CLASSPK_2 =
+		"address.classPK = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_P_PRIMARY_2 =
+		"address.primary = ?";
+
 	private FinderPath _finderPathFetchByERC_C;
-	private UniquePersistenceFinder<Address> _uniquePersistenceFinderByERC_C;
 
 	/**
 	 * Returns the address where externalReferenceCode = &#63; and companyId = &#63; or throws a <code>NoSuchAddressException</code> if it could not be found.
@@ -2685,16 +4449,23 @@ public class AddressPersistenceImpl
 		Address address = fetchByERC_C(externalReferenceCode, companyId);
 
 		if (address == null) {
-			String message =
-				_uniquePersistenceFinderByERC_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {externalReferenceCode, companyId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("externalReferenceCode=");
+			sb.append(externalReferenceCode);
+
+			sb.append(", companyId=");
+			sb.append(companyId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchAddressException(message);
+			throw new NoSuchAddressException(sb.toString());
 		}
 
 		return address;
@@ -2728,10 +4499,98 @@ public class AddressPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					Address.class)) {
 
-			return _uniquePersistenceFinderByERC_C.fetch(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {externalReferenceCode, companyId},
-				useFinderCache);
+			externalReferenceCode = Objects.toString(externalReferenceCode, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {externalReferenceCode, companyId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = FinderCacheUtil.getResult(
+					_finderPathFetchByERC_C, finderArgs, this);
+			}
+
+			if (result instanceof Address) {
+				Address address = (Address)result;
+
+				if (!Objects.equals(
+						externalReferenceCode,
+						address.getExternalReferenceCode()) ||
+					(companyId != address.getCompanyId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_ADDRESS_WHERE);
+
+				boolean bindExternalReferenceCode = false;
+
+				if (externalReferenceCode.isEmpty()) {
+					sb.append(_FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_3);
+				}
+				else {
+					bindExternalReferenceCode = true;
+
+					sb.append(_FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_2);
+				}
+
+				sb.append(_FINDER_COLUMN_ERC_C_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindExternalReferenceCode) {
+						queryPos.add(externalReferenceCode);
+					}
+
+					queryPos.add(companyId);
+
+					List<Address> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							FinderCacheUtil.putResult(
+								_finderPathFetchByERC_C, finderArgs, list);
+						}
+					}
+					else {
+						Address address = list.get(0);
+
+						result = address;
+
+						cacheResult(address);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (Address)result;
+			}
 		}
 	}
 
@@ -2760,10 +4619,23 @@ public class AddressPersistenceImpl
 	 */
 	@Override
 	public int countByERC_C(String externalReferenceCode, long companyId) {
-		return _uniquePersistenceFinderByERC_C.count(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {externalReferenceCode, companyId});
+		Address address = fetchByERC_C(externalReferenceCode, companyId);
+
+		if (address == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_2 =
+		"address.externalReferenceCode = ? AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_3 =
+		"(address.externalReferenceCode IS NULL OR address.externalReferenceCode = '') AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_COMPANYID_2 =
+		"address.companyId = ?";
 
 	public AddressPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -2834,6 +4706,48 @@ public class AddressPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all addresses.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(AddressImpl.class);
+
+		FinderCacheUtil.clearCache(AddressImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the address.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(Address address) {
+		EntityCacheUtil.removeResult(AddressImpl.class, address);
+	}
+
+	@Override
+	public void clearCache(List<Address> addresses) {
+		for (Address address : addresses) {
+			EntityCacheUtil.removeResult(AddressImpl.class, address);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(AddressImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(AddressImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(AddressModelImpl addressModelImpl) {
 		try (SafeCloseable safeCloseable =
 				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
@@ -2881,6 +4795,47 @@ public class AddressPersistenceImpl
 	@Override
 	public Address remove(long addressId) throws NoSuchAddressException {
 		return remove((Serializable)addressId);
+	}
+
+	/**
+	 * Removes the address with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the address
+	 * @return the address that was removed
+	 * @throws NoSuchAddressException if a address with the primary key could not be found
+	 */
+	@Override
+	public Address remove(Serializable primaryKey)
+		throws NoSuchAddressException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Address address = (Address)session.get(
+				AddressImpl.class, primaryKey);
+
+			if (address == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchAddressException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(address);
+		}
+		catch (NoSuchAddressException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -3065,6 +5020,31 @@ public class AddressPersistenceImpl
 	}
 
 	/**
+	 * Returns the address with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the address
+	 * @return the address
+	 * @throws NoSuchAddressException if a address with the primary key could not be found
+	 */
+	@Override
+	public Address findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchAddressException {
+
+		Address address = fetchByPrimaryKey(primaryKey);
+
+		if (address == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchAddressException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return address;
+	}
+
+	/**
 	 * Returns the address with the primary key or throws a <code>NoSuchAddressException</code> if it could not be found.
 	 *
 	 * @param addressId the primary key of the address
@@ -3078,9 +5058,51 @@ public class AddressPersistenceImpl
 		return findByPrimaryKey((Serializable)addressId);
 	}
 
+	/**
+	 * Returns the address with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the address
+	 * @return the address, or <code>null</code> if a address with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return CTPersistenceHelperUtil.getCTPersistenceHelper();
+	public Address fetchByPrimaryKey(Serializable primaryKey) {
+		if (CTPersistenceHelperUtil.isProductionMode(
+				Address.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		Address address = (Address)EntityCacheUtil.getResult(
+			AddressImpl.class, primaryKey);
+
+		if (address != null) {
+			return address;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			address = (Address)session.get(AddressImpl.class, primaryKey);
+
+			if (address != null) {
+				cacheResult(address);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return address;
 	}
 
 	/**
@@ -3092,6 +5114,128 @@ public class AddressPersistenceImpl
 	@Override
 	public Address fetchByPrimaryKey(long addressId) {
 		return fetchByPrimaryKey((Serializable)addressId);
+	}
+
+	@Override
+	public Map<Serializable, Address> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (CTPersistenceHelperUtil.isProductionMode(Address.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, Address> map = new HashMap<Serializable, Address>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			Address address = fetchByPrimaryKey(primaryKey);
+
+			if (address != null) {
+				map.put(primaryKey, address);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
+						Address.class, primaryKey)) {
+
+				Address address = (Address)EntityCacheUtil.getResult(
+					AddressImpl.class, primaryKey);
+
+				if (address == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, address);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (Address address : (List<Address>)query.list()) {
+				map.put(address.getPrimaryKeyObj(), address);
+
+				cacheResult(address);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -3426,15 +5570,6 @@ public class AddressPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_ADDRESS_WHERE, _SQL_COUNT_ADDRESS_WHERE,
-			AddressModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"address.", "uuid", FinderColumn.Type.STRING, "=", true, true,
-				Address::getUuid));
-
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
 			new String[] {
@@ -3454,20 +5589,6 @@ public class AddressPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_ADDRESS_WHERE,
-				_SQL_COUNT_ADDRESS_WHERE, AddressModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"address.", "uuid", FinderColumn.Type.STRING, "=", true,
-					false, Address::getUuid),
-				new FinderColumn<>(
-					"address.", "companyId", FinderColumn.Type.LONG, "=", true,
-					true, Address::getCompanyId));
-
 		_finderPathWithPaginationFindByCompanyId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCompanyId",
 			new String[] {
@@ -3486,17 +5607,6 @@ public class AddressPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_ADDRESS_WHERE,
-				_SQL_COUNT_ADDRESS_WHERE, AddressModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"address.", "companyId", FinderColumn.Type.LONG, "=", true,
-					true, Address::getCompanyId));
-
 		_finderPathWithPaginationFindByUserId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUserId",
 			new String[] {
@@ -3513,17 +5623,6 @@ public class AddressPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUserId",
 			new String[] {Long.class.getName()}, new String[] {"userId"},
 			false);
-
-		_collectionPersistenceFinderByUserId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUserId,
-				_finderPathWithoutPaginationFindByUserId,
-				_finderPathCountByUserId, _SQL_SELECT_ADDRESS_WHERE,
-				_SQL_COUNT_ADDRESS_WHERE, AddressModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"address.", "userId", FinderColumn.Type.LONG, "=", true,
-					true, Address::getUserId));
 
 		_finderPathWithPaginationFindByCountryId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCountryId",
@@ -3543,17 +5642,6 @@ public class AddressPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"countryId"},
 			false);
 
-		_collectionPersistenceFinderByCountryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCountryId,
-				_finderPathWithoutPaginationFindByCountryId,
-				_finderPathCountByCountryId, _SQL_SELECT_ADDRESS_WHERE,
-				_SQL_COUNT_ADDRESS_WHERE, AddressModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"address.", "countryId", FinderColumn.Type.LONG, "=", true,
-					true, Address::getCountryId));
-
 		_finderPathWithPaginationFindByRegionId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByRegionId",
 			new String[] {
@@ -3571,17 +5659,6 @@ public class AddressPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByRegionId",
 			new String[] {Long.class.getName()}, new String[] {"regionId"},
 			false);
-
-		_collectionPersistenceFinderByRegionId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByRegionId,
-				_finderPathWithoutPaginationFindByRegionId,
-				_finderPathCountByRegionId, _SQL_SELECT_ADDRESS_WHERE,
-				_SQL_COUNT_ADDRESS_WHERE, AddressModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"address.", "regionId", FinderColumn.Type.LONG, "=", true,
-					true, Address::getRegionId));
 
 		_finderPathWithPaginationFindByC_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C",
@@ -3602,18 +5679,6 @@ public class AddressPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "classNameId"}, false);
 
-		_collectionPersistenceFinderByC_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_C,
-			_finderPathWithoutPaginationFindByC_C, _finderPathCountByC_C,
-			_SQL_SELECT_ADDRESS_WHERE, _SQL_COUNT_ADDRESS_WHERE,
-			AddressModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"address.", "companyId", FinderColumn.Type.LONG, "=", true,
-				false, Address::getCompanyId),
-			new FinderColumn<>(
-				"address.", "classNameId", FinderColumn.Type.LONG, "=", true,
-				true, Address::getClassNameId));
-
 		_finderPathWithPaginationFindByCN_CPK = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCN_CPK",
 			new String[] {
@@ -3632,20 +5697,6 @@ public class AddressPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByCN_CPK",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"classNameId", "classPK"}, false);
-
-		_collectionPersistenceFinderByCN_CPK =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCN_CPK,
-				_finderPathWithoutPaginationFindByCN_CPK,
-				_finderPathCountByCN_CPK, _SQL_SELECT_ADDRESS_WHERE,
-				_SQL_COUNT_ADDRESS_WHERE, AddressModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"address.", "classNameId", FinderColumn.Type.LONG, "=",
-					true, false, Address::getClassNameId),
-				new FinderColumn<>(
-					"address.", "classPK", FinderColumn.Type.LONG, "=", true,
-					true, Address::getClassPK));
 
 		_finderPathWithPaginationFindByC_C_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C_C",
@@ -3669,21 +5720,6 @@ public class AddressPersistenceImpl
 				Long.class.getName(), Long.class.getName(), Long.class.getName()
 			},
 			new String[] {"companyId", "classNameId", "classPK"}, false);
-
-		_collectionPersistenceFinderByC_C_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_C_C,
-			_finderPathWithoutPaginationFindByC_C_C, _finderPathCountByC_C_C,
-			_SQL_SELECT_ADDRESS_WHERE, _SQL_COUNT_ADDRESS_WHERE,
-			AddressModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"address.", "companyId", FinderColumn.Type.LONG, "=", true,
-				false, Address::getCompanyId),
-			new FinderColumn<>(
-				"address.", "classNameId", FinderColumn.Type.LONG, "=", true,
-				false, Address::getClassNameId),
-			new FinderColumn<>(
-				"address.", "classPK", FinderColumn.Type.LONG, "=", true, true,
-				Address::getClassPK));
 
 		_finderPathWithPaginationFindByC_C_C_L = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C_C_L",
@@ -3752,26 +5788,6 @@ public class AddressPersistenceImpl
 			new String[] {"companyId", "classNameId", "classPK", "mailing"},
 			false);
 
-		_collectionPersistenceFinderByC_C_C_M =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_C_C_M,
-				_finderPathWithoutPaginationFindByC_C_C_M,
-				_finderPathCountByC_C_C_M, _SQL_SELECT_ADDRESS_WHERE,
-				_SQL_COUNT_ADDRESS_WHERE, AddressModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"address.", "companyId", FinderColumn.Type.LONG, "=", true,
-					false, Address::getCompanyId),
-				new FinderColumn<>(
-					"address.", "classNameId", FinderColumn.Type.LONG, "=",
-					true, false, Address::getClassNameId),
-				new FinderColumn<>(
-					"address.", "classPK", FinderColumn.Type.LONG, "=", true,
-					false, Address::getClassPK),
-				new FinderColumn<>(
-					"address.", "mailing", FinderColumn.Type.BOOLEAN, "=", true,
-					true, Address::isMailing));
-
 		_finderPathWithPaginationFindByC_C_C_P = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C_C_P",
 			new String[] {
@@ -3801,39 +5817,10 @@ public class AddressPersistenceImpl
 			new String[] {"companyId", "classNameId", "classPK", "primary_"},
 			false);
 
-		_collectionPersistenceFinderByC_C_C_P =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_C_C_P,
-				_finderPathWithoutPaginationFindByC_C_C_P,
-				_finderPathCountByC_C_C_P, _SQL_SELECT_ADDRESS_WHERE,
-				_SQL_COUNT_ADDRESS_WHERE, AddressModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"address.", "companyId", FinderColumn.Type.LONG, "=", true,
-					false, Address::getCompanyId),
-				new FinderColumn<>(
-					"address.", "classNameId", FinderColumn.Type.LONG, "=",
-					true, false, Address::getClassNameId),
-				new FinderColumn<>(
-					"address.", "classPK", FinderColumn.Type.LONG, "=", true,
-					false, Address::getClassPK),
-				new FinderColumn<>(
-					"address.", "primary", FinderColumn.Type.BOOLEAN, "=", true,
-					true, Address::isPrimary));
-
 		_finderPathFetchByERC_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByERC_C",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"externalReferenceCode", "companyId"}, true);
-
-		_uniquePersistenceFinderByERC_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByERC_C, _SQL_SELECT_ADDRESS_WHERE,
-			new FinderColumn<>(
-				"address.", "externalReferenceCode", FinderColumn.Type.STRING,
-				"=", true, false, Address::getExternalReferenceCode),
-			new FinderColumn<>(
-				"address.", "companyId", FinderColumn.Type.LONG, "=", true,
-				true, Address::getCompanyId));
 
 		AddressUtil.setPersistence(this);
 	}
@@ -3858,6 +5845,9 @@ public class AddressPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "address.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No Address exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No Address exists with the key {";
 
@@ -3873,4 +5863,4 @@ public class AddressPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-284071452
+// LIFERAY-SERVICE-BUILDER-HASH:246408083

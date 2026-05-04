@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -28,9 +29,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -44,6 +42,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -64,7 +63,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = AccountGroupRelPersistence.class)
 public class AccountGroupRelPersistenceImpl
-	extends BasePersistenceImpl<AccountGroupRel, NoSuchGroupRelException>
+	extends BasePersistenceImpl<AccountGroupRel>
 	implements AccountGroupRelPersistence {
 
 	/*
@@ -87,8 +86,6 @@ public class AccountGroupRelPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByAccountGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByAccountGroupId;
 	private FinderPath _finderPathCountByAccountGroupId;
-	private CollectionPersistenceFinder<AccountGroupRel>
-		_collectionPersistenceFinderByAccountGroupId;
 
 	/**
 	 * Returns all the account group rels where accountGroupId = &#63;.
@@ -163,9 +160,95 @@ public class AccountGroupRelPersistenceImpl
 		OrderByComparator<AccountGroupRel> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByAccountGroupId.find(
-			finderCache, new Object[] {accountGroupId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByAccountGroupId;
+				finderArgs = new Object[] {accountGroupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByAccountGroupId;
+			finderArgs = new Object[] {
+				accountGroupId, start, end, orderByComparator
+			};
+		}
+
+		List<AccountGroupRel> list = null;
+
+		if (useFinderCache) {
+			list = (List<AccountGroupRel>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (AccountGroupRel accountGroupRel : list) {
+					if (accountGroupId != accountGroupRel.getAccountGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_ACCOUNTGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_ACCOUNTGROUPID_ACCOUNTGROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(AccountGroupRelModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(accountGroupId);
+
+				list = (List<AccountGroupRel>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -189,9 +272,16 @@ public class AccountGroupRelPersistenceImpl
 			return accountGroupRel;
 		}
 
-		throw new NoSuchGroupRelException(
-			_collectionPersistenceFinderByAccountGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {accountGroupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("accountGroupId=");
+		sb.append(accountGroupId);
+
+		sb.append("}");
+
+		throw new NoSuchGroupRelException(sb.toString());
 	}
 
 	/**
@@ -206,8 +296,14 @@ public class AccountGroupRelPersistenceImpl
 		long accountGroupId,
 		OrderByComparator<AccountGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByAccountGroupId.fetchFirst(
-			finderCache, new Object[] {accountGroupId}, orderByComparator);
+		List<AccountGroupRel> list = findByAccountGroupId(
+			accountGroupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -217,8 +313,13 @@ public class AccountGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByAccountGroupId(long accountGroupId) {
-		_collectionPersistenceFinderByAccountGroupId.remove(
-			finderCache, new Object[] {accountGroupId});
+		for (AccountGroupRel accountGroupRel :
+				findByAccountGroupId(
+					accountGroupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(accountGroupRel);
+		}
 	}
 
 	/**
@@ -229,15 +330,53 @@ public class AccountGroupRelPersistenceImpl
 	 */
 	@Override
 	public int countByAccountGroupId(long accountGroupId) {
-		return _collectionPersistenceFinderByAccountGroupId.count(
-			finderCache, new Object[] {accountGroupId});
+		FinderPath finderPath = _finderPathCountByAccountGroupId;
+
+		Object[] finderArgs = new Object[] {accountGroupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_ACCOUNTGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_ACCOUNTGROUPID_ACCOUNTGROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(accountGroupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_ACCOUNTGROUPID_ACCOUNTGROUPID_2 =
+		"accountGroupRel.accountGroupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByA_C;
 	private FinderPath _finderPathWithoutPaginationFindByA_C;
 	private FinderPath _finderPathCountByA_C;
-	private CollectionPersistenceFinder<AccountGroupRel>
-		_collectionPersistenceFinderByA_C;
 
 	/**
 	 * Returns all the account group rels where accountGroupId = &#63; and classNameId = &#63;.
@@ -319,9 +458,102 @@ public class AccountGroupRelPersistenceImpl
 		OrderByComparator<AccountGroupRel> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByA_C.find(
-			finderCache, new Object[] {accountGroupId, classNameId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByA_C;
+				finderArgs = new Object[] {accountGroupId, classNameId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByA_C;
+			finderArgs = new Object[] {
+				accountGroupId, classNameId, start, end, orderByComparator
+			};
+		}
+
+		List<AccountGroupRel> list = null;
+
+		if (useFinderCache) {
+			list = (List<AccountGroupRel>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (AccountGroupRel accountGroupRel : list) {
+					if ((accountGroupId !=
+							accountGroupRel.getAccountGroupId()) ||
+						(classNameId != accountGroupRel.getClassNameId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_ACCOUNTGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_A_C_ACCOUNTGROUPID_2);
+
+			sb.append(_FINDER_COLUMN_A_C_CLASSNAMEID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(AccountGroupRelModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(accountGroupId);
+
+				queryPos.add(classNameId);
+
+				list = (List<AccountGroupRel>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -346,10 +578,19 @@ public class AccountGroupRelPersistenceImpl
 			return accountGroupRel;
 		}
 
-		throw new NoSuchGroupRelException(
-			_collectionPersistenceFinderByA_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {accountGroupId, classNameId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("accountGroupId=");
+		sb.append(accountGroupId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append("}");
+
+		throw new NoSuchGroupRelException(sb.toString());
 	}
 
 	/**
@@ -365,9 +606,14 @@ public class AccountGroupRelPersistenceImpl
 		long accountGroupId, long classNameId,
 		OrderByComparator<AccountGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByA_C.fetchFirst(
-			finderCache, new Object[] {accountGroupId, classNameId},
-			orderByComparator);
+		List<AccountGroupRel> list = findByA_C(
+			accountGroupId, classNameId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -378,8 +624,13 @@ public class AccountGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByA_C(long accountGroupId, long classNameId) {
-		_collectionPersistenceFinderByA_C.remove(
-			finderCache, new Object[] {accountGroupId, classNameId});
+		for (AccountGroupRel accountGroupRel :
+				findByA_C(
+					accountGroupId, classNameId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(accountGroupRel);
+		}
 	}
 
 	/**
@@ -391,15 +642,60 @@ public class AccountGroupRelPersistenceImpl
 	 */
 	@Override
 	public int countByA_C(long accountGroupId, long classNameId) {
-		return _collectionPersistenceFinderByA_C.count(
-			finderCache, new Object[] {accountGroupId, classNameId});
+		FinderPath finderPath = _finderPathCountByA_C;
+
+		Object[] finderArgs = new Object[] {accountGroupId, classNameId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_ACCOUNTGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_A_C_ACCOUNTGROUPID_2);
+
+			sb.append(_FINDER_COLUMN_A_C_CLASSNAMEID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(accountGroupId);
+
+				queryPos.add(classNameId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_A_C_ACCOUNTGROUPID_2 =
+		"accountGroupRel.accountGroupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_A_C_CLASSNAMEID_2 =
+		"accountGroupRel.classNameId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C;
 	private FinderPath _finderPathWithoutPaginationFindByC_C;
 	private FinderPath _finderPathCountByC_C;
-	private CollectionPersistenceFinder<AccountGroupRel>
-		_collectionPersistenceFinderByC_C;
 
 	/**
 	 * Returns all the account group rels where classNameId = &#63; and classPK = &#63;.
@@ -478,9 +774,101 @@ public class AccountGroupRelPersistenceImpl
 		OrderByComparator<AccountGroupRel> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_C.find(
-			finderCache, new Object[] {classNameId, classPK}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_C;
+				finderArgs = new Object[] {classNameId, classPK};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_C;
+			finderArgs = new Object[] {
+				classNameId, classPK, start, end, orderByComparator
+			};
+		}
+
+		List<AccountGroupRel> list = null;
+
+		if (useFinderCache) {
+			list = (List<AccountGroupRel>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (AccountGroupRel accountGroupRel : list) {
+					if ((classNameId != accountGroupRel.getClassNameId()) ||
+						(classPK != accountGroupRel.getClassPK())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_ACCOUNTGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_C_C_CLASSPK_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(AccountGroupRelModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(classNameId);
+
+				queryPos.add(classPK);
+
+				list = (List<AccountGroupRel>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -505,9 +893,19 @@ public class AccountGroupRelPersistenceImpl
 			return accountGroupRel;
 		}
 
-		throw new NoSuchGroupRelException(
-			_collectionPersistenceFinderByC_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {classNameId, classPK}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", classPK=");
+		sb.append(classPK);
+
+		sb.append("}");
+
+		throw new NoSuchGroupRelException(sb.toString());
 	}
 
 	/**
@@ -523,9 +921,14 @@ public class AccountGroupRelPersistenceImpl
 		long classNameId, long classPK,
 		OrderByComparator<AccountGroupRel> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C.fetchFirst(
-			finderCache, new Object[] {classNameId, classPK},
-			orderByComparator);
+		List<AccountGroupRel> list = findByC_C(
+			classNameId, classPK, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -536,8 +939,13 @@ public class AccountGroupRelPersistenceImpl
 	 */
 	@Override
 	public void removeByC_C(long classNameId, long classPK) {
-		_collectionPersistenceFinderByC_C.remove(
-			finderCache, new Object[] {classNameId, classPK});
+		for (AccountGroupRel accountGroupRel :
+				findByC_C(
+					classNameId, classPK, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(accountGroupRel);
+		}
 	}
 
 	/**
@@ -549,13 +957,58 @@ public class AccountGroupRelPersistenceImpl
 	 */
 	@Override
 	public int countByC_C(long classNameId, long classPK) {
-		return _collectionPersistenceFinderByC_C.count(
-			finderCache, new Object[] {classNameId, classPK});
+		FinderPath finderPath = _finderPathCountByC_C;
+
+		Object[] finderArgs = new Object[] {classNameId, classPK};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_ACCOUNTGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_C_C_CLASSPK_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(classNameId);
+
+				queryPos.add(classPK);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_C_C_CLASSNAMEID_2 =
+		"accountGroupRel.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_CLASSPK_2 =
+		"accountGroupRel.classPK = ?";
+
 	private FinderPath _finderPathFetchByA_C_C;
-	private UniquePersistenceFinder<AccountGroupRel>
-		_uniquePersistenceFinderByA_C_C;
 
 	/**
 	 * Returns the account group rel where accountGroupId = &#63; and classNameId = &#63; and classPK = &#63; or throws a <code>NoSuchGroupRelException</code> if it could not be found.
@@ -575,16 +1028,26 @@ public class AccountGroupRelPersistenceImpl
 			accountGroupId, classNameId, classPK);
 
 		if (accountGroupRel == null) {
-			String message =
-				_uniquePersistenceFinderByA_C_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {accountGroupId, classNameId, classPK});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("accountGroupId=");
+			sb.append(accountGroupId);
+
+			sb.append(", classNameId=");
+			sb.append(classNameId);
+
+			sb.append(", classPK=");
+			sb.append(classPK);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchGroupRelException(message);
+			throw new NoSuchGroupRelException(sb.toString());
 		}
 
 		return accountGroupRel;
@@ -619,9 +1082,88 @@ public class AccountGroupRelPersistenceImpl
 		long accountGroupId, long classNameId, long classPK,
 		boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByA_C_C.fetch(
-			finderCache, new Object[] {accountGroupId, classNameId, classPK},
-			useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {accountGroupId, classNameId, classPK};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByA_C_C, finderArgs, this);
+		}
+
+		if (result instanceof AccountGroupRel) {
+			AccountGroupRel accountGroupRel = (AccountGroupRel)result;
+
+			if ((accountGroupId != accountGroupRel.getAccountGroupId()) ||
+				(classNameId != accountGroupRel.getClassNameId()) ||
+				(classPK != accountGroupRel.getClassPK())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_ACCOUNTGROUPREL_WHERE);
+
+			sb.append(_FINDER_COLUMN_A_C_C_ACCOUNTGROUPID_2);
+
+			sb.append(_FINDER_COLUMN_A_C_C_CLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_A_C_C_CLASSPK_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(accountGroupId);
+
+				queryPos.add(classNameId);
+
+				queryPos.add(classPK);
+
+				List<AccountGroupRel> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByA_C_C, finderArgs, list);
+					}
+				}
+				else {
+					AccountGroupRel accountGroupRel = list.get(0);
+
+					result = accountGroupRel;
+
+					cacheResult(accountGroupRel);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (AccountGroupRel)result;
+		}
 	}
 
 	/**
@@ -655,9 +1197,24 @@ public class AccountGroupRelPersistenceImpl
 	public int countByA_C_C(
 		long accountGroupId, long classNameId, long classPK) {
 
-		return _uniquePersistenceFinderByA_C_C.count(
-			finderCache, new Object[] {accountGroupId, classNameId, classPK});
+		AccountGroupRel accountGroupRel = fetchByA_C_C(
+			accountGroupId, classNameId, classPK);
+
+		if (accountGroupRel == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_A_C_C_ACCOUNTGROUPID_2 =
+		"accountGroupRel.accountGroupId = ? AND ";
+
+	private static final String _FINDER_COLUMN_A_C_C_CLASSNAMEID_2 =
+		"accountGroupRel.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_A_C_C_CLASSPK_2 =
+		"accountGroupRel.classPK = ?";
 
 	public AccountGroupRelPersistenceImpl() {
 		setModelClass(AccountGroupRel.class);
@@ -715,6 +1272,49 @@ public class AccountGroupRelPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all account group rels.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(AccountGroupRelImpl.class);
+
+		finderCache.clearCache(AccountGroupRelImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the account group rel.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(AccountGroupRel accountGroupRel) {
+		entityCache.removeResult(AccountGroupRelImpl.class, accountGroupRel);
+	}
+
+	@Override
+	public void clearCache(List<AccountGroupRel> accountGroupRels) {
+		for (AccountGroupRel accountGroupRel : accountGroupRels) {
+			entityCache.removeResult(
+				AccountGroupRelImpl.class, accountGroupRel);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(AccountGroupRelImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(AccountGroupRelImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		AccountGroupRelModelImpl accountGroupRelModelImpl) {
 
@@ -758,6 +1358,47 @@ public class AccountGroupRelPersistenceImpl
 		throws NoSuchGroupRelException {
 
 		return remove((Serializable)accountGroupRelId);
+	}
+
+	/**
+	 * Removes the account group rel with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the account group rel
+	 * @return the account group rel that was removed
+	 * @throws NoSuchGroupRelException if a account group rel with the primary key could not be found
+	 */
+	@Override
+	public AccountGroupRel remove(Serializable primaryKey)
+		throws NoSuchGroupRelException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			AccountGroupRel accountGroupRel = (AccountGroupRel)session.get(
+				AccountGroupRelImpl.class, primaryKey);
+
+			if (accountGroupRel == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchGroupRelException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(accountGroupRel);
+		}
+		catch (NoSuchGroupRelException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -870,6 +1511,31 @@ public class AccountGroupRelPersistenceImpl
 		}
 
 		accountGroupRel.resetOriginalValues();
+
+		return accountGroupRel;
+	}
+
+	/**
+	 * Returns the account group rel with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the account group rel
+	 * @return the account group rel
+	 * @throws NoSuchGroupRelException if a account group rel with the primary key could not be found
+	 */
+	@Override
+	public AccountGroupRel findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchGroupRelException {
+
+		AccountGroupRel accountGroupRel = fetchByPrimaryKey(primaryKey);
+
+		if (accountGroupRel == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchGroupRelException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return accountGroupRel;
 	}
@@ -1138,19 +1804,6 @@ public class AccountGroupRelPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"accountGroupId"}, false);
 
-		_collectionPersistenceFinderByAccountGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByAccountGroupId,
-				_finderPathWithoutPaginationFindByAccountGroupId,
-				_finderPathCountByAccountGroupId,
-				_SQL_SELECT_ACCOUNTGROUPREL_WHERE,
-				_SQL_COUNT_ACCOUNTGROUPREL_WHERE,
-				AccountGroupRelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"accountGroupRel.", "accountGroupId",
-					FinderColumn.Type.LONG, "=", true, true,
-					AccountGroupRel::getAccountGroupId));
-
 		_finderPathWithPaginationFindByA_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByA_C",
 			new String[] {
@@ -1169,18 +1822,6 @@ public class AccountGroupRelPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByA_C",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"accountGroupId", "classNameId"}, false);
-
-		_collectionPersistenceFinderByA_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByA_C,
-			_finderPathWithoutPaginationFindByA_C, _finderPathCountByA_C,
-			_SQL_SELECT_ACCOUNTGROUPREL_WHERE, _SQL_COUNT_ACCOUNTGROUPREL_WHERE,
-			AccountGroupRelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"accountGroupRel.", "accountGroupId", FinderColumn.Type.LONG,
-				"=", true, false, AccountGroupRel::getAccountGroupId),
-			new FinderColumn<>(
-				"accountGroupRel.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, true, AccountGroupRel::getClassNameId));
 
 		_finderPathWithPaginationFindByC_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C",
@@ -1201,36 +1842,12 @@ public class AccountGroupRelPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"classNameId", "classPK"}, false);
 
-		_collectionPersistenceFinderByC_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_C,
-			_finderPathWithoutPaginationFindByC_C, _finderPathCountByC_C,
-			_SQL_SELECT_ACCOUNTGROUPREL_WHERE, _SQL_COUNT_ACCOUNTGROUPREL_WHERE,
-			AccountGroupRelModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"accountGroupRel.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, AccountGroupRel::getClassNameId),
-			new FinderColumn<>(
-				"accountGroupRel.", "classPK", FinderColumn.Type.LONG, "=",
-				true, true, AccountGroupRel::getClassPK));
-
 		_finderPathFetchByA_C_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByA_C_C",
 			new String[] {
 				Long.class.getName(), Long.class.getName(), Long.class.getName()
 			},
 			new String[] {"accountGroupId", "classNameId", "classPK"}, true);
-
-		_uniquePersistenceFinderByA_C_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByA_C_C, _SQL_SELECT_ACCOUNTGROUPREL_WHERE,
-			new FinderColumn<>(
-				"accountGroupRel.", "accountGroupId", FinderColumn.Type.LONG,
-				"=", true, false, AccountGroupRel::getAccountGroupId),
-			new FinderColumn<>(
-				"accountGroupRel.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, AccountGroupRel::getClassNameId),
-			new FinderColumn<>(
-				"accountGroupRel.", "classPK", FinderColumn.Type.LONG, "=",
-				true, true, AccountGroupRel::getClassPK));
 
 		AccountGroupRelUtil.setPersistence(this);
 	}
@@ -1288,6 +1905,9 @@ public class AccountGroupRelPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "accountGroupRel.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No AccountGroupRel exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No AccountGroupRel exists with the key {";
 
@@ -1300,4 +1920,4 @@ public class AccountGroupRelPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:191223767
+// LIFERAY-SERVICE-BUILDER-HASH:-727190482

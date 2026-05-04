@@ -314,4 +314,4 @@ public interface CalendarBookingService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:947671381
+// LIFERAY-SERVICE-BUILDER-HASH:-1280854130

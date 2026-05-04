@@ -58,4 +58,4 @@ public interface LayoutBranchService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-155077998
+// LIFERAY-SERVICE-BUILDER-HASH:-1866490001

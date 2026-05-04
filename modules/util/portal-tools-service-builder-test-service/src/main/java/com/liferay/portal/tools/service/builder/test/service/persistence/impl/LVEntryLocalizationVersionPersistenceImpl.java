@@ -10,15 +10,13 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -39,6 +37,8 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * The persistence implementation for the lv entry localization version service.
@@ -51,8 +51,7 @@ import java.util.Map;
  * @generated
  */
 public class LVEntryLocalizationVersionPersistenceImpl
-	extends BasePersistenceImpl
-		<LVEntryLocalizationVersion, NoSuchLVEntryLocalizationVersionException>
+	extends BasePersistenceImpl<LVEntryLocalizationVersion>
 	implements LVEntryLocalizationVersionPersistence {
 
 	/*
@@ -75,8 +74,6 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByLvEntryLocalizationId;
 	private FinderPath _finderPathWithoutPaginationFindByLvEntryLocalizationId;
 	private FinderPath _finderPathCountByLvEntryLocalizationId;
-	private CollectionPersistenceFinder<LVEntryLocalizationVersion>
-		_collectionPersistenceFinderByLvEntryLocalizationId;
 
 	/**
 	 * Returns all the lv entry localization versions where lvEntryLocalizationId = &#63;.
@@ -154,9 +151,102 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		OrderByComparator<LVEntryLocalizationVersion> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLvEntryLocalizationId.find(
-			finderCache, new Object[] {lvEntryLocalizationId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByLvEntryLocalizationId;
+				finderArgs = new Object[] {lvEntryLocalizationId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByLvEntryLocalizationId;
+			finderArgs = new Object[] {
+				lvEntryLocalizationId, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntryLocalizationVersion> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntryLocalizationVersion>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+						list) {
+
+					if (lvEntryLocalizationId !=
+							lvEntryLocalizationVersion.
+								getLvEntryLocalizationId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_LVENTRYLOCALIZATIONID_LVENTRYLOCALIZATIONID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryLocalizationVersionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryLocalizationId);
+
+				list = (List<LVEntryLocalizationVersion>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -181,11 +271,16 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			return lvEntryLocalizationVersion;
 		}
 
-		throw new NoSuchLVEntryLocalizationVersionException(
-			_collectionPersistenceFinderByLvEntryLocalizationId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {lvEntryLocalizationId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("lvEntryLocalizationId=");
+		sb.append(lvEntryLocalizationId);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryLocalizationVersionException(sb.toString());
 	}
 
 	/**
@@ -200,9 +295,14 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		long lvEntryLocalizationId,
 		OrderByComparator<LVEntryLocalizationVersion> orderByComparator) {
 
-		return _collectionPersistenceFinderByLvEntryLocalizationId.fetchFirst(
-			finderCache, new Object[] {lvEntryLocalizationId},
-			orderByComparator);
+		List<LVEntryLocalizationVersion> list = findByLvEntryLocalizationId(
+			lvEntryLocalizationId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -212,8 +312,13 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	 */
 	@Override
 	public void removeByLvEntryLocalizationId(long lvEntryLocalizationId) {
-		_collectionPersistenceFinderByLvEntryLocalizationId.remove(
-			finderCache, new Object[] {lvEntryLocalizationId});
+		for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+				findByLvEntryLocalizationId(
+					lvEntryLocalizationId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lvEntryLocalizationVersion);
+		}
 	}
 
 	/**
@@ -224,13 +329,53 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	 */
 	@Override
 	public int countByLvEntryLocalizationId(long lvEntryLocalizationId) {
-		return _collectionPersistenceFinderByLvEntryLocalizationId.count(
-			finderCache, new Object[] {lvEntryLocalizationId});
+		FinderPath finderPath = _finderPathCountByLvEntryLocalizationId;
+
+		Object[] finderArgs = new Object[] {lvEntryLocalizationId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_LVENTRYLOCALIZATIONID_LVENTRYLOCALIZATIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryLocalizationId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String
+		_FINDER_COLUMN_LVENTRYLOCALIZATIONID_LVENTRYLOCALIZATIONID_2 =
+			"lvEntryLocalizationVersion.lvEntryLocalizationId = ?";
+
 	private FinderPath _finderPathFetchByLvEntryLocalizationId_Version;
-	private UniquePersistenceFinder<LVEntryLocalizationVersion>
-		_uniquePersistenceFinderByLvEntryLocalizationId_Version;
 
 	/**
 	 * Returns the lv entry localization version where lvEntryLocalizationId = &#63; and version = &#63; or throws a <code>NoSuchLVEntryLocalizationVersionException</code> if it could not be found.
@@ -250,17 +395,23 @@ public class LVEntryLocalizationVersionPersistenceImpl
 				lvEntryLocalizationId, version);
 
 		if (lvEntryLocalizationVersion == null) {
-			String message =
-				_uniquePersistenceFinderByLvEntryLocalizationId_Version.
-					buildNoSuchKeyMessage(
-						_NO_SUCH_ENTITY_WITH_KEY,
-						new Object[] {lvEntryLocalizationId, version});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("lvEntryLocalizationId=");
+			sb.append(lvEntryLocalizationId);
+
+			sb.append(", version=");
+			sb.append(version);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLVEntryLocalizationVersionException(message);
+			throw new NoSuchLVEntryLocalizationVersionException(sb.toString());
 		}
 
 		return lvEntryLocalizationVersion;
@@ -293,9 +444,89 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	public LVEntryLocalizationVersion fetchByLvEntryLocalizationId_Version(
 		long lvEntryLocalizationId, int version, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByLvEntryLocalizationId_Version.fetch(
-			finderCache, new Object[] {lvEntryLocalizationId, version},
-			useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {lvEntryLocalizationId, version};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByLvEntryLocalizationId_Version, finderArgs,
+				this);
+		}
+
+		if (result instanceof LVEntryLocalizationVersion) {
+			LVEntryLocalizationVersion lvEntryLocalizationVersion =
+				(LVEntryLocalizationVersion)result;
+
+			if ((lvEntryLocalizationId !=
+					lvEntryLocalizationVersion.getLvEntryLocalizationId()) ||
+				(version != lvEntryLocalizationVersion.getVersion())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_LVENTRYLOCALIZATIONID_VERSION_LVENTRYLOCALIZATIONID_2);
+
+			sb.append(_FINDER_COLUMN_LVENTRYLOCALIZATIONID_VERSION_VERSION_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryLocalizationId);
+
+				queryPos.add(version);
+
+				List<LVEntryLocalizationVersion> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByLvEntryLocalizationId_Version,
+							finderArgs, list);
+					}
+				}
+				else {
+					LVEntryLocalizationVersion lvEntryLocalizationVersion =
+						list.get(0);
+
+					result = lvEntryLocalizationVersion;
+
+					cacheResult(lvEntryLocalizationVersion);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (LVEntryLocalizationVersion)result;
+		}
 	}
 
 	/**
@@ -327,15 +558,28 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	public int countByLvEntryLocalizationId_Version(
 		long lvEntryLocalizationId, int version) {
 
-		return _uniquePersistenceFinderByLvEntryLocalizationId_Version.count(
-			finderCache, new Object[] {lvEntryLocalizationId, version});
+		LVEntryLocalizationVersion lvEntryLocalizationVersion =
+			fetchByLvEntryLocalizationId_Version(
+				lvEntryLocalizationId, version);
+
+		if (lvEntryLocalizationVersion == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_LVENTRYLOCALIZATIONID_VERSION_LVENTRYLOCALIZATIONID_2 =
+			"lvEntryLocalizationVersion.lvEntryLocalizationId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_LVENTRYLOCALIZATIONID_VERSION_VERSION_2 =
+			"lvEntryLocalizationVersion.version = ?";
 
 	private FinderPath _finderPathWithPaginationFindByLvEntryId;
 	private FinderPath _finderPathWithoutPaginationFindByLvEntryId;
 	private FinderPath _finderPathCountByLvEntryId;
-	private CollectionPersistenceFinder<LVEntryLocalizationVersion>
-		_collectionPersistenceFinderByLvEntryId;
 
 	/**
 	 * Returns all the lv entry localization versions where lvEntryId = &#63;.
@@ -409,9 +653,99 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		OrderByComparator<LVEntryLocalizationVersion> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLvEntryId.find(
-			finderCache, new Object[] {lvEntryId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByLvEntryId;
+				finderArgs = new Object[] {lvEntryId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByLvEntryId;
+			finderArgs = new Object[] {
+				lvEntryId, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntryLocalizationVersion> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntryLocalizationVersion>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+						list) {
+
+					if (lvEntryId !=
+							lvEntryLocalizationVersion.getLvEntryId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_LVENTRYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryLocalizationVersionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryId);
+
+				list = (List<LVEntryLocalizationVersion>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -435,9 +769,16 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			return lvEntryLocalizationVersion;
 		}
 
-		throw new NoSuchLVEntryLocalizationVersionException(
-			_collectionPersistenceFinderByLvEntryId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {lvEntryId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("lvEntryId=");
+		sb.append(lvEntryId);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryLocalizationVersionException(sb.toString());
 	}
 
 	/**
@@ -452,8 +793,14 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		long lvEntryId,
 		OrderByComparator<LVEntryLocalizationVersion> orderByComparator) {
 
-		return _collectionPersistenceFinderByLvEntryId.fetchFirst(
-			finderCache, new Object[] {lvEntryId}, orderByComparator);
+		List<LVEntryLocalizationVersion> list = findByLvEntryId(
+			lvEntryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -463,8 +810,12 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	 */
 	@Override
 	public void removeByLvEntryId(long lvEntryId) {
-		_collectionPersistenceFinderByLvEntryId.remove(
-			finderCache, new Object[] {lvEntryId});
+		for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+				findByLvEntryId(
+					lvEntryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(lvEntryLocalizationVersion);
+		}
 	}
 
 	/**
@@ -475,15 +826,53 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	 */
 	@Override
 	public int countByLvEntryId(long lvEntryId) {
-		return _collectionPersistenceFinderByLvEntryId.count(
-			finderCache, new Object[] {lvEntryId});
+		FinderPath finderPath = _finderPathCountByLvEntryId;
+
+		Object[] finderArgs = new Object[] {lvEntryId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_LVENTRYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_LVENTRYID_LVENTRYID_2 =
+		"lvEntryLocalizationVersion.lvEntryId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByLvEntryId_Version;
 	private FinderPath _finderPathWithoutPaginationFindByLvEntryId_Version;
 	private FinderPath _finderPathCountByLvEntryId_Version;
-	private CollectionPersistenceFinder<LVEntryLocalizationVersion>
-		_collectionPersistenceFinderByLvEntryId_Version;
 
 	/**
 	 * Returns all the lv entry localization versions where lvEntryId = &#63; and version = &#63;.
@@ -564,9 +953,105 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		OrderByComparator<LVEntryLocalizationVersion> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLvEntryId_Version.find(
-			finderCache, new Object[] {lvEntryId, version}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByLvEntryId_Version;
+				finderArgs = new Object[] {lvEntryId, version};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByLvEntryId_Version;
+			finderArgs = new Object[] {
+				lvEntryId, version, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntryLocalizationVersion> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntryLocalizationVersion>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+						list) {
+
+					if ((lvEntryId !=
+							lvEntryLocalizationVersion.getLvEntryId()) ||
+						(version != lvEntryLocalizationVersion.getVersion())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_VERSION_LVENTRYID_2);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_VERSION_VERSION_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryLocalizationVersionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryId);
+
+				queryPos.add(version);
+
+				list = (List<LVEntryLocalizationVersion>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -592,11 +1077,19 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			return lvEntryLocalizationVersion;
 		}
 
-		throw new NoSuchLVEntryLocalizationVersionException(
-			_collectionPersistenceFinderByLvEntryId_Version.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {lvEntryId, version}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("lvEntryId=");
+		sb.append(lvEntryId);
+
+		sb.append(", version=");
+		sb.append(version);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryLocalizationVersionException(sb.toString());
 	}
 
 	/**
@@ -612,8 +1105,14 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		long lvEntryId, int version,
 		OrderByComparator<LVEntryLocalizationVersion> orderByComparator) {
 
-		return _collectionPersistenceFinderByLvEntryId_Version.fetchFirst(
-			finderCache, new Object[] {lvEntryId, version}, orderByComparator);
+		List<LVEntryLocalizationVersion> list = findByLvEntryId_Version(
+			lvEntryId, version, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -624,8 +1123,13 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	 */
 	@Override
 	public void removeByLvEntryId_Version(long lvEntryId, int version) {
-		_collectionPersistenceFinderByLvEntryId_Version.remove(
-			finderCache, new Object[] {lvEntryId, version});
+		for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+				findByLvEntryId_Version(
+					lvEntryId, version, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lvEntryLocalizationVersion);
+		}
 	}
 
 	/**
@@ -637,15 +1141,60 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	 */
 	@Override
 	public int countByLvEntryId_Version(long lvEntryId, int version) {
-		return _collectionPersistenceFinderByLvEntryId_Version.count(
-			finderCache, new Object[] {lvEntryId, version});
+		FinderPath finderPath = _finderPathCountByLvEntryId_Version;
+
+		Object[] finderArgs = new Object[] {lvEntryId, version};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_VERSION_LVENTRYID_2);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_VERSION_VERSION_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryId);
+
+				queryPos.add(version);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_LVENTRYID_VERSION_LVENTRYID_2 =
+		"lvEntryLocalizationVersion.lvEntryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_LVENTRYID_VERSION_VERSION_2 =
+		"lvEntryLocalizationVersion.version = ?";
 
 	private FinderPath _finderPathWithPaginationFindByLvEntryId_LanguageId;
 	private FinderPath _finderPathWithoutPaginationFindByLvEntryId_LanguageId;
 	private FinderPath _finderPathCountByLvEntryId_LanguageId;
-	private CollectionPersistenceFinder<LVEntryLocalizationVersion>
-		_collectionPersistenceFinderByLvEntryId_LanguageId;
 
 	/**
 	 * Returns all the lv entry localization versions where lvEntryId = &#63; and languageId = &#63;.
@@ -727,9 +1276,119 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		OrderByComparator<LVEntryLocalizationVersion> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLvEntryId_LanguageId.find(
-			finderCache, new Object[] {lvEntryId, languageId}, start, end,
-			orderByComparator, useFinderCache);
+		languageId = Objects.toString(languageId, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByLvEntryId_LanguageId;
+				finderArgs = new Object[] {lvEntryId, languageId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByLvEntryId_LanguageId;
+			finderArgs = new Object[] {
+				lvEntryId, languageId, start, end, orderByComparator
+			};
+		}
+
+		List<LVEntryLocalizationVersion> list = null;
+
+		if (useFinderCache) {
+			list = (List<LVEntryLocalizationVersion>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+						list) {
+
+					if ((lvEntryId !=
+							lvEntryLocalizationVersion.getLvEntryId()) ||
+						!languageId.equals(
+							lvEntryLocalizationVersion.getLanguageId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LVENTRYID_2);
+
+			boolean bindLanguageId = false;
+
+			if (languageId.isEmpty()) {
+				sb.append(_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LANGUAGEID_3);
+			}
+			else {
+				bindLanguageId = true;
+
+				sb.append(_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LANGUAGEID_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(LVEntryLocalizationVersionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryId);
+
+				if (bindLanguageId) {
+					queryPos.add(languageId);
+				}
+
+				list = (List<LVEntryLocalizationVersion>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -755,11 +1414,19 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			return lvEntryLocalizationVersion;
 		}
 
-		throw new NoSuchLVEntryLocalizationVersionException(
-			_collectionPersistenceFinderByLvEntryId_LanguageId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {lvEntryId, languageId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("lvEntryId=");
+		sb.append(lvEntryId);
+
+		sb.append(", languageId=");
+		sb.append(languageId);
+
+		sb.append("}");
+
+		throw new NoSuchLVEntryLocalizationVersionException(sb.toString());
 	}
 
 	/**
@@ -775,9 +1442,14 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		long lvEntryId, String languageId,
 		OrderByComparator<LVEntryLocalizationVersion> orderByComparator) {
 
-		return _collectionPersistenceFinderByLvEntryId_LanguageId.fetchFirst(
-			finderCache, new Object[] {lvEntryId, languageId},
-			orderByComparator);
+		List<LVEntryLocalizationVersion> list = findByLvEntryId_LanguageId(
+			lvEntryId, languageId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -790,8 +1462,13 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	public void removeByLvEntryId_LanguageId(
 		long lvEntryId, String languageId) {
 
-		_collectionPersistenceFinderByLvEntryId_LanguageId.remove(
-			finderCache, new Object[] {lvEntryId, languageId});
+		for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+				findByLvEntryId_LanguageId(
+					lvEntryId, languageId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(lvEntryLocalizationVersion);
+		}
 	}
 
 	/**
@@ -803,13 +1480,77 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	 */
 	@Override
 	public int countByLvEntryId_LanguageId(long lvEntryId, String languageId) {
-		return _collectionPersistenceFinderByLvEntryId_LanguageId.count(
-			finderCache, new Object[] {lvEntryId, languageId});
+		languageId = Objects.toString(languageId, "");
+
+		FinderPath finderPath = _finderPathCountByLvEntryId_LanguageId;
+
+		Object[] finderArgs = new Object[] {lvEntryId, languageId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LVENTRYID_2);
+
+			boolean bindLanguageId = false;
+
+			if (languageId.isEmpty()) {
+				sb.append(_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LANGUAGEID_3);
+			}
+			else {
+				bindLanguageId = true;
+
+				sb.append(_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LANGUAGEID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryId);
+
+				if (bindLanguageId) {
+					queryPos.add(languageId);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String
+		_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LVENTRYID_2 =
+			"lvEntryLocalizationVersion.lvEntryId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LANGUAGEID_2 =
+			"lvEntryLocalizationVersion.languageId = ?";
+
+	private static final String
+		_FINDER_COLUMN_LVENTRYID_LANGUAGEID_LANGUAGEID_3 =
+			"(lvEntryLocalizationVersion.languageId IS NULL OR lvEntryLocalizationVersion.languageId = '')";
+
 	private FinderPath _finderPathFetchByLvEntryId_LanguageId_Version;
-	private UniquePersistenceFinder<LVEntryLocalizationVersion>
-		_uniquePersistenceFinderByLvEntryId_LanguageId_Version;
 
 	/**
 	 * Returns the lv entry localization version where lvEntryId = &#63; and languageId = &#63; and version = &#63; or throws a <code>NoSuchLVEntryLocalizationVersionException</code> if it could not be found.
@@ -829,17 +1570,26 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			fetchByLvEntryId_LanguageId_Version(lvEntryId, languageId, version);
 
 		if (lvEntryLocalizationVersion == null) {
-			String message =
-				_uniquePersistenceFinderByLvEntryId_LanguageId_Version.
-					buildNoSuchKeyMessage(
-						_NO_SUCH_ENTITY_WITH_KEY,
-						new Object[] {lvEntryId, languageId, version});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("lvEntryId=");
+			sb.append(lvEntryId);
+
+			sb.append(", languageId=");
+			sb.append(languageId);
+
+			sb.append(", version=");
+			sb.append(version);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchLVEntryLocalizationVersionException(message);
+			throw new NoSuchLVEntryLocalizationVersionException(sb.toString());
 		}
 
 		return lvEntryLocalizationVersion;
@@ -875,9 +1625,108 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		long lvEntryId, String languageId, int version,
 		boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByLvEntryId_LanguageId_Version.fetch(
-			finderCache, new Object[] {lvEntryId, languageId, version},
-			useFinderCache);
+		languageId = Objects.toString(languageId, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {lvEntryId, languageId, version};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByLvEntryId_LanguageId_Version, finderArgs,
+				this);
+		}
+
+		if (result instanceof LVEntryLocalizationVersion) {
+			LVEntryLocalizationVersion lvEntryLocalizationVersion =
+				(LVEntryLocalizationVersion)result;
+
+			if ((lvEntryId != lvEntryLocalizationVersion.getLvEntryId()) ||
+				!Objects.equals(
+					languageId, lvEntryLocalizationVersion.getLanguageId()) ||
+				(version != lvEntryLocalizationVersion.getVersion())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE);
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_LANGUAGEID_VERSION_LVENTRYID_2);
+
+			boolean bindLanguageId = false;
+
+			if (languageId.isEmpty()) {
+				sb.append(
+					_FINDER_COLUMN_LVENTRYID_LANGUAGEID_VERSION_LANGUAGEID_3);
+			}
+			else {
+				bindLanguageId = true;
+
+				sb.append(
+					_FINDER_COLUMN_LVENTRYID_LANGUAGEID_VERSION_LANGUAGEID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_LVENTRYID_LANGUAGEID_VERSION_VERSION_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(lvEntryId);
+
+				if (bindLanguageId) {
+					queryPos.add(languageId);
+				}
+
+				queryPos.add(version);
+
+				List<LVEntryLocalizationVersion> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByLvEntryId_LanguageId_Version,
+							finderArgs, list);
+					}
+				}
+				else {
+					LVEntryLocalizationVersion lvEntryLocalizationVersion =
+						list.get(0);
+
+					result = lvEntryLocalizationVersion;
+
+					cacheResult(lvEntryLocalizationVersion);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (LVEntryLocalizationVersion)result;
+		}
 	}
 
 	/**
@@ -911,9 +1760,31 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	public int countByLvEntryId_LanguageId_Version(
 		long lvEntryId, String languageId, int version) {
 
-		return _uniquePersistenceFinderByLvEntryId_LanguageId_Version.count(
-			finderCache, new Object[] {lvEntryId, languageId, version});
+		LVEntryLocalizationVersion lvEntryLocalizationVersion =
+			fetchByLvEntryId_LanguageId_Version(lvEntryId, languageId, version);
+
+		if (lvEntryLocalizationVersion == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_LVENTRYID_LANGUAGEID_VERSION_LVENTRYID_2 =
+			"lvEntryLocalizationVersion.lvEntryId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_LVENTRYID_LANGUAGEID_VERSION_LANGUAGEID_2 =
+			"lvEntryLocalizationVersion.languageId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_LVENTRYID_LANGUAGEID_VERSION_LANGUAGEID_3 =
+			"(lvEntryLocalizationVersion.languageId IS NULL OR lvEntryLocalizationVersion.languageId = '') AND ";
+
+	private static final String
+		_FINDER_COLUMN_LVENTRYID_LANGUAGEID_VERSION_VERSION_2 =
+			"lvEntryLocalizationVersion.version = ?";
 
 	public LVEntryLocalizationVersionPersistenceImpl() {
 		setModelClass(LVEntryLocalizationVersion.class);
@@ -987,6 +1858,58 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all lv entry localization versions.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(LVEntryLocalizationVersionImpl.class);
+
+		finderCache.clearCache(LVEntryLocalizationVersionImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the lv entry localization version.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		LVEntryLocalizationVersion lvEntryLocalizationVersion) {
+
+		entityCache.removeResult(
+			LVEntryLocalizationVersionImpl.class, lvEntryLocalizationVersion);
+	}
+
+	@Override
+	public void clearCache(
+		List<LVEntryLocalizationVersion> lvEntryLocalizationVersions) {
+
+		for (LVEntryLocalizationVersion lvEntryLocalizationVersion :
+				lvEntryLocalizationVersions) {
+
+			entityCache.removeResult(
+				LVEntryLocalizationVersionImpl.class,
+				lvEntryLocalizationVersion);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(LVEntryLocalizationVersionImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				LVEntryLocalizationVersionImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		LVEntryLocalizationVersionModelImpl
 			lvEntryLocalizationVersionModelImpl) {
@@ -1045,6 +1968,50 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		throws NoSuchLVEntryLocalizationVersionException {
 
 		return remove((Serializable)lvEntryLocalizationVersionId);
+	}
+
+	/**
+	 * Removes the lv entry localization version with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the lv entry localization version
+	 * @return the lv entry localization version that was removed
+	 * @throws NoSuchLVEntryLocalizationVersionException if a lv entry localization version with the primary key could not be found
+	 */
+	@Override
+	public LVEntryLocalizationVersion remove(Serializable primaryKey)
+		throws NoSuchLVEntryLocalizationVersionException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			LVEntryLocalizationVersion lvEntryLocalizationVersion =
+				(LVEntryLocalizationVersion)session.get(
+					LVEntryLocalizationVersionImpl.class, primaryKey);
+
+			if (lvEntryLocalizationVersion == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchLVEntryLocalizationVersionException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(lvEntryLocalizationVersion);
+		}
+		catch (NoSuchLVEntryLocalizationVersionException
+					noSuchEntityException) {
+
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1141,6 +2108,32 @@ public class LVEntryLocalizationVersionPersistenceImpl
 		}
 
 		lvEntryLocalizationVersion.resetOriginalValues();
+
+		return lvEntryLocalizationVersion;
+	}
+
+	/**
+	 * Returns the lv entry localization version with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the lv entry localization version
+	 * @return the lv entry localization version
+	 * @throws NoSuchLVEntryLocalizationVersionException if a lv entry localization version with the primary key could not be found
+	 */
+	@Override
+	public LVEntryLocalizationVersion findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchLVEntryLocalizationVersionException {
+
+		LVEntryLocalizationVersion lvEntryLocalizationVersion =
+			fetchByPrimaryKey(primaryKey);
+
+		if (lvEntryLocalizationVersion == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchLVEntryLocalizationVersionException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return lvEntryLocalizationVersion;
 	}
@@ -1418,37 +2411,10 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			"countByLvEntryLocalizationId", new String[] {Long.class.getName()},
 			new String[] {"lvEntryLocalizationId"}, false);
 
-		_collectionPersistenceFinderByLvEntryLocalizationId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLvEntryLocalizationId,
-				_finderPathWithoutPaginationFindByLvEntryLocalizationId,
-				_finderPathCountByLvEntryLocalizationId,
-				_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				_SQL_COUNT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				LVEntryLocalizationVersionModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "lvEntryLocalizationId",
-					FinderColumn.Type.LONG, "=", true, true,
-					LVEntryLocalizationVersion::getLvEntryLocalizationId));
-
 		_finderPathFetchByLvEntryLocalizationId_Version = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByLvEntryLocalizationId_Version",
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"lvEntryLocalizationId", "version"}, true);
-
-		_uniquePersistenceFinderByLvEntryLocalizationId_Version =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByLvEntryLocalizationId_Version,
-				_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "lvEntryLocalizationId",
-					FinderColumn.Type.LONG, "=", true, false,
-					LVEntryLocalizationVersion::getLvEntryLocalizationId),
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "version",
-					FinderColumn.Type.INTEGER, "=", true, true,
-					LVEntryLocalizationVersion::getVersion));
 
 		_finderPathWithPaginationFindByLvEntryId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLvEntryId",
@@ -1467,20 +2433,6 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByLvEntryId",
 			new String[] {Long.class.getName()}, new String[] {"lvEntryId"},
 			false);
-
-		_collectionPersistenceFinderByLvEntryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLvEntryId,
-				_finderPathWithoutPaginationFindByLvEntryId,
-				_finderPathCountByLvEntryId,
-				_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				_SQL_COUNT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				LVEntryLocalizationVersionModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "lvEntryId",
-					FinderColumn.Type.LONG, "=", true, true,
-					LVEntryLocalizationVersion::getLvEntryId));
 
 		_finderPathWithPaginationFindByLvEntryId_Version = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLvEntryId_Version",
@@ -1502,24 +2454,6 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			"countByLvEntryId_Version",
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"lvEntryId", "version"}, false);
-
-		_collectionPersistenceFinderByLvEntryId_Version =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLvEntryId_Version,
-				_finderPathWithoutPaginationFindByLvEntryId_Version,
-				_finderPathCountByLvEntryId_Version,
-				_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				_SQL_COUNT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				LVEntryLocalizationVersionModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "lvEntryId",
-					FinderColumn.Type.LONG, "=", true, false,
-					LVEntryLocalizationVersion::getLvEntryId),
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "version",
-					FinderColumn.Type.INTEGER, "=", true, true,
-					LVEntryLocalizationVersion::getVersion));
 
 		_finderPathWithPaginationFindByLvEntryId_LanguageId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
@@ -1543,24 +2477,6 @@ public class LVEntryLocalizationVersionPersistenceImpl
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"lvEntryId", "languageId"}, false);
 
-		_collectionPersistenceFinderByLvEntryId_LanguageId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByLvEntryId_LanguageId,
-				_finderPathWithoutPaginationFindByLvEntryId_LanguageId,
-				_finderPathCountByLvEntryId_LanguageId,
-				_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				_SQL_COUNT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				LVEntryLocalizationVersionModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "lvEntryId",
-					FinderColumn.Type.LONG, "=", true, false,
-					LVEntryLocalizationVersion::getLvEntryId),
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "languageId",
-					FinderColumn.Type.STRING, "=", true, true,
-					LVEntryLocalizationVersion::getLanguageId));
-
 		_finderPathFetchByLvEntryId_LanguageId_Version = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByLvEntryId_LanguageId_Version",
 			new String[] {
@@ -1568,23 +2484,6 @@ public class LVEntryLocalizationVersionPersistenceImpl
 				Integer.class.getName()
 			},
 			new String[] {"lvEntryId", "languageId", "version"}, true);
-
-		_uniquePersistenceFinderByLvEntryId_LanguageId_Version =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByLvEntryId_LanguageId_Version,
-				_SQL_SELECT_LVENTRYLOCALIZATIONVERSION_WHERE,
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "lvEntryId",
-					FinderColumn.Type.LONG, "=", true, false,
-					LVEntryLocalizationVersion::getLvEntryId),
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "languageId",
-					FinderColumn.Type.STRING, "=", true, false,
-					LVEntryLocalizationVersion::getLanguageId),
-				new FinderColumn<>(
-					"lvEntryLocalizationVersion.", "version",
-					FinderColumn.Type.INTEGER, "=", true, true,
-					LVEntryLocalizationVersion::getVersion));
 
 		LVEntryLocalizationVersionUtil.setPersistence(this);
 	}
@@ -1616,6 +2515,9 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"lvEntryLocalizationVersion.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No LVEntryLocalizationVersion exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No LVEntryLocalizationVersion exists with the key {";
 
@@ -1628,4 +2530,4 @@ public class LVEntryLocalizationVersionPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1315018814
+// LIFERAY-SERVICE-BUILDER-HASH:-1685815906

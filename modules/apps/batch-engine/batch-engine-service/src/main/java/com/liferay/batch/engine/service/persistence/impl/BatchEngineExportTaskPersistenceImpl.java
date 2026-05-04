@@ -20,6 +20,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -34,9 +35,6 @@ import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -77,8 +75,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = BatchEngineExportTaskPersistence.class)
 public class BatchEngineExportTaskPersistenceImpl
-	extends BasePersistenceImpl
-		<BatchEngineExportTask, NoSuchExportTaskException>
+	extends BasePersistenceImpl<BatchEngineExportTask>
 	implements BatchEngineExportTaskPersistence {
 
 	/*
@@ -101,8 +98,6 @@ public class BatchEngineExportTaskPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<BatchEngineExportTask>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the batch engine export tasks where uuid = &#63;.
@@ -175,9 +170,106 @@ public class BatchEngineExportTaskPersistenceImpl
 		OrderByComparator<BatchEngineExportTask> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid.find(
-			finderCache, new Object[] {uuid}, start, end, orderByComparator,
-			useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid;
+				finderArgs = new Object[] {uuid};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid;
+			finderArgs = new Object[] {uuid, start, end, orderByComparator};
+		}
+
+		List<BatchEngineExportTask> list = null;
+
+		if (useFinderCache) {
+			list = (List<BatchEngineExportTask>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (BatchEngineExportTask batchEngineExportTask : list) {
+					if (!uuid.equals(batchEngineExportTask.getUuid())) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(BatchEngineExportTaskModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				list = (List<BatchEngineExportTask>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -201,9 +293,16 @@ public class BatchEngineExportTaskPersistenceImpl
 			return batchEngineExportTask;
 		}
 
-		throw new NoSuchExportTaskException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchExportTaskException(sb.toString());
 	}
 
 	/**
@@ -218,8 +317,14 @@ public class BatchEngineExportTaskPersistenceImpl
 		String uuid,
 		OrderByComparator<BatchEngineExportTask> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<BatchEngineExportTask> list = findByUuid(
+			uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -229,8 +334,11 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (BatchEngineExportTask batchEngineExportTask :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(batchEngineExportTask);
+		}
 	}
 
 	/**
@@ -241,15 +349,69 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public int countByUuid(String uuid) {
-		return _collectionPersistenceFinderByUuid.count(
-			finderCache, new Object[] {uuid});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid;
+
+		Object[] finderArgs = new Object[] {uuid};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_BATCHENGINEEXPORTTASK_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"batchEngineExportTask.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(batchEngineExportTask.uuid IS NULL OR batchEngineExportTask.uuid = '')";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<BatchEngineExportTask>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the batch engine export tasks where uuid = &#63; and companyId = &#63;.
@@ -330,9 +492,114 @@ public class BatchEngineExportTaskPersistenceImpl
 		OrderByComparator<BatchEngineExportTask> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid_C.find(
-			finderCache, new Object[] {uuid, companyId}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid_C;
+				finderArgs = new Object[] {uuid, companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid_C;
+			finderArgs = new Object[] {
+				uuid, companyId, start, end, orderByComparator
+			};
+		}
+
+		List<BatchEngineExportTask> list = null;
+
+		if (useFinderCache) {
+			list = (List<BatchEngineExportTask>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (BatchEngineExportTask batchEngineExportTask : list) {
+					if (!uuid.equals(batchEngineExportTask.getUuid()) ||
+						(companyId != batchEngineExportTask.getCompanyId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(BatchEngineExportTaskModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				list = (List<BatchEngineExportTask>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -357,9 +624,19 @@ public class BatchEngineExportTaskPersistenceImpl
 			return batchEngineExportTask;
 		}
 
-		throw new NoSuchExportTaskException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchExportTaskException(sb.toString());
 	}
 
 	/**
@@ -375,8 +652,14 @@ public class BatchEngineExportTaskPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<BatchEngineExportTask> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<BatchEngineExportTask> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -387,8 +670,13 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (BatchEngineExportTask batchEngineExportTask :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(batchEngineExportTask);
+		}
 	}
 
 	/**
@@ -400,15 +688,76 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public int countByUuid_C(String uuid, long companyId) {
-		return _collectionPersistenceFinderByUuid_C.count(
-			finderCache, new Object[] {uuid, companyId});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid_C;
+
+		Object[] finderArgs = new Object[] {uuid, companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_BATCHENGINEEXPORTTASK_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"batchEngineExportTask.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(batchEngineExportTask.uuid IS NULL OR batchEngineExportTask.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"batchEngineExportTask.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<BatchEngineExportTask>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the batch engine export tasks where companyId = &#63;.
@@ -482,9 +831,95 @@ public class BatchEngineExportTaskPersistenceImpl
 		OrderByComparator<BatchEngineExportTask> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			finderCache, new Object[] {companyId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<BatchEngineExportTask> list = null;
+
+		if (useFinderCache) {
+			list = (List<BatchEngineExportTask>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (BatchEngineExportTask batchEngineExportTask : list) {
+					if (companyId != batchEngineExportTask.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(BatchEngineExportTaskModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<BatchEngineExportTask>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -508,9 +943,16 @@ public class BatchEngineExportTaskPersistenceImpl
 			return batchEngineExportTask;
 		}
 
-		throw new NoSuchExportTaskException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchExportTaskException(sb.toString());
 	}
 
 	/**
@@ -525,8 +967,14 @@ public class BatchEngineExportTaskPersistenceImpl
 		long companyId,
 		OrderByComparator<BatchEngineExportTask> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<BatchEngineExportTask> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -536,8 +984,12 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (BatchEngineExportTask batchEngineExportTask :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(batchEngineExportTask);
+		}
 	}
 
 	/**
@@ -548,15 +1000,53 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			finderCache, new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_BATCHENGINEEXPORTTASK_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"batchEngineExportTask.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByExecuteStatus;
 	private FinderPath _finderPathWithoutPaginationFindByExecuteStatus;
 	private FinderPath _finderPathCountByExecuteStatus;
-	private CollectionPersistenceFinder<BatchEngineExportTask>
-		_collectionPersistenceFinderByExecuteStatus;
 
 	/**
 	 * Returns all the batch engine export tasks where executeStatus = &#63;.
@@ -633,9 +1123,110 @@ public class BatchEngineExportTaskPersistenceImpl
 		OrderByComparator<BatchEngineExportTask> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByExecuteStatus.find(
-			finderCache, new Object[] {executeStatus}, start, end,
-			orderByComparator, useFinderCache);
+		executeStatus = Objects.toString(executeStatus, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByExecuteStatus;
+				finderArgs = new Object[] {executeStatus};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByExecuteStatus;
+			finderArgs = new Object[] {
+				executeStatus, start, end, orderByComparator
+			};
+		}
+
+		List<BatchEngineExportTask> list = null;
+
+		if (useFinderCache) {
+			list = (List<BatchEngineExportTask>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (BatchEngineExportTask batchEngineExportTask : list) {
+					if (!executeStatus.equals(
+							batchEngineExportTask.getExecuteStatus())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE);
+
+			boolean bindExecuteStatus = false;
+
+			if (executeStatus.isEmpty()) {
+				sb.append(_FINDER_COLUMN_EXECUTESTATUS_EXECUTESTATUS_3);
+			}
+			else {
+				bindExecuteStatus = true;
+
+				sb.append(_FINDER_COLUMN_EXECUTESTATUS_EXECUTESTATUS_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(BatchEngineExportTaskModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExecuteStatus) {
+					queryPos.add(executeStatus);
+				}
+
+				list = (List<BatchEngineExportTask>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -659,9 +1250,16 @@ public class BatchEngineExportTaskPersistenceImpl
 			return batchEngineExportTask;
 		}
 
-		throw new NoSuchExportTaskException(
-			_collectionPersistenceFinderByExecuteStatus.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {executeStatus}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("executeStatus=");
+		sb.append(executeStatus);
+
+		sb.append("}");
+
+		throw new NoSuchExportTaskException(sb.toString());
 	}
 
 	/**
@@ -676,8 +1274,14 @@ public class BatchEngineExportTaskPersistenceImpl
 		String executeStatus,
 		OrderByComparator<BatchEngineExportTask> orderByComparator) {
 
-		return _collectionPersistenceFinderByExecuteStatus.fetchFirst(
-			finderCache, new Object[] {executeStatus}, orderByComparator);
+		List<BatchEngineExportTask> list = findByExecuteStatus(
+			executeStatus, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -687,8 +1291,13 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public void removeByExecuteStatus(String executeStatus) {
-		_collectionPersistenceFinderByExecuteStatus.remove(
-			finderCache, new Object[] {executeStatus});
+		for (BatchEngineExportTask batchEngineExportTask :
+				findByExecuteStatus(
+					executeStatus, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(batchEngineExportTask);
+		}
 	}
 
 	/**
@@ -699,13 +1308,67 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public int countByExecuteStatus(String executeStatus) {
-		return _collectionPersistenceFinderByExecuteStatus.count(
-			finderCache, new Object[] {executeStatus});
+		executeStatus = Objects.toString(executeStatus, "");
+
+		FinderPath finderPath = _finderPathCountByExecuteStatus;
+
+		Object[] finderArgs = new Object[] {executeStatus};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_BATCHENGINEEXPORTTASK_WHERE);
+
+			boolean bindExecuteStatus = false;
+
+			if (executeStatus.isEmpty()) {
+				sb.append(_FINDER_COLUMN_EXECUTESTATUS_EXECUTESTATUS_3);
+			}
+			else {
+				bindExecuteStatus = true;
+
+				sb.append(_FINDER_COLUMN_EXECUTESTATUS_EXECUTESTATUS_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExecuteStatus) {
+					queryPos.add(executeStatus);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_EXECUTESTATUS_EXECUTESTATUS_2 =
+		"batchEngineExportTask.executeStatus = ?";
+
+	private static final String _FINDER_COLUMN_EXECUTESTATUS_EXECUTESTATUS_3 =
+		"(batchEngineExportTask.executeStatus IS NULL OR batchEngineExportTask.executeStatus = '')";
+
 	private FinderPath _finderPathFetchByERC_C;
-	private UniquePersistenceFinder<BatchEngineExportTask>
-		_uniquePersistenceFinderByERC_C;
 
 	/**
 	 * Returns the batch engine export task where externalReferenceCode = &#63; and companyId = &#63; or throws a <code>NoSuchExportTaskException</code> if it could not be found.
@@ -724,16 +1387,23 @@ public class BatchEngineExportTaskPersistenceImpl
 			externalReferenceCode, companyId);
 
 		if (batchEngineExportTask == null) {
-			String message =
-				_uniquePersistenceFinderByERC_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {externalReferenceCode, companyId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("externalReferenceCode=");
+			sb.append(externalReferenceCode);
+
+			sb.append(", companyId=");
+			sb.append(companyId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchExportTaskException(message);
+			throw new NoSuchExportTaskException(sb.toString());
 		}
 
 		return batchEngineExportTask;
@@ -765,9 +1435,99 @@ public class BatchEngineExportTaskPersistenceImpl
 	public BatchEngineExportTask fetchByERC_C(
 		String externalReferenceCode, long companyId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByERC_C.fetch(
-			finderCache, new Object[] {externalReferenceCode, companyId},
-			useFinderCache);
+		externalReferenceCode = Objects.toString(externalReferenceCode, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {externalReferenceCode, companyId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByERC_C, finderArgs, this);
+		}
+
+		if (result instanceof BatchEngineExportTask) {
+			BatchEngineExportTask batchEngineExportTask =
+				(BatchEngineExportTask)result;
+
+			if (!Objects.equals(
+					externalReferenceCode,
+					batchEngineExportTask.getExternalReferenceCode()) ||
+				(companyId != batchEngineExportTask.getCompanyId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE);
+
+			boolean bindExternalReferenceCode = false;
+
+			if (externalReferenceCode.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_3);
+			}
+			else {
+				bindExternalReferenceCode = true;
+
+				sb.append(_FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_ERC_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExternalReferenceCode) {
+					queryPos.add(externalReferenceCode);
+				}
+
+				queryPos.add(companyId);
+
+				List<BatchEngineExportTask> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByERC_C, finderArgs, list);
+					}
+				}
+				else {
+					BatchEngineExportTask batchEngineExportTask = list.get(0);
+
+					result = batchEngineExportTask;
+
+					cacheResult(batchEngineExportTask);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (BatchEngineExportTask)result;
+		}
 	}
 
 	/**
@@ -797,9 +1557,24 @@ public class BatchEngineExportTaskPersistenceImpl
 	 */
 	@Override
 	public int countByERC_C(String externalReferenceCode, long companyId) {
-		return _uniquePersistenceFinderByERC_C.count(
-			finderCache, new Object[] {externalReferenceCode, companyId});
+		BatchEngineExportTask batchEngineExportTask = fetchByERC_C(
+			externalReferenceCode, companyId);
+
+		if (batchEngineExportTask == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_2 =
+		"batchEngineExportTask.externalReferenceCode = ? AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_3 =
+		"(batchEngineExportTask.externalReferenceCode IS NULL OR batchEngineExportTask.externalReferenceCode = '') AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_COMPANYID_2 =
+		"batchEngineExportTask.companyId = ?";
 
 	public BatchEngineExportTaskPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -867,6 +1642,53 @@ public class BatchEngineExportTaskPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all batch engine export tasks.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(BatchEngineExportTaskImpl.class);
+
+		finderCache.clearCache(BatchEngineExportTaskImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the batch engine export task.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(BatchEngineExportTask batchEngineExportTask) {
+		entityCache.removeResult(
+			BatchEngineExportTaskImpl.class, batchEngineExportTask);
+	}
+
+	@Override
+	public void clearCache(List<BatchEngineExportTask> batchEngineExportTasks) {
+		for (BatchEngineExportTask batchEngineExportTask :
+				batchEngineExportTasks) {
+
+			entityCache.removeResult(
+				BatchEngineExportTaskImpl.class, batchEngineExportTask);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(BatchEngineExportTaskImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				BatchEngineExportTaskImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		BatchEngineExportTaskModelImpl batchEngineExportTaskModelImpl) {
 
@@ -914,6 +1736,48 @@ public class BatchEngineExportTaskPersistenceImpl
 		throws NoSuchExportTaskException {
 
 		return remove((Serializable)batchEngineExportTaskId);
+	}
+
+	/**
+	 * Removes the batch engine export task with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the batch engine export task
+	 * @return the batch engine export task that was removed
+	 * @throws NoSuchExportTaskException if a batch engine export task with the primary key could not be found
+	 */
+	@Override
+	public BatchEngineExportTask remove(Serializable primaryKey)
+		throws NoSuchExportTaskException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			BatchEngineExportTask batchEngineExportTask =
+				(BatchEngineExportTask)session.get(
+					BatchEngineExportTaskImpl.class, primaryKey);
+
+			if (batchEngineExportTask == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchExportTaskException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(batchEngineExportTask);
+		}
+		catch (NoSuchExportTaskException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1115,6 +1979,32 @@ public class BatchEngineExportTaskPersistenceImpl
 		}
 
 		batchEngineExportTask.resetOriginalValues();
+
+		return batchEngineExportTask;
+	}
+
+	/**
+	 * Returns the batch engine export task with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the batch engine export task
+	 * @return the batch engine export task
+	 * @throws NoSuchExportTaskException if a batch engine export task with the primary key could not be found
+	 */
+	@Override
+	public BatchEngineExportTask findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchExportTaskException {
+
+		BatchEngineExportTask batchEngineExportTask = fetchByPrimaryKey(
+			primaryKey);
+
+		if (batchEngineExportTask == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchExportTaskException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return batchEngineExportTask;
 	}
@@ -1391,17 +2281,6 @@ public class BatchEngineExportTaskPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE,
-			_SQL_COUNT_BATCHENGINEEXPORTTASK_WHERE,
-			BatchEngineExportTaskModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"batchEngineExportTask.", "uuid", FinderColumn.Type.STRING, "=",
-				true, true, BatchEngineExportTask::getUuid));
-
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
 			new String[] {
@@ -1421,23 +2300,6 @@ public class BatchEngineExportTaskPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C,
-				_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE,
-				_SQL_COUNT_BATCHENGINEEXPORTTASK_WHERE,
-				BatchEngineExportTaskModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"batchEngineExportTask.", "uuid", FinderColumn.Type.STRING,
-					"=", true, false, BatchEngineExportTask::getUuid),
-				new FinderColumn<>(
-					"batchEngineExportTask.", "companyId",
-					FinderColumn.Type.LONG, "=", true, true,
-					BatchEngineExportTask::getCompanyId));
-
 		_finderPathWithPaginationFindByCompanyId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCompanyId",
 			new String[] {
@@ -1455,20 +2317,6 @@ public class BatchEngineExportTaskPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByCompanyId",
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
-
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId,
-				_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE,
-				_SQL_COUNT_BATCHENGINEEXPORTTASK_WHERE,
-				BatchEngineExportTaskModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"batchEngineExportTask.", "companyId",
-					FinderColumn.Type.LONG, "=", true, true,
-					BatchEngineExportTask::getCompanyId));
 
 		_finderPathWithPaginationFindByExecuteStatus = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByExecuteStatus",
@@ -1488,35 +2336,10 @@ public class BatchEngineExportTaskPersistenceImpl
 			new String[] {String.class.getName()},
 			new String[] {"executeStatus"}, false);
 
-		_collectionPersistenceFinderByExecuteStatus =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByExecuteStatus,
-				_finderPathWithoutPaginationFindByExecuteStatus,
-				_finderPathCountByExecuteStatus,
-				_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE,
-				_SQL_COUNT_BATCHENGINEEXPORTTASK_WHERE,
-				BatchEngineExportTaskModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"batchEngineExportTask.", "executeStatus",
-					FinderColumn.Type.STRING, "=", true, true,
-					BatchEngineExportTask::getExecuteStatus));
-
 		_finderPathFetchByERC_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByERC_C",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"externalReferenceCode", "companyId"}, true);
-
-		_uniquePersistenceFinderByERC_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByERC_C,
-			_SQL_SELECT_BATCHENGINEEXPORTTASK_WHERE,
-			new FinderColumn<>(
-				"batchEngineExportTask.", "externalReferenceCode",
-				FinderColumn.Type.STRING, "=", true, false,
-				BatchEngineExportTask::getExternalReferenceCode),
-			new FinderColumn<>(
-				"batchEngineExportTask.", "companyId", FinderColumn.Type.LONG,
-				"=", true, true, BatchEngineExportTask::getCompanyId));
 
 		BatchEngineExportTaskUtil.setPersistence(this);
 	}
@@ -1575,6 +2398,9 @@ public class BatchEngineExportTaskPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"batchEngineExportTask.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No BatchEngineExportTask exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No BatchEngineExportTask exists with the key {";
 
@@ -1590,4 +2416,4 @@ public class BatchEngineExportTaskPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1727517721
+// LIFERAY-SERVICE-BUILDER-HASH:1606836940

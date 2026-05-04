@@ -308,4 +308,4 @@ public interface CommerceNotificationTemplateCommerceAccountGroupRelLocalService
 				commerceNotificationTemplateCommerceAccountGroupRel);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:744968817
+// LIFERAY-SERVICE-BUILDER-HASH:548292280

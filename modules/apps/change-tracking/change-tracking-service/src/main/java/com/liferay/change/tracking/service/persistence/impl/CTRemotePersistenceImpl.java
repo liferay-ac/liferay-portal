@@ -31,8 +31,6 @@ import com.liferay.portal.kernel.security.permission.InlineSQLHelperUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -46,6 +44,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -66,8 +65,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTRemotePersistence.class)
 public class CTRemotePersistenceImpl
-	extends BasePersistenceImpl<CTRemote, NoSuchRemoteException>
-	implements CTRemotePersistence {
+	extends BasePersistenceImpl<CTRemote> implements CTRemotePersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -89,8 +87,6 @@ public class CTRemotePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<CTRemote>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the ct remotes where companyId = &#63;.
@@ -161,9 +157,95 @@ public class CTRemotePersistenceImpl
 		long companyId, int start, int end,
 		OrderByComparator<CTRemote> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			finderCache, new Object[] {companyId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<CTRemote> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTRemote>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTRemote ctRemote : list) {
+					if (companyId != ctRemote.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTREMOTE_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTRemoteModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<CTRemote>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -186,9 +268,16 @@ public class CTRemotePersistenceImpl
 			return ctRemote;
 		}
 
-		throw new NoSuchRemoteException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchRemoteException(sb.toString());
 	}
 
 	/**
@@ -202,8 +291,14 @@ public class CTRemotePersistenceImpl
 	public CTRemote fetchByCompanyId_First(
 		long companyId, OrderByComparator<CTRemote> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<CTRemote> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -350,8 +445,12 @@ public class CTRemotePersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (CTRemote ctRemote :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(ctRemote);
+		}
 	}
 
 	/**
@@ -362,8 +461,45 @@ public class CTRemotePersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			finderCache, new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTREMOTE_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -471,6 +607,48 @@ public class CTRemotePersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all ct remotes.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTRemoteImpl.class);
+
+		finderCache.clearCache(CTRemoteImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ct remote.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTRemote ctRemote) {
+		entityCache.removeResult(CTRemoteImpl.class, ctRemote);
+	}
+
+	@Override
+	public void clearCache(List<CTRemote> ctRemotes) {
+		for (CTRemote ctRemote : ctRemotes) {
+			entityCache.removeResult(CTRemoteImpl.class, ctRemote);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTRemoteImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CTRemoteImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new ct remote with the primary key. Does not add the ct remote to the database.
 	 *
 	 * @param ctRemoteId the primary key for the new ct remote
@@ -498,6 +676,47 @@ public class CTRemotePersistenceImpl
 	@Override
 	public CTRemote remove(long ctRemoteId) throws NoSuchRemoteException {
 		return remove((Serializable)ctRemoteId);
+	}
+
+	/**
+	 * Removes the ct remote with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ct remote
+	 * @return the ct remote that was removed
+	 * @throws NoSuchRemoteException if a ct remote with the primary key could not be found
+	 */
+	@Override
+	public CTRemote remove(Serializable primaryKey)
+		throws NoSuchRemoteException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTRemote ctRemote = (CTRemote)session.get(
+				CTRemoteImpl.class, primaryKey);
+
+			if (ctRemote == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchRemoteException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctRemote);
+		}
+		catch (NoSuchRemoteException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -602,6 +821,31 @@ public class CTRemotePersistenceImpl
 		}
 
 		ctRemote.resetOriginalValues();
+
+		return ctRemote;
+	}
+
+	/**
+	 * Returns the ct remote with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ct remote
+	 * @return the ct remote
+	 * @throws NoSuchRemoteException if a ct remote with the primary key could not be found
+	 */
+	@Override
+	public CTRemote findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchRemoteException {
+
+		CTRemote ctRemote = fetchByPrimaryKey(primaryKey);
+
+		if (ctRemote == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchRemoteException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return ctRemote;
 	}
@@ -868,17 +1112,6 @@ public class CTRemotePersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_CTREMOTE_WHERE,
-				_SQL_COUNT_CTREMOTE_WHERE, CTRemoteModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctRemote.", "companyId", FinderColumn.Type.LONG, "=", true,
-					true, CTRemote::getCompanyId));
-
 		CTRemoteUtil.setPersistence(this);
 	}
 
@@ -958,6 +1191,9 @@ public class CTRemotePersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_TABLE = "CTRemote.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTRemote exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTRemote exists with the key {";
 
@@ -970,4 +1206,4 @@ public class CTRemotePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1680499130
+// LIFERAY-SERVICE-BUILDER-HASH:-1698602048

@@ -379,4 +379,4 @@ public interface ERCVersionedEntryLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:725301164
+// LIFERAY-SERVICE-BUILDER-HASH:2069985201

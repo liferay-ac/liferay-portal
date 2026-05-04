@@ -32,11 +32,8 @@ import com.liferay.portal.kernel.security.permission.InlineSQLHelperUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.service.persistence.impl.TableMapper;
 import com.liferay.portal.kernel.service.persistence.impl.TableMapperFactory;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
@@ -45,6 +42,7 @@ import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.SetUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 
 import java.io.Serializable;
 
@@ -76,7 +74,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = PatcherAccountPersistence.class)
 public class PatcherAccountPersistenceImpl
-	extends BasePersistenceImpl<PatcherAccount, NoSuchPatcherAccountException>
+	extends BasePersistenceImpl<PatcherAccount>
 	implements PatcherAccountPersistence {
 
 	/*
@@ -99,8 +97,6 @@ public class PatcherAccountPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<PatcherAccount>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the patcher accounts where companyId = &#63;.
@@ -174,9 +170,95 @@ public class PatcherAccountPersistenceImpl
 		OrderByComparator<PatcherAccount> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			finderCache, new Object[] {companyId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<PatcherAccount> list = null;
+
+		if (useFinderCache) {
+			list = (List<PatcherAccount>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (PatcherAccount patcherAccount : list) {
+					if (companyId != patcherAccount.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_PATCHERACCOUNT_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(PatcherAccountModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<PatcherAccount>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -199,9 +281,16 @@ public class PatcherAccountPersistenceImpl
 			return patcherAccount;
 		}
 
-		throw new NoSuchPatcherAccountException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchPatcherAccountException(sb.toString());
 	}
 
 	/**
@@ -215,8 +304,14 @@ public class PatcherAccountPersistenceImpl
 	public PatcherAccount fetchByCompanyId_First(
 		long companyId, OrderByComparator<PatcherAccount> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<PatcherAccount> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -367,8 +462,12 @@ public class PatcherAccountPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (PatcherAccount patcherAccount :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(patcherAccount);
+		}
 	}
 
 	/**
@@ -379,8 +478,45 @@ public class PatcherAccountPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			finderCache, new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_PATCHERACCOUNT_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -443,8 +579,6 @@ public class PatcherAccountPersistenceImpl
 		"patcherAccount.companyId = ?";
 
 	private FinderPath _finderPathFetchByAccountEntryCode;
-	private UniquePersistenceFinder<PatcherAccount>
-		_uniquePersistenceFinderByAccountEntryCode;
 
 	/**
 	 * Returns the patcher account where accountEntryCode = &#63; or throws a <code>NoSuchPatcherAccountException</code> if it could not be found.
@@ -461,17 +595,20 @@ public class PatcherAccountPersistenceImpl
 			accountEntryCode);
 
 		if (patcherAccount == null) {
-			String message =
-				_uniquePersistenceFinderByAccountEntryCode.
-					buildNoSuchKeyMessage(
-						_NO_SUCH_ENTITY_WITH_KEY,
-						new Object[] {accountEntryCode});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("accountEntryCode=");
+			sb.append(accountEntryCode);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchPatcherAccountException(message);
+			throw new NoSuchPatcherAccountException(sb.toString());
 		}
 
 		return patcherAccount;
@@ -499,8 +636,93 @@ public class PatcherAccountPersistenceImpl
 	public PatcherAccount fetchByAccountEntryCode(
 		String accountEntryCode, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByAccountEntryCode.fetch(
-			finderCache, new Object[] {accountEntryCode}, useFinderCache);
+		accountEntryCode = Objects.toString(accountEntryCode, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {accountEntryCode};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByAccountEntryCode, finderArgs, this);
+		}
+
+		if (result instanceof PatcherAccount) {
+			PatcherAccount patcherAccount = (PatcherAccount)result;
+
+			if (!Objects.equals(
+					accountEntryCode, patcherAccount.getAccountEntryCode())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_PATCHERACCOUNT_WHERE);
+
+			boolean bindAccountEntryCode = false;
+
+			if (accountEntryCode.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ACCOUNTENTRYCODE_ACCOUNTENTRYCODE_3);
+			}
+			else {
+				bindAccountEntryCode = true;
+
+				sb.append(_FINDER_COLUMN_ACCOUNTENTRYCODE_ACCOUNTENTRYCODE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindAccountEntryCode) {
+					queryPos.add(accountEntryCode);
+				}
+
+				List<PatcherAccount> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByAccountEntryCode, finderArgs,
+							list);
+					}
+				}
+				else {
+					PatcherAccount patcherAccount = list.get(0);
+
+					result = patcherAccount;
+
+					cacheResult(patcherAccount);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (PatcherAccount)result;
+		}
 	}
 
 	/**
@@ -527,14 +749,26 @@ public class PatcherAccountPersistenceImpl
 	 */
 	@Override
 	public int countByAccountEntryCode(String accountEntryCode) {
-		return _uniquePersistenceFinderByAccountEntryCode.count(
-			finderCache, new Object[] {accountEntryCode});
+		PatcherAccount patcherAccount = fetchByAccountEntryCode(
+			accountEntryCode);
+
+		if (patcherAccount == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String
+		_FINDER_COLUMN_ACCOUNTENTRYCODE_ACCOUNTENTRYCODE_2 =
+			"patcherAccount.accountEntryCode = ?";
+
+	private static final String
+		_FINDER_COLUMN_ACCOUNTENTRYCODE_ACCOUNTENTRYCODE_3 =
+			"(patcherAccount.accountEntryCode IS NULL OR patcherAccount.accountEntryCode = '')";
 
 	private FinderPath _finderPathWithPaginationFindByC_LikeA;
 	private FinderPath _finderPathWithPaginationCountByC_LikeA;
-	private CollectionPersistenceFinder<PatcherAccount>
-		_collectionPersistenceFinderByC_LikeA;
 
 	/**
 	 * Returns all the patcher accounts where companyId = &#63; and accountEntryCode LIKE &#63;.
@@ -616,9 +850,106 @@ public class PatcherAccountPersistenceImpl
 		OrderByComparator<PatcherAccount> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_LikeA.find(
-			finderCache, new Object[] {companyId, accountEntryCode}, start, end,
-			orderByComparator, useFinderCache);
+		accountEntryCode = Objects.toString(accountEntryCode, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		finderPath = _finderPathWithPaginationFindByC_LikeA;
+		finderArgs = new Object[] {
+			companyId, accountEntryCode, start, end, orderByComparator
+		};
+
+		List<PatcherAccount> list = null;
+
+		if (useFinderCache) {
+			list = (List<PatcherAccount>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (PatcherAccount patcherAccount : list) {
+					if ((companyId != patcherAccount.getCompanyId()) ||
+						!StringUtil.wildcardMatches(
+							patcherAccount.getAccountEntryCode(),
+							accountEntryCode, '_', '%', '\\', true)) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_PATCHERACCOUNT_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_LIKEA_COMPANYID_2);
+
+			boolean bindAccountEntryCode = false;
+
+			if (accountEntryCode.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_LIKEA_ACCOUNTENTRYCODE_3);
+			}
+			else {
+				bindAccountEntryCode = true;
+
+				sb.append(_FINDER_COLUMN_C_LIKEA_ACCOUNTENTRYCODE_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(PatcherAccountModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindAccountEntryCode) {
+					queryPos.add(accountEntryCode);
+				}
+
+				list = (List<PatcherAccount>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -643,10 +974,19 @@ public class PatcherAccountPersistenceImpl
 			return patcherAccount;
 		}
 
-		throw new NoSuchPatcherAccountException(
-			_collectionPersistenceFinderByC_LikeA.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, accountEntryCode}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", accountEntryCodeLIKE");
+		sb.append(accountEntryCode);
+
+		sb.append("}");
+
+		throw new NoSuchPatcherAccountException(sb.toString());
 	}
 
 	/**
@@ -662,9 +1002,14 @@ public class PatcherAccountPersistenceImpl
 		long companyId, String accountEntryCode,
 		OrderByComparator<PatcherAccount> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_LikeA.fetchFirst(
-			finderCache, new Object[] {companyId, accountEntryCode},
-			orderByComparator);
+		List<PatcherAccount> list = findByC_LikeA(
+			companyId, accountEntryCode, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -841,8 +1186,13 @@ public class PatcherAccountPersistenceImpl
 	 */
 	@Override
 	public void removeByC_LikeA(long companyId, String accountEntryCode) {
-		_collectionPersistenceFinderByC_LikeA.remove(
-			finderCache, new Object[] {companyId, accountEntryCode});
+		for (PatcherAccount patcherAccount :
+				findByC_LikeA(
+					companyId, accountEntryCode, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(patcherAccount);
+		}
 	}
 
 	/**
@@ -854,8 +1204,62 @@ public class PatcherAccountPersistenceImpl
 	 */
 	@Override
 	public int countByC_LikeA(long companyId, String accountEntryCode) {
-		return _collectionPersistenceFinderByC_LikeA.count(
-			finderCache, new Object[] {companyId, accountEntryCode});
+		accountEntryCode = Objects.toString(accountEntryCode, "");
+
+		FinderPath finderPath = _finderPathWithPaginationCountByC_LikeA;
+
+		Object[] finderArgs = new Object[] {companyId, accountEntryCode};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_PATCHERACCOUNT_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_LIKEA_COMPANYID_2);
+
+			boolean bindAccountEntryCode = false;
+
+			if (accountEntryCode.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_LIKEA_ACCOUNTENTRYCODE_3);
+			}
+			else {
+				bindAccountEntryCode = true;
+
+				sb.append(_FINDER_COLUMN_C_LIKEA_ACCOUNTENTRYCODE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindAccountEntryCode) {
+					queryPos.add(accountEntryCode);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -994,6 +1398,48 @@ public class PatcherAccountPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all patcher accounts.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(PatcherAccountImpl.class);
+
+		finderCache.clearCache(PatcherAccountImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the patcher account.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(PatcherAccount patcherAccount) {
+		entityCache.removeResult(PatcherAccountImpl.class, patcherAccount);
+	}
+
+	@Override
+	public void clearCache(List<PatcherAccount> patcherAccounts) {
+		for (PatcherAccount patcherAccount : patcherAccounts) {
+			entityCache.removeResult(PatcherAccountImpl.class, patcherAccount);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(PatcherAccountImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(PatcherAccountImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		PatcherAccountModelImpl patcherAccountModelImpl) {
 
@@ -1035,6 +1481,47 @@ public class PatcherAccountPersistenceImpl
 		throws NoSuchPatcherAccountException {
 
 		return remove((Serializable)patcherAccountId);
+	}
+
+	/**
+	 * Removes the patcher account with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the patcher account
+	 * @return the patcher account that was removed
+	 * @throws NoSuchPatcherAccountException if a patcher account with the primary key could not be found
+	 */
+	@Override
+	public PatcherAccount remove(Serializable primaryKey)
+		throws NoSuchPatcherAccountException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			PatcherAccount patcherAccount = (PatcherAccount)session.get(
+				PatcherAccountImpl.class, primaryKey);
+
+			if (patcherAccount == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchPatcherAccountException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(patcherAccount);
+		}
+		catch (NoSuchPatcherAccountException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1149,6 +1636,31 @@ public class PatcherAccountPersistenceImpl
 		}
 
 		patcherAccount.resetOriginalValues();
+
+		return patcherAccount;
+	}
+
+	/**
+	 * Returns the patcher account with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the patcher account
+	 * @return the patcher account
+	 * @throws NoSuchPatcherAccountException if a patcher account with the primary key could not be found
+	 */
+	@Override
+	public PatcherAccount findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchPatcherAccountException {
+
+		PatcherAccount patcherAccount = fetchByPrimaryKey(primaryKey);
+
+		if (patcherAccount == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchPatcherAccountException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return patcherAccount;
 	}
@@ -1744,30 +2256,10 @@ public class PatcherAccountPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_PATCHERACCOUNT_WHERE,
-				_SQL_COUNT_PATCHERACCOUNT_WHERE,
-				PatcherAccountModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"patcherAccount.", "companyId", FinderColumn.Type.LONG, "=",
-					true, true, PatcherAccount::getCompanyId));
-
 		_finderPathFetchByAccountEntryCode = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByAccountEntryCode",
 			new String[] {String.class.getName()},
 			new String[] {"accountEntryCode"}, true);
-
-		_uniquePersistenceFinderByAccountEntryCode =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByAccountEntryCode,
-				_SQL_SELECT_PATCHERACCOUNT_WHERE,
-				new FinderColumn<>(
-					"patcherAccount.", "accountEntryCode",
-					FinderColumn.Type.STRING, "=", true, true,
-					PatcherAccount::getAccountEntryCode));
 
 		_finderPathWithPaginationFindByC_LikeA = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_LikeA",
@@ -1782,21 +2274,6 @@ public class PatcherAccountPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByC_LikeA",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"companyId", "accountEntryCode"}, false);
-
-		_collectionPersistenceFinderByC_LikeA =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_LikeA, null,
-				_finderPathWithPaginationCountByC_LikeA,
-				_SQL_SELECT_PATCHERACCOUNT_WHERE,
-				_SQL_COUNT_PATCHERACCOUNT_WHERE,
-				PatcherAccountModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"patcherAccount.", "companyId", FinderColumn.Type.LONG, "=",
-					true, false, PatcherAccount::getCompanyId),
-				new FinderColumn<>(
-					"patcherAccount.", "accountEntryCode",
-					FinderColumn.Type.STRING, "LIKE", true, true,
-					PatcherAccount::getAccountEntryCode));
 
 		PatcherAccountUtil.setPersistence(this);
 	}
@@ -1885,6 +2362,9 @@ public class PatcherAccountPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_TABLE =
 		"OSBPatcher_PatcherAccount.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No PatcherAccount exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No PatcherAccount exists with the key {";
 
@@ -1897,4 +2377,4 @@ public class PatcherAccountPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1905568611
+// LIFERAY-SERVICE-BUILDER-HASH:917032546

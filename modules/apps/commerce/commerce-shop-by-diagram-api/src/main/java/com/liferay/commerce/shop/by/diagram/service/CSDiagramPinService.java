@@ -83,4 +83,4 @@ public interface CSDiagramPinService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:265143776
+// LIFERAY-SERVICE-BUILDER-HASH:723781513

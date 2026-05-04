@@ -15,6 +15,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchRepositoryEntryException;
@@ -27,12 +28,8 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.RepositoryEntryPersistence;
 import com.liferay.portal.kernel.service.persistence.RepositoryEntryUtil;
-import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelperUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -54,8 +51,10 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -69,7 +68,7 @@ import java.util.Set;
  * @generated
  */
 public class RepositoryEntryPersistenceImpl
-	extends BasePersistenceImpl<RepositoryEntry, NoSuchRepositoryEntryException>
+	extends BasePersistenceImpl<RepositoryEntry>
 	implements RepositoryEntryPersistence {
 
 	/*
@@ -92,8 +91,6 @@ public class RepositoryEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<RepositoryEntry>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the repository entries where uuid = &#63;.
@@ -168,9 +165,106 @@ public class RepositoryEntryPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					RepositoryEntry.class)) {
 
-			return _collectionPersistenceFinderByUuid.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {uuid}, start,
-				end, orderByComparator, useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid;
+					finderArgs = new Object[] {uuid};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid;
+				finderArgs = new Object[] {uuid, start, end, orderByComparator};
+			}
+
+			List<RepositoryEntry> list = null;
+
+			if (useFinderCache) {
+				list = (List<RepositoryEntry>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (RepositoryEntry repositoryEntry : list) {
+						if (!uuid.equals(repositoryEntry.getUuid())) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_REPOSITORYENTRY_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(RepositoryEntryModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					list = (List<RepositoryEntry>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -194,9 +288,16 @@ public class RepositoryEntryPersistenceImpl
 			return repositoryEntry;
 		}
 
-		throw new NoSuchRepositoryEntryException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchRepositoryEntryException(sb.toString());
 	}
 
 	/**
@@ -210,9 +311,13 @@ public class RepositoryEntryPersistenceImpl
 	public RepositoryEntry fetchByUuid_First(
 		String uuid, OrderByComparator<RepositoryEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid},
-			orderByComparator);
+		List<RepositoryEntry> list = findByUuid(uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -222,8 +327,11 @@ public class RepositoryEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid});
+		for (RepositoryEntry repositoryEntry :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(repositoryEntry);
+		}
 	}
 
 	/**
@@ -238,14 +346,69 @@ public class RepositoryEntryPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					RepositoryEntry.class)) {
 
-			return _collectionPersistenceFinderByUuid.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {uuid});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid;
+
+			Object[] finderArgs = new Object[] {uuid};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_REPOSITORYENTRY_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_UUID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"repositoryEntry.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(repositoryEntry.uuid IS NULL OR repositoryEntry.uuid = '')";
+
 	private FinderPath _finderPathFetchByUUID_G;
-	private UniquePersistenceFinder<RepositoryEntry>
-		_uniquePersistenceFinderByUUID_G;
 
 	/**
 	 * Returns the repository entry where uuid = &#63; and groupId = &#63; or throws a <code>NoSuchRepositoryEntryException</code> if it could not be found.
@@ -262,15 +425,23 @@ public class RepositoryEntryPersistenceImpl
 		RepositoryEntry repositoryEntry = fetchByUUID_G(uuid, groupId);
 
 		if (repositoryEntry == null) {
-			String message =
-				_uniquePersistenceFinderByUUID_G.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, groupId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("uuid=");
+			sb.append(uuid);
+
+			sb.append(", groupId=");
+			sb.append(groupId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchRepositoryEntryException(message);
+			throw new NoSuchRepositoryEntryException(sb.toString());
 		}
 
 		return repositoryEntry;
@@ -304,9 +475,96 @@ public class RepositoryEntryPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					RepositoryEntry.class)) {
 
-			return _uniquePersistenceFinderByUUID_G.fetch(
-				FinderCacheUtil.getFinderCache(), new Object[] {uuid, groupId},
-				useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {uuid, groupId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = FinderCacheUtil.getResult(
+					_finderPathFetchByUUID_G, finderArgs, this);
+			}
+
+			if (result instanceof RepositoryEntry) {
+				RepositoryEntry repositoryEntry = (RepositoryEntry)result;
+
+				if (!Objects.equals(uuid, repositoryEntry.getUuid()) ||
+					(groupId != repositoryEntry.getGroupId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_REPOSITORYENTRY_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_G_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_G_GROUPID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(groupId);
+
+					List<RepositoryEntry> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							FinderCacheUtil.putResult(
+								_finderPathFetchByUUID_G, finderArgs, list);
+						}
+					}
+					else {
+						RepositoryEntry repositoryEntry = list.get(0);
+
+						result = repositoryEntry;
+
+						cacheResult(repositoryEntry);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (RepositoryEntry)result;
+			}
 		}
 	}
 
@@ -335,15 +593,27 @@ public class RepositoryEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUUID_G(String uuid, long groupId) {
-		return _uniquePersistenceFinderByUUID_G.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid, groupId});
+		RepositoryEntry repositoryEntry = fetchByUUID_G(uuid, groupId);
+
+		if (repositoryEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_2 =
+		"repositoryEntry.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_UUID_3 =
+		"(repositoryEntry.uuid IS NULL OR repositoryEntry.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_G_GROUPID_2 =
+		"repositoryEntry.groupId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<RepositoryEntry>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the repository entries where uuid = &#63; and companyId = &#63;.
@@ -426,10 +696,114 @@ public class RepositoryEntryPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					RepositoryEntry.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.find(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {uuid, companyId}, start, end, orderByComparator,
-				useFinderCache);
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByUuid_C;
+					finderArgs = new Object[] {uuid, companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByUuid_C;
+				finderArgs = new Object[] {
+					uuid, companyId, start, end, orderByComparator
+				};
+			}
+
+			List<RepositoryEntry> list = null;
+
+			if (useFinderCache) {
+				list = (List<RepositoryEntry>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (RepositoryEntry repositoryEntry : list) {
+						if (!uuid.equals(repositoryEntry.getUuid()) ||
+							(companyId != repositoryEntry.getCompanyId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_REPOSITORYENTRY_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(RepositoryEntryModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					list = (List<RepositoryEntry>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -455,9 +829,19 @@ public class RepositoryEntryPersistenceImpl
 			return repositoryEntry;
 		}
 
-		throw new NoSuchRepositoryEntryException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchRepositoryEntryException(sb.toString());
 	}
 
 	/**
@@ -473,9 +857,14 @@ public class RepositoryEntryPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<RepositoryEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid, companyId},
-			orderByComparator);
+		List<RepositoryEntry> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -486,8 +875,13 @@ public class RepositoryEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {uuid, companyId});
+		for (RepositoryEntry repositoryEntry :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(repositoryEntry);
+		}
 	}
 
 	/**
@@ -503,17 +897,78 @@ public class RepositoryEntryPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					RepositoryEntry.class)) {
 
-			return _collectionPersistenceFinderByUuid_C.count(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {uuid, companyId});
+			uuid = Objects.toString(uuid, "");
+
+			FinderPath finderPath = _finderPathCountByUuid_C;
+
+			Object[] finderArgs = new Object[] {uuid, companyId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_REPOSITORYENTRY_WHERE);
+
+				boolean bindUuid = false;
+
+				if (uuid.isEmpty()) {
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+				}
+				else {
+					bindUuid = true;
+
+					sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+				}
+
+				sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					if (bindUuid) {
+						queryPos.add(uuid);
+					}
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"repositoryEntry.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(repositoryEntry.uuid IS NULL OR repositoryEntry.uuid = '') AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_COMPANYID_2 =
+		"repositoryEntry.companyId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByRepositoryId;
 	private FinderPath _finderPathWithoutPaginationFindByRepositoryId;
 	private FinderPath _finderPathCountByRepositoryId;
-	private CollectionPersistenceFinder<RepositoryEntry>
-		_collectionPersistenceFinderByRepositoryId;
 
 	/**
 	 * Returns all the repository entries where repositoryId = &#63;.
@@ -592,9 +1047,95 @@ public class RepositoryEntryPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					RepositoryEntry.class)) {
 
-			return _collectionPersistenceFinderByRepositoryId.find(
-				FinderCacheUtil.getFinderCache(), new Object[] {repositoryId},
-				start, end, orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByRepositoryId;
+					finderArgs = new Object[] {repositoryId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByRepositoryId;
+				finderArgs = new Object[] {
+					repositoryId, start, end, orderByComparator
+				};
+			}
+
+			List<RepositoryEntry> list = null;
+
+			if (useFinderCache) {
+				list = (List<RepositoryEntry>)FinderCacheUtil.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (RepositoryEntry repositoryEntry : list) {
+						if (repositoryId != repositoryEntry.getRepositoryId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_REPOSITORYENTRY_WHERE);
+
+				sb.append(_FINDER_COLUMN_REPOSITORYID_REPOSITORYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(RepositoryEntryModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(repositoryId);
+
+					list = (List<RepositoryEntry>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -619,9 +1160,16 @@ public class RepositoryEntryPersistenceImpl
 			return repositoryEntry;
 		}
 
-		throw new NoSuchRepositoryEntryException(
-			_collectionPersistenceFinderByRepositoryId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {repositoryId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("repositoryId=");
+		sb.append(repositoryId);
+
+		sb.append("}");
+
+		throw new NoSuchRepositoryEntryException(sb.toString());
 	}
 
 	/**
@@ -636,9 +1184,14 @@ public class RepositoryEntryPersistenceImpl
 		long repositoryId,
 		OrderByComparator<RepositoryEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByRepositoryId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {repositoryId},
-			orderByComparator);
+		List<RepositoryEntry> list = findByRepositoryId(
+			repositoryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -648,8 +1201,12 @@ public class RepositoryEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByRepositoryId(long repositoryId) {
-		_collectionPersistenceFinderByRepositoryId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {repositoryId});
+		for (RepositoryEntry repositoryEntry :
+				findByRepositoryId(
+					repositoryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(repositoryEntry);
+		}
 	}
 
 	/**
@@ -664,14 +1221,53 @@ public class RepositoryEntryPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					RepositoryEntry.class)) {
 
-			return _collectionPersistenceFinderByRepositoryId.count(
-				FinderCacheUtil.getFinderCache(), new Object[] {repositoryId});
+			FinderPath finderPath = _finderPathCountByRepositoryId;
+
+			Object[] finderArgs = new Object[] {repositoryId};
+
+			Long count = (Long)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_REPOSITORYENTRY_WHERE);
+
+				sb.append(_FINDER_COLUMN_REPOSITORYID_REPOSITORYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(repositoryId);
+
+					count = (Long)query.uniqueResult();
+
+					FinderCacheUtil.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_REPOSITORYID_REPOSITORYID_2 =
+		"repositoryEntry.repositoryId = ?";
+
 	private FinderPath _finderPathFetchByR_M;
-	private UniquePersistenceFinder<RepositoryEntry>
-		_uniquePersistenceFinderByR_M;
 
 	/**
 	 * Returns the repository entry where repositoryId = &#63; and mappedId = &#63; or throws a <code>NoSuchRepositoryEntryException</code> if it could not be found.
@@ -688,16 +1284,23 @@ public class RepositoryEntryPersistenceImpl
 		RepositoryEntry repositoryEntry = fetchByR_M(repositoryId, mappedId);
 
 		if (repositoryEntry == null) {
-			String message =
-				_uniquePersistenceFinderByR_M.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {repositoryId, mappedId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("repositoryId=");
+			sb.append(repositoryId);
+
+			sb.append(", mappedId=");
+			sb.append(mappedId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchRepositoryEntryException(message);
+			throw new NoSuchRepositoryEntryException(sb.toString());
 		}
 
 		return repositoryEntry;
@@ -731,9 +1334,96 @@ public class RepositoryEntryPersistenceImpl
 				CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
 					RepositoryEntry.class)) {
 
-			return _uniquePersistenceFinderByR_M.fetch(
-				FinderCacheUtil.getFinderCache(),
-				new Object[] {repositoryId, mappedId}, useFinderCache);
+			mappedId = Objects.toString(mappedId, "");
+
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {repositoryId, mappedId};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = FinderCacheUtil.getResult(
+					_finderPathFetchByR_M, finderArgs, this);
+			}
+
+			if (result instanceof RepositoryEntry) {
+				RepositoryEntry repositoryEntry = (RepositoryEntry)result;
+
+				if ((repositoryId != repositoryEntry.getRepositoryId()) ||
+					!Objects.equals(mappedId, repositoryEntry.getMappedId())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_REPOSITORYENTRY_WHERE);
+
+				sb.append(_FINDER_COLUMN_R_M_REPOSITORYID_2);
+
+				boolean bindMappedId = false;
+
+				if (mappedId.isEmpty()) {
+					sb.append(_FINDER_COLUMN_R_M_MAPPEDID_3);
+				}
+				else {
+					bindMappedId = true;
+
+					sb.append(_FINDER_COLUMN_R_M_MAPPEDID_2);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(repositoryId);
+
+					if (bindMappedId) {
+						queryPos.add(mappedId);
+					}
+
+					List<RepositoryEntry> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							FinderCacheUtil.putResult(
+								_finderPathFetchByR_M, finderArgs, list);
+						}
+					}
+					else {
+						RepositoryEntry repositoryEntry = list.get(0);
+
+						result = repositoryEntry;
+
+						cacheResult(repositoryEntry);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (RepositoryEntry)result;
+			}
 		}
 	}
 
@@ -762,10 +1452,23 @@ public class RepositoryEntryPersistenceImpl
 	 */
 	@Override
 	public int countByR_M(long repositoryId, String mappedId) {
-		return _uniquePersistenceFinderByR_M.count(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {repositoryId, mappedId});
+		RepositoryEntry repositoryEntry = fetchByR_M(repositoryId, mappedId);
+
+		if (repositoryEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_R_M_REPOSITORYID_2 =
+		"repositoryEntry.repositoryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_R_M_MAPPEDID_2 =
+		"repositoryEntry.mappedId = ?";
+
+	private static final String _FINDER_COLUMN_R_M_MAPPEDID_3 =
+		"(repositoryEntry.mappedId IS NULL OR repositoryEntry.mappedId = '')";
 
 	public RepositoryEntryPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -846,6 +1549,50 @@ public class RepositoryEntryPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all repository entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(RepositoryEntryImpl.class);
+
+		FinderCacheUtil.clearCache(RepositoryEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the repository entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(RepositoryEntry repositoryEntry) {
+		EntityCacheUtil.removeResult(
+			RepositoryEntryImpl.class, repositoryEntry);
+	}
+
+	@Override
+	public void clearCache(List<RepositoryEntry> repositoryEntries) {
+		for (RepositoryEntry repositoryEntry : repositoryEntries) {
+			EntityCacheUtil.removeResult(
+				RepositoryEntryImpl.class, repositoryEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(RepositoryEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(RepositoryEntryImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		RepositoryEntryModelImpl repositoryEntryModelImpl) {
 
@@ -905,6 +1652,47 @@ public class RepositoryEntryPersistenceImpl
 		throws NoSuchRepositoryEntryException {
 
 		return remove((Serializable)repositoryEntryId);
+	}
+
+	/**
+	 * Removes the repository entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the repository entry
+	 * @return the repository entry that was removed
+	 * @throws NoSuchRepositoryEntryException if a repository entry with the primary key could not be found
+	 */
+	@Override
+	public RepositoryEntry remove(Serializable primaryKey)
+		throws NoSuchRepositoryEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			RepositoryEntry repositoryEntry = (RepositoryEntry)session.get(
+				RepositoryEntryImpl.class, primaryKey);
+
+			if (repositoryEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchRepositoryEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(repositoryEntry);
+		}
+		catch (NoSuchRepositoryEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -1036,6 +1824,31 @@ public class RepositoryEntryPersistenceImpl
 	}
 
 	/**
+	 * Returns the repository entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the repository entry
+	 * @return the repository entry
+	 * @throws NoSuchRepositoryEntryException if a repository entry with the primary key could not be found
+	 */
+	@Override
+	public RepositoryEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchRepositoryEntryException {
+
+		RepositoryEntry repositoryEntry = fetchByPrimaryKey(primaryKey);
+
+		if (repositoryEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchRepositoryEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return repositoryEntry;
+	}
+
+	/**
 	 * Returns the repository entry with the primary key or throws a <code>NoSuchRepositoryEntryException</code> if it could not be found.
 	 *
 	 * @param repositoryEntryId the primary key of the repository entry
@@ -1049,9 +1862,53 @@ public class RepositoryEntryPersistenceImpl
 		return findByPrimaryKey((Serializable)repositoryEntryId);
 	}
 
+	/**
+	 * Returns the repository entry with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the repository entry
+	 * @return the repository entry, or <code>null</code> if a repository entry with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return CTPersistenceHelperUtil.getCTPersistenceHelper();
+	public RepositoryEntry fetchByPrimaryKey(Serializable primaryKey) {
+		if (CTPersistenceHelperUtil.isProductionMode(
+				RepositoryEntry.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		RepositoryEntry repositoryEntry =
+			(RepositoryEntry)EntityCacheUtil.getResult(
+				RepositoryEntryImpl.class, primaryKey);
+
+		if (repositoryEntry != null) {
+			return repositoryEntry;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			repositoryEntry = (RepositoryEntry)session.get(
+				RepositoryEntryImpl.class, primaryKey);
+
+			if (repositoryEntry != null) {
+				cacheResult(repositoryEntry);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return repositoryEntry;
 	}
 
 	/**
@@ -1063,6 +1920,132 @@ public class RepositoryEntryPersistenceImpl
 	@Override
 	public RepositoryEntry fetchByPrimaryKey(long repositoryEntryId) {
 		return fetchByPrimaryKey((Serializable)repositoryEntryId);
+	}
+
+	@Override
+	public Map<Serializable, RepositoryEntry> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (CTPersistenceHelperUtil.isProductionMode(RepositoryEntry.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, RepositoryEntry> map =
+			new HashMap<Serializable, RepositoryEntry>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			RepositoryEntry repositoryEntry = fetchByPrimaryKey(primaryKey);
+
+			if (repositoryEntry != null) {
+				map.put(primaryKey, repositoryEntry);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
+						RepositoryEntry.class, primaryKey)) {
+
+				RepositoryEntry repositoryEntry =
+					(RepositoryEntry)EntityCacheUtil.getResult(
+						RepositoryEntryImpl.class, primaryKey);
+
+				if (repositoryEntry == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, repositoryEntry);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (RepositoryEntry repositoryEntry :
+					(List<RepositoryEntry>)query.list()) {
+
+				map.put(repositoryEntry.getPrimaryKeyObj(), repositoryEntry);
+
+				cacheResult(repositoryEntry);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1386,28 +2369,10 @@ public class RepositoryEntryPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_REPOSITORYENTRY_WHERE, _SQL_COUNT_REPOSITORYENTRY_WHERE,
-			RepositoryEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"repositoryEntry.", "uuid", FinderColumn.Type.STRING, "=", true,
-				true, RepositoryEntry::getUuid));
-
 		_finderPathFetchByUUID_G = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByUUID_G",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "groupId"}, true);
-
-		_uniquePersistenceFinderByUUID_G = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByUUID_G, _SQL_SELECT_REPOSITORYENTRY_WHERE,
-			new FinderColumn<>(
-				"repositoryEntry.", "uuid", FinderColumn.Type.STRING, "=", true,
-				false, RepositoryEntry::getUuid),
-			new FinderColumn<>(
-				"repositoryEntry.", "groupId", FinderColumn.Type.LONG, "=",
-				true, true, RepositoryEntry::getGroupId));
 
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
@@ -1428,20 +2393,6 @@ public class RepositoryEntryPersistenceImpl
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
 
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_REPOSITORYENTRY_WHERE,
-				_SQL_COUNT_REPOSITORYENTRY_WHERE,
-				RepositoryEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"repositoryEntry.", "uuid", FinderColumn.Type.STRING, "=",
-					true, false, RepositoryEntry::getUuid),
-				new FinderColumn<>(
-					"repositoryEntry.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, RepositoryEntry::getCompanyId));
-
 		_finderPathWithPaginationFindByRepositoryId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByRepositoryId",
 			new String[] {
@@ -1460,31 +2411,10 @@ public class RepositoryEntryPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"repositoryId"},
 			false);
 
-		_collectionPersistenceFinderByRepositoryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByRepositoryId,
-				_finderPathWithoutPaginationFindByRepositoryId,
-				_finderPathCountByRepositoryId,
-				_SQL_SELECT_REPOSITORYENTRY_WHERE,
-				_SQL_COUNT_REPOSITORYENTRY_WHERE,
-				RepositoryEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"repositoryEntry.", "repositoryId", FinderColumn.Type.LONG,
-					"=", true, true, RepositoryEntry::getRepositoryId));
-
 		_finderPathFetchByR_M = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByR_M",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"repositoryId", "mappedId"}, true);
-
-		_uniquePersistenceFinderByR_M = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByR_M, _SQL_SELECT_REPOSITORYENTRY_WHERE,
-			new FinderColumn<>(
-				"repositoryEntry.", "repositoryId", FinderColumn.Type.LONG, "=",
-				true, false, RepositoryEntry::getRepositoryId),
-			new FinderColumn<>(
-				"repositoryEntry.", "mappedId", FinderColumn.Type.STRING, "=",
-				true, true, RepositoryEntry::getMappedId));
 
 		RepositoryEntryUtil.setPersistence(this);
 	}
@@ -1509,6 +2439,9 @@ public class RepositoryEntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "repositoryEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No RepositoryEntry exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No RepositoryEntry exists with the key {";
 
@@ -1524,4 +2457,4 @@ public class RepositoryEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-664734925
+// LIFERAY-SERVICE-BUILDER-HASH:1286101155

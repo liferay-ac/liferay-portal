@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,8 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -40,6 +39,7 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -60,7 +60,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTSGrandParentPersistence.class)
 public class CTSGrandParentPersistenceImpl
-	extends BasePersistenceImpl<CTSGrandParent, NoSuchCTSGrandParentException>
+	extends BasePersistenceImpl<CTSGrandParent>
 	implements CTSGrandParentPersistence {
 
 	/*
@@ -83,8 +83,6 @@ public class CTSGrandParentPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<CTSGrandParent>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the cts grand parents where companyId = &#63;.
@@ -158,9 +156,95 @@ public class CTSGrandParentPersistenceImpl
 		OrderByComparator<CTSGrandParent> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			finderCache, new Object[] {companyId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<CTSGrandParent> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTSGrandParent>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTSGrandParent ctsGrandParent : list) {
+					if (companyId != ctsGrandParent.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTSGRANDPARENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTSGrandParentModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<CTSGrandParent>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -183,9 +267,16 @@ public class CTSGrandParentPersistenceImpl
 			return ctsGrandParent;
 		}
 
-		throw new NoSuchCTSGrandParentException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchCTSGrandParentException(sb.toString());
 	}
 
 	/**
@@ -199,8 +290,14 @@ public class CTSGrandParentPersistenceImpl
 	public CTSGrandParent fetchByCompanyId_First(
 		long companyId, OrderByComparator<CTSGrandParent> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<CTSGrandParent> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -210,8 +307,12 @@ public class CTSGrandParentPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (CTSGrandParent ctsGrandParent :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(ctsGrandParent);
+		}
 	}
 
 	/**
@@ -222,9 +323,49 @@ public class CTSGrandParentPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			finderCache, new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTSGRANDPARENT_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"ctsGrandParent.companyId = ?";
 
 	public CTSGrandParentPersistenceImpl() {
 		setModelClass(CTSGrandParent.class);
@@ -274,6 +415,48 @@ public class CTSGrandParentPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all cts grand parents.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTSGrandParentImpl.class);
+
+		finderCache.clearCache(CTSGrandParentImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cts grand parent.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTSGrandParent ctsGrandParent) {
+		entityCache.removeResult(CTSGrandParentImpl.class, ctsGrandParent);
+	}
+
+	@Override
+	public void clearCache(List<CTSGrandParent> ctsGrandParents) {
+		for (CTSGrandParent ctsGrandParent : ctsGrandParents) {
+			entityCache.removeResult(CTSGrandParentImpl.class, ctsGrandParent);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTSGrandParentImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CTSGrandParentImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new cts grand parent with the primary key. Does not add the cts grand parent to the database.
 	 *
 	 * @param ctsGrandParentId the primary key for the new cts grand parent
@@ -303,6 +486,47 @@ public class CTSGrandParentPersistenceImpl
 		throws NoSuchCTSGrandParentException {
 
 		return remove((Serializable)ctsGrandParentId);
+	}
+
+	/**
+	 * Removes the cts grand parent with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cts grand parent
+	 * @return the cts grand parent that was removed
+	 * @throws NoSuchCTSGrandParentException if a cts grand parent with the primary key could not be found
+	 */
+	@Override
+	public CTSGrandParent remove(Serializable primaryKey)
+		throws NoSuchCTSGrandParentException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTSGrandParent ctsGrandParent = (CTSGrandParent)session.get(
+				CTSGrandParentImpl.class, primaryKey);
+
+			if (ctsGrandParent == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCTSGrandParentException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctsGrandParent);
+		}
+		catch (NoSuchCTSGrandParentException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -387,6 +611,31 @@ public class CTSGrandParentPersistenceImpl
 		}
 
 		ctsGrandParent.resetOriginalValues();
+
+		return ctsGrandParent;
+	}
+
+	/**
+	 * Returns the cts grand parent with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cts grand parent
+	 * @return the cts grand parent
+	 * @throws NoSuchCTSGrandParentException if a cts grand parent with the primary key could not be found
+	 */
+	@Override
+	public CTSGrandParent findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCTSGrandParentException {
+
+		CTSGrandParent ctsGrandParent = fetchByPrimaryKey(primaryKey);
+
+		if (ctsGrandParent == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCTSGrandParentException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return ctsGrandParent;
 	}
@@ -654,17 +903,6 @@ public class CTSGrandParentPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_CTSGRANDPARENT_WHERE,
-				_SQL_COUNT_CTSGRANDPARENT_WHERE,
-				CTSGrandParentModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctsGrandParent.", "companyId", FinderColumn.Type.LONG, "=",
-					true, true, CTSGrandParent::getCompanyId));
-
 		CTSGrandParentUtil.setPersistence(this);
 	}
 
@@ -721,6 +959,9 @@ public class CTSGrandParentPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ctsGrandParent.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTSGrandParent exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTSGrandParent exists with the key {";
 
@@ -733,4 +974,4 @@ public class CTSGrandParentPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1472273746
+// LIFERAY-SERVICE-BUILDER-HASH:1494195772

@@ -12,6 +12,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchCompanyInfoException;
@@ -23,8 +24,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.CompanyInfoPersistence;
 import com.liferay.portal.kernel.service.persistence.CompanyInfoUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -54,8 +53,7 @@ import java.util.Set;
  * @generated
  */
 public class CompanyInfoPersistenceImpl
-	extends BasePersistenceImpl<CompanyInfo, NoSuchCompanyInfoException>
-	implements CompanyInfoPersistence {
+	extends BasePersistenceImpl<CompanyInfo> implements CompanyInfoPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -75,8 +73,6 @@ public class CompanyInfoPersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByCompanyId;
-	private UniquePersistenceFinder<CompanyInfo>
-		_uniquePersistenceFinderByCompanyId;
 
 	/**
 	 * Returns the company info where companyId = &#63; or throws a <code>NoSuchCompanyInfoException</code> if it could not be found.
@@ -92,15 +88,20 @@ public class CompanyInfoPersistenceImpl
 		CompanyInfo companyInfo = fetchByCompanyId(companyId);
 
 		if (companyInfo == null) {
-			String message =
-				_uniquePersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchCompanyInfoException(message);
+			throw new NoSuchCompanyInfoException(sb.toString());
 		}
 
 		return companyInfo;
@@ -128,9 +129,77 @@ public class CompanyInfoPersistenceImpl
 	public CompanyInfo fetchByCompanyId(
 		long companyId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByCompanyId.fetch(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId},
-			useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {companyId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = FinderCacheUtil.getResult(
+				_finderPathFetchByCompanyId, finderArgs, this);
+		}
+
+		if (result instanceof CompanyInfo) {
+			CompanyInfo companyInfo = (CompanyInfo)result;
+
+			if (companyId != companyInfo.getCompanyId()) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_COMPANYINFO_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				List<CompanyInfo> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(
+							_finderPathFetchByCompanyId, finderArgs, list);
+					}
+				}
+				else {
+					CompanyInfo companyInfo = list.get(0);
+
+					result = companyInfo;
+
+					cacheResult(companyInfo);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CompanyInfo)result;
+		}
 	}
 
 	/**
@@ -156,9 +225,17 @@ public class CompanyInfoPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _uniquePersistenceFinderByCompanyId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		CompanyInfo companyInfo = fetchByCompanyId(companyId);
+
+		if (companyInfo == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"companyInfo.companyId = ?";
 
 	public CompanyInfoPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -216,6 +293,48 @@ public class CompanyInfoPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all company infos.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(CompanyInfoImpl.class);
+
+		FinderCacheUtil.clearCache(CompanyInfoImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the company info.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CompanyInfo companyInfo) {
+		EntityCacheUtil.removeResult(CompanyInfoImpl.class, companyInfo);
+	}
+
+	@Override
+	public void clearCache(List<CompanyInfo> companyInfos) {
+		for (CompanyInfo companyInfo : companyInfos) {
+			EntityCacheUtil.removeResult(CompanyInfoImpl.class, companyInfo);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(CompanyInfoImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(CompanyInfoImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CompanyInfoModelImpl companyInfoModelImpl) {
 
@@ -255,6 +374,47 @@ public class CompanyInfoPersistenceImpl
 		throws NoSuchCompanyInfoException {
 
 		return remove((Serializable)companyInfoId);
+	}
+
+	/**
+	 * Removes the company info with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the company info
+	 * @return the company info that was removed
+	 * @throws NoSuchCompanyInfoException if a company info with the primary key could not be found
+	 */
+	@Override
+	public CompanyInfo remove(Serializable primaryKey)
+		throws NoSuchCompanyInfoException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CompanyInfo companyInfo = (CompanyInfo)session.get(
+				CompanyInfoImpl.class, primaryKey);
+
+			if (companyInfo == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCompanyInfoException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(companyInfo);
+		}
+		catch (NoSuchCompanyInfoException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -339,6 +499,31 @@ public class CompanyInfoPersistenceImpl
 		}
 
 		companyInfo.resetOriginalValues();
+
+		return companyInfo;
+	}
+
+	/**
+	 * Returns the company info with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the company info
+	 * @return the company info
+	 * @throws NoSuchCompanyInfoException if a company info with the primary key could not be found
+	 */
+	@Override
+	public CompanyInfo findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCompanyInfoException {
+
+		CompanyInfo companyInfo = fetchByPrimaryKey(primaryKey);
+
+		if (companyInfo == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCompanyInfoException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return companyInfo;
 	}
@@ -596,12 +781,6 @@ public class CompanyInfoPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			true);
 
-		_uniquePersistenceFinderByCompanyId = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByCompanyId, _SQL_SELECT_COMPANYINFO_WHERE,
-			new FinderColumn<>(
-				"companyInfo.", "companyId", FinderColumn.Type.LONG, "=", true,
-				true, CompanyInfo::getCompanyId));
-
 		CompanyInfoUtil.setPersistence(this);
 	}
 
@@ -620,7 +799,13 @@ public class CompanyInfoPersistenceImpl
 	private static final String _SQL_COUNT_COMPANYINFO =
 		"SELECT COUNT(companyInfo) FROM CompanyInfo companyInfo";
 
+	private static final String _SQL_COUNT_COMPANYINFO_WHERE =
+		"SELECT COUNT(companyInfo) FROM CompanyInfo companyInfo WHERE ";
+
 	private static final String _ORDER_BY_ENTITY_ALIAS = "companyInfo.";
+
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CompanyInfo exists with the primary key ";
 
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CompanyInfo exists with the key {";
@@ -637,4 +822,4 @@ public class CompanyInfoPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1829310002
+// LIFERAY-SERVICE-BUILDER-HASH:-1710342786

@@ -10,6 +10,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.log.Log;
@@ -17,14 +18,12 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.spring.extender.service.ServiceReference;
 import com.liferay.portal.tools.service.builder.test.exception.NoSuchDefinedDefaultOrderEntryException;
 import com.liferay.portal.tools.service.builder.test.model.DefinedDefaultOrderEntry;
@@ -38,9 +37,12 @@ import java.io.Serializable;
 
 import java.lang.reflect.InvocationHandler;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * The persistence implementation for the defined default order entry service.
@@ -53,8 +55,7 @@ import java.util.Map;
  * @generated
  */
 public class DefinedDefaultOrderEntryPersistenceImpl
-	extends BasePersistenceImpl
-		<DefinedDefaultOrderEntry, NoSuchDefinedDefaultOrderEntryException>
+	extends BasePersistenceImpl<DefinedDefaultOrderEntry>
 	implements DefinedDefaultOrderEntryPersistence {
 
 	/*
@@ -75,8 +76,6 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByName;
-	private UniquePersistenceFinder<DefinedDefaultOrderEntry>
-		_uniquePersistenceFinderByName;
 
 	/**
 	 * Returns the defined default order entry where name = &#63; or throws a <code>NoSuchDefinedDefaultOrderEntryException</code> if it could not be found.
@@ -92,15 +91,20 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 		DefinedDefaultOrderEntry definedDefaultOrderEntry = fetchByName(name);
 
 		if (definedDefaultOrderEntry == null) {
-			String message =
-				_uniquePersistenceFinderByName.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {name});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("name=");
+			sb.append(name);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchDefinedDefaultOrderEntryException(message);
+			throw new NoSuchDefinedDefaultOrderEntryException(sb.toString());
 		}
 
 		return definedDefaultOrderEntry;
@@ -128,8 +132,107 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 	public DefinedDefaultOrderEntry fetchByName(
 		String name, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByName.fetch(
-			finderCache, new Object[] {name}, useFinderCache);
+		name = Objects.toString(name, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {name};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByName, finderArgs, this);
+		}
+
+		if (result instanceof DefinedDefaultOrderEntry) {
+			DefinedDefaultOrderEntry definedDefaultOrderEntry =
+				(DefinedDefaultOrderEntry)result;
+
+			if (!Objects.equals(name, definedDefaultOrderEntry.getName())) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_DEFINEDDEFAULTORDERENTRY_WHERE);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_NAME_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_NAME_NAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				List<DefinedDefaultOrderEntry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByName, finderArgs, list);
+					}
+				}
+				else {
+					if (list.size() > 1) {
+						Collections.sort(list, Collections.reverseOrder());
+
+						if (_log.isWarnEnabled()) {
+							if (!useFinderCache) {
+								finderArgs = new Object[] {name};
+							}
+
+							_log.warn(
+								"DefinedDefaultOrderEntryPersistenceImpl.fetchByName(String, boolean) with parameters (" +
+									StringUtil.merge(finderArgs) +
+										") yields a result set with more than 1 result. This violates the logical unique restriction. There is no order guarantee on which result is returned by this finder.");
+						}
+					}
+
+					DefinedDefaultOrderEntry definedDefaultOrderEntry =
+						list.get(0);
+
+					result = definedDefaultOrderEntry;
+
+					cacheResult(definedDefaultOrderEntry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (DefinedDefaultOrderEntry)result;
+		}
 	}
 
 	/**
@@ -155,15 +258,24 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 	 */
 	@Override
 	public int countByName(String name) {
-		return _uniquePersistenceFinderByName.count(
-			finderCache, new Object[] {name});
+		DefinedDefaultOrderEntry definedDefaultOrderEntry = fetchByName(name);
+
+		if (definedDefaultOrderEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_NAME_NAME_2 =
+		"definedDefaultOrderEntry.name = ?";
+
+	private static final String _FINDER_COLUMN_NAME_NAME_3 =
+		"(definedDefaultOrderEntry.name IS NULL OR definedDefaultOrderEntry.name = '')";
 
 	private FinderPath _finderPathWithPaginationFindByName_Collection;
 	private FinderPath _finderPathWithoutPaginationFindByName_Collection;
 	private FinderPath _finderPathCountByName_Collection;
-	private CollectionPersistenceFinder<DefinedDefaultOrderEntry>
-		_collectionPersistenceFinderByName_Collection;
 
 	/**
 	 * Returns all the defined default order entries where name = &#63;.
@@ -237,9 +349,106 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 		OrderByComparator<DefinedDefaultOrderEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByName_Collection.find(
-			finderCache, new Object[] {name}, start, end, orderByComparator,
-			useFinderCache);
+		name = Objects.toString(name, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByName_Collection;
+				finderArgs = new Object[] {name};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByName_Collection;
+			finderArgs = new Object[] {name, start, end, orderByComparator};
+		}
+
+		List<DefinedDefaultOrderEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<DefinedDefaultOrderEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (DefinedDefaultOrderEntry definedDefaultOrderEntry : list) {
+					if (!name.equals(definedDefaultOrderEntry.getName())) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_DEFINEDDEFAULTORDERENTRY_WHERE);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_NAME_COLLECTION_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_NAME_COLLECTION_NAME_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(DefinedDefaultOrderEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				list = (List<DefinedDefaultOrderEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -263,9 +472,16 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 			return definedDefaultOrderEntry;
 		}
 
-		throw new NoSuchDefinedDefaultOrderEntryException(
-			_collectionPersistenceFinderByName_Collection.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {name}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("name=");
+		sb.append(name);
+
+		sb.append("}");
+
+		throw new NoSuchDefinedDefaultOrderEntryException(sb.toString());
 	}
 
 	/**
@@ -280,8 +496,14 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 		String name,
 		OrderByComparator<DefinedDefaultOrderEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByName_Collection.fetchFirst(
-			finderCache, new Object[] {name}, orderByComparator);
+		List<DefinedDefaultOrderEntry> list = findByName_Collection(
+			name, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -291,8 +513,12 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByName_Collection(String name) {
-		_collectionPersistenceFinderByName_Collection.remove(
-			finderCache, new Object[] {name});
+		for (DefinedDefaultOrderEntry definedDefaultOrderEntry :
+				findByName_Collection(
+					name, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(definedDefaultOrderEntry);
+		}
 	}
 
 	/**
@@ -303,9 +529,65 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 	 */
 	@Override
 	public int countByName_Collection(String name) {
-		return _collectionPersistenceFinderByName_Collection.count(
-			finderCache, new Object[] {name});
+		name = Objects.toString(name, "");
+
+		FinderPath finderPath = _finderPathCountByName_Collection;
+
+		Object[] finderArgs = new Object[] {name};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_DEFINEDDEFAULTORDERENTRY_WHERE);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_NAME_COLLECTION_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_NAME_COLLECTION_NAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_NAME_COLLECTION_NAME_2 =
+		"definedDefaultOrderEntry.name = ?";
+
+	private static final String _FINDER_COLUMN_NAME_COLLECTION_NAME_3 =
+		"(definedDefaultOrderEntry.name IS NULL OR definedDefaultOrderEntry.name = '')";
 
 	public DefinedDefaultOrderEntryPersistenceImpl() {
 		setModelClass(DefinedDefaultOrderEntry.class);
@@ -364,6 +646,55 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all defined default order entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(DefinedDefaultOrderEntryImpl.class);
+
+		finderCache.clearCache(DefinedDefaultOrderEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the defined default order entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(DefinedDefaultOrderEntry definedDefaultOrderEntry) {
+		entityCache.removeResult(
+			DefinedDefaultOrderEntryImpl.class, definedDefaultOrderEntry);
+	}
+
+	@Override
+	public void clearCache(
+		List<DefinedDefaultOrderEntry> definedDefaultOrderEntries) {
+
+		for (DefinedDefaultOrderEntry definedDefaultOrderEntry :
+				definedDefaultOrderEntries) {
+
+			entityCache.removeResult(
+				DefinedDefaultOrderEntryImpl.class, definedDefaultOrderEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(DefinedDefaultOrderEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				DefinedDefaultOrderEntryImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		DefinedDefaultOrderEntryModelImpl definedDefaultOrderEntryModelImpl) {
 
@@ -404,6 +735,48 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 		throws NoSuchDefinedDefaultOrderEntryException {
 
 		return remove((Serializable)definedDefaultOrderEntryId);
+	}
+
+	/**
+	 * Removes the defined default order entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the defined default order entry
+	 * @return the defined default order entry that was removed
+	 * @throws NoSuchDefinedDefaultOrderEntryException if a defined default order entry with the primary key could not be found
+	 */
+	@Override
+	public DefinedDefaultOrderEntry remove(Serializable primaryKey)
+		throws NoSuchDefinedDefaultOrderEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			DefinedDefaultOrderEntry definedDefaultOrderEntry =
+				(DefinedDefaultOrderEntry)session.get(
+					DefinedDefaultOrderEntryImpl.class, primaryKey);
+
+			if (definedDefaultOrderEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchDefinedDefaultOrderEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(definedDefaultOrderEntry);
+		}
+		catch (NoSuchDefinedDefaultOrderEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -515,6 +888,32 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 		}
 
 		definedDefaultOrderEntry.resetOriginalValues();
+
+		return definedDefaultOrderEntry;
+	}
+
+	/**
+	 * Returns the defined default order entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the defined default order entry
+	 * @return the defined default order entry
+	 * @throws NoSuchDefinedDefaultOrderEntryException if a defined default order entry with the primary key could not be found
+	 */
+	@Override
+	public DefinedDefaultOrderEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchDefinedDefaultOrderEntryException {
+
+		DefinedDefaultOrderEntry definedDefaultOrderEntry = fetchByPrimaryKey(
+			primaryKey);
+
+		if (definedDefaultOrderEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchDefinedDefaultOrderEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return definedDefaultOrderEntry;
 	}
@@ -773,13 +1172,6 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 			FINDER_CLASS_NAME_ENTITY, "fetchByName",
 			new String[] {String.class.getName()}, new String[] {"name"}, true);
 
-		_uniquePersistenceFinderByName = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByName,
-			_SQL_SELECT_DEFINEDDEFAULTORDERENTRY_WHERE,
-			new FinderColumn<>(
-				"definedDefaultOrderEntry.", "name", FinderColumn.Type.STRING,
-				"=", true, true, DefinedDefaultOrderEntry::getName));
-
 		_finderPathWithPaginationFindByName_Collection = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByName_Collection",
 			new String[] {
@@ -796,20 +1188,6 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByName_Collection",
 			new String[] {String.class.getName()}, new String[] {"name"},
 			false);
-
-		_collectionPersistenceFinderByName_Collection =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByName_Collection,
-				_finderPathWithoutPaginationFindByName_Collection,
-				_finderPathCountByName_Collection,
-				_SQL_SELECT_DEFINEDDEFAULTORDERENTRY_WHERE,
-				_SQL_COUNT_DEFINEDDEFAULTORDERENTRY_WHERE,
-				DefinedDefaultOrderEntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"definedDefaultOrderEntry.", "name",
-					FinderColumn.Type.STRING, "=", true, true,
-					DefinedDefaultOrderEntry::getName));
 
 		DefinedDefaultOrderEntryUtil.setPersistence(this);
 	}
@@ -841,6 +1219,9 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"definedDefaultOrderEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No DefinedDefaultOrderEntry exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No DefinedDefaultOrderEntry exists with the key {";
 
@@ -853,4 +1234,4 @@ public class DefinedDefaultOrderEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1521882965
+// LIFERAY-SERVICE-BUILDER-HASH:-1604635594

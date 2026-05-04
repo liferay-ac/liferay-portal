@@ -5,7 +5,6 @@
 
 package com.liferay.portlet.documentlibrary.service.persistence.impl;
 
-import com.liferay.document.library.kernel.exception.NoSuchFolderException;
 import com.liferay.document.library.kernel.model.DLFolder;
 import com.liferay.document.library.kernel.service.persistence.DLFolderPersistence;
 import com.liferay.portal.kernel.bean.BeanReference;
@@ -21,8 +20,7 @@ import java.util.Set;
  * @author Brian Wing Shun Chan
  * @generated
  */
-public class DLFolderFinderBaseImpl
-	extends BasePersistenceImpl<DLFolder, NoSuchFolderException> {
+public class DLFolderFinderBaseImpl extends BasePersistenceImpl<DLFolder> {
 
 	public DLFolderFinderBaseImpl() {
 		setModelClass(DLFolder.class);
@@ -67,4 +65,4 @@ public class DLFolderFinderBaseImpl
 		DLFolderFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1688832209
+// LIFERAY-SERVICE-BUILDER-HASH:1741460007

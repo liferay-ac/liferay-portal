@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -32,8 +33,6 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -48,7 +47,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,7 +73,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = AnalyticsMessagePersistence.class)
 public class AnalyticsMessagePersistenceImpl
-	extends BasePersistenceImpl<AnalyticsMessage, NoSuchMessageException>
+	extends BasePersistenceImpl<AnalyticsMessage>
 	implements AnalyticsMessagePersistence {
 
 	/*
@@ -95,8 +96,6 @@ public class AnalyticsMessagePersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<AnalyticsMessage>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the analytics messages where companyId = &#63;.
@@ -174,9 +173,95 @@ public class AnalyticsMessagePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					AnalyticsMessage.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.find(
-				finderCache, new Object[] {companyId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByCompanyId;
+					finderArgs = new Object[] {companyId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByCompanyId;
+				finderArgs = new Object[] {
+					companyId, start, end, orderByComparator
+				};
+			}
+
+			List<AnalyticsMessage> list = null;
+
+			if (useFinderCache) {
+				list = (List<AnalyticsMessage>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (AnalyticsMessage analyticsMessage : list) {
+						if (companyId != analyticsMessage.getCompanyId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_ANALYTICSMESSAGE_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(AnalyticsMessageModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					list = (List<AnalyticsMessage>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -201,9 +286,16 @@ public class AnalyticsMessagePersistenceImpl
 			return analyticsMessage;
 		}
 
-		throw new NoSuchMessageException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchMessageException(sb.toString());
 	}
 
 	/**
@@ -217,8 +309,14 @@ public class AnalyticsMessagePersistenceImpl
 	public AnalyticsMessage fetchByCompanyId_First(
 		long companyId, OrderByComparator<AnalyticsMessage> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<AnalyticsMessage> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -228,8 +326,12 @@ public class AnalyticsMessagePersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (AnalyticsMessage analyticsMessage :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(analyticsMessage);
+		}
 	}
 
 	/**
@@ -244,10 +346,51 @@ public class AnalyticsMessagePersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					AnalyticsMessage.class)) {
 
-			return _collectionPersistenceFinderByCompanyId.count(
-				finderCache, new Object[] {companyId});
+			FinderPath finderPath = _finderPathCountByCompanyId;
+
+			Object[] finderArgs = new Object[] {companyId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_ANALYTICSMESSAGE_WHERE);
+
+				sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(companyId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"analyticsMessage.companyId = ?";
 
 	public AnalyticsMessagePersistenceImpl() {
 		setModelClass(AnalyticsMessage.class);
@@ -308,6 +451,49 @@ public class AnalyticsMessagePersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all analytics messages.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(AnalyticsMessageImpl.class);
+
+		finderCache.clearCache(AnalyticsMessageImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the analytics message.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(AnalyticsMessage analyticsMessage) {
+		entityCache.removeResult(AnalyticsMessageImpl.class, analyticsMessage);
+	}
+
+	@Override
+	public void clearCache(List<AnalyticsMessage> analyticsMessages) {
+		for (AnalyticsMessage analyticsMessage : analyticsMessages) {
+			entityCache.removeResult(
+				AnalyticsMessageImpl.class, analyticsMessage);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(AnalyticsMessageImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(AnalyticsMessageImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new analytics message with the primary key. Does not add the analytics message to the database.
 	 *
 	 * @param analyticsMessageId the primary key for the new analytics message
@@ -337,6 +523,47 @@ public class AnalyticsMessagePersistenceImpl
 		throws NoSuchMessageException {
 
 		return remove((Serializable)analyticsMessageId);
+	}
+
+	/**
+	 * Removes the analytics message with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the analytics message
+	 * @return the analytics message that was removed
+	 * @throws NoSuchMessageException if a analytics message with the primary key could not be found
+	 */
+	@Override
+	public AnalyticsMessage remove(Serializable primaryKey)
+		throws NoSuchMessageException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			AnalyticsMessage analyticsMessage = (AnalyticsMessage)session.get(
+				AnalyticsMessageImpl.class, primaryKey);
+
+			if (analyticsMessage == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchMessageException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(analyticsMessage);
+		}
+		catch (NoSuchMessageException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -456,6 +683,31 @@ public class AnalyticsMessagePersistenceImpl
 	}
 
 	/**
+	 * Returns the analytics message with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the analytics message
+	 * @return the analytics message
+	 * @throws NoSuchMessageException if a analytics message with the primary key could not be found
+	 */
+	@Override
+	public AnalyticsMessage findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchMessageException {
+
+		AnalyticsMessage analyticsMessage = fetchByPrimaryKey(primaryKey);
+
+		if (analyticsMessage == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchMessageException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return analyticsMessage;
+	}
+
+	/**
 	 * Returns the analytics message with the primary key or throws a <code>NoSuchMessageException</code> if it could not be found.
 	 *
 	 * @param analyticsMessageId the primary key of the analytics message
@@ -469,9 +721,53 @@ public class AnalyticsMessagePersistenceImpl
 		return findByPrimaryKey((Serializable)analyticsMessageId);
 	}
 
+	/**
+	 * Returns the analytics message with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the analytics message
+	 * @return the analytics message, or <code>null</code> if a analytics message with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public AnalyticsMessage fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				AnalyticsMessage.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		AnalyticsMessage analyticsMessage =
+			(AnalyticsMessage)entityCache.getResult(
+				AnalyticsMessageImpl.class, primaryKey);
+
+		if (analyticsMessage != null) {
+			return analyticsMessage;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			analyticsMessage = (AnalyticsMessage)session.get(
+				AnalyticsMessageImpl.class, primaryKey);
+
+			if (analyticsMessage != null) {
+				cacheResult(analyticsMessage);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return analyticsMessage;
 	}
 
 	/**
@@ -483,6 +779,132 @@ public class AnalyticsMessagePersistenceImpl
 	@Override
 	public AnalyticsMessage fetchByPrimaryKey(long analyticsMessageId) {
 		return fetchByPrimaryKey((Serializable)analyticsMessageId);
+	}
+
+	@Override
+	public Map<Serializable, AnalyticsMessage> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(AnalyticsMessage.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, AnalyticsMessage> map =
+			new HashMap<Serializable, AnalyticsMessage>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			AnalyticsMessage analyticsMessage = fetchByPrimaryKey(primaryKey);
+
+			if (analyticsMessage != null) {
+				map.put(primaryKey, analyticsMessage);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						AnalyticsMessage.class, primaryKey)) {
+
+				AnalyticsMessage analyticsMessage =
+					(AnalyticsMessage)entityCache.getResult(
+						AnalyticsMessageImpl.class, primaryKey);
+
+				if (analyticsMessage == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, analyticsMessage);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (AnalyticsMessage analyticsMessage :
+					(List<AnalyticsMessage>)query.list()) {
+
+				map.put(analyticsMessage.getPrimaryKeyObj(), analyticsMessage);
+
+				cacheResult(analyticsMessage);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -789,17 +1211,6 @@ public class AnalyticsMessagePersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_ANALYTICSMESSAGE_WHERE,
-				_SQL_COUNT_ANALYTICSMESSAGE_WHERE,
-				AnalyticsMessageModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"analyticsMessage.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, AnalyticsMessage::getCompanyId));
-
 		AnalyticsMessageUtil.setPersistence(this);
 	}
 
@@ -859,6 +1270,9 @@ public class AnalyticsMessagePersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "analyticsMessage.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No AnalyticsMessage exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No AnalyticsMessage exists with the key {";
 
@@ -871,4 +1285,4 @@ public class AnalyticsMessagePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:201820581
+// LIFERAY-SERVICE-BUILDER-HASH:-28951026

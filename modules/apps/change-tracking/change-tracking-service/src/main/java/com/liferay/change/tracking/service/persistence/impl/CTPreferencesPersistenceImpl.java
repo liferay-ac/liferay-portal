@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,9 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -41,6 +39,7 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -61,7 +60,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTPreferencesPersistence.class)
 public class CTPreferencesPersistenceImpl
-	extends BasePersistenceImpl<CTPreferences, NoSuchPreferencesException>
+	extends BasePersistenceImpl<CTPreferences>
 	implements CTPreferencesPersistence {
 
 	/*
@@ -84,8 +83,6 @@ public class CTPreferencesPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCtCollectionId;
 	private FinderPath _finderPathWithoutPaginationFindByCtCollectionId;
 	private FinderPath _finderPathCountByCtCollectionId;
-	private CollectionPersistenceFinder<CTPreferences>
-		_collectionPersistenceFinderByCtCollectionId;
 
 	/**
 	 * Returns all the ct preferenceses where ctCollectionId = &#63;.
@@ -160,9 +157,95 @@ public class CTPreferencesPersistenceImpl
 		OrderByComparator<CTPreferences> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCtCollectionId.find(
-			finderCache, new Object[] {ctCollectionId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCtCollectionId;
+				finderArgs = new Object[] {ctCollectionId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCtCollectionId;
+			finderArgs = new Object[] {
+				ctCollectionId, start, end, orderByComparator
+			};
+		}
+
+		List<CTPreferences> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTPreferences>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTPreferences ctPreferences : list) {
+					if (ctCollectionId != ctPreferences.getCtCollectionId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTPREFERENCES_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTPreferencesModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctCollectionId);
+
+				list = (List<CTPreferences>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -186,9 +269,16 @@ public class CTPreferencesPersistenceImpl
 			return ctPreferences;
 		}
 
-		throw new NoSuchPreferencesException(
-			_collectionPersistenceFinderByCtCollectionId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {ctCollectionId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("ctCollectionId=");
+		sb.append(ctCollectionId);
+
+		sb.append("}");
+
+		throw new NoSuchPreferencesException(sb.toString());
 	}
 
 	/**
@@ -203,8 +293,14 @@ public class CTPreferencesPersistenceImpl
 		long ctCollectionId,
 		OrderByComparator<CTPreferences> orderByComparator) {
 
-		return _collectionPersistenceFinderByCtCollectionId.fetchFirst(
-			finderCache, new Object[] {ctCollectionId}, orderByComparator);
+		List<CTPreferences> list = findByCtCollectionId(
+			ctCollectionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -214,8 +310,13 @@ public class CTPreferencesPersistenceImpl
 	 */
 	@Override
 	public void removeByCtCollectionId(long ctCollectionId) {
-		_collectionPersistenceFinderByCtCollectionId.remove(
-			finderCache, new Object[] {ctCollectionId});
+		for (CTPreferences ctPreferences :
+				findByCtCollectionId(
+					ctCollectionId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(ctPreferences);
+		}
 	}
 
 	/**
@@ -226,15 +327,53 @@ public class CTPreferencesPersistenceImpl
 	 */
 	@Override
 	public int countByCtCollectionId(long ctCollectionId) {
-		return _collectionPersistenceFinderByCtCollectionId.count(
-			finderCache, new Object[] {ctCollectionId});
+		FinderPath finderPath = _finderPathCountByCtCollectionId;
+
+		Object[] finderArgs = new Object[] {ctCollectionId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTPREFERENCES_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctCollectionId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2 =
+		"ctPreferences.ctCollectionId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByPreviousCtCollectionId;
 	private FinderPath _finderPathWithoutPaginationFindByPreviousCtCollectionId;
 	private FinderPath _finderPathCountByPreviousCtCollectionId;
-	private CollectionPersistenceFinder<CTPreferences>
-		_collectionPersistenceFinderByPreviousCtCollectionId;
 
 	/**
 	 * Returns all the ct preferenceses where previousCtCollectionId = &#63;.
@@ -312,9 +451,99 @@ public class CTPreferencesPersistenceImpl
 		OrderByComparator<CTPreferences> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByPreviousCtCollectionId.find(
-			finderCache, new Object[] {previousCtCollectionId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByPreviousCtCollectionId;
+				finderArgs = new Object[] {previousCtCollectionId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByPreviousCtCollectionId;
+			finderArgs = new Object[] {
+				previousCtCollectionId, start, end, orderByComparator
+			};
+		}
+
+		List<CTPreferences> list = null;
+
+		if (useFinderCache) {
+			list = (List<CTPreferences>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CTPreferences ctPreferences : list) {
+					if (previousCtCollectionId !=
+							ctPreferences.getPreviousCtCollectionId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CTPREFERENCES_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_PREVIOUSCTCOLLECTIONID_PREVIOUSCTCOLLECTIONID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CTPreferencesModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(previousCtCollectionId);
+
+				list = (List<CTPreferences>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -338,11 +567,16 @@ public class CTPreferencesPersistenceImpl
 			return ctPreferences;
 		}
 
-		throw new NoSuchPreferencesException(
-			_collectionPersistenceFinderByPreviousCtCollectionId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {previousCtCollectionId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("previousCtCollectionId=");
+		sb.append(previousCtCollectionId);
+
+		sb.append("}");
+
+		throw new NoSuchPreferencesException(sb.toString());
 	}
 
 	/**
@@ -357,9 +591,14 @@ public class CTPreferencesPersistenceImpl
 		long previousCtCollectionId,
 		OrderByComparator<CTPreferences> orderByComparator) {
 
-		return _collectionPersistenceFinderByPreviousCtCollectionId.fetchFirst(
-			finderCache, new Object[] {previousCtCollectionId},
-			orderByComparator);
+		List<CTPreferences> list = findByPreviousCtCollectionId(
+			previousCtCollectionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -369,8 +608,13 @@ public class CTPreferencesPersistenceImpl
 	 */
 	@Override
 	public void removeByPreviousCtCollectionId(long previousCtCollectionId) {
-		_collectionPersistenceFinderByPreviousCtCollectionId.remove(
-			finderCache, new Object[] {previousCtCollectionId});
+		for (CTPreferences ctPreferences :
+				findByPreviousCtCollectionId(
+					previousCtCollectionId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(ctPreferences);
+		}
 	}
 
 	/**
@@ -381,13 +625,53 @@ public class CTPreferencesPersistenceImpl
 	 */
 	@Override
 	public int countByPreviousCtCollectionId(long previousCtCollectionId) {
-		return _collectionPersistenceFinderByPreviousCtCollectionId.count(
-			finderCache, new Object[] {previousCtCollectionId});
+		FinderPath finderPath = _finderPathCountByPreviousCtCollectionId;
+
+		Object[] finderArgs = new Object[] {previousCtCollectionId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CTPREFERENCES_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_PREVIOUSCTCOLLECTIONID_PREVIOUSCTCOLLECTIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(previousCtCollectionId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String
+		_FINDER_COLUMN_PREVIOUSCTCOLLECTIONID_PREVIOUSCTCOLLECTIONID_2 =
+			"ctPreferences.previousCtCollectionId = ?";
+
 	private FinderPath _finderPathFetchByC_U;
-	private UniquePersistenceFinder<CTPreferences>
-		_uniquePersistenceFinderByC_U;
 
 	/**
 	 * Returns the ct preferences where companyId = &#63; and userId = &#63; or throws a <code>NoSuchPreferencesException</code> if it could not be found.
@@ -404,15 +688,23 @@ public class CTPreferencesPersistenceImpl
 		CTPreferences ctPreferences = fetchByC_U(companyId, userId);
 
 		if (ctPreferences == null) {
-			String message =
-				_uniquePersistenceFinderByC_U.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, userId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append(", userId=");
+			sb.append(userId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchPreferencesException(message);
+			throw new NoSuchPreferencesException(sb.toString());
 		}
 
 		return ctPreferences;
@@ -442,8 +734,83 @@ public class CTPreferencesPersistenceImpl
 	public CTPreferences fetchByC_U(
 		long companyId, long userId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_U.fetch(
-			finderCache, new Object[] {companyId, userId}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {companyId, userId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByC_U, finderArgs, this);
+		}
+
+		if (result instanceof CTPreferences) {
+			CTPreferences ctPreferences = (CTPreferences)result;
+
+			if ((companyId != ctPreferences.getCompanyId()) ||
+				(userId != ctPreferences.getUserId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_CTPREFERENCES_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_U_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_U_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(userId);
+
+				List<CTPreferences> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByC_U, finderArgs, list);
+					}
+				}
+				else {
+					CTPreferences ctPreferences = list.get(0);
+
+					result = ctPreferences;
+
+					cacheResult(ctPreferences);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CTPreferences)result;
+		}
 	}
 
 	/**
@@ -471,9 +838,20 @@ public class CTPreferencesPersistenceImpl
 	 */
 	@Override
 	public int countByC_U(long companyId, long userId) {
-		return _uniquePersistenceFinderByC_U.count(
-			finderCache, new Object[] {companyId, userId});
+		CTPreferences ctPreferences = fetchByC_U(companyId, userId);
+
+		if (ctPreferences == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_U_COMPANYID_2 =
+		"ctPreferences.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_U_USERID_2 =
+		"ctPreferences.userId = ?";
 
 	public CTPreferencesPersistenceImpl() {
 		setModelClass(CTPreferences.class);
@@ -529,6 +907,48 @@ public class CTPreferencesPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all ct preferenceses.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTPreferencesImpl.class);
+
+		finderCache.clearCache(CTPreferencesImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ct preferences.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTPreferences ctPreferences) {
+		entityCache.removeResult(CTPreferencesImpl.class, ctPreferences);
+	}
+
+	@Override
+	public void clearCache(List<CTPreferences> ctPreferenceses) {
+		for (CTPreferences ctPreferences : ctPreferenceses) {
+			entityCache.removeResult(CTPreferencesImpl.class, ctPreferences);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTPreferencesImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CTPreferencesImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CTPreferencesModelImpl ctPreferencesModelImpl) {
 
@@ -571,6 +991,47 @@ public class CTPreferencesPersistenceImpl
 		throws NoSuchPreferencesException {
 
 		return remove((Serializable)ctPreferencesId);
+	}
+
+	/**
+	 * Removes the ct preferences with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ct preferences
+	 * @return the ct preferences that was removed
+	 * @throws NoSuchPreferencesException if a ct preferences with the primary key could not be found
+	 */
+	@Override
+	public CTPreferences remove(Serializable primaryKey)
+		throws NoSuchPreferencesException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTPreferences ctPreferences = (CTPreferences)session.get(
+				CTPreferencesImpl.class, primaryKey);
+
+			if (ctPreferences == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchPreferencesException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctPreferences);
+		}
+		catch (NoSuchPreferencesException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -656,6 +1117,31 @@ public class CTPreferencesPersistenceImpl
 		}
 
 		ctPreferences.resetOriginalValues();
+
+		return ctPreferences;
+	}
+
+	/**
+	 * Returns the ct preferences with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ct preferences
+	 * @return the ct preferences
+	 * @throws NoSuchPreferencesException if a ct preferences with the primary key could not be found
+	 */
+	@Override
+	public CTPreferences findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchPreferencesException {
+
+		CTPreferences ctPreferences = fetchByPrimaryKey(primaryKey);
+
+		if (ctPreferences == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchPreferencesException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return ctPreferences;
 	}
@@ -923,17 +1409,6 @@ public class CTPreferencesPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"ctCollectionId"}, false);
 
-		_collectionPersistenceFinderByCtCollectionId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCtCollectionId,
-				_finderPathWithoutPaginationFindByCtCollectionId,
-				_finderPathCountByCtCollectionId,
-				_SQL_SELECT_CTPREFERENCES_WHERE, _SQL_COUNT_CTPREFERENCES_WHERE,
-				CTPreferencesModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctPreferences.", "ctCollectionId", FinderColumn.Type.LONG,
-					"=", true, true, CTPreferences::getCtCollectionId));
-
 		_finderPathWithPaginationFindByPreviousCtCollectionId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
 			"findByPreviousCtCollectionId",
@@ -956,31 +1431,10 @@ public class CTPreferencesPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"previousCtCollectionId"}, false);
 
-		_collectionPersistenceFinderByPreviousCtCollectionId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByPreviousCtCollectionId,
-				_finderPathWithoutPaginationFindByPreviousCtCollectionId,
-				_finderPathCountByPreviousCtCollectionId,
-				_SQL_SELECT_CTPREFERENCES_WHERE, _SQL_COUNT_CTPREFERENCES_WHERE,
-				CTPreferencesModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"ctPreferences.", "previousCtCollectionId",
-					FinderColumn.Type.LONG, "=", true, true,
-					CTPreferences::getPreviousCtCollectionId));
-
 		_finderPathFetchByC_U = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_U",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"companyId", "userId"}, true);
-
-		_uniquePersistenceFinderByC_U = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_U, _SQL_SELECT_CTPREFERENCES_WHERE,
-			new FinderColumn<>(
-				"ctPreferences.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, CTPreferences::getCompanyId),
-			new FinderColumn<>(
-				"ctPreferences.", "userId", FinderColumn.Type.LONG, "=", true,
-				true, CTPreferences::getUserId));
 
 		CTPreferencesUtil.setPersistence(this);
 	}
@@ -1038,6 +1492,9 @@ public class CTPreferencesPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ctPreferences.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTPreferences exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTPreferences exists with the key {";
 
@@ -1050,4 +1507,4 @@ public class CTPreferencesPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:931342077
+// LIFERAY-SERVICE-BUILDER-HASH:-1445510972

@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,8 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -40,6 +39,7 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -60,8 +60,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CTScorePersistence.class)
 public class CTScorePersistenceImpl
-	extends BasePersistenceImpl<CTScore, NoSuchScoreException>
-	implements CTScorePersistence {
+	extends BasePersistenceImpl<CTScore> implements CTScorePersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -81,8 +80,6 @@ public class CTScorePersistenceImpl
 	private FinderPath _finderPathWithoutPaginationFindAll;
 	private FinderPath _finderPathCountAll;
 	private FinderPath _finderPathFetchByCtCollectionId;
-	private UniquePersistenceFinder<CTScore>
-		_uniquePersistenceFinderByCtCollectionId;
 
 	/**
 	 * Returns the ct score where ctCollectionId = &#63; or throws a <code>NoSuchScoreException</code> if it could not be found.
@@ -98,15 +95,20 @@ public class CTScorePersistenceImpl
 		CTScore ctScore = fetchByCtCollectionId(ctCollectionId);
 
 		if (ctScore == null) {
-			String message =
-				_uniquePersistenceFinderByCtCollectionId.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {ctCollectionId});
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("ctCollectionId=");
+			sb.append(ctCollectionId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchScoreException(message);
+			throw new NoSuchScoreException(sb.toString());
 		}
 
 		return ctScore;
@@ -134,8 +136,77 @@ public class CTScorePersistenceImpl
 	public CTScore fetchByCtCollectionId(
 		long ctCollectionId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByCtCollectionId.fetch(
-			finderCache, new Object[] {ctCollectionId}, useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {ctCollectionId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByCtCollectionId, finderArgs, this);
+		}
+
+		if (result instanceof CTScore) {
+			CTScore ctScore = (CTScore)result;
+
+			if (ctCollectionId != ctScore.getCtCollectionId()) {
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_SELECT_CTSCORE_WHERE);
+
+			sb.append(_FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(ctCollectionId);
+
+				List<CTScore> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByCtCollectionId, finderArgs, list);
+					}
+				}
+				else {
+					CTScore ctScore = list.get(0);
+
+					result = ctScore;
+
+					cacheResult(ctScore);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CTScore)result;
+		}
 	}
 
 	/**
@@ -161,9 +232,17 @@ public class CTScorePersistenceImpl
 	 */
 	@Override
 	public int countByCtCollectionId(long ctCollectionId) {
-		return _uniquePersistenceFinderByCtCollectionId.count(
-			finderCache, new Object[] {ctCollectionId});
+		CTScore ctScore = fetchByCtCollectionId(ctCollectionId);
+
+		if (ctScore == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_CTCOLLECTIONID_CTCOLLECTIONID_2 =
+		"ctScore.ctCollectionId = ?";
 
 	public CTScorePersistenceImpl() {
 		setModelClass(CTScore.class);
@@ -214,6 +293,48 @@ public class CTScorePersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all ct scores.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CTScoreImpl.class);
+
+		finderCache.clearCache(CTScoreImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ct score.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CTScore ctScore) {
+		entityCache.removeResult(CTScoreImpl.class, ctScore);
+	}
+
+	@Override
+	public void clearCache(List<CTScore> ctScores) {
+		for (CTScore ctScore : ctScores) {
+			entityCache.removeResult(CTScoreImpl.class, ctScore);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CTScoreImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CTScoreImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(CTScoreModelImpl ctScoreModelImpl) {
 		Object[] args = new Object[] {ctScoreModelImpl.getCtCollectionId()};
 
@@ -249,6 +370,45 @@ public class CTScorePersistenceImpl
 	@Override
 	public CTScore remove(long ctScoreId) throws NoSuchScoreException {
 		return remove((Serializable)ctScoreId);
+	}
+
+	/**
+	 * Removes the ct score with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ct score
+	 * @return the ct score that was removed
+	 * @throws NoSuchScoreException if a ct score with the primary key could not be found
+	 */
+	@Override
+	public CTScore remove(Serializable primaryKey) throws NoSuchScoreException {
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CTScore ctScore = (CTScore)session.get(
+				CTScoreImpl.class, primaryKey);
+
+			if (ctScore == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchScoreException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ctScore);
+		}
+		catch (NoSuchScoreException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -331,6 +491,31 @@ public class CTScorePersistenceImpl
 		}
 
 		ctScore.resetOriginalValues();
+
+		return ctScore;
+	}
+
+	/**
+	 * Returns the ct score with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ct score
+	 * @return the ct score
+	 * @throws NoSuchScoreException if a ct score with the primary key could not be found
+	 */
+	@Override
+	public CTScore findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchScoreException {
+
+		CTScore ctScore = fetchByPrimaryKey(primaryKey);
+
+		if (ctScore == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchScoreException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return ctScore;
 	}
@@ -584,14 +769,6 @@ public class CTScorePersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"ctCollectionId"}, true);
 
-		_uniquePersistenceFinderByCtCollectionId =
-			new UniquePersistenceFinder<>(
-				this, _finderPathFetchByCtCollectionId,
-				_SQL_SELECT_CTSCORE_WHERE,
-				new FinderColumn<>(
-					"ctScore.", "ctCollectionId", FinderColumn.Type.LONG, "=",
-					true, true, CTScore::getCtCollectionId));
-
 		CTScoreUtil.setPersistence(this);
 	}
 
@@ -643,7 +820,13 @@ public class CTScorePersistenceImpl
 	private static final String _SQL_COUNT_CTSCORE =
 		"SELECT COUNT(ctScore) FROM CTScore ctScore";
 
+	private static final String _SQL_COUNT_CTSCORE_WHERE =
+		"SELECT COUNT(ctScore) FROM CTScore ctScore WHERE ";
+
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ctScore.";
+
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CTScore exists with the primary key ";
 
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CTScore exists with the key {";
@@ -657,4 +840,4 @@ public class CTScorePersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1296957134
+// LIFERAY-SERVICE-BUILDER-HASH:953465792

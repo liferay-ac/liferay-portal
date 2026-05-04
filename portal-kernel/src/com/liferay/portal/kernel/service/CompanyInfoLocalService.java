@@ -264,4 +264,4 @@ public interface CompanyInfoLocalService
 	public CompanyInfo updateCompanyInfo(CompanyInfo companyInfo);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1928361320
+// LIFERAY-SERVICE-BUILDER-HASH:875865028

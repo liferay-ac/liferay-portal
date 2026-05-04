@@ -30,7 +30,7 @@ public class MembershipRequestServiceWrapper
 	public com.liferay.portal.kernel.model.MembershipRequest
 			addMembershipRequest(
 				long groupId, java.lang.String comments,
-				com.liferay.portal.kernel.service.ServiceContext serviceContext)
+				ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _membershipRequestService.addMembershipRequest(
@@ -66,8 +66,7 @@ public class MembershipRequestServiceWrapper
 	@Override
 	public void updateStatus(
 			long membershipRequestId, java.lang.String reviewComments,
-			long statusId,
-			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+			long statusId, ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		_membershipRequestService.updateStatus(
@@ -89,4 +88,4 @@ public class MembershipRequestServiceWrapper
 	private MembershipRequestService _membershipRequestService;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:669209518
+// LIFERAY-SERVICE-BUILDER-HASH:427188046

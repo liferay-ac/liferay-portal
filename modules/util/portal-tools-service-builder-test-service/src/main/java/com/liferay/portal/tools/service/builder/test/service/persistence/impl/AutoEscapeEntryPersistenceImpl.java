@@ -32,6 +32,7 @@ import java.io.Serializable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The persistence implementation for the auto escape entry service.
@@ -44,7 +45,7 @@ import java.util.Map;
  * @generated
  */
 public class AutoEscapeEntryPersistenceImpl
-	extends BasePersistenceImpl<AutoEscapeEntry, NoSuchAutoEscapeEntryException>
+	extends BasePersistenceImpl<AutoEscapeEntry>
 	implements AutoEscapeEntryPersistence {
 
 	/*
@@ -114,6 +115,49 @@ public class AutoEscapeEntryPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all auto escape entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(AutoEscapeEntryImpl.class);
+
+		finderCache.clearCache(AutoEscapeEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the auto escape entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(AutoEscapeEntry autoEscapeEntry) {
+		entityCache.removeResult(AutoEscapeEntryImpl.class, autoEscapeEntry);
+	}
+
+	@Override
+	public void clearCache(List<AutoEscapeEntry> autoEscapeEntries) {
+		for (AutoEscapeEntry autoEscapeEntry : autoEscapeEntries) {
+			entityCache.removeResult(
+				AutoEscapeEntryImpl.class, autoEscapeEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(AutoEscapeEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(AutoEscapeEntryImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new auto escape entry with the primary key. Does not add the auto escape entry to the database.
 	 *
 	 * @param autoEscapeEntryId the primary key for the new auto escape entry
@@ -141,6 +185,47 @@ public class AutoEscapeEntryPersistenceImpl
 		throws NoSuchAutoEscapeEntryException {
 
 		return remove((Serializable)autoEscapeEntryId);
+	}
+
+	/**
+	 * Removes the auto escape entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the auto escape entry
+	 * @return the auto escape entry that was removed
+	 * @throws NoSuchAutoEscapeEntryException if a auto escape entry with the primary key could not be found
+	 */
+	@Override
+	public AutoEscapeEntry remove(Serializable primaryKey)
+		throws NoSuchAutoEscapeEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			AutoEscapeEntry autoEscapeEntry = (AutoEscapeEntry)session.get(
+				AutoEscapeEntryImpl.class, primaryKey);
+
+			if (autoEscapeEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchAutoEscapeEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(autoEscapeEntry);
+		}
+		catch (NoSuchAutoEscapeEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -206,6 +291,31 @@ public class AutoEscapeEntryPersistenceImpl
 		}
 
 		autoEscapeEntry.resetOriginalValues();
+
+		return autoEscapeEntry;
+	}
+
+	/**
+	 * Returns the auto escape entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the auto escape entry
+	 * @return the auto escape entry
+	 * @throws NoSuchAutoEscapeEntryException if a auto escape entry with the primary key could not be found
+	 */
+	@Override
+	public AutoEscapeEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchAutoEscapeEntryException {
+
+		AutoEscapeEntry autoEscapeEntry = fetchByPrimaryKey(primaryKey);
+
+		if (autoEscapeEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchAutoEscapeEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return autoEscapeEntry;
 	}
@@ -478,6 +588,9 @@ public class AutoEscapeEntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "autoEscapeEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No AutoEscapeEntry exists with the primary key ";
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		AutoEscapeEntryPersistenceImpl.class);
 
@@ -487,4 +600,4 @@ public class AutoEscapeEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:2085294653
+// LIFERAY-SERVICE-BUILDER-HASH:-1790548905

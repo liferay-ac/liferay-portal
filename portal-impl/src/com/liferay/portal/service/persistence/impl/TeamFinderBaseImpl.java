@@ -6,7 +6,6 @@
 package com.liferay.portal.service.persistence.impl;
 
 import com.liferay.portal.kernel.bean.BeanReference;
-import com.liferay.portal.kernel.exception.NoSuchTeamException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Team;
@@ -21,8 +20,7 @@ import java.util.Set;
  * @author Brian Wing Shun Chan
  * @generated
  */
-public class TeamFinderBaseImpl
-	extends BasePersistenceImpl<Team, NoSuchTeamException> {
+public class TeamFinderBaseImpl extends BasePersistenceImpl<Team> {
 
 	public TeamFinderBaseImpl() {
 		setModelClass(Team.class);
@@ -64,4 +62,4 @@ public class TeamFinderBaseImpl
 		TeamFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1900375849
+// LIFERAY-SERVICE-BUILDER-HASH:-479558585

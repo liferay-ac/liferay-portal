@@ -406,4 +406,4 @@ public interface CommerceInventoryWarehouseLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1882979610
+// LIFERAY-SERVICE-BUILDER-HASH:-1185737989

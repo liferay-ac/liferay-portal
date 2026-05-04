@@ -107,4 +107,4 @@ public interface CommerceTermEntryService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1432493145
+// LIFERAY-SERVICE-BUILDER-HASH:1138743864

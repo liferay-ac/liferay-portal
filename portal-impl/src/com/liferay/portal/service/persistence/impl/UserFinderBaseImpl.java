@@ -6,7 +6,6 @@
 package com.liferay.portal.service.persistence.impl;
 
 import com.liferay.portal.kernel.bean.BeanReference;
-import com.liferay.portal.kernel.exception.NoSuchUserException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.User;
@@ -21,8 +20,7 @@ import java.util.Set;
  * @author Brian Wing Shun Chan
  * @generated
  */
-public class UserFinderBaseImpl
-	extends BasePersistenceImpl<User, NoSuchUserException> {
+public class UserFinderBaseImpl extends BasePersistenceImpl<User> {
 
 	public UserFinderBaseImpl() {
 		setModelClass(User.class);
@@ -67,4 +65,4 @@ public class UserFinderBaseImpl
 		UserFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:635329707
+// LIFERAY-SERVICE-BUILDER-HASH:1194103699

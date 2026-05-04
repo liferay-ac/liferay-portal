@@ -5,7 +5,6 @@
 
 package com.liferay.commerce.discount.service.persistence.impl;
 
-import com.liferay.commerce.discount.exception.NoSuchDiscountRuleException;
 import com.liferay.commerce.discount.model.CommerceDiscountRule;
 import com.liferay.commerce.discount.service.persistence.CommerceDiscountRulePersistence;
 import com.liferay.commerce.discount.service.persistence.impl.constants.CommercePersistenceConstants;
@@ -28,8 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class CommerceDiscountRuleFinderBaseImpl
-	extends BasePersistenceImpl
-		<CommerceDiscountRule, NoSuchDiscountRuleException> {
+	extends BasePersistenceImpl<CommerceDiscountRule> {
 
 	public CommerceDiscountRuleFinderBaseImpl() {
 		setModelClass(CommerceDiscountRule.class);
@@ -79,4 +77,4 @@ public abstract class CommerceDiscountRuleFinderBaseImpl
 		CommerceDiscountRuleFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:574088276
+// LIFERAY-SERVICE-BUILDER-HASH:-1417716469

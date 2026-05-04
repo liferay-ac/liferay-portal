@@ -331,4 +331,4 @@ public interface ObjectLayoutLocalService
 	public ObjectLayout updateObjectLayout(ObjectLayout objectLayout);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1149495472
+// LIFERAY-SERVICE-BUILDER-HASH:-1339236054

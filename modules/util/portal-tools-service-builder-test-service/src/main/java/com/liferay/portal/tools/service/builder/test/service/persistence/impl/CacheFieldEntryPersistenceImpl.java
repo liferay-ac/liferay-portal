@@ -10,13 +10,12 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -37,6 +36,7 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The persistence implementation for the cache field entry service.
@@ -49,7 +49,7 @@ import java.util.Map;
  * @generated
  */
 public class CacheFieldEntryPersistenceImpl
-	extends BasePersistenceImpl<CacheFieldEntry, NoSuchCacheFieldEntryException>
+	extends BasePersistenceImpl<CacheFieldEntry>
 	implements CacheFieldEntryPersistence {
 
 	/*
@@ -72,8 +72,6 @@ public class CacheFieldEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByGroupId;
 	private FinderPath _finderPathWithoutPaginationFindByGroupId;
 	private FinderPath _finderPathCountByGroupId;
-	private CollectionPersistenceFinder<CacheFieldEntry>
-		_collectionPersistenceFinderByGroupId;
 
 	/**
 	 * Returns all the cache field entries where groupId = &#63;.
@@ -147,9 +145,93 @@ public class CacheFieldEntryPersistenceImpl
 		OrderByComparator<CacheFieldEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByGroupId.find(
-			finderCache, new Object[] {groupId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByGroupId;
+				finderArgs = new Object[] {groupId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByGroupId;
+			finderArgs = new Object[] {groupId, start, end, orderByComparator};
+		}
+
+		List<CacheFieldEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<CacheFieldEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CacheFieldEntry cacheFieldEntry : list) {
+					if (groupId != cacheFieldEntry.getGroupId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_CACHEFIELDENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CacheFieldEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				list = (List<CacheFieldEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -172,9 +254,16 @@ public class CacheFieldEntryPersistenceImpl
 			return cacheFieldEntry;
 		}
 
-		throw new NoSuchCacheFieldEntryException(
-			_collectionPersistenceFinderByGroupId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {groupId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("groupId=");
+		sb.append(groupId);
+
+		sb.append("}");
+
+		throw new NoSuchCacheFieldEntryException(sb.toString());
 	}
 
 	/**
@@ -188,8 +277,14 @@ public class CacheFieldEntryPersistenceImpl
 	public CacheFieldEntry fetchByGroupId_First(
 		long groupId, OrderByComparator<CacheFieldEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByGroupId.fetchFirst(
-			finderCache, new Object[] {groupId}, orderByComparator);
+		List<CacheFieldEntry> list = findByGroupId(
+			groupId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -199,8 +294,12 @@ public class CacheFieldEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByGroupId(long groupId) {
-		_collectionPersistenceFinderByGroupId.remove(
-			finderCache, new Object[] {groupId});
+		for (CacheFieldEntry cacheFieldEntry :
+				findByGroupId(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(cacheFieldEntry);
+		}
 	}
 
 	/**
@@ -211,9 +310,49 @@ public class CacheFieldEntryPersistenceImpl
 	 */
 	@Override
 	public int countByGroupId(long groupId) {
-		return _collectionPersistenceFinderByGroupId.count(
-			finderCache, new Object[] {groupId});
+		FinderPath finderPath = _finderPathCountByGroupId;
+
+		Object[] finderArgs = new Object[] {groupId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_CACHEFIELDENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_GROUPID_GROUPID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(groupId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String _FINDER_COLUMN_GROUPID_GROUPID_2 =
+		"cacheFieldEntry.groupId = ?";
 
 	public CacheFieldEntryPersistenceImpl() {
 		setModelClass(CacheFieldEntry.class);
@@ -274,6 +413,49 @@ public class CacheFieldEntryPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all cache field entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CacheFieldEntryImpl.class);
+
+		finderCache.clearCache(CacheFieldEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the cache field entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CacheFieldEntry cacheFieldEntry) {
+		entityCache.removeResult(CacheFieldEntryImpl.class, cacheFieldEntry);
+	}
+
+	@Override
+	public void clearCache(List<CacheFieldEntry> cacheFieldEntries) {
+		for (CacheFieldEntry cacheFieldEntry : cacheFieldEntries) {
+			entityCache.removeResult(
+				CacheFieldEntryImpl.class, cacheFieldEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CacheFieldEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CacheFieldEntryImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new cache field entry with the primary key. Does not add the cache field entry to the database.
 	 *
 	 * @param cacheFieldEntryId the primary key for the new cache field entry
@@ -301,6 +483,47 @@ public class CacheFieldEntryPersistenceImpl
 		throws NoSuchCacheFieldEntryException {
 
 		return remove((Serializable)cacheFieldEntryId);
+	}
+
+	/**
+	 * Removes the cache field entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the cache field entry
+	 * @return the cache field entry that was removed
+	 * @throws NoSuchCacheFieldEntryException if a cache field entry with the primary key could not be found
+	 */
+	@Override
+	public CacheFieldEntry remove(Serializable primaryKey)
+		throws NoSuchCacheFieldEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CacheFieldEntry cacheFieldEntry = (CacheFieldEntry)session.get(
+				CacheFieldEntryImpl.class, primaryKey);
+
+			if (cacheFieldEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchCacheFieldEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(cacheFieldEntry);
+		}
+		catch (NoSuchCacheFieldEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -386,6 +609,31 @@ public class CacheFieldEntryPersistenceImpl
 		}
 
 		cacheFieldEntry.resetOriginalValues();
+
+		return cacheFieldEntry;
+	}
+
+	/**
+	 * Returns the cache field entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the cache field entry
+	 * @return the cache field entry
+	 * @throws NoSuchCacheFieldEntryException if a cache field entry with the primary key could not be found
+	 */
+	@Override
+	public CacheFieldEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchCacheFieldEntryException {
+
+		CacheFieldEntry cacheFieldEntry = fetchByPrimaryKey(primaryKey);
+
+		if (cacheFieldEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchCacheFieldEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return cacheFieldEntry;
 	}
@@ -653,17 +901,6 @@ public class CacheFieldEntryPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"groupId"},
 			false);
 
-		_collectionPersistenceFinderByGroupId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByGroupId,
-				_finderPathWithoutPaginationFindByGroupId,
-				_finderPathCountByGroupId, _SQL_SELECT_CACHEFIELDENTRY_WHERE,
-				_SQL_COUNT_CACHEFIELDENTRY_WHERE,
-				CacheFieldEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"cacheFieldEntry.", "groupId", FinderColumn.Type.LONG, "=",
-					true, true, CacheFieldEntry::getGroupId));
-
 		CacheFieldEntryUtil.setPersistence(this);
 	}
 
@@ -693,6 +930,9 @@ public class CacheFieldEntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "cacheFieldEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CacheFieldEntry exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CacheFieldEntry exists with the key {";
 
@@ -705,4 +945,4 @@ public class CacheFieldEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1704352978
+// LIFERAY-SERVICE-BUILDER-HASH:-1842289001

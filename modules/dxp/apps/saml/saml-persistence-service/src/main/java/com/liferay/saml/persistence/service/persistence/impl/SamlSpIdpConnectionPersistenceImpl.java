@@ -11,6 +11,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -20,14 +21,12 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.saml.persistence.exception.NoSuchSpIdpConnectionException;
 import com.liferay.saml.persistence.model.SamlSpIdpConnection;
 import com.liferay.saml.persistence.model.SamlSpIdpConnectionTable;
@@ -41,9 +40,12 @@ import java.io.Serializable;
 
 import java.lang.reflect.InvocationHandler;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -64,8 +66,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = SamlSpIdpConnectionPersistence.class)
 public class SamlSpIdpConnectionPersistenceImpl
-	extends BasePersistenceImpl
-		<SamlSpIdpConnection, NoSuchSpIdpConnectionException>
+	extends BasePersistenceImpl<SamlSpIdpConnection>
 	implements SamlSpIdpConnectionPersistence {
 
 	/*
@@ -88,8 +89,6 @@ public class SamlSpIdpConnectionPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<SamlSpIdpConnection>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the saml sp idp connections where companyId = &#63;.
@@ -163,9 +162,95 @@ public class SamlSpIdpConnectionPersistenceImpl
 		OrderByComparator<SamlSpIdpConnection> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			finderCache, new Object[] {companyId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<SamlSpIdpConnection> list = null;
+
+		if (useFinderCache) {
+			list = (List<SamlSpIdpConnection>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (SamlSpIdpConnection samlSpIdpConnection : list) {
+					if (companyId != samlSpIdpConnection.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_SAMLSPIDPCONNECTION_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(SamlSpIdpConnectionModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<SamlSpIdpConnection>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -189,9 +274,16 @@ public class SamlSpIdpConnectionPersistenceImpl
 			return samlSpIdpConnection;
 		}
 
-		throw new NoSuchSpIdpConnectionException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchSpIdpConnectionException(sb.toString());
 	}
 
 	/**
@@ -206,8 +298,14 @@ public class SamlSpIdpConnectionPersistenceImpl
 		long companyId,
 		OrderByComparator<SamlSpIdpConnection> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<SamlSpIdpConnection> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -217,8 +315,12 @@ public class SamlSpIdpConnectionPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (SamlSpIdpConnection samlSpIdpConnection :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(samlSpIdpConnection);
+		}
 	}
 
 	/**
@@ -229,13 +331,51 @@ public class SamlSpIdpConnectionPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			finderCache, new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_SAMLSPIDPCONNECTION_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"samlSpIdpConnection.companyId = ?";
+
 	private FinderPath _finderPathFetchByC_SIEI;
-	private UniquePersistenceFinder<SamlSpIdpConnection>
-		_uniquePersistenceFinderByC_SIEI;
 
 	/**
 	 * Returns the saml sp idp connection where companyId = &#63; and samlIdpEntityId = &#63; or throws a <code>NoSuchSpIdpConnectionException</code> if it could not be found.
@@ -254,16 +394,23 @@ public class SamlSpIdpConnectionPersistenceImpl
 			companyId, samlIdpEntityId);
 
 		if (samlSpIdpConnection == null) {
-			String message =
-				_uniquePersistenceFinderByC_SIEI.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {companyId, samlIdpEntityId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append(", samlIdpEntityId=");
+			sb.append(samlIdpEntityId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchSpIdpConnectionException(message);
+			throw new NoSuchSpIdpConnectionException(sb.toString());
 		}
 
 		return samlSpIdpConnection;
@@ -295,9 +442,116 @@ public class SamlSpIdpConnectionPersistenceImpl
 	public SamlSpIdpConnection fetchByC_SIEI(
 		long companyId, String samlIdpEntityId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_SIEI.fetch(
-			finderCache, new Object[] {companyId, samlIdpEntityId},
-			useFinderCache);
+		samlIdpEntityId = Objects.toString(samlIdpEntityId, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {companyId, samlIdpEntityId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByC_SIEI, finderArgs, this);
+		}
+
+		if (result instanceof SamlSpIdpConnection) {
+			SamlSpIdpConnection samlSpIdpConnection =
+				(SamlSpIdpConnection)result;
+
+			if ((companyId != samlSpIdpConnection.getCompanyId()) ||
+				!Objects.equals(
+					samlIdpEntityId,
+					samlSpIdpConnection.getSamlIdpEntityId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_SAMLSPIDPCONNECTION_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_SIEI_COMPANYID_2);
+
+			boolean bindSamlIdpEntityId = false;
+
+			if (samlIdpEntityId.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_SIEI_SAMLIDPENTITYID_3);
+			}
+			else {
+				bindSamlIdpEntityId = true;
+
+				sb.append(_FINDER_COLUMN_C_SIEI_SAMLIDPENTITYID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindSamlIdpEntityId) {
+					queryPos.add(samlIdpEntityId);
+				}
+
+				List<SamlSpIdpConnection> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByC_SIEI, finderArgs, list);
+					}
+				}
+				else {
+					if (list.size() > 1) {
+						Collections.sort(list, Collections.reverseOrder());
+
+						if (_log.isWarnEnabled()) {
+							if (!useFinderCache) {
+								finderArgs = new Object[] {
+									companyId, samlIdpEntityId
+								};
+							}
+
+							_log.warn(
+								"SamlSpIdpConnectionPersistenceImpl.fetchByC_SIEI(long, String, boolean) with parameters (" +
+									StringUtil.merge(finderArgs) +
+										") yields a result set with more than 1 result. This violates the logical unique restriction. There is no order guarantee on which result is returned by this finder.");
+						}
+					}
+
+					SamlSpIdpConnection samlSpIdpConnection = list.get(0);
+
+					result = samlSpIdpConnection;
+
+					cacheResult(samlSpIdpConnection);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (SamlSpIdpConnection)result;
+		}
 	}
 
 	/**
@@ -327,9 +581,24 @@ public class SamlSpIdpConnectionPersistenceImpl
 	 */
 	@Override
 	public int countByC_SIEI(long companyId, String samlIdpEntityId) {
-		return _uniquePersistenceFinderByC_SIEI.count(
-			finderCache, new Object[] {companyId, samlIdpEntityId});
+		SamlSpIdpConnection samlSpIdpConnection = fetchByC_SIEI(
+			companyId, samlIdpEntityId);
+
+		if (samlSpIdpConnection == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_SIEI_COMPANYID_2 =
+		"samlSpIdpConnection.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_SIEI_SAMLIDPENTITYID_2 =
+		"samlSpIdpConnection.samlIdpEntityId = ?";
+
+	private static final String _FINDER_COLUMN_C_SIEI_SAMLIDPENTITYID_3 =
+		"(samlSpIdpConnection.samlIdpEntityId IS NULL OR samlSpIdpConnection.samlIdpEntityId = '')";
 
 	public SamlSpIdpConnectionPersistenceImpl() {
 		setModelClass(SamlSpIdpConnection.class);
@@ -387,6 +656,50 @@ public class SamlSpIdpConnectionPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all saml sp idp connections.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(SamlSpIdpConnectionImpl.class);
+
+		finderCache.clearCache(SamlSpIdpConnectionImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the saml sp idp connection.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(SamlSpIdpConnection samlSpIdpConnection) {
+		entityCache.removeResult(
+			SamlSpIdpConnectionImpl.class, samlSpIdpConnection);
+	}
+
+	@Override
+	public void clearCache(List<SamlSpIdpConnection> samlSpIdpConnections) {
+		for (SamlSpIdpConnection samlSpIdpConnection : samlSpIdpConnections) {
+			entityCache.removeResult(
+				SamlSpIdpConnectionImpl.class, samlSpIdpConnection);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(SamlSpIdpConnectionImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(SamlSpIdpConnectionImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		SamlSpIdpConnectionModelImpl samlSpIdpConnectionModelImpl) {
 
@@ -429,6 +742,48 @@ public class SamlSpIdpConnectionPersistenceImpl
 		throws NoSuchSpIdpConnectionException {
 
 		return remove((Serializable)samlSpIdpConnectionId);
+	}
+
+	/**
+	 * Removes the saml sp idp connection with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the saml sp idp connection
+	 * @return the saml sp idp connection that was removed
+	 * @throws NoSuchSpIdpConnectionException if a saml sp idp connection with the primary key could not be found
+	 */
+	@Override
+	public SamlSpIdpConnection remove(Serializable primaryKey)
+		throws NoSuchSpIdpConnectionException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			SamlSpIdpConnection samlSpIdpConnection =
+				(SamlSpIdpConnection)session.get(
+					SamlSpIdpConnectionImpl.class, primaryKey);
+
+			if (samlSpIdpConnection == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchSpIdpConnectionException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(samlSpIdpConnection);
+		}
+		catch (NoSuchSpIdpConnectionException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -546,6 +901,31 @@ public class SamlSpIdpConnectionPersistenceImpl
 		}
 
 		samlSpIdpConnection.resetOriginalValues();
+
+		return samlSpIdpConnection;
+	}
+
+	/**
+	 * Returns the saml sp idp connection with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the saml sp idp connection
+	 * @return the saml sp idp connection
+	 * @throws NoSuchSpIdpConnectionException if a saml sp idp connection with the primary key could not be found
+	 */
+	@Override
+	public SamlSpIdpConnection findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchSpIdpConnectionException {
+
+		SamlSpIdpConnection samlSpIdpConnection = fetchByPrimaryKey(primaryKey);
+
+		if (samlSpIdpConnection == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchSpIdpConnectionException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return samlSpIdpConnection;
 	}
@@ -815,34 +1195,10 @@ public class SamlSpIdpConnectionPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId,
-				_SQL_SELECT_SAMLSPIDPCONNECTION_WHERE,
-				_SQL_COUNT_SAMLSPIDPCONNECTION_WHERE,
-				SamlSpIdpConnectionModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"samlSpIdpConnection.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, SamlSpIdpConnection::getCompanyId));
-
 		_finderPathFetchByC_SIEI = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_SIEI",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"companyId", "samlIdpEntityId"}, true);
-
-		_uniquePersistenceFinderByC_SIEI = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_SIEI,
-			_SQL_SELECT_SAMLSPIDPCONNECTION_WHERE,
-			new FinderColumn<>(
-				"samlSpIdpConnection.", "companyId", FinderColumn.Type.LONG,
-				"=", true, false, SamlSpIdpConnection::getCompanyId),
-			new FinderColumn<>(
-				"samlSpIdpConnection.", "samlIdpEntityId",
-				FinderColumn.Type.STRING, "=", true, true,
-				SamlSpIdpConnection::getSamlIdpEntityId));
 
 		SamlSpIdpConnectionUtil.setPersistence(this);
 	}
@@ -900,6 +1256,9 @@ public class SamlSpIdpConnectionPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "samlSpIdpConnection.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No SamlSpIdpConnection exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No SamlSpIdpConnection exists with the key {";
 
@@ -912,4 +1271,4 @@ public class SamlSpIdpConnectionPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:2047110459
+// LIFERAY-SERVICE-BUILDER-HASH:-665151346

@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -28,9 +29,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -67,9 +65,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CommerceShippingFixedOptionQualifierPersistence.class)
 public class CommerceShippingFixedOptionQualifierPersistenceImpl
-	extends BasePersistenceImpl
-		<CommerceShippingFixedOptionQualifier,
-		 NoSuchShippingFixedOptionQualifierException>
+	extends BasePersistenceImpl<CommerceShippingFixedOptionQualifier>
 	implements CommerceShippingFixedOptionQualifierPersistence {
 
 	/*
@@ -94,8 +90,6 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 	private FinderPath
 		_finderPathWithoutPaginationFindByCommerceShippingFixedOptionId;
 	private FinderPath _finderPathCountByCommerceShippingFixedOptionId;
-	private CollectionPersistenceFinder<CommerceShippingFixedOptionQualifier>
-		_collectionPersistenceFinderByCommerceShippingFixedOptionId;
 
 	/**
 	 * Returns all the commerce shipping fixed option qualifiers where commerceShippingFixedOptionId = &#63;.
@@ -180,9 +174,107 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 				orderByComparator,
 			boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCommerceShippingFixedOptionId.find(
-			finderCache, new Object[] {commerceShippingFixedOptionId}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByCommerceShippingFixedOptionId;
+				finderArgs = new Object[] {commerceShippingFixedOptionId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath =
+				_finderPathWithPaginationFindByCommerceShippingFixedOptionId;
+			finderArgs = new Object[] {
+				commerceShippingFixedOptionId, start, end, orderByComparator
+			};
+		}
+
+		List<CommerceShippingFixedOptionQualifier> list = null;
+
+		if (useFinderCache) {
+			list =
+				(List<CommerceShippingFixedOptionQualifier>)
+					finderCache.getResult(finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceShippingFixedOptionQualifier
+						commerceShippingFixedOptionQualifier : list) {
+
+					if (commerceShippingFixedOptionId !=
+							commerceShippingFixedOptionQualifier.
+								getCommerceShippingFixedOptionId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_COMMERCESHIPPINGFIXEDOPTIONID_COMMERCESHIPPINGFIXEDOPTIONID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(
+					CommerceShippingFixedOptionQualifierModelImpl.
+						ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(commerceShippingFixedOptionId);
+
+				list =
+					(List<CommerceShippingFixedOptionQualifier>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -210,11 +302,16 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 			return commerceShippingFixedOptionQualifier;
 		}
 
-		throw new NoSuchShippingFixedOptionQualifierException(
-			_collectionPersistenceFinderByCommerceShippingFixedOptionId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {commerceShippingFixedOptionId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("commerceShippingFixedOptionId=");
+		sb.append(commerceShippingFixedOptionId);
+
+		sb.append("}");
+
+		throw new NoSuchShippingFixedOptionQualifierException(sb.toString());
 	}
 
 	/**
@@ -231,10 +328,15 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 			OrderByComparator<CommerceShippingFixedOptionQualifier>
 				orderByComparator) {
 
-		return _collectionPersistenceFinderByCommerceShippingFixedOptionId.
-			fetchFirst(
-				finderCache, new Object[] {commerceShippingFixedOptionId},
-				orderByComparator);
+		List<CommerceShippingFixedOptionQualifier> list =
+			findByCommerceShippingFixedOptionId(
+				commerceShippingFixedOptionId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -246,8 +348,14 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 	public void removeByCommerceShippingFixedOptionId(
 		long commerceShippingFixedOptionId) {
 
-		_collectionPersistenceFinderByCommerceShippingFixedOptionId.remove(
-			finderCache, new Object[] {commerceShippingFixedOptionId});
+		for (CommerceShippingFixedOptionQualifier
+				commerceShippingFixedOptionQualifier :
+					findByCommerceShippingFixedOptionId(
+						commerceShippingFixedOptionId, QueryUtil.ALL_POS,
+						QueryUtil.ALL_POS, null)) {
+
+			remove(commerceShippingFixedOptionQualifier);
+		}
 	}
 
 	/**
@@ -260,15 +368,55 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 	public int countByCommerceShippingFixedOptionId(
 		long commerceShippingFixedOptionId) {
 
-		return _collectionPersistenceFinderByCommerceShippingFixedOptionId.
-			count(finderCache, new Object[] {commerceShippingFixedOptionId});
+		FinderPath finderPath = _finderPathCountByCommerceShippingFixedOptionId;
+
+		Object[] finderArgs = new Object[] {commerceShippingFixedOptionId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_COMMERCESHIPPINGFIXEDOPTIONID_COMMERCESHIPPINGFIXEDOPTIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(commerceShippingFixedOptionId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_COMMERCESHIPPINGFIXEDOPTIONID_COMMERCESHIPPINGFIXEDOPTIONID_2 =
+			"commerceShippingFixedOptionQualifier.commerceShippingFixedOptionId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByC_C;
 	private FinderPath _finderPathWithoutPaginationFindByC_C;
 	private FinderPath _finderPathCountByC_C;
-	private CollectionPersistenceFinder<CommerceShippingFixedOptionQualifier>
-		_collectionPersistenceFinderByC_C;
 
 	/**
 	 * Returns all the commerce shipping fixed option qualifiers where classNameId = &#63; and commerceShippingFixedOptionId = &#63;.
@@ -357,10 +505,114 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 			orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_C.find(
-			finderCache,
-			new Object[] {classNameId, commerceShippingFixedOptionId}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_C;
+				finderArgs = new Object[] {
+					classNameId, commerceShippingFixedOptionId
+				};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_C;
+			finderArgs = new Object[] {
+				classNameId, commerceShippingFixedOptionId, start, end,
+				orderByComparator
+			};
+		}
+
+		List<CommerceShippingFixedOptionQualifier> list = null;
+
+		if (useFinderCache) {
+			list =
+				(List<CommerceShippingFixedOptionQualifier>)
+					finderCache.getResult(finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceShippingFixedOptionQualifier
+						commerceShippingFixedOptionQualifier : list) {
+
+					if ((classNameId !=
+							commerceShippingFixedOptionQualifier.
+								getClassNameId()) ||
+						(commerceShippingFixedOptionId !=
+							commerceShippingFixedOptionQualifier.
+								getCommerceShippingFixedOptionId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_C_C_COMMERCESHIPPINGFIXEDOPTIONID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(
+					CommerceShippingFixedOptionQualifierModelImpl.
+						ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(classNameId);
+
+				queryPos.add(commerceShippingFixedOptionId);
+
+				list =
+					(List<CommerceShippingFixedOptionQualifier>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -387,10 +639,19 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 			return commerceShippingFixedOptionQualifier;
 		}
 
-		throw new NoSuchShippingFixedOptionQualifierException(
-			_collectionPersistenceFinderByC_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {classNameId, commerceShippingFixedOptionId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("classNameId=");
+		sb.append(classNameId);
+
+		sb.append(", commerceShippingFixedOptionId=");
+		sb.append(commerceShippingFixedOptionId);
+
+		sb.append("}");
+
+		throw new NoSuchShippingFixedOptionQualifierException(sb.toString());
 	}
 
 	/**
@@ -407,10 +668,15 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 		OrderByComparator<CommerceShippingFixedOptionQualifier>
 			orderByComparator) {
 
-		return _collectionPersistenceFinderByC_C.fetchFirst(
-			finderCache,
-			new Object[] {classNameId, commerceShippingFixedOptionId},
+		List<CommerceShippingFixedOptionQualifier> list = findByC_C(
+			classNameId, commerceShippingFixedOptionId, 0, 1,
 			orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -423,9 +689,14 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 	public void removeByC_C(
 		long classNameId, long commerceShippingFixedOptionId) {
 
-		_collectionPersistenceFinderByC_C.remove(
-			finderCache,
-			new Object[] {classNameId, commerceShippingFixedOptionId});
+		for (CommerceShippingFixedOptionQualifier
+				commerceShippingFixedOptionQualifier :
+					findByC_C(
+						classNameId, commerceShippingFixedOptionId,
+						QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(commerceShippingFixedOptionQualifier);
+		}
 	}
 
 	/**
@@ -439,14 +710,61 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 	public int countByC_C(
 		long classNameId, long commerceShippingFixedOptionId) {
 
-		return _collectionPersistenceFinderByC_C.count(
-			finderCache,
-			new Object[] {classNameId, commerceShippingFixedOptionId});
+		FinderPath finderPath = _finderPathCountByC_C;
+
+		Object[] finderArgs = new Object[] {
+			classNameId, commerceShippingFixedOptionId
+		};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_C_CLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_C_C_COMMERCESHIPPINGFIXEDOPTIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(classNameId);
+
+				queryPos.add(commerceShippingFixedOptionId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_C_C_CLASSNAMEID_2 =
+		"commerceShippingFixedOptionQualifier.classNameId = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_C_C_COMMERCESHIPPINGFIXEDOPTIONID_2 =
+			"commerceShippingFixedOptionQualifier.commerceShippingFixedOptionId = ?";
+
 	private FinderPath _finderPathFetchByC_C_C;
-	private UniquePersistenceFinder<CommerceShippingFixedOptionQualifier>
-		_uniquePersistenceFinderByC_C_C;
 
 	/**
 	 * Returns the commerce shipping fixed option qualifier where classNameId = &#63; and classPK = &#63; and commerceShippingFixedOptionId = &#63; or throws a <code>NoSuchShippingFixedOptionQualifierException</code> if it could not be found.
@@ -467,18 +785,27 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 				classNameId, classPK, commerceShippingFixedOptionId);
 
 		if (commerceShippingFixedOptionQualifier == null) {
-			String message =
-				_uniquePersistenceFinderByC_C_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {
-						classNameId, classPK, commerceShippingFixedOptionId
-					});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("classNameId=");
+			sb.append(classNameId);
+
+			sb.append(", classPK=");
+			sb.append(classPK);
+
+			sb.append(", commerceShippingFixedOptionId=");
+			sb.append(commerceShippingFixedOptionId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchShippingFixedOptionQualifierException(message);
+			throw new NoSuchShippingFixedOptionQualifierException(
+				sb.toString());
 		}
 
 		return commerceShippingFixedOptionQualifier;
@@ -514,10 +841,97 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 		long classNameId, long classPK, long commerceShippingFixedOptionId,
 		boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_C_C.fetch(
-			finderCache,
-			new Object[] {classNameId, classPK, commerceShippingFixedOptionId},
-			useFinderCache);
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {
+				classNameId, classPK, commerceShippingFixedOptionId
+			};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByC_C_C, finderArgs, this);
+		}
+
+		if (result instanceof CommerceShippingFixedOptionQualifier) {
+			CommerceShippingFixedOptionQualifier
+				commerceShippingFixedOptionQualifier =
+					(CommerceShippingFixedOptionQualifier)result;
+
+			if ((classNameId !=
+					commerceShippingFixedOptionQualifier.getClassNameId()) ||
+				(classPK !=
+					commerceShippingFixedOptionQualifier.getClassPK()) ||
+				(commerceShippingFixedOptionId !=
+					commerceShippingFixedOptionQualifier.
+						getCommerceShippingFixedOptionId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_C_C_CLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_C_C_C_CLASSPK_2);
+
+			sb.append(_FINDER_COLUMN_C_C_C_COMMERCESHIPPINGFIXEDOPTIONID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(classNameId);
+
+				queryPos.add(classPK);
+
+				queryPos.add(commerceShippingFixedOptionId);
+
+				List<CommerceShippingFixedOptionQualifier> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByC_C_C, finderArgs, list);
+					}
+				}
+				else {
+					CommerceShippingFixedOptionQualifier
+						commerceShippingFixedOptionQualifier = list.get(0);
+
+					result = commerceShippingFixedOptionQualifier;
+
+					cacheResult(commerceShippingFixedOptionQualifier);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CommerceShippingFixedOptionQualifier)result;
+		}
 	}
 
 	/**
@@ -552,10 +966,26 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 	public int countByC_C_C(
 		long classNameId, long classPK, long commerceShippingFixedOptionId) {
 
-		return _uniquePersistenceFinderByC_C_C.count(
-			finderCache,
-			new Object[] {classNameId, classPK, commerceShippingFixedOptionId});
+		CommerceShippingFixedOptionQualifier
+			commerceShippingFixedOptionQualifier = fetchByC_C_C(
+				classNameId, classPK, commerceShippingFixedOptionId);
+
+		if (commerceShippingFixedOptionQualifier == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_C_C_CLASSNAMEID_2 =
+		"commerceShippingFixedOptionQualifier.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_C_C_CLASSPK_2 =
+		"commerceShippingFixedOptionQualifier.classPK = ? AND ";
+
+	private static final String
+		_FINDER_COLUMN_C_C_C_COMMERCESHIPPINGFIXEDOPTIONID_2 =
+			"commerceShippingFixedOptionQualifier.commerceShippingFixedOptionId = ?";
 
 	public CommerceShippingFixedOptionQualifierPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -634,6 +1064,62 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all commerce shipping fixed option qualifiers.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CommerceShippingFixedOptionQualifierImpl.class);
+
+		finderCache.clearCache(CommerceShippingFixedOptionQualifierImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the commerce shipping fixed option qualifier.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		CommerceShippingFixedOptionQualifier
+			commerceShippingFixedOptionQualifier) {
+
+		entityCache.removeResult(
+			CommerceShippingFixedOptionQualifierImpl.class,
+			commerceShippingFixedOptionQualifier);
+	}
+
+	@Override
+	public void clearCache(
+		List<CommerceShippingFixedOptionQualifier>
+			commerceShippingFixedOptionQualifiers) {
+
+		for (CommerceShippingFixedOptionQualifier
+				commerceShippingFixedOptionQualifier :
+					commerceShippingFixedOptionQualifiers) {
+
+			entityCache.removeResult(
+				CommerceShippingFixedOptionQualifierImpl.class,
+				commerceShippingFixedOptionQualifier);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CommerceShippingFixedOptionQualifierImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				CommerceShippingFixedOptionQualifierImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CommerceShippingFixedOptionQualifierModelImpl
 			commerceShippingFixedOptionQualifierModelImpl) {
@@ -687,6 +1173,52 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 		throws NoSuchShippingFixedOptionQualifierException {
 
 		return remove((Serializable)commerceShippingFixedOptionQualifierId);
+	}
+
+	/**
+	 * Removes the commerce shipping fixed option qualifier with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the commerce shipping fixed option qualifier
+	 * @return the commerce shipping fixed option qualifier that was removed
+	 * @throws NoSuchShippingFixedOptionQualifierException if a commerce shipping fixed option qualifier with the primary key could not be found
+	 */
+	@Override
+	public CommerceShippingFixedOptionQualifier remove(Serializable primaryKey)
+		throws NoSuchShippingFixedOptionQualifierException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CommerceShippingFixedOptionQualifier
+				commerceShippingFixedOptionQualifier =
+					(CommerceShippingFixedOptionQualifier)session.get(
+						CommerceShippingFixedOptionQualifierImpl.class,
+						primaryKey);
+
+			if (commerceShippingFixedOptionQualifier == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchShippingFixedOptionQualifierException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(commerceShippingFixedOptionQualifier);
+		}
+		catch (NoSuchShippingFixedOptionQualifierException
+					noSuchEntityException) {
+
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -819,6 +1351,34 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 		}
 
 		commerceShippingFixedOptionQualifier.resetOriginalValues();
+
+		return commerceShippingFixedOptionQualifier;
+	}
+
+	/**
+	 * Returns the commerce shipping fixed option qualifier with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the commerce shipping fixed option qualifier
+	 * @return the commerce shipping fixed option qualifier
+	 * @throws NoSuchShippingFixedOptionQualifierException if a commerce shipping fixed option qualifier with the primary key could not be found
+	 */
+	@Override
+	public CommerceShippingFixedOptionQualifier findByPrimaryKey(
+			Serializable primaryKey)
+		throws NoSuchShippingFixedOptionQualifierException {
+
+		CommerceShippingFixedOptionQualifier
+			commerceShippingFixedOptionQualifier = fetchByPrimaryKey(
+				primaryKey);
+
+		if (commerceShippingFixedOptionQualifier == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchShippingFixedOptionQualifierException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return commerceShippingFixedOptionQualifier;
 	}
@@ -1113,23 +1673,6 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"commerceShippingFixedOptionId"}, false);
 
-		_collectionPersistenceFinderByCommerceShippingFixedOptionId =
-			new CollectionPersistenceFinder<>(
-				this,
-				_finderPathWithPaginationFindByCommerceShippingFixedOptionId,
-				_finderPathWithoutPaginationFindByCommerceShippingFixedOptionId,
-				_finderPathCountByCommerceShippingFixedOptionId,
-				_SQL_SELECT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE,
-				_SQL_COUNT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE,
-				CommerceShippingFixedOptionQualifierModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"commerceShippingFixedOptionQualifier.",
-					"commerceShippingFixedOptionId", FinderColumn.Type.LONG,
-					"=", true, true,
-					CommerceShippingFixedOptionQualifier::
-						getCommerceShippingFixedOptionId));
-
 		_finderPathWithPaginationFindByC_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_C",
 			new String[] {
@@ -1152,24 +1695,6 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 			new String[] {"classNameId", "commerceShippingFixedOptionId"},
 			false);
 
-		_collectionPersistenceFinderByC_C = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_C,
-			_finderPathWithoutPaginationFindByC_C, _finderPathCountByC_C,
-			_SQL_SELECT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE,
-			_SQL_COUNT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE,
-			CommerceShippingFixedOptionQualifierModelImpl.ORDER_BY_JPQL,
-			_ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"commerceShippingFixedOptionQualifier.", "classNameId",
-				FinderColumn.Type.LONG, "=", true, false,
-				CommerceShippingFixedOptionQualifier::getClassNameId),
-			new FinderColumn<>(
-				"commerceShippingFixedOptionQualifier.",
-				"commerceShippingFixedOptionId", FinderColumn.Type.LONG, "=",
-				true, true,
-				CommerceShippingFixedOptionQualifier::
-					getCommerceShippingFixedOptionId));
-
 		_finderPathFetchByC_C_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_C_C",
 			new String[] {
@@ -1179,24 +1704,6 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 				"classNameId", "classPK", "commerceShippingFixedOptionId"
 			},
 			true);
-
-		_uniquePersistenceFinderByC_C_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_C_C,
-			_SQL_SELECT_COMMERCESHIPPINGFIXEDOPTIONQUALIFIER_WHERE,
-			new FinderColumn<>(
-				"commerceShippingFixedOptionQualifier.", "classNameId",
-				FinderColumn.Type.LONG, "=", true, false,
-				CommerceShippingFixedOptionQualifier::getClassNameId),
-			new FinderColumn<>(
-				"commerceShippingFixedOptionQualifier.", "classPK",
-				FinderColumn.Type.LONG, "=", true, false,
-				CommerceShippingFixedOptionQualifier::getClassPK),
-			new FinderColumn<>(
-				"commerceShippingFixedOptionQualifier.",
-				"commerceShippingFixedOptionId", FinderColumn.Type.LONG, "=",
-				true, true,
-				CommerceShippingFixedOptionQualifier::
-					getCommerceShippingFixedOptionId));
 
 		CommerceShippingFixedOptionQualifierUtil.setPersistence(this);
 	}
@@ -1260,6 +1767,9 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"commerceShippingFixedOptionQualifier.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CommerceShippingFixedOptionQualifier exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CommerceShippingFixedOptionQualifier exists with the key {";
 
@@ -1275,4 +1785,4 @@ public class CommerceShippingFixedOptionQualifierPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1691949239
+// LIFERAY-SERVICE-BUILDER-HASH:946649830

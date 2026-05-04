@@ -481,4 +481,4 @@ public interface CommerceSubscriptionEntryLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1639728915
+// LIFERAY-SERVICE-BUILDER-HASH:506346690

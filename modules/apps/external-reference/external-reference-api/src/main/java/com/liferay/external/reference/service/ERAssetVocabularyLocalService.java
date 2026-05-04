@@ -55,4 +55,4 @@ public interface ERAssetVocabularyLocalService extends BaseLocalService {
 	public String getOSGiServiceIdentifier();
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1658149471
+// LIFERAY-SERVICE-BUILDER-HASH:675837153

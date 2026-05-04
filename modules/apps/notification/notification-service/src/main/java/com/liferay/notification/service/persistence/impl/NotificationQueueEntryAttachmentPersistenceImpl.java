@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -26,8 +27,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -63,9 +62,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = NotificationQueueEntryAttachmentPersistence.class)
 public class NotificationQueueEntryAttachmentPersistenceImpl
-	extends BasePersistenceImpl
-		<NotificationQueueEntryAttachment,
-		 NoSuchNotificationQueueEntryAttachmentException>
+	extends BasePersistenceImpl<NotificationQueueEntryAttachment>
 	implements NotificationQueueEntryAttachmentPersistence {
 
 	/*
@@ -89,8 +86,6 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 	private FinderPath
 		_finderPathWithoutPaginationFindByNotificationQueueEntryId;
 	private FinderPath _finderPathCountByNotificationQueueEntryId;
-	private CollectionPersistenceFinder<NotificationQueueEntryAttachment>
-		_collectionPersistenceFinderByNotificationQueueEntryId;
 
 	/**
 	 * Returns all the notification queue entry attachments where notificationQueueEntryId = &#63;.
@@ -174,9 +169,105 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 				orderByComparator,
 			boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByNotificationQueueEntryId.find(
-			finderCache, new Object[] {notificationQueueEntryId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath =
+					_finderPathWithoutPaginationFindByNotificationQueueEntryId;
+				finderArgs = new Object[] {notificationQueueEntryId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath =
+				_finderPathWithPaginationFindByNotificationQueueEntryId;
+			finderArgs = new Object[] {
+				notificationQueueEntryId, start, end, orderByComparator
+			};
+		}
+
+		List<NotificationQueueEntryAttachment> list = null;
+
+		if (useFinderCache) {
+			list =
+				(List<NotificationQueueEntryAttachment>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (NotificationQueueEntryAttachment
+						notificationQueueEntryAttachment : list) {
+
+					if (notificationQueueEntryId !=
+							notificationQueueEntryAttachment.
+								getNotificationQueueEntryId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_NOTIFICATIONQUEUEENTRYATTACHMENT_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_NOTIFICATIONQUEUEENTRYID_NOTIFICATIONQUEUEENTRYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(
+					NotificationQueueEntryAttachmentModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(notificationQueueEntryId);
+
+				list = (List<NotificationQueueEntryAttachment>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -203,11 +294,17 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 			return notificationQueueEntryAttachment;
 		}
 
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("notificationQueueEntryId=");
+		sb.append(notificationQueueEntryId);
+
+		sb.append("}");
+
 		throw new NoSuchNotificationQueueEntryAttachmentException(
-			_collectionPersistenceFinderByNotificationQueueEntryId.
-				buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {notificationQueueEntryId}));
+			sb.toString());
 	}
 
 	/**
@@ -224,10 +321,15 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 			OrderByComparator<NotificationQueueEntryAttachment>
 				orderByComparator) {
 
-		return _collectionPersistenceFinderByNotificationQueueEntryId.
-			fetchFirst(
-				finderCache, new Object[] {notificationQueueEntryId},
-				orderByComparator);
+		List<NotificationQueueEntryAttachment> list =
+			findByNotificationQueueEntryId(
+				notificationQueueEntryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -239,8 +341,13 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 	public void removeByNotificationQueueEntryId(
 		long notificationQueueEntryId) {
 
-		_collectionPersistenceFinderByNotificationQueueEntryId.remove(
-			finderCache, new Object[] {notificationQueueEntryId});
+		for (NotificationQueueEntryAttachment notificationQueueEntryAttachment :
+				findByNotificationQueueEntryId(
+					notificationQueueEntryId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(notificationQueueEntryAttachment);
+		}
 	}
 
 	/**
@@ -251,9 +358,51 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 	 */
 	@Override
 	public int countByNotificationQueueEntryId(long notificationQueueEntryId) {
-		return _collectionPersistenceFinderByNotificationQueueEntryId.count(
-			finderCache, new Object[] {notificationQueueEntryId});
+		FinderPath finderPath = _finderPathCountByNotificationQueueEntryId;
+
+		Object[] finderArgs = new Object[] {notificationQueueEntryId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_NOTIFICATIONQUEUEENTRYATTACHMENT_WHERE);
+
+			sb.append(
+				_FINDER_COLUMN_NOTIFICATIONQUEUEENTRYID_NOTIFICATIONQUEUEENTRYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(notificationQueueEntryId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
+
+	private static final String
+		_FINDER_COLUMN_NOTIFICATIONQUEUEENTRYID_NOTIFICATIONQUEUEENTRYID_2 =
+			"notificationQueueEntryAttachment.notificationQueueEntryId = ?";
 
 	public NotificationQueueEntryAttachmentPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -319,6 +468,60 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all notification queue entry attachments.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(NotificationQueueEntryAttachmentImpl.class);
+
+		finderCache.clearCache(NotificationQueueEntryAttachmentImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the notification queue entry attachment.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(
+		NotificationQueueEntryAttachment notificationQueueEntryAttachment) {
+
+		entityCache.removeResult(
+			NotificationQueueEntryAttachmentImpl.class,
+			notificationQueueEntryAttachment);
+	}
+
+	@Override
+	public void clearCache(
+		List<NotificationQueueEntryAttachment>
+			notificationQueueEntryAttachments) {
+
+		for (NotificationQueueEntryAttachment notificationQueueEntryAttachment :
+				notificationQueueEntryAttachments) {
+
+			entityCache.removeResult(
+				NotificationQueueEntryAttachmentImpl.class,
+				notificationQueueEntryAttachment);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(NotificationQueueEntryAttachmentImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				NotificationQueueEntryAttachmentImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new notification queue entry attachment with the primary key. Does not add the notification queue entry attachment to the database.
 	 *
 	 * @param notificationQueueEntryAttachmentId the primary key for the new notification queue entry attachment
@@ -354,6 +557,50 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 		throws NoSuchNotificationQueueEntryAttachmentException {
 
 		return remove((Serializable)notificationQueueEntryAttachmentId);
+	}
+
+	/**
+	 * Removes the notification queue entry attachment with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the notification queue entry attachment
+	 * @return the notification queue entry attachment that was removed
+	 * @throws NoSuchNotificationQueueEntryAttachmentException if a notification queue entry attachment with the primary key could not be found
+	 */
+	@Override
+	public NotificationQueueEntryAttachment remove(Serializable primaryKey)
+		throws NoSuchNotificationQueueEntryAttachmentException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			NotificationQueueEntryAttachment notificationQueueEntryAttachment =
+				(NotificationQueueEntryAttachment)session.get(
+					NotificationQueueEntryAttachmentImpl.class, primaryKey);
+
+			if (notificationQueueEntryAttachment == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchNotificationQueueEntryAttachmentException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(notificationQueueEntryAttachment);
+		}
+		catch (NoSuchNotificationQueueEntryAttachmentException
+					noSuchEntityException) {
+
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -452,6 +699,33 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 		}
 
 		notificationQueueEntryAttachment.resetOriginalValues();
+
+		return notificationQueueEntryAttachment;
+	}
+
+	/**
+	 * Returns the notification queue entry attachment with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the notification queue entry attachment
+	 * @return the notification queue entry attachment
+	 * @throws NoSuchNotificationQueueEntryAttachmentException if a notification queue entry attachment with the primary key could not be found
+	 */
+	@Override
+	public NotificationQueueEntryAttachment findByPrimaryKey(
+			Serializable primaryKey)
+		throws NoSuchNotificationQueueEntryAttachmentException {
+
+		NotificationQueueEntryAttachment notificationQueueEntryAttachment =
+			fetchByPrimaryKey(primaryKey);
+
+		if (notificationQueueEntryAttachment == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchNotificationQueueEntryAttachmentException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return notificationQueueEntryAttachment;
 	}
@@ -740,22 +1014,6 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"notificationQueueEntryId"}, false);
 
-		_collectionPersistenceFinderByNotificationQueueEntryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByNotificationQueueEntryId,
-				_finderPathWithoutPaginationFindByNotificationQueueEntryId,
-				_finderPathCountByNotificationQueueEntryId,
-				_SQL_SELECT_NOTIFICATIONQUEUEENTRYATTACHMENT_WHERE,
-				_SQL_COUNT_NOTIFICATIONQUEUEENTRYATTACHMENT_WHERE,
-				NotificationQueueEntryAttachmentModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"notificationQueueEntryAttachment.",
-					"notificationQueueEntryId", FinderColumn.Type.LONG, "=",
-					true, true,
-					NotificationQueueEntryAttachment::
-						getNotificationQueueEntryId));
-
 		NotificationQueueEntryAttachmentUtil.setPersistence(this);
 	}
 
@@ -816,6 +1074,9 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"notificationQueueEntryAttachment.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No NotificationQueueEntryAttachment exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No NotificationQueueEntryAttachment exists with the key {";
 
@@ -831,4 +1092,4 @@ public class NotificationQueueEntryAttachmentPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-638644799
+// LIFERAY-SERVICE-BUILDER-HASH:-2088355111

@@ -301,4 +301,4 @@ public interface ContactLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1723468057
+// LIFERAY-SERVICE-BUILDER-HASH:-1921631033

@@ -32,6 +32,7 @@ import java.io.Serializable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The persistence implementation for the many columns entry service.
@@ -44,8 +45,7 @@ import java.util.Map;
  * @generated
  */
 public class ManyColumnsEntryPersistenceImpl
-	extends BasePersistenceImpl
-		<ManyColumnsEntry, NoSuchManyColumnsEntryException>
+	extends BasePersistenceImpl<ManyColumnsEntry>
 	implements ManyColumnsEntryPersistence {
 
 	/*
@@ -115,6 +115,49 @@ public class ManyColumnsEntryPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all many columns entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(ManyColumnsEntryImpl.class);
+
+		finderCache.clearCache(ManyColumnsEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the many columns entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(ManyColumnsEntry manyColumnsEntry) {
+		entityCache.removeResult(ManyColumnsEntryImpl.class, manyColumnsEntry);
+	}
+
+	@Override
+	public void clearCache(List<ManyColumnsEntry> manyColumnsEntries) {
+		for (ManyColumnsEntry manyColumnsEntry : manyColumnsEntries) {
+			entityCache.removeResult(
+				ManyColumnsEntryImpl.class, manyColumnsEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(ManyColumnsEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(ManyColumnsEntryImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new many columns entry with the primary key. Does not add the many columns entry to the database.
 	 *
 	 * @param manyColumnsEntryId the primary key for the new many columns entry
@@ -142,6 +185,47 @@ public class ManyColumnsEntryPersistenceImpl
 		throws NoSuchManyColumnsEntryException {
 
 		return remove((Serializable)manyColumnsEntryId);
+	}
+
+	/**
+	 * Removes the many columns entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the many columns entry
+	 * @return the many columns entry that was removed
+	 * @throws NoSuchManyColumnsEntryException if a many columns entry with the primary key could not be found
+	 */
+	@Override
+	public ManyColumnsEntry remove(Serializable primaryKey)
+		throws NoSuchManyColumnsEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ManyColumnsEntry manyColumnsEntry = (ManyColumnsEntry)session.get(
+				ManyColumnsEntryImpl.class, primaryKey);
+
+			if (manyColumnsEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchManyColumnsEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(manyColumnsEntry);
+		}
+		catch (NoSuchManyColumnsEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -207,6 +291,31 @@ public class ManyColumnsEntryPersistenceImpl
 		}
 
 		manyColumnsEntry.resetOriginalValues();
+
+		return manyColumnsEntry;
+	}
+
+	/**
+	 * Returns the many columns entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the many columns entry
+	 * @return the many columns entry
+	 * @throws NoSuchManyColumnsEntryException if a many columns entry with the primary key could not be found
+	 */
+	@Override
+	public ManyColumnsEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchManyColumnsEntryException {
+
+		ManyColumnsEntry manyColumnsEntry = fetchByPrimaryKey(primaryKey);
+
+		if (manyColumnsEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchManyColumnsEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return manyColumnsEntry;
 	}
@@ -479,6 +588,9 @@ public class ManyColumnsEntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "manyColumnsEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No ManyColumnsEntry exists with the primary key ";
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		ManyColumnsEntryPersistenceImpl.class);
 
@@ -488,4 +600,4 @@ public class ManyColumnsEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1569207381
+// LIFERAY-SERVICE-BUILDER-HASH:1818882591

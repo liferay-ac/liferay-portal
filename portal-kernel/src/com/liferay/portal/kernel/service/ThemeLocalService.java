@@ -97,4 +97,4 @@ public interface ThemeLocalService extends BaseLocalService {
 	public void uninstallThemes(List<Theme> themes);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:381387833
+// LIFERAY-SERVICE-BUILDER-HASH:819070565

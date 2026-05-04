@@ -37,6 +37,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * The persistence implementation for the finder where clause entry service.
@@ -49,8 +50,7 @@ import java.util.Objects;
  * @generated
  */
 public class FinderWhereClauseEntryPersistenceImpl
-	extends BasePersistenceImpl
-		<FinderWhereClauseEntry, NoSuchFinderWhereClauseEntryException>
+	extends BasePersistenceImpl<FinderWhereClauseEntry>
 	implements FinderWhereClauseEntryPersistence {
 
 	/*
@@ -439,6 +439,55 @@ public class FinderWhereClauseEntryPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all finder where clause entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(FinderWhereClauseEntryImpl.class);
+
+		finderCache.clearCache(FinderWhereClauseEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the finder where clause entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(FinderWhereClauseEntry finderWhereClauseEntry) {
+		entityCache.removeResult(
+			FinderWhereClauseEntryImpl.class, finderWhereClauseEntry);
+	}
+
+	@Override
+	public void clearCache(
+		List<FinderWhereClauseEntry> finderWhereClauseEntries) {
+
+		for (FinderWhereClauseEntry finderWhereClauseEntry :
+				finderWhereClauseEntries) {
+
+			entityCache.removeResult(
+				FinderWhereClauseEntryImpl.class, finderWhereClauseEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(FinderWhereClauseEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(
+				FinderWhereClauseEntryImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new finder where clause entry with the primary key. Does not add the finder where clause entry to the database.
 	 *
 	 * @param finderWhereClauseEntryId the primary key for the new finder where clause entry
@@ -467,6 +516,48 @@ public class FinderWhereClauseEntryPersistenceImpl
 		throws NoSuchFinderWhereClauseEntryException {
 
 		return remove((Serializable)finderWhereClauseEntryId);
+	}
+
+	/**
+	 * Removes the finder where clause entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the finder where clause entry
+	 * @return the finder where clause entry that was removed
+	 * @throws NoSuchFinderWhereClauseEntryException if a finder where clause entry with the primary key could not be found
+	 */
+	@Override
+	public FinderWhereClauseEntry remove(Serializable primaryKey)
+		throws NoSuchFinderWhereClauseEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			FinderWhereClauseEntry finderWhereClauseEntry =
+				(FinderWhereClauseEntry)session.get(
+					FinderWhereClauseEntryImpl.class, primaryKey);
+
+			if (finderWhereClauseEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchFinderWhereClauseEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(finderWhereClauseEntry);
+		}
+		catch (NoSuchFinderWhereClauseEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -559,6 +650,32 @@ public class FinderWhereClauseEntryPersistenceImpl
 		}
 
 		finderWhereClauseEntry.resetOriginalValues();
+
+		return finderWhereClauseEntry;
+	}
+
+	/**
+	 * Returns the finder where clause entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the finder where clause entry
+	 * @return the finder where clause entry
+	 * @throws NoSuchFinderWhereClauseEntryException if a finder where clause entry with the primary key could not be found
+	 */
+	@Override
+	public FinderWhereClauseEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchFinderWhereClauseEntryException {
+
+		FinderWhereClauseEntry finderWhereClauseEntry = fetchByPrimaryKey(
+			primaryKey);
+
+		if (finderWhereClauseEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchFinderWhereClauseEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return finderWhereClauseEntry;
 	}
@@ -859,6 +976,9 @@ public class FinderWhereClauseEntryPersistenceImpl
 	private static final String _ORDER_BY_ENTITY_ALIAS =
 		"finderWhereClauseEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No FinderWhereClauseEntry exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No FinderWhereClauseEntry exists with the key {";
 
@@ -871,4 +991,4 @@ public class FinderWhereClauseEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-150848171
+// LIFERAY-SERVICE-BUILDER-HASH:-1793073920

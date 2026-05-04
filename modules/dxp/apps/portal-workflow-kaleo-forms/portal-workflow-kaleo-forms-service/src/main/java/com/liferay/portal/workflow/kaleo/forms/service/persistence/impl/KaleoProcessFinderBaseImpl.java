@@ -10,7 +10,6 @@ import com.liferay.portal.kernel.dao.orm.SessionFactory;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.workflow.kaleo.forms.exception.NoSuchKaleoProcessException;
 import com.liferay.portal.workflow.kaleo.forms.model.KaleoProcess;
 import com.liferay.portal.workflow.kaleo.forms.service.persistence.KaleoProcessPersistence;
 import com.liferay.portal.workflow.kaleo.forms.service.persistence.impl.constants.KaleoFormsPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class KaleoProcessFinderBaseImpl
-	extends BasePersistenceImpl<KaleoProcess, NoSuchKaleoProcessException> {
+	extends BasePersistenceImpl<KaleoProcess> {
 
 	public KaleoProcessFinderBaseImpl() {
 		setModelClass(KaleoProcess.class);
@@ -78,4 +77,4 @@ public abstract class KaleoProcessFinderBaseImpl
 		KaleoProcessFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-596055544
+// LIFERAY-SERVICE-BUILDER-HASH:2027006931

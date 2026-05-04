@@ -11,6 +11,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -18,9 +19,6 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -41,6 +39,8 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -61,8 +61,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = KaleoProcessLinkPersistence.class)
 public class KaleoProcessLinkPersistenceImpl
-	extends BasePersistenceImpl
-		<KaleoProcessLink, NoSuchKaleoProcessLinkException>
+	extends BasePersistenceImpl<KaleoProcessLink>
 	implements KaleoProcessLinkPersistence {
 
 	/*
@@ -85,8 +84,6 @@ public class KaleoProcessLinkPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByKaleoProcessId;
 	private FinderPath _finderPathWithoutPaginationFindByKaleoProcessId;
 	private FinderPath _finderPathCountByKaleoProcessId;
-	private CollectionPersistenceFinder<KaleoProcessLink>
-		_collectionPersistenceFinderByKaleoProcessId;
 
 	/**
 	 * Returns all the kaleo process links where kaleoProcessId = &#63;.
@@ -161,9 +158,97 @@ public class KaleoProcessLinkPersistenceImpl
 		OrderByComparator<KaleoProcessLink> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByKaleoProcessId.find(
-			finderCache, new Object[] {kaleoProcessId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByKaleoProcessId;
+				finderArgs = new Object[] {kaleoProcessId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByKaleoProcessId;
+			finderArgs = new Object[] {
+				kaleoProcessId, start, end, orderByComparator
+			};
+		}
+
+		List<KaleoProcessLink> list = null;
+
+		if (useFinderCache) {
+			list = (List<KaleoProcessLink>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (KaleoProcessLink kaleoProcessLink : list) {
+					if (kaleoProcessId !=
+							kaleoProcessLink.getKaleoProcessId()) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_KALEOPROCESSLINK_WHERE);
+
+			sb.append(_FINDER_COLUMN_KALEOPROCESSID_KALEOPROCESSID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(KaleoProcessLinkModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(kaleoProcessId);
+
+				list = (List<KaleoProcessLink>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -187,9 +272,16 @@ public class KaleoProcessLinkPersistenceImpl
 			return kaleoProcessLink;
 		}
 
-		throw new NoSuchKaleoProcessLinkException(
-			_collectionPersistenceFinderByKaleoProcessId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {kaleoProcessId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("kaleoProcessId=");
+		sb.append(kaleoProcessId);
+
+		sb.append("}");
+
+		throw new NoSuchKaleoProcessLinkException(sb.toString());
 	}
 
 	/**
@@ -204,8 +296,14 @@ public class KaleoProcessLinkPersistenceImpl
 		long kaleoProcessId,
 		OrderByComparator<KaleoProcessLink> orderByComparator) {
 
-		return _collectionPersistenceFinderByKaleoProcessId.fetchFirst(
-			finderCache, new Object[] {kaleoProcessId}, orderByComparator);
+		List<KaleoProcessLink> list = findByKaleoProcessId(
+			kaleoProcessId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -215,8 +313,13 @@ public class KaleoProcessLinkPersistenceImpl
 	 */
 	@Override
 	public void removeByKaleoProcessId(long kaleoProcessId) {
-		_collectionPersistenceFinderByKaleoProcessId.remove(
-			finderCache, new Object[] {kaleoProcessId});
+		for (KaleoProcessLink kaleoProcessLink :
+				findByKaleoProcessId(
+					kaleoProcessId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(kaleoProcessLink);
+		}
 	}
 
 	/**
@@ -227,13 +330,51 @@ public class KaleoProcessLinkPersistenceImpl
 	 */
 	@Override
 	public int countByKaleoProcessId(long kaleoProcessId) {
-		return _collectionPersistenceFinderByKaleoProcessId.count(
-			finderCache, new Object[] {kaleoProcessId});
+		FinderPath finderPath = _finderPathCountByKaleoProcessId;
+
+		Object[] finderArgs = new Object[] {kaleoProcessId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_KALEOPROCESSLINK_WHERE);
+
+			sb.append(_FINDER_COLUMN_KALEOPROCESSID_KALEOPROCESSID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(kaleoProcessId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_KALEOPROCESSID_KALEOPROCESSID_2 =
+		"kaleoProcessLink.kaleoProcessId = ?";
+
 	private FinderPath _finderPathFetchByKPI_WTN;
-	private UniquePersistenceFinder<KaleoProcessLink>
-		_uniquePersistenceFinderByKPI_WTN;
 
 	/**
 	 * Returns the kaleo process link where kaleoProcessId = &#63; and workflowTaskName = &#63; or throws a <code>NoSuchKaleoProcessLinkException</code> if it could not be found.
@@ -252,16 +393,23 @@ public class KaleoProcessLinkPersistenceImpl
 			kaleoProcessId, workflowTaskName);
 
 		if (kaleoProcessLink == null) {
-			String message =
-				_uniquePersistenceFinderByKPI_WTN.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {kaleoProcessId, workflowTaskName});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("kaleoProcessId=");
+			sb.append(kaleoProcessId);
+
+			sb.append(", workflowTaskName=");
+			sb.append(workflowTaskName);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchKaleoProcessLinkException(message);
+			throw new NoSuchKaleoProcessLinkException(sb.toString());
 		}
 
 		return kaleoProcessLink;
@@ -293,9 +441,97 @@ public class KaleoProcessLinkPersistenceImpl
 	public KaleoProcessLink fetchByKPI_WTN(
 		long kaleoProcessId, String workflowTaskName, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByKPI_WTN.fetch(
-			finderCache, new Object[] {kaleoProcessId, workflowTaskName},
-			useFinderCache);
+		workflowTaskName = Objects.toString(workflowTaskName, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {kaleoProcessId, workflowTaskName};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByKPI_WTN, finderArgs, this);
+		}
+
+		if (result instanceof KaleoProcessLink) {
+			KaleoProcessLink kaleoProcessLink = (KaleoProcessLink)result;
+
+			if ((kaleoProcessId != kaleoProcessLink.getKaleoProcessId()) ||
+				!Objects.equals(
+					workflowTaskName, kaleoProcessLink.getWorkflowTaskName())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_KALEOPROCESSLINK_WHERE);
+
+			sb.append(_FINDER_COLUMN_KPI_WTN_KALEOPROCESSID_2);
+
+			boolean bindWorkflowTaskName = false;
+
+			if (workflowTaskName.isEmpty()) {
+				sb.append(_FINDER_COLUMN_KPI_WTN_WORKFLOWTASKNAME_3);
+			}
+			else {
+				bindWorkflowTaskName = true;
+
+				sb.append(_FINDER_COLUMN_KPI_WTN_WORKFLOWTASKNAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(kaleoProcessId);
+
+				if (bindWorkflowTaskName) {
+					queryPos.add(workflowTaskName);
+				}
+
+				List<KaleoProcessLink> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByKPI_WTN, finderArgs, list);
+					}
+				}
+				else {
+					KaleoProcessLink kaleoProcessLink = list.get(0);
+
+					result = kaleoProcessLink;
+
+					cacheResult(kaleoProcessLink);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (KaleoProcessLink)result;
+		}
 	}
 
 	/**
@@ -325,9 +561,24 @@ public class KaleoProcessLinkPersistenceImpl
 	 */
 	@Override
 	public int countByKPI_WTN(long kaleoProcessId, String workflowTaskName) {
-		return _uniquePersistenceFinderByKPI_WTN.count(
-			finderCache, new Object[] {kaleoProcessId, workflowTaskName});
+		KaleoProcessLink kaleoProcessLink = fetchByKPI_WTN(
+			kaleoProcessId, workflowTaskName);
+
+		if (kaleoProcessLink == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_KPI_WTN_KALEOPROCESSID_2 =
+		"kaleoProcessLink.kaleoProcessId = ? AND ";
+
+	private static final String _FINDER_COLUMN_KPI_WTN_WORKFLOWTASKNAME_2 =
+		"kaleoProcessLink.workflowTaskName = ?";
+
+	private static final String _FINDER_COLUMN_KPI_WTN_WORKFLOWTASKNAME_3 =
+		"(kaleoProcessLink.workflowTaskName IS NULL OR kaleoProcessLink.workflowTaskName = '')";
 
 	public KaleoProcessLinkPersistenceImpl() {
 		setModelClass(KaleoProcessLink.class);
@@ -385,6 +636,49 @@ public class KaleoProcessLinkPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all kaleo process links.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(KaleoProcessLinkImpl.class);
+
+		finderCache.clearCache(KaleoProcessLinkImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the kaleo process link.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(KaleoProcessLink kaleoProcessLink) {
+		entityCache.removeResult(KaleoProcessLinkImpl.class, kaleoProcessLink);
+	}
+
+	@Override
+	public void clearCache(List<KaleoProcessLink> kaleoProcessLinks) {
+		for (KaleoProcessLink kaleoProcessLink : kaleoProcessLinks) {
+			entityCache.removeResult(
+				KaleoProcessLinkImpl.class, kaleoProcessLink);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(KaleoProcessLinkImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(KaleoProcessLinkImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		KaleoProcessLinkModelImpl kaleoProcessLinkModelImpl) {
 
@@ -427,6 +721,47 @@ public class KaleoProcessLinkPersistenceImpl
 		throws NoSuchKaleoProcessLinkException {
 
 		return remove((Serializable)kaleoProcessLinkId);
+	}
+
+	/**
+	 * Removes the kaleo process link with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the kaleo process link
+	 * @return the kaleo process link that was removed
+	 * @throws NoSuchKaleoProcessLinkException if a kaleo process link with the primary key could not be found
+	 */
+	@Override
+	public KaleoProcessLink remove(Serializable primaryKey)
+		throws NoSuchKaleoProcessLinkException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			KaleoProcessLink kaleoProcessLink = (KaleoProcessLink)session.get(
+				KaleoProcessLinkImpl.class, primaryKey);
+
+			if (kaleoProcessLink == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchKaleoProcessLinkException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(kaleoProcessLink);
+		}
+		catch (NoSuchKaleoProcessLinkException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -514,6 +849,31 @@ public class KaleoProcessLinkPersistenceImpl
 		}
 
 		kaleoProcessLink.resetOriginalValues();
+
+		return kaleoProcessLink;
+	}
+
+	/**
+	 * Returns the kaleo process link with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the kaleo process link
+	 * @return the kaleo process link
+	 * @throws NoSuchKaleoProcessLinkException if a kaleo process link with the primary key could not be found
+	 */
+	@Override
+	public KaleoProcessLink findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchKaleoProcessLinkException {
+
+		KaleoProcessLink kaleoProcessLink = fetchByPrimaryKey(primaryKey);
+
+		if (kaleoProcessLink == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchKaleoProcessLinkException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return kaleoProcessLink;
 	}
@@ -782,33 +1142,10 @@ public class KaleoProcessLinkPersistenceImpl
 			new String[] {Long.class.getName()},
 			new String[] {"kaleoProcessId"}, false);
 
-		_collectionPersistenceFinderByKaleoProcessId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByKaleoProcessId,
-				_finderPathWithoutPaginationFindByKaleoProcessId,
-				_finderPathCountByKaleoProcessId,
-				_SQL_SELECT_KALEOPROCESSLINK_WHERE,
-				_SQL_COUNT_KALEOPROCESSLINK_WHERE,
-				KaleoProcessLinkModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"kaleoProcessLink.", "kaleoProcessId",
-					FinderColumn.Type.LONG, "=", true, true,
-					KaleoProcessLink::getKaleoProcessId));
-
 		_finderPathFetchByKPI_WTN = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByKPI_WTN",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"kaleoProcessId", "workflowTaskName"}, true);
-
-		_uniquePersistenceFinderByKPI_WTN = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByKPI_WTN, _SQL_SELECT_KALEOPROCESSLINK_WHERE,
-			new FinderColumn<>(
-				"kaleoProcessLink.", "kaleoProcessId", FinderColumn.Type.LONG,
-				"=", true, false, KaleoProcessLink::getKaleoProcessId),
-			new FinderColumn<>(
-				"kaleoProcessLink.", "workflowTaskName",
-				FinderColumn.Type.STRING, "=", true, true,
-				KaleoProcessLink::getWorkflowTaskName));
 
 		KaleoProcessLinkUtil.setPersistence(this);
 	}
@@ -866,6 +1203,9 @@ public class KaleoProcessLinkPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "kaleoProcessLink.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No KaleoProcessLink exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No KaleoProcessLink exists with the key {";
 
@@ -878,4 +1218,4 @@ public class KaleoProcessLinkPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-301408950
+// LIFERAY-SERVICE-BUILDER-HASH:1647837396

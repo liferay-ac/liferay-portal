@@ -31,8 +31,6 @@ import com.liferay.portal.kernel.security.permission.InlineSQLHelperUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -52,6 +50,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -73,7 +72,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = MicroblogsEntryPersistence.class)
 public class MicroblogsEntryPersistenceImpl
-	extends BasePersistenceImpl<MicroblogsEntry, NoSuchEntryException>
+	extends BasePersistenceImpl<MicroblogsEntry>
 	implements MicroblogsEntryPersistence {
 
 	/*
@@ -96,8 +95,6 @@ public class MicroblogsEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<MicroblogsEntry>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the microblogs entries where companyId = &#63;.
@@ -171,9 +168,95 @@ public class MicroblogsEntryPersistenceImpl
 		OrderByComparator<MicroblogsEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			finderCache, new Object[] {companyId}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<MicroblogsEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<MicroblogsEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (MicroblogsEntry microblogsEntry : list) {
+					if (companyId != microblogsEntry.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(MicroblogsEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<MicroblogsEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -197,9 +280,16 @@ public class MicroblogsEntryPersistenceImpl
 			return microblogsEntry;
 		}
 
-		throw new NoSuchEntryException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryException(sb.toString());
 	}
 
 	/**
@@ -213,8 +303,14 @@ public class MicroblogsEntryPersistenceImpl
 	public MicroblogsEntry fetchByCompanyId_First(
 		long companyId, OrderByComparator<MicroblogsEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			finderCache, new Object[] {companyId}, orderByComparator);
+		List<MicroblogsEntry> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -366,8 +462,12 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			finderCache, new Object[] {companyId});
+		for (MicroblogsEntry microblogsEntry :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(microblogsEntry);
+		}
 	}
 
 	/**
@@ -378,8 +478,45 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			finderCache, new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -445,8 +582,6 @@ public class MicroblogsEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUserId;
 	private FinderPath _finderPathWithoutPaginationFindByUserId;
 	private FinderPath _finderPathCountByUserId;
-	private CollectionPersistenceFinder<MicroblogsEntry>
-		_collectionPersistenceFinderByUserId;
 
 	/**
 	 * Returns all the microblogs entries where userId = &#63;.
@@ -517,9 +652,93 @@ public class MicroblogsEntryPersistenceImpl
 		OrderByComparator<MicroblogsEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUserId.find(
-			finderCache, new Object[] {userId}, start, end, orderByComparator,
-			useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUserId;
+				finderArgs = new Object[] {userId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUserId;
+			finderArgs = new Object[] {userId, start, end, orderByComparator};
+		}
+
+		List<MicroblogsEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<MicroblogsEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (MicroblogsEntry microblogsEntry : list) {
+					if (userId != microblogsEntry.getUserId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(MicroblogsEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				list = (List<MicroblogsEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -542,9 +761,16 @@ public class MicroblogsEntryPersistenceImpl
 			return microblogsEntry;
 		}
 
-		throw new NoSuchEntryException(
-			_collectionPersistenceFinderByUserId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {userId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryException(sb.toString());
 	}
 
 	/**
@@ -558,8 +784,14 @@ public class MicroblogsEntryPersistenceImpl
 	public MicroblogsEntry fetchByUserId_First(
 		long userId, OrderByComparator<MicroblogsEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUserId.fetchFirst(
-			finderCache, new Object[] {userId}, orderByComparator);
+		List<MicroblogsEntry> list = findByUserId(
+			userId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -711,8 +943,12 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUserId(long userId) {
-		_collectionPersistenceFinderByUserId.remove(
-			finderCache, new Object[] {userId});
+		for (MicroblogsEntry microblogsEntry :
+				findByUserId(
+					userId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(microblogsEntry);
+		}
 	}
 
 	/**
@@ -723,8 +959,45 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUserId(long userId) {
-		return _collectionPersistenceFinderByUserId.count(
-			finderCache, new Object[] {userId});
+		FinderPath finderPath = _finderPathCountByUserId;
+
+		Object[] finderArgs = new Object[] {userId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_USERID_USERID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -789,8 +1062,6 @@ public class MicroblogsEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByU_T;
 	private FinderPath _finderPathWithoutPaginationFindByU_T;
 	private FinderPath _finderPathCountByU_T;
-	private CollectionPersistenceFinder<MicroblogsEntry>
-		_collectionPersistenceFinderByU_T;
 
 	/**
 	 * Returns all the microblogs entries where userId = &#63; and type = &#63;.
@@ -868,9 +1139,101 @@ public class MicroblogsEntryPersistenceImpl
 		OrderByComparator<MicroblogsEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByU_T.find(
-			finderCache, new Object[] {userId, type}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByU_T;
+				finderArgs = new Object[] {userId, type};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByU_T;
+			finderArgs = new Object[] {
+				userId, type, start, end, orderByComparator
+			};
+		}
+
+		List<MicroblogsEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<MicroblogsEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (MicroblogsEntry microblogsEntry : list) {
+					if ((userId != microblogsEntry.getUserId()) ||
+						(type != microblogsEntry.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_U_T_USERID_2);
+
+			sb.append(_FINDER_COLUMN_U_T_TYPE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(MicroblogsEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				queryPos.add(type);
+
+				list = (List<MicroblogsEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -895,9 +1258,19 @@ public class MicroblogsEntryPersistenceImpl
 			return microblogsEntry;
 		}
 
-		throw new NoSuchEntryException(
-			_collectionPersistenceFinderByU_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {userId, type}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchEntryException(sb.toString());
 	}
 
 	/**
@@ -913,8 +1286,14 @@ public class MicroblogsEntryPersistenceImpl
 		long userId, int type,
 		OrderByComparator<MicroblogsEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByU_T.fetchFirst(
-			finderCache, new Object[] {userId, type}, orderByComparator);
+		List<MicroblogsEntry> list = findByU_T(
+			userId, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1074,8 +1453,12 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByU_T(long userId, int type) {
-		_collectionPersistenceFinderByU_T.remove(
-			finderCache, new Object[] {userId, type});
+		for (MicroblogsEntry microblogsEntry :
+				findByU_T(
+					userId, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(microblogsEntry);
+		}
 	}
 
 	/**
@@ -1087,8 +1470,49 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public int countByU_T(long userId, int type) {
-		return _collectionPersistenceFinderByU_T.count(
-			finderCache, new Object[] {userId, type});
+		FinderPath finderPath = _finderPathCountByU_T;
+
+		Object[] finderArgs = new Object[] {userId, type};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_U_T_USERID_2);
+
+			sb.append(_FINDER_COLUMN_U_T_TYPE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				queryPos.add(type);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -1154,6 +1578,9 @@ public class MicroblogsEntryPersistenceImpl
 
 	private static final String _FINDER_COLUMN_U_T_USERID_2 =
 		"microblogsEntry.userId = ? AND ";
+
+	private static final String _FINDER_COLUMN_U_T_TYPE_2 =
+		"microblogsEntry.type = ?";
 
 	private static final String _FINDER_COLUMN_U_T_TYPE_2_SQL =
 		"microblogsEntry.type_ = ?";
@@ -2236,8 +2663,6 @@ public class MicroblogsEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCCNI_T;
 	private FinderPath _finderPathWithoutPaginationFindByCCNI_T;
 	private FinderPath _finderPathCountByCCNI_T;
-	private CollectionPersistenceFinder<MicroblogsEntry>
-		_collectionPersistenceFinderByCCNI_T;
 
 	/**
 	 * Returns all the microblogs entries where creatorClassNameId = &#63; and type = &#63;.
@@ -2319,9 +2744,102 @@ public class MicroblogsEntryPersistenceImpl
 		OrderByComparator<MicroblogsEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCCNI_T.find(
-			finderCache, new Object[] {creatorClassNameId, type}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCCNI_T;
+				finderArgs = new Object[] {creatorClassNameId, type};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCCNI_T;
+			finderArgs = new Object[] {
+				creatorClassNameId, type, start, end, orderByComparator
+			};
+		}
+
+		List<MicroblogsEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<MicroblogsEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (MicroblogsEntry microblogsEntry : list) {
+					if ((creatorClassNameId !=
+							microblogsEntry.getCreatorClassNameId()) ||
+						(type != microblogsEntry.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_CCNI_T_CREATORCLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_CCNI_T_TYPE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(MicroblogsEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(creatorClassNameId);
+
+				queryPos.add(type);
+
+				list = (List<MicroblogsEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2346,10 +2864,19 @@ public class MicroblogsEntryPersistenceImpl
 			return microblogsEntry;
 		}
 
-		throw new NoSuchEntryException(
-			_collectionPersistenceFinderByCCNI_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {creatorClassNameId, type}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("creatorClassNameId=");
+		sb.append(creatorClassNameId);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchEntryException(sb.toString());
 	}
 
 	/**
@@ -2365,9 +2892,14 @@ public class MicroblogsEntryPersistenceImpl
 		long creatorClassNameId, int type,
 		OrderByComparator<MicroblogsEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByCCNI_T.fetchFirst(
-			finderCache, new Object[] {creatorClassNameId, type},
-			orderByComparator);
+		List<MicroblogsEntry> list = findByCCNI_T(
+			creatorClassNameId, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2531,8 +3063,13 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByCCNI_T(long creatorClassNameId, int type) {
-		_collectionPersistenceFinderByCCNI_T.remove(
-			finderCache, new Object[] {creatorClassNameId, type});
+		for (MicroblogsEntry microblogsEntry :
+				findByCCNI_T(
+					creatorClassNameId, type, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(microblogsEntry);
+		}
 	}
 
 	/**
@@ -2544,8 +3081,49 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public int countByCCNI_T(long creatorClassNameId, int type) {
-		return _collectionPersistenceFinderByCCNI_T.count(
-			finderCache, new Object[] {creatorClassNameId, type});
+		FinderPath finderPath = _finderPathCountByCCNI_T;
+
+		Object[] finderArgs = new Object[] {creatorClassNameId, type};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_CCNI_T_CREATORCLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_CCNI_T_TYPE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(creatorClassNameId);
+
+				queryPos.add(type);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -2613,14 +3191,15 @@ public class MicroblogsEntryPersistenceImpl
 	private static final String _FINDER_COLUMN_CCNI_T_CREATORCLASSNAMEID_2 =
 		"microblogsEntry.creatorClassNameId = ? AND ";
 
+	private static final String _FINDER_COLUMN_CCNI_T_TYPE_2 =
+		"microblogsEntry.type = ?";
+
 	private static final String _FINDER_COLUMN_CCNI_T_TYPE_2_SQL =
 		"microblogsEntry.type_ = ?";
 
 	private FinderPath _finderPathWithPaginationFindByT_P;
 	private FinderPath _finderPathWithoutPaginationFindByT_P;
 	private FinderPath _finderPathCountByT_P;
-	private CollectionPersistenceFinder<MicroblogsEntry>
-		_collectionPersistenceFinderByT_P;
 
 	/**
 	 * Returns all the microblogs entries where type = &#63; and parentMicroblogsEntryId = &#63;.
@@ -2702,9 +3281,102 @@ public class MicroblogsEntryPersistenceImpl
 		OrderByComparator<MicroblogsEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByT_P.find(
-			finderCache, new Object[] {type, parentMicroblogsEntryId}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByT_P;
+				finderArgs = new Object[] {type, parentMicroblogsEntryId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByT_P;
+			finderArgs = new Object[] {
+				type, parentMicroblogsEntryId, start, end, orderByComparator
+			};
+		}
+
+		List<MicroblogsEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<MicroblogsEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (MicroblogsEntry microblogsEntry : list) {
+					if ((type != microblogsEntry.getType()) ||
+						(parentMicroblogsEntryId !=
+							microblogsEntry.getParentMicroblogsEntryId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_T_P_TYPE_2);
+
+			sb.append(_FINDER_COLUMN_T_P_PARENTMICROBLOGSENTRYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(MicroblogsEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(type);
+
+				queryPos.add(parentMicroblogsEntryId);
+
+				list = (List<MicroblogsEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2729,10 +3401,19 @@ public class MicroblogsEntryPersistenceImpl
 			return microblogsEntry;
 		}
 
-		throw new NoSuchEntryException(
-			_collectionPersistenceFinderByT_P.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {type, parentMicroblogsEntryId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("type=");
+		sb.append(type);
+
+		sb.append(", parentMicroblogsEntryId=");
+		sb.append(parentMicroblogsEntryId);
+
+		sb.append("}");
+
+		throw new NoSuchEntryException(sb.toString());
 	}
 
 	/**
@@ -2748,9 +3429,14 @@ public class MicroblogsEntryPersistenceImpl
 		int type, long parentMicroblogsEntryId,
 		OrderByComparator<MicroblogsEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByT_P.fetchFirst(
-			finderCache, new Object[] {type, parentMicroblogsEntryId},
-			orderByComparator);
+		List<MicroblogsEntry> list = findByT_P(
+			type, parentMicroblogsEntryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2914,8 +3600,13 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByT_P(int type, long parentMicroblogsEntryId) {
-		_collectionPersistenceFinderByT_P.remove(
-			finderCache, new Object[] {type, parentMicroblogsEntryId});
+		for (MicroblogsEntry microblogsEntry :
+				findByT_P(
+					type, parentMicroblogsEntryId, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(microblogsEntry);
+		}
 	}
 
 	/**
@@ -2927,8 +3618,49 @@ public class MicroblogsEntryPersistenceImpl
 	 */
 	@Override
 	public int countByT_P(int type, long parentMicroblogsEntryId) {
-		return _collectionPersistenceFinderByT_P.count(
-			finderCache, new Object[] {type, parentMicroblogsEntryId});
+		FinderPath finderPath = _finderPathCountByT_P;
+
+		Object[] finderArgs = new Object[] {type, parentMicroblogsEntryId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_T_P_TYPE_2);
+
+			sb.append(_FINDER_COLUMN_T_P_PARENTMICROBLOGSENTRYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(type);
+
+				queryPos.add(parentMicroblogsEntryId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -2992,6 +3724,9 @@ public class MicroblogsEntryPersistenceImpl
 			closeSession(session);
 		}
 	}
+
+	private static final String _FINDER_COLUMN_T_P_TYPE_2 =
+		"microblogsEntry.type = ? AND ";
 
 	private static final String _FINDER_COLUMN_T_P_TYPE_2_SQL =
 		"microblogsEntry.type_ = ? AND ";
@@ -4157,8 +4892,6 @@ public class MicroblogsEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByC_CCNI_T;
 	private FinderPath _finderPathWithoutPaginationFindByC_CCNI_T;
 	private FinderPath _finderPathCountByC_CCNI_T;
-	private CollectionPersistenceFinder<MicroblogsEntry>
-		_collectionPersistenceFinderByC_CCNI_T;
 
 	/**
 	 * Returns all the microblogs entries where companyId = &#63; and creatorClassNameId = &#63; and type = &#63;.
@@ -4246,9 +4979,108 @@ public class MicroblogsEntryPersistenceImpl
 		OrderByComparator<MicroblogsEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_CCNI_T.find(
-			finderCache, new Object[] {companyId, creatorClassNameId, type},
-			start, end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_CCNI_T;
+				finderArgs = new Object[] {companyId, creatorClassNameId, type};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_CCNI_T;
+			finderArgs = new Object[] {
+				companyId, creatorClassNameId, type, start, end,
+				orderByComparator
+			};
+		}
+
+		List<MicroblogsEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<MicroblogsEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (MicroblogsEntry microblogsEntry : list) {
+					if ((companyId != microblogsEntry.getCompanyId()) ||
+						(creatorClassNameId !=
+							microblogsEntry.getCreatorClassNameId()) ||
+						(type != microblogsEntry.getType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_CCNI_T_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_CCNI_T_CREATORCLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_C_CCNI_T_TYPE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(MicroblogsEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(creatorClassNameId);
+
+				queryPos.add(type);
+
+				list = (List<MicroblogsEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -4274,10 +5106,22 @@ public class MicroblogsEntryPersistenceImpl
 			return microblogsEntry;
 		}
 
-		throw new NoSuchEntryException(
-			_collectionPersistenceFinderByC_CCNI_T.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, creatorClassNameId, type}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", creatorClassNameId=");
+		sb.append(creatorClassNameId);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchEntryException(sb.toString());
 	}
 
 	/**
@@ -4294,9 +5138,14 @@ public class MicroblogsEntryPersistenceImpl
 		long companyId, long creatorClassNameId, int type,
 		OrderByComparator<MicroblogsEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_CCNI_T.fetchFirst(
-			finderCache, new Object[] {companyId, creatorClassNameId, type},
-			orderByComparator);
+		List<MicroblogsEntry> list = findByC_CCNI_T(
+			companyId, creatorClassNameId, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -4472,8 +5321,13 @@ public class MicroblogsEntryPersistenceImpl
 	public void removeByC_CCNI_T(
 		long companyId, long creatorClassNameId, int type) {
 
-		_collectionPersistenceFinderByC_CCNI_T.remove(
-			finderCache, new Object[] {companyId, creatorClassNameId, type});
+		for (MicroblogsEntry microblogsEntry :
+				findByC_CCNI_T(
+					companyId, creatorClassNameId, type, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(microblogsEntry);
+		}
 	}
 
 	/**
@@ -4488,8 +5342,55 @@ public class MicroblogsEntryPersistenceImpl
 	public int countByC_CCNI_T(
 		long companyId, long creatorClassNameId, int type) {
 
-		return _collectionPersistenceFinderByC_CCNI_T.count(
-			finderCache, new Object[] {companyId, creatorClassNameId, type});
+		FinderPath finderPath = _finderPathCountByC_CCNI_T;
+
+		Object[] finderArgs = new Object[] {
+			companyId, creatorClassNameId, type
+		};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_CCNI_T_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_CCNI_T_CREATORCLASSNAMEID_2);
+
+			sb.append(_FINDER_COLUMN_C_CCNI_T_TYPE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(creatorClassNameId);
+
+				queryPos.add(type);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -4566,6 +5467,9 @@ public class MicroblogsEntryPersistenceImpl
 
 	private static final String _FINDER_COLUMN_C_CCNI_T_CREATORCLASSNAMEID_2 =
 		"microblogsEntry.creatorClassNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_CCNI_T_TYPE_2 =
+		"microblogsEntry.type = ?";
 
 	private static final String _FINDER_COLUMN_C_CCNI_T_TYPE_2_SQL =
 		"microblogsEntry.type_ = ?";
@@ -6979,8 +7883,6 @@ public class MicroblogsEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByU_C_T_S;
 	private FinderPath _finderPathWithoutPaginationFindByU_C_T_S;
 	private FinderPath _finderPathCountByU_C_T_S;
-	private CollectionPersistenceFinder<MicroblogsEntry>
-		_collectionPersistenceFinderByU_C_T_S;
 
 	/**
 	 * Returns all the microblogs entries where userId = &#63; and createDate = &#63; and type = &#63; and socialRelationType = &#63;.
@@ -7075,10 +7977,127 @@ public class MicroblogsEntryPersistenceImpl
 		OrderByComparator<MicroblogsEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByU_C_T_S.find(
-			finderCache,
-			new Object[] {userId, createDate, type, socialRelationType}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByU_C_T_S;
+				finderArgs = new Object[] {
+					userId, _getTime(createDate), type, socialRelationType
+				};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByU_C_T_S;
+			finderArgs = new Object[] {
+				userId, _getTime(createDate), type, socialRelationType, start,
+				end, orderByComparator
+			};
+		}
+
+		List<MicroblogsEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<MicroblogsEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (MicroblogsEntry microblogsEntry : list) {
+					if ((userId != microblogsEntry.getUserId()) ||
+						!Objects.equals(
+							createDate, microblogsEntry.getCreateDate()) ||
+						(type != microblogsEntry.getType()) ||
+						(socialRelationType !=
+							microblogsEntry.getSocialRelationType())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					6 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(6);
+			}
+
+			sb.append(_SQL_SELECT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_U_C_T_S_USERID_2);
+
+			boolean bindCreateDate = false;
+
+			if (createDate == null) {
+				sb.append(_FINDER_COLUMN_U_C_T_S_CREATEDATE_1);
+			}
+			else {
+				bindCreateDate = true;
+
+				sb.append(_FINDER_COLUMN_U_C_T_S_CREATEDATE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_U_C_T_S_TYPE_2);
+
+			sb.append(_FINDER_COLUMN_U_C_T_S_SOCIALRELATIONTYPE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(MicroblogsEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				if (bindCreateDate) {
+					queryPos.add(new Timestamp(createDate.getTime()));
+				}
+
+				queryPos.add(type);
+
+				queryPos.add(socialRelationType);
+
+				list = (List<MicroblogsEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -7105,10 +8124,25 @@ public class MicroblogsEntryPersistenceImpl
 			return microblogsEntry;
 		}
 
-		throw new NoSuchEntryException(
-			_collectionPersistenceFinderByU_C_T_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {userId, createDate, type, socialRelationType}));
+		StringBundler sb = new StringBundler(10);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("userId=");
+		sb.append(userId);
+
+		sb.append(", createDate=");
+		sb.append(createDate);
+
+		sb.append(", type=");
+		sb.append(type);
+
+		sb.append(", socialRelationType=");
+		sb.append(socialRelationType);
+
+		sb.append("}");
+
+		throw new NoSuchEntryException(sb.toString());
 	}
 
 	/**
@@ -7126,10 +8160,15 @@ public class MicroblogsEntryPersistenceImpl
 		long userId, Date createDate, int type, int socialRelationType,
 		OrderByComparator<MicroblogsEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByU_C_T_S.fetchFirst(
-			finderCache,
-			new Object[] {userId, createDate, type, socialRelationType},
+		List<MicroblogsEntry> list = findByU_C_T_S(
+			userId, createDate, type, socialRelationType, 0, 1,
 			orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -7326,9 +8365,13 @@ public class MicroblogsEntryPersistenceImpl
 	public void removeByU_C_T_S(
 		long userId, Date createDate, int type, int socialRelationType) {
 
-		_collectionPersistenceFinderByU_C_T_S.remove(
-			finderCache,
-			new Object[] {userId, createDate, type, socialRelationType});
+		for (MicroblogsEntry microblogsEntry :
+				findByU_C_T_S(
+					userId, createDate, type, socialRelationType,
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(microblogsEntry);
+		}
 	}
 
 	/**
@@ -7344,9 +8387,70 @@ public class MicroblogsEntryPersistenceImpl
 	public int countByU_C_T_S(
 		long userId, Date createDate, int type, int socialRelationType) {
 
-		return _collectionPersistenceFinderByU_C_T_S.count(
-			finderCache,
-			new Object[] {userId, createDate, type, socialRelationType});
+		FinderPath finderPath = _finderPathCountByU_C_T_S;
+
+		Object[] finderArgs = new Object[] {
+			userId, _getTime(createDate), type, socialRelationType
+		};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_COUNT_MICROBLOGSENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_U_C_T_S_USERID_2);
+
+			boolean bindCreateDate = false;
+
+			if (createDate == null) {
+				sb.append(_FINDER_COLUMN_U_C_T_S_CREATEDATE_1);
+			}
+			else {
+				bindCreateDate = true;
+
+				sb.append(_FINDER_COLUMN_U_C_T_S_CREATEDATE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_U_C_T_S_TYPE_2);
+
+			sb.append(_FINDER_COLUMN_U_C_T_S_SOCIALRELATIONTYPE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(userId);
+
+				if (bindCreateDate) {
+					queryPos.add(new Timestamp(createDate.getTime()));
+				}
+
+				queryPos.add(type);
+
+				queryPos.add(socialRelationType);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -7443,6 +8547,9 @@ public class MicroblogsEntryPersistenceImpl
 	private static final String _FINDER_COLUMN_U_C_T_S_CREATEDATE_2 =
 		"microblogsEntry.createDate = ? AND ";
 
+	private static final String _FINDER_COLUMN_U_C_T_S_TYPE_2 =
+		"microblogsEntry.type = ? AND ";
+
 	private static final String _FINDER_COLUMN_U_C_T_S_TYPE_2_SQL =
 		"microblogsEntry.type_ = ? AND ";
 
@@ -7504,6 +8611,49 @@ public class MicroblogsEntryPersistenceImpl
 	}
 
 	/**
+	 * Clears the cache for all microblogs entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(MicroblogsEntryImpl.class);
+
+		finderCache.clearCache(MicroblogsEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the microblogs entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(MicroblogsEntry microblogsEntry) {
+		entityCache.removeResult(MicroblogsEntryImpl.class, microblogsEntry);
+	}
+
+	@Override
+	public void clearCache(List<MicroblogsEntry> microblogsEntries) {
+		for (MicroblogsEntry microblogsEntry : microblogsEntries) {
+			entityCache.removeResult(
+				MicroblogsEntryImpl.class, microblogsEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(MicroblogsEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(MicroblogsEntryImpl.class, primaryKey);
+		}
+	}
+
+	/**
 	 * Creates a new microblogs entry with the primary key. Does not add the microblogs entry to the database.
 	 *
 	 * @param microblogsEntryId the primary key for the new microblogs entry
@@ -7533,6 +8683,47 @@ public class MicroblogsEntryPersistenceImpl
 		throws NoSuchEntryException {
 
 		return remove((Serializable)microblogsEntryId);
+	}
+
+	/**
+	 * Removes the microblogs entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the microblogs entry
+	 * @return the microblogs entry that was removed
+	 * @throws NoSuchEntryException if a microblogs entry with the primary key could not be found
+	 */
+	@Override
+	public MicroblogsEntry remove(Serializable primaryKey)
+		throws NoSuchEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			MicroblogsEntry microblogsEntry = (MicroblogsEntry)session.get(
+				MicroblogsEntryImpl.class, primaryKey);
+
+			if (microblogsEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(microblogsEntry);
+		}
+		catch (NoSuchEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -7643,6 +8834,31 @@ public class MicroblogsEntryPersistenceImpl
 		}
 
 		microblogsEntry.resetOriginalValues();
+
+		return microblogsEntry;
+	}
+
+	/**
+	 * Returns the microblogs entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the microblogs entry
+	 * @return the microblogs entry
+	 * @throws NoSuchEntryException if a microblogs entry with the primary key could not be found
+	 */
+	@Override
+	public MicroblogsEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchEntryException {
+
+		MicroblogsEntry microblogsEntry = fetchByPrimaryKey(primaryKey);
+
+		if (microblogsEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return microblogsEntry;
 	}
@@ -7916,17 +9132,6 @@ public class MicroblogsEntryPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_MICROBLOGSENTRY_WHERE,
-				_SQL_COUNT_MICROBLOGSENTRY_WHERE,
-				MicroblogsEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"microblogsEntry.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, MicroblogsEntry::getCompanyId));
-
 		_finderPathWithPaginationFindByUserId = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUserId",
 			new String[] {
@@ -7943,17 +9148,6 @@ public class MicroblogsEntryPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUserId",
 			new String[] {Long.class.getName()}, new String[] {"userId"},
 			false);
-
-		_collectionPersistenceFinderByUserId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUserId,
-				_finderPathWithoutPaginationFindByUserId,
-				_finderPathCountByUserId, _SQL_SELECT_MICROBLOGSENTRY_WHERE,
-				_SQL_COUNT_MICROBLOGSENTRY_WHERE,
-				MicroblogsEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"microblogsEntry.", "userId", FinderColumn.Type.LONG, "=",
-					true, true, MicroblogsEntry::getUserId));
 
 		_finderPathWithPaginationFindByU_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByU_T",
@@ -7973,18 +9167,6 @@ public class MicroblogsEntryPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByU_T",
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"userId", "type_"}, false);
-
-		_collectionPersistenceFinderByU_T = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByU_T,
-			_finderPathWithoutPaginationFindByU_T, _finderPathCountByU_T,
-			_SQL_SELECT_MICROBLOGSENTRY_WHERE, _SQL_COUNT_MICROBLOGSENTRY_WHERE,
-			MicroblogsEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"microblogsEntry.", "userId", FinderColumn.Type.LONG, "=", true,
-				false, MicroblogsEntry::getUserId),
-			new FinderColumn<>(
-				"microblogsEntry.", "type", FinderColumn.Type.INTEGER, "=",
-				true, true, MicroblogsEntry::getType));
 
 		_finderPathWithPaginationFindByCCNI_CCPK = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCCNI_CCPK",
@@ -8029,21 +9211,6 @@ public class MicroblogsEntryPersistenceImpl
 			new String[] {Long.class.getName(), Integer.class.getName()},
 			new String[] {"creatorClassNameId", "type_"}, false);
 
-		_collectionPersistenceFinderByCCNI_T =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCCNI_T,
-				_finderPathWithoutPaginationFindByCCNI_T,
-				_finderPathCountByCCNI_T, _SQL_SELECT_MICROBLOGSENTRY_WHERE,
-				_SQL_COUNT_MICROBLOGSENTRY_WHERE,
-				MicroblogsEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"microblogsEntry.", "creatorClassNameId",
-					FinderColumn.Type.LONG, "=", true, false,
-					MicroblogsEntry::getCreatorClassNameId),
-				new FinderColumn<>(
-					"microblogsEntry.", "type", FinderColumn.Type.INTEGER, "=",
-					true, true, MicroblogsEntry::getType));
-
 		_finderPathWithPaginationFindByT_P = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByT_P",
 			new String[] {
@@ -8062,19 +9229,6 @@ public class MicroblogsEntryPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByT_P",
 			new String[] {Integer.class.getName(), Long.class.getName()},
 			new String[] {"type_", "parentMicroblogsEntryId"}, false);
-
-		_collectionPersistenceFinderByT_P = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByT_P,
-			_finderPathWithoutPaginationFindByT_P, _finderPathCountByT_P,
-			_SQL_SELECT_MICROBLOGSENTRY_WHERE, _SQL_COUNT_MICROBLOGSENTRY_WHERE,
-			MicroblogsEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"microblogsEntry.", "type", FinderColumn.Type.INTEGER, "=",
-				true, false, MicroblogsEntry::getType),
-			new FinderColumn<>(
-				"microblogsEntry.", "parentMicroblogsEntryId",
-				FinderColumn.Type.LONG, "=", true, true,
-				MicroblogsEntry::getParentMicroblogsEntryId));
 
 		_finderPathWithPaginationFindByC_CCNI_CCPK = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_CCNI_CCPK",
@@ -8134,24 +9288,6 @@ public class MicroblogsEntryPersistenceImpl
 				Integer.class.getName()
 			},
 			new String[] {"companyId", "creatorClassNameId", "type_"}, false);
-
-		_collectionPersistenceFinderByC_CCNI_T =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_CCNI_T,
-				_finderPathWithoutPaginationFindByC_CCNI_T,
-				_finderPathCountByC_CCNI_T, _SQL_SELECT_MICROBLOGSENTRY_WHERE,
-				_SQL_COUNT_MICROBLOGSENTRY_WHERE,
-				MicroblogsEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"microblogsEntry.", "companyId", FinderColumn.Type.LONG,
-					"=", true, false, MicroblogsEntry::getCompanyId),
-				new FinderColumn<>(
-					"microblogsEntry.", "creatorClassNameId",
-					FinderColumn.Type.LONG, "=", true, false,
-					MicroblogsEntry::getCreatorClassNameId),
-				new FinderColumn<>(
-					"microblogsEntry.", "type", FinderColumn.Type.INTEGER, "=",
-					true, true, MicroblogsEntry::getType));
 
 		_finderPathWithPaginationFindByCCNI_CCPK_T = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByCCNI_CCPK_T",
@@ -8271,27 +9407,6 @@ public class MicroblogsEntryPersistenceImpl
 			},
 			false);
 
-		_collectionPersistenceFinderByU_C_T_S =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByU_C_T_S,
-				_finderPathWithoutPaginationFindByU_C_T_S,
-				_finderPathCountByU_C_T_S, _SQL_SELECT_MICROBLOGSENTRY_WHERE,
-				_SQL_COUNT_MICROBLOGSENTRY_WHERE,
-				MicroblogsEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"microblogsEntry.", "userId", FinderColumn.Type.LONG, "=",
-					true, false, MicroblogsEntry::getUserId),
-				new FinderColumn<>(
-					"microblogsEntry.", "createDate", FinderColumn.Type.DATE,
-					"=", true, false, MicroblogsEntry::getCreateDate),
-				new FinderColumn<>(
-					"microblogsEntry.", "type", FinderColumn.Type.INTEGER, "=",
-					true, false, MicroblogsEntry::getType),
-				new FinderColumn<>(
-					"microblogsEntry.", "socialRelationType",
-					FinderColumn.Type.INTEGER, "=", true, true,
-					MicroblogsEntry::getSocialRelationType));
-
 		MicroblogsEntryUtil.setPersistence(this);
 	}
 
@@ -8334,6 +9449,14 @@ public class MicroblogsEntryPersistenceImpl
 	@Reference
 	protected FinderCache finderCache;
 
+	private static Long _getTime(Date date) {
+		if (date == null) {
+			return null;
+		}
+
+		return date.getTime();
+	}
+
 	private static final String _SQL_SELECT_MICROBLOGSENTRY =
 		"SELECT microblogsEntry FROM MicroblogsEntry microblogsEntry";
 
@@ -8371,6 +9494,9 @@ public class MicroblogsEntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_TABLE = "MicroblogsEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No MicroblogsEntry exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No MicroblogsEntry exists with the key {";
 
@@ -8386,4 +9512,4 @@ public class MicroblogsEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1069802691
+// LIFERAY-SERVICE-BUILDER-HASH:-1812069314

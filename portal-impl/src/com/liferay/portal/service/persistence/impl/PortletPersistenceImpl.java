@@ -12,6 +12,7 @@ import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderCacheUtil;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.NoSuchPortletException;
@@ -23,9 +24,6 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.PortletPersistence;
 import com.liferay.portal.kernel.service.persistence.PortletUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -42,6 +40,7 @@ import java.lang.reflect.InvocationHandler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -55,8 +54,7 @@ import java.util.Set;
  * @generated
  */
 public class PortletPersistenceImpl
-	extends BasePersistenceImpl<Portlet, NoSuchPortletException>
-	implements PortletPersistence {
+	extends BasePersistenceImpl<Portlet> implements PortletPersistence {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -78,8 +76,6 @@ public class PortletPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByCompanyId;
 	private FinderPath _finderPathWithoutPaginationFindByCompanyId;
 	private FinderPath _finderPathCountByCompanyId;
-	private CollectionPersistenceFinder<Portlet>
-		_collectionPersistenceFinderByCompanyId;
 
 	/**
 	 * Returns all the portlets where companyId = &#63;.
@@ -150,9 +146,95 @@ public class PortletPersistenceImpl
 		long companyId, int start, int end,
 		OrderByComparator<Portlet> orderByComparator, boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByCompanyId.find(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId}, start,
-			end, orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByCompanyId;
+				finderArgs = new Object[] {companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByCompanyId;
+			finderArgs = new Object[] {
+				companyId, start, end, orderByComparator
+			};
+		}
+
+		List<Portlet> list = null;
+
+		if (useFinderCache) {
+			list = (List<Portlet>)FinderCacheUtil.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (Portlet portlet : list) {
+					if (companyId != portlet.getCompanyId()) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_PORTLET_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(PortletModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				list = (List<Portlet>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					FinderCacheUtil.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -174,9 +256,16 @@ public class PortletPersistenceImpl
 			return portlet;
 		}
 
-		throw new NoSuchPortletException(
-			_collectionPersistenceFinderByCompanyId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchPortletException(sb.toString());
 	}
 
 	/**
@@ -190,9 +279,14 @@ public class PortletPersistenceImpl
 	public Portlet fetchByCompanyId_First(
 		long companyId, OrderByComparator<Portlet> orderByComparator) {
 
-		return _collectionPersistenceFinderByCompanyId.fetchFirst(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId},
-			orderByComparator);
+		List<Portlet> list = findByCompanyId(
+			companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -202,8 +296,12 @@ public class PortletPersistenceImpl
 	 */
 	@Override
 	public void removeByCompanyId(long companyId) {
-		_collectionPersistenceFinderByCompanyId.remove(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		for (Portlet portlet :
+				findByCompanyId(
+					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(portlet);
+		}
 	}
 
 	/**
@@ -214,12 +312,52 @@ public class PortletPersistenceImpl
 	 */
 	@Override
 	public int countByCompanyId(long companyId) {
-		return _collectionPersistenceFinderByCompanyId.count(
-			FinderCacheUtil.getFinderCache(), new Object[] {companyId});
+		FinderPath finderPath = _finderPathCountByCompanyId;
+
+		Object[] finderArgs = new Object[] {companyId};
+
+		Long count = (Long)FinderCacheUtil.getResult(
+			finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_PORTLET_WHERE);
+
+			sb.append(_FINDER_COLUMN_COMPANYID_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				FinderCacheUtil.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
+	private static final String _FINDER_COLUMN_COMPANYID_COMPANYID_2 =
+		"portlet.companyId = ?";
+
 	private FinderPath _finderPathFetchByC_P;
-	private UniquePersistenceFinder<Portlet> _uniquePersistenceFinderByC_P;
 
 	/**
 	 * Returns the portlet where companyId = &#63; and portletId = &#63; or throws a <code>NoSuchPortletException</code> if it could not be found.
@@ -236,16 +374,23 @@ public class PortletPersistenceImpl
 		Portlet portlet = fetchByC_P(companyId, portletId);
 
 		if (portlet == null) {
-			String message =
-				_uniquePersistenceFinderByC_P.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {companyId, portletId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append(", portletId=");
+			sb.append(portletId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchPortletException(message);
+			throw new NoSuchPortletException(sb.toString());
 		}
 
 		return portlet;
@@ -275,9 +420,96 @@ public class PortletPersistenceImpl
 	public Portlet fetchByC_P(
 		long companyId, String portletId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_P.fetch(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, portletId}, useFinderCache);
+		portletId = Objects.toString(portletId, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {companyId, portletId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = FinderCacheUtil.getResult(
+				_finderPathFetchByC_P, finderArgs, this);
+		}
+
+		if (result instanceof Portlet) {
+			Portlet portlet = (Portlet)result;
+
+			if ((companyId != portlet.getCompanyId()) ||
+				!Objects.equals(portletId, portlet.getPortletId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_PORTLET_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_P_COMPANYID_2);
+
+			boolean bindPortletId = false;
+
+			if (portletId.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_P_PORTLETID_3);
+			}
+			else {
+				bindPortletId = true;
+
+				sb.append(_FINDER_COLUMN_C_P_PORTLETID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindPortletId) {
+					queryPos.add(portletId);
+				}
+
+				List<Portlet> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						FinderCacheUtil.putResult(
+							_finderPathFetchByC_P, finderArgs, list);
+					}
+				}
+				else {
+					Portlet portlet = list.get(0);
+
+					result = portlet;
+
+					cacheResult(portlet);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (Portlet)result;
+		}
 	}
 
 	/**
@@ -305,10 +537,23 @@ public class PortletPersistenceImpl
 	 */
 	@Override
 	public int countByC_P(long companyId, String portletId) {
-		return _uniquePersistenceFinderByC_P.count(
-			FinderCacheUtil.getFinderCache(),
-			new Object[] {companyId, portletId});
+		Portlet portlet = fetchByC_P(companyId, portletId);
+
+		if (portlet == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_P_COMPANYID_2 =
+		"portlet.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_P_PORTLETID_2 =
+		"portlet.portletId = ?";
+
+	private static final String _FINDER_COLUMN_C_P_PORTLETID_3 =
+		"(portlet.portletId IS NULL OR portlet.portletId = '')";
 
 	public PortletPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -367,6 +612,48 @@ public class PortletPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all portlets.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(PortletImpl.class);
+
+		FinderCacheUtil.clearCache(PortletImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the portlet.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(Portlet portlet) {
+		EntityCacheUtil.removeResult(PortletImpl.class, portlet);
+	}
+
+	@Override
+	public void clearCache(List<Portlet> portlets) {
+		for (Portlet portlet : portlets) {
+			EntityCacheUtil.removeResult(PortletImpl.class, portlet);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(PortletImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(PortletImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(PortletModelImpl portletModelImpl) {
 		Object[] args = new Object[] {
 			portletModelImpl.getCompanyId(), portletModelImpl.getPortletId()
@@ -404,6 +691,47 @@ public class PortletPersistenceImpl
 	@Override
 	public Portlet remove(long id) throws NoSuchPortletException {
 		return remove((Serializable)id);
+	}
+
+	/**
+	 * Removes the portlet with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the portlet
+	 * @return the portlet that was removed
+	 * @throws NoSuchPortletException if a portlet with the primary key could not be found
+	 */
+	@Override
+	public Portlet remove(Serializable primaryKey)
+		throws NoSuchPortletException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Portlet portlet = (Portlet)session.get(
+				PortletImpl.class, primaryKey);
+
+			if (portlet == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchPortletException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(portlet);
+		}
+		catch (NoSuchPortletException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -487,6 +815,31 @@ public class PortletPersistenceImpl
 		}
 
 		portlet.resetOriginalValues();
+
+		return portlet;
+	}
+
+	/**
+	 * Returns the portlet with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the portlet
+	 * @return the portlet
+	 * @throws NoSuchPortletException if a portlet with the primary key could not be found
+	 */
+	@Override
+	public Portlet findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchPortletException {
+
+		Portlet portlet = fetchByPrimaryKey(primaryKey);
+
+		if (portlet == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchPortletException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return portlet;
 	}
@@ -755,32 +1108,12 @@ public class PortletPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"companyId"},
 			false);
 
-		_collectionPersistenceFinderByCompanyId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByCompanyId,
-				_finderPathWithoutPaginationFindByCompanyId,
-				_finderPathCountByCompanyId, _SQL_SELECT_PORTLET_WHERE,
-				_SQL_COUNT_PORTLET_WHERE, PortletModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"portlet.", "companyId", FinderColumn.Type.LONG, "=", true,
-					true, Portlet::getCompanyId));
-
 		_finderPathFetchByC_P = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_P",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"companyId", "portletId"}, true);
 
 		_finderPathFetchByC_P.touch();
-
-		_uniquePersistenceFinderByC_P = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_P, _SQL_SELECT_PORTLET_WHERE,
-			new FinderColumn<>(
-				"portlet.", "companyId", FinderColumn.Type.LONG, "=", true,
-				false, Portlet::getCompanyId),
-			new FinderColumn<>(
-				"portlet.", "portletId", FinderColumn.Type.STRING, "=", true,
-				true, Portlet::getPortletId));
 
 		PortletUtil.setPersistence(this);
 	}
@@ -805,6 +1138,9 @@ public class PortletPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "portlet.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No Portlet exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No Portlet exists with the key {";
 
@@ -820,4 +1156,4 @@ public class PortletPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1198903642
+// LIFERAY-SERVICE-BUILDER-HASH:643210078

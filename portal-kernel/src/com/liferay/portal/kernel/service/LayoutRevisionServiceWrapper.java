@@ -35,7 +35,7 @@ public class LayoutRevisionServiceWrapper
 			java.lang.String robots, java.lang.String typeSettings,
 			boolean iconImage, long iconImageId, java.lang.String themeId,
 			java.lang.String colorSchemeId, java.lang.String css,
-			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+			ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _layoutRevisionService.addLayoutRevision(
@@ -68,4 +68,4 @@ public class LayoutRevisionServiceWrapper
 	private LayoutRevisionService _layoutRevisionService;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1461624
+// LIFERAY-SERVICE-BUILDER-HASH:1549799299

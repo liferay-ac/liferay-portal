@@ -5,7 +5,6 @@
 
 package com.liferay.knowledge.base.service.persistence.impl;
 
-import com.liferay.knowledge.base.exception.NoSuchFolderException;
 import com.liferay.knowledge.base.model.KBFolder;
 import com.liferay.knowledge.base.service.persistence.KBFolderPersistence;
 import com.liferay.knowledge.base.service.persistence.impl.constants.KBPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class KBFolderFinderBaseImpl
-	extends BasePersistenceImpl<KBFolder, NoSuchFolderException> {
+	extends BasePersistenceImpl<KBFolder> {
 
 	public KBFolderFinderBaseImpl() {
 		setModelClass(KBFolder.class);
@@ -78,4 +77,4 @@ public abstract class KBFolderFinderBaseImpl
 		KBFolderFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1556352674
+// LIFERAY-SERVICE-BUILDER-HASH:1793804548

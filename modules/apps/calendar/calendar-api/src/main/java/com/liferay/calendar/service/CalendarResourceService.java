@@ -104,4 +104,4 @@ public interface CalendarResourceService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1754399342
+// LIFERAY-SERVICE-BUILDER-HASH:1734637001

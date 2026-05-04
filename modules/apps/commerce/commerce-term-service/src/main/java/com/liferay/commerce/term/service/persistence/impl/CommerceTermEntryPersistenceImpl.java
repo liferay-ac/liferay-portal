@@ -38,9 +38,6 @@ import com.liferay.portal.kernel.security.permission.InlineSQLHelperUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -48,6 +45,7 @@ import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.SetUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 
@@ -83,7 +81,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CommerceTermEntryPersistence.class)
 public class CommerceTermEntryPersistenceImpl
-	extends BasePersistenceImpl<CommerceTermEntry, NoSuchTermEntryException>
+	extends BasePersistenceImpl<CommerceTermEntry>
 	implements CommerceTermEntryPersistence {
 
 	/*
@@ -106,8 +104,6 @@ public class CommerceTermEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid;
 	private FinderPath _finderPathWithoutPaginationFindByUuid;
 	private FinderPath _finderPathCountByUuid;
-	private CollectionPersistenceFinder<CommerceTermEntry>
-		_collectionPersistenceFinderByUuid;
 
 	/**
 	 * Returns all the commerce term entries where uuid = &#63;.
@@ -178,9 +174,106 @@ public class CommerceTermEntryPersistenceImpl
 		OrderByComparator<CommerceTermEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid.find(
-			finderCache, new Object[] {uuid}, start, end, orderByComparator,
-			useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid;
+				finderArgs = new Object[] {uuid};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid;
+			finderArgs = new Object[] {uuid, start, end, orderByComparator};
+		}
+
+		List<CommerceTermEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceTermEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceTermEntry commerceTermEntry : list) {
+					if (!uuid.equals(commerceTermEntry.getUuid())) {
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					3 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(3);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceTermEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				list = (List<CommerceTermEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -203,9 +296,16 @@ public class CommerceTermEntryPersistenceImpl
 			return commerceTermEntry;
 		}
 
-		throw new NoSuchTermEntryException(
-			_collectionPersistenceFinderByUuid.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append("}");
+
+		throw new NoSuchTermEntryException(sb.toString());
 	}
 
 	/**
@@ -219,8 +319,14 @@ public class CommerceTermEntryPersistenceImpl
 	public CommerceTermEntry fetchByUuid_First(
 		String uuid, OrderByComparator<CommerceTermEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid.fetchFirst(
-			finderCache, new Object[] {uuid}, orderByComparator);
+		List<CommerceTermEntry> list = findByUuid(
+			uuid, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -385,8 +491,11 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid(String uuid) {
-		_collectionPersistenceFinderByUuid.remove(
-			finderCache, new Object[] {uuid});
+		for (CommerceTermEntry commerceTermEntry :
+				findByUuid(uuid, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(commerceTermEntry);
+		}
 	}
 
 	/**
@@ -397,8 +506,58 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUuid(String uuid) {
-		return _collectionPersistenceFinderByUuid.count(
-			finderCache, new Object[] {uuid});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid;
+
+		Object[] finderArgs = new Object[] {uuid};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(2);
+
+			sb.append(_SQL_COUNT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_UUID_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -471,6 +630,12 @@ public class CommerceTermEntryPersistenceImpl
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_UUID_2 =
+		"commerceTermEntry.uuid = ?";
+
+	private static final String _FINDER_COLUMN_UUID_UUID_3 =
+		"(commerceTermEntry.uuid IS NULL OR commerceTermEntry.uuid = '')";
+
 	private static final String _FINDER_COLUMN_UUID_UUID_2_SQL =
 		"commerceTermEntry.uuid_ = ?";
 
@@ -480,8 +645,6 @@ public class CommerceTermEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByUuid_C;
 	private FinderPath _finderPathWithoutPaginationFindByUuid_C;
 	private FinderPath _finderPathCountByUuid_C;
-	private CollectionPersistenceFinder<CommerceTermEntry>
-		_collectionPersistenceFinderByUuid_C;
 
 	/**
 	 * Returns all the commerce term entries where uuid = &#63; and companyId = &#63;.
@@ -560,9 +723,114 @@ public class CommerceTermEntryPersistenceImpl
 		OrderByComparator<CommerceTermEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByUuid_C.find(
-			finderCache, new Object[] {uuid, companyId}, start, end,
-			orderByComparator, useFinderCache);
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByUuid_C;
+				finderArgs = new Object[] {uuid, companyId};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByUuid_C;
+			finderArgs = new Object[] {
+				uuid, companyId, start, end, orderByComparator
+			};
+		}
+
+		List<CommerceTermEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceTermEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceTermEntry commerceTermEntry : list) {
+					if (!uuid.equals(commerceTermEntry.getUuid()) ||
+						(companyId != commerceTermEntry.getCompanyId())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceTermEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				list = (List<CommerceTermEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -587,9 +855,19 @@ public class CommerceTermEntryPersistenceImpl
 			return commerceTermEntry;
 		}
 
-		throw new NoSuchTermEntryException(
-			_collectionPersistenceFinderByUuid_C.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {uuid, companyId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("uuid=");
+		sb.append(uuid);
+
+		sb.append(", companyId=");
+		sb.append(companyId);
+
+		sb.append("}");
+
+		throw new NoSuchTermEntryException(sb.toString());
 	}
 
 	/**
@@ -605,8 +883,14 @@ public class CommerceTermEntryPersistenceImpl
 		String uuid, long companyId,
 		OrderByComparator<CommerceTermEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByUuid_C.fetchFirst(
-			finderCache, new Object[] {uuid, companyId}, orderByComparator);
+		List<CommerceTermEntry> list = findByUuid_C(
+			uuid, companyId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -781,8 +1065,13 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByUuid_C(String uuid, long companyId) {
-		_collectionPersistenceFinderByUuid_C.remove(
-			finderCache, new Object[] {uuid, companyId});
+		for (CommerceTermEntry commerceTermEntry :
+				findByUuid_C(
+					uuid, companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(commerceTermEntry);
+		}
 	}
 
 	/**
@@ -794,8 +1083,62 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByUuid_C(String uuid, long companyId) {
-		return _collectionPersistenceFinderByUuid_C.count(
-			finderCache, new Object[] {uuid, companyId});
+		uuid = Objects.toString(uuid, "");
+
+		FinderPath finderPath = _finderPathCountByUuid_C;
+
+		Object[] finderArgs = new Object[] {uuid, companyId};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindUuid = false;
+
+			if (uuid.isEmpty()) {
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_3);
+			}
+			else {
+				bindUuid = true;
+
+				sb.append(_FINDER_COLUMN_UUID_C_UUID_2);
+			}
+
+			sb.append(_FINDER_COLUMN_UUID_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindUuid) {
+					queryPos.add(uuid);
+				}
+
+				queryPos.add(companyId);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -874,6 +1217,12 @@ public class CommerceTermEntryPersistenceImpl
 		}
 	}
 
+	private static final String _FINDER_COLUMN_UUID_C_UUID_2 =
+		"commerceTermEntry.uuid = ? AND ";
+
+	private static final String _FINDER_COLUMN_UUID_C_UUID_3 =
+		"(commerceTermEntry.uuid IS NULL OR commerceTermEntry.uuid = '') AND ";
+
 	private static final String _FINDER_COLUMN_UUID_C_UUID_2_SQL =
 		"commerceTermEntry.uuid_ = ? AND ";
 
@@ -886,8 +1235,6 @@ public class CommerceTermEntryPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByC_A;
 	private FinderPath _finderPathWithoutPaginationFindByC_A;
 	private FinderPath _finderPathCountByC_A;
-	private CollectionPersistenceFinder<CommerceTermEntry>
-		_collectionPersistenceFinderByC_A;
 
 	/**
 	 * Returns all the commerce term entries where companyId = &#63; and active = &#63;.
@@ -966,9 +1313,101 @@ public class CommerceTermEntryPersistenceImpl
 		OrderByComparator<CommerceTermEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_A.find(
-			finderCache, new Object[] {companyId, active}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+			(orderByComparator == null)) {
+
+			if (useFinderCache) {
+				finderPath = _finderPathWithoutPaginationFindByC_A;
+				finderArgs = new Object[] {companyId, active};
+			}
+		}
+		else if (useFinderCache) {
+			finderPath = _finderPathWithPaginationFindByC_A;
+			finderArgs = new Object[] {
+				companyId, active, start, end, orderByComparator
+			};
+		}
+
+		List<CommerceTermEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceTermEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceTermEntry commerceTermEntry : list) {
+					if ((companyId != commerceTermEntry.getCompanyId()) ||
+						(active != commerceTermEntry.isActive())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_A_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_A_ACTIVE_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceTermEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(active);
+
+				list = (List<CommerceTermEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -993,9 +1432,19 @@ public class CommerceTermEntryPersistenceImpl
 			return commerceTermEntry;
 		}
 
-		throw new NoSuchTermEntryException(
-			_collectionPersistenceFinderByC_A.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, active}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", active=");
+		sb.append(active);
+
+		sb.append("}");
+
+		throw new NoSuchTermEntryException(sb.toString());
 	}
 
 	/**
@@ -1011,8 +1460,14 @@ public class CommerceTermEntryPersistenceImpl
 		long companyId, boolean active,
 		OrderByComparator<CommerceTermEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_A.fetchFirst(
-			finderCache, new Object[] {companyId, active}, orderByComparator);
+		List<CommerceTermEntry> list = findByC_A(
+			companyId, active, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1174,8 +1629,13 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByC_A(long companyId, boolean active) {
-		_collectionPersistenceFinderByC_A.remove(
-			finderCache, new Object[] {companyId, active});
+		for (CommerceTermEntry commerceTermEntry :
+				findByC_A(
+					companyId, active, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(commerceTermEntry);
+		}
 	}
 
 	/**
@@ -1187,8 +1647,49 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByC_A(long companyId, boolean active) {
-		return _collectionPersistenceFinderByC_A.count(
-			finderCache, new Object[] {companyId, active});
+		FinderPath finderPath = _finderPathCountByC_A;
+
+		Object[] finderArgs = new Object[] {companyId, active};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_COMMERCETERMENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_A_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_A_ACTIVE_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(active);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -1257,12 +1758,13 @@ public class CommerceTermEntryPersistenceImpl
 	private static final String _FINDER_COLUMN_C_A_COMPANYID_2 =
 		"commerceTermEntry.companyId = ? AND ";
 
+	private static final String _FINDER_COLUMN_C_A_ACTIVE_2 =
+		"commerceTermEntry.active = ?";
+
 	private static final String _FINDER_COLUMN_C_A_ACTIVE_2_SQL =
 		"commerceTermEntry.active_ = ?";
 
 	private FinderPath _finderPathFetchByC_N;
-	private UniquePersistenceFinder<CommerceTermEntry>
-		_uniquePersistenceFinderByC_N;
 
 	/**
 	 * Returns the commerce term entry where companyId = &#63; and name = &#63; or throws a <code>NoSuchTermEntryException</code> if it could not be found.
@@ -1279,15 +1781,23 @@ public class CommerceTermEntryPersistenceImpl
 		CommerceTermEntry commerceTermEntry = fetchByC_N(companyId, name);
 
 		if (commerceTermEntry == null) {
-			String message =
-				_uniquePersistenceFinderByC_N.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, name});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append(", name=");
+			sb.append(name);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchTermEntryException(message);
+			throw new NoSuchTermEntryException(sb.toString());
 		}
 
 		return commerceTermEntry;
@@ -1317,8 +1827,96 @@ public class CommerceTermEntryPersistenceImpl
 	public CommerceTermEntry fetchByC_N(
 		long companyId, String name, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_N.fetch(
-			finderCache, new Object[] {companyId, name}, useFinderCache);
+		name = Objects.toString(name, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {companyId, name};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByC_N, finderArgs, this);
+		}
+
+		if (result instanceof CommerceTermEntry) {
+			CommerceTermEntry commerceTermEntry = (CommerceTermEntry)result;
+
+			if ((companyId != commerceTermEntry.getCompanyId()) ||
+				!Objects.equals(name, commerceTermEntry.getName())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_N_COMPANYID_2);
+
+			boolean bindName = false;
+
+			if (name.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_N_NAME_3);
+			}
+			else {
+				bindName = true;
+
+				sb.append(_FINDER_COLUMN_C_N_NAME_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindName) {
+					queryPos.add(name);
+				}
+
+				List<CommerceTermEntry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByC_N, finderArgs, list);
+					}
+				}
+				else {
+					CommerceTermEntry commerceTermEntry = list.get(0);
+
+					result = commerceTermEntry;
+
+					cacheResult(commerceTermEntry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CommerceTermEntry)result;
+		}
 	}
 
 	/**
@@ -1346,14 +1944,26 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByC_N(long companyId, String name) {
-		return _uniquePersistenceFinderByC_N.count(
-			finderCache, new Object[] {companyId, name});
+		CommerceTermEntry commerceTermEntry = fetchByC_N(companyId, name);
+
+		if (commerceTermEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_C_N_COMPANYID_2 =
+		"commerceTermEntry.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_N_NAME_2 =
+		"commerceTermEntry.name = ?";
+
+	private static final String _FINDER_COLUMN_C_N_NAME_3 =
+		"(commerceTermEntry.name IS NULL OR commerceTermEntry.name = '')";
 
 	private FinderPath _finderPathWithPaginationFindByC_LikeType;
 	private FinderPath _finderPathWithPaginationCountByC_LikeType;
-	private CollectionPersistenceFinder<CommerceTermEntry>
-		_collectionPersistenceFinderByC_LikeType;
 
 	/**
 	 * Returns all the commerce term entries where companyId = &#63; and type LIKE &#63;.
@@ -1434,9 +2044,106 @@ public class CommerceTermEntryPersistenceImpl
 		OrderByComparator<CommerceTermEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_LikeType.find(
-			finderCache, new Object[] {companyId, type}, start, end,
-			orderByComparator, useFinderCache);
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		finderPath = _finderPathWithPaginationFindByC_LikeType;
+		finderArgs = new Object[] {
+			companyId, type, start, end, orderByComparator
+		};
+
+		List<CommerceTermEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceTermEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceTermEntry commerceTermEntry : list) {
+					if ((companyId != commerceTermEntry.getCompanyId()) ||
+						!StringUtil.wildcardMatches(
+							commerceTermEntry.getType(), type, '_', '%', '\\',
+							true)) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_LIKETYPE_COMPANYID_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_LIKETYPE_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_C_LIKETYPE_TYPE_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceTermEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				list = (List<CommerceTermEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1461,9 +2168,19 @@ public class CommerceTermEntryPersistenceImpl
 			return commerceTermEntry;
 		}
 
-		throw new NoSuchTermEntryException(
-			_collectionPersistenceFinderByC_LikeType.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {companyId, type}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", typeLIKE");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchTermEntryException(sb.toString());
 	}
 
 	/**
@@ -1479,8 +2196,14 @@ public class CommerceTermEntryPersistenceImpl
 		long companyId, String type,
 		OrderByComparator<CommerceTermEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_LikeType.fetchFirst(
-			finderCache, new Object[] {companyId, type}, orderByComparator);
+		List<CommerceTermEntry> list = findByC_LikeType(
+			companyId, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -1656,8 +2379,13 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByC_LikeType(long companyId, String type) {
-		_collectionPersistenceFinderByC_LikeType.remove(
-			finderCache, new Object[] {companyId, type});
+		for (CommerceTermEntry commerceTermEntry :
+				findByC_LikeType(
+					companyId, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(commerceTermEntry);
+		}
 	}
 
 	/**
@@ -1669,8 +2397,62 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByC_LikeType(long companyId, String type) {
-		return _collectionPersistenceFinderByC_LikeType.count(
-			finderCache, new Object[] {companyId, type});
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = _finderPathWithPaginationCountByC_LikeType;
+
+		Object[] finderArgs = new Object[] {companyId, type};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_COMMERCETERMENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_LIKETYPE_COMPANYID_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_LIKETYPE_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_C_LIKETYPE_TYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -1752,6 +2534,12 @@ public class CommerceTermEntryPersistenceImpl
 	private static final String _FINDER_COLUMN_C_LIKETYPE_COMPANYID_2 =
 		"commerceTermEntry.companyId = ? AND ";
 
+	private static final String _FINDER_COLUMN_C_LIKETYPE_TYPE_2 =
+		"commerceTermEntry.type LIKE ?";
+
+	private static final String _FINDER_COLUMN_C_LIKETYPE_TYPE_3 =
+		"(commerceTermEntry.type IS NULL OR commerceTermEntry.type LIKE '')";
+
 	private static final String _FINDER_COLUMN_C_LIKETYPE_TYPE_2_SQL =
 		"commerceTermEntry.type_ LIKE ?";
 
@@ -1760,8 +2548,6 @@ public class CommerceTermEntryPersistenceImpl
 
 	private FinderPath _finderPathWithPaginationFindByLtD_S;
 	private FinderPath _finderPathWithPaginationCountByLtD_S;
-	private CollectionPersistenceFinder<CommerceTermEntry>
-		_collectionPersistenceFinderByLtD_S;
 
 	/**
 	 * Returns all the commerce term entries where displayDate &lt; &#63; and status = &#63;.
@@ -1840,9 +2626,104 @@ public class CommerceTermEntryPersistenceImpl
 		OrderByComparator<CommerceTermEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLtD_S.find(
-			finderCache, new Object[] {displayDate, status}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		finderPath = _finderPathWithPaginationFindByLtD_S;
+		finderArgs = new Object[] {
+			_getTime(displayDate), status, start, end, orderByComparator
+		};
+
+		List<CommerceTermEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceTermEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceTermEntry commerceTermEntry : list) {
+					if ((displayDate.getTime() <=
+							commerceTermEntry.getDisplayDate(
+							).getTime()) ||
+						(status != commerceTermEntry.getStatus())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindDisplayDate = false;
+
+			if (displayDate == null) {
+				sb.append(_FINDER_COLUMN_LTD_S_DISPLAYDATE_1);
+			}
+			else {
+				bindDisplayDate = true;
+
+				sb.append(_FINDER_COLUMN_LTD_S_DISPLAYDATE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_LTD_S_STATUS_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceTermEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindDisplayDate) {
+					queryPos.add(new Timestamp(displayDate.getTime()));
+				}
+
+				queryPos.add(status);
+
+				list = (List<CommerceTermEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1867,9 +2748,19 @@ public class CommerceTermEntryPersistenceImpl
 			return commerceTermEntry;
 		}
 
-		throw new NoSuchTermEntryException(
-			_collectionPersistenceFinderByLtD_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {displayDate, status}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("displayDate<");
+		sb.append(displayDate);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchTermEntryException(sb.toString());
 	}
 
 	/**
@@ -1885,8 +2776,14 @@ public class CommerceTermEntryPersistenceImpl
 		Date displayDate, int status,
 		OrderByComparator<CommerceTermEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByLtD_S.fetchFirst(
-			finderCache, new Object[] {displayDate, status}, orderByComparator);
+		List<CommerceTermEntry> list = findByLtD_S(
+			displayDate, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2060,8 +2957,13 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByLtD_S(Date displayDate, int status) {
-		_collectionPersistenceFinderByLtD_S.remove(
-			finderCache, new Object[] {displayDate, status});
+		for (CommerceTermEntry commerceTermEntry :
+				findByLtD_S(
+					displayDate, status, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(commerceTermEntry);
+		}
 	}
 
 	/**
@@ -2073,8 +2975,60 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByLtD_S(Date displayDate, int status) {
-		return _collectionPersistenceFinderByLtD_S.count(
-			finderCache, new Object[] {displayDate, status});
+		FinderPath finderPath = _finderPathWithPaginationCountByLtD_S;
+
+		Object[] finderArgs = new Object[] {_getTime(displayDate), status};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindDisplayDate = false;
+
+			if (displayDate == null) {
+				sb.append(_FINDER_COLUMN_LTD_S_DISPLAYDATE_1);
+			}
+			else {
+				bindDisplayDate = true;
+
+				sb.append(_FINDER_COLUMN_LTD_S_DISPLAYDATE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_LTD_S_STATUS_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindDisplayDate) {
+					queryPos.add(new Timestamp(displayDate.getTime()));
+				}
+
+				queryPos.add(status);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -2162,8 +3116,6 @@ public class CommerceTermEntryPersistenceImpl
 
 	private FinderPath _finderPathWithPaginationFindByLtE_S;
 	private FinderPath _finderPathWithPaginationCountByLtE_S;
-	private CollectionPersistenceFinder<CommerceTermEntry>
-		_collectionPersistenceFinderByLtE_S;
 
 	/**
 	 * Returns all the commerce term entries where expirationDate &lt; &#63; and status = &#63;.
@@ -2244,9 +3196,104 @@ public class CommerceTermEntryPersistenceImpl
 		OrderByComparator<CommerceTermEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByLtE_S.find(
-			finderCache, new Object[] {expirationDate, status}, start, end,
-			orderByComparator, useFinderCache);
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		finderPath = _finderPathWithPaginationFindByLtE_S;
+		finderArgs = new Object[] {
+			_getTime(expirationDate), status, start, end, orderByComparator
+		};
+
+		List<CommerceTermEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceTermEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceTermEntry commerceTermEntry : list) {
+					if ((expirationDate.getTime() <=
+							commerceTermEntry.getExpirationDate(
+							).getTime()) ||
+						(status != commerceTermEntry.getStatus())) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					4 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(4);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindExpirationDate = false;
+
+			if (expirationDate == null) {
+				sb.append(_FINDER_COLUMN_LTE_S_EXPIRATIONDATE_1);
+			}
+			else {
+				bindExpirationDate = true;
+
+				sb.append(_FINDER_COLUMN_LTE_S_EXPIRATIONDATE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_LTE_S_STATUS_2);
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceTermEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExpirationDate) {
+					queryPos.add(new Timestamp(expirationDate.getTime()));
+				}
+
+				queryPos.add(status);
+
+				list = (List<CommerceTermEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2271,10 +3318,19 @@ public class CommerceTermEntryPersistenceImpl
 			return commerceTermEntry;
 		}
 
-		throw new NoSuchTermEntryException(
-			_collectionPersistenceFinderByLtE_S.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {expirationDate, status}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("expirationDate<");
+		sb.append(expirationDate);
+
+		sb.append(", status=");
+		sb.append(status);
+
+		sb.append("}");
+
+		throw new NoSuchTermEntryException(sb.toString());
 	}
 
 	/**
@@ -2290,9 +3346,14 @@ public class CommerceTermEntryPersistenceImpl
 		Date expirationDate, int status,
 		OrderByComparator<CommerceTermEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByLtE_S.fetchFirst(
-			finderCache, new Object[] {expirationDate, status},
-			orderByComparator);
+		List<CommerceTermEntry> list = findByLtE_S(
+			expirationDate, status, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2466,8 +3527,13 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public void removeByLtE_S(Date expirationDate, int status) {
-		_collectionPersistenceFinderByLtE_S.remove(
-			finderCache, new Object[] {expirationDate, status});
+		for (CommerceTermEntry commerceTermEntry :
+				findByLtE_S(
+					expirationDate, status, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(commerceTermEntry);
+		}
 	}
 
 	/**
@@ -2479,8 +3545,60 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByLtE_S(Date expirationDate, int status) {
-		return _collectionPersistenceFinderByLtE_S.count(
-			finderCache, new Object[] {expirationDate, status});
+		FinderPath finderPath = _finderPathWithPaginationCountByLtE_S;
+
+		Object[] finderArgs = new Object[] {_getTime(expirationDate), status};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(3);
+
+			sb.append(_SQL_COUNT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindExpirationDate = false;
+
+			if (expirationDate == null) {
+				sb.append(_FINDER_COLUMN_LTE_S_EXPIRATIONDATE_1);
+			}
+			else {
+				bindExpirationDate = true;
+
+				sb.append(_FINDER_COLUMN_LTE_S_EXPIRATIONDATE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_LTE_S_STATUS_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExpirationDate) {
+					queryPos.add(new Timestamp(expirationDate.getTime()));
+				}
+
+				queryPos.add(status);
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -2568,8 +3686,6 @@ public class CommerceTermEntryPersistenceImpl
 
 	private FinderPath _finderPathWithPaginationFindByC_A_LikeType;
 	private FinderPath _finderPathWithPaginationCountByC_A_LikeType;
-	private CollectionPersistenceFinder<CommerceTermEntry>
-		_collectionPersistenceFinderByC_A_LikeType;
 
 	/**
 	 * Returns all the commerce term entries where companyId = &#63; and active = &#63; and type LIKE &#63;.
@@ -2655,9 +3771,111 @@ public class CommerceTermEntryPersistenceImpl
 		OrderByComparator<CommerceTermEntry> orderByComparator,
 		boolean useFinderCache) {
 
-		return _collectionPersistenceFinderByC_A_LikeType.find(
-			finderCache, new Object[] {companyId, active, type}, start, end,
-			orderByComparator, useFinderCache);
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = null;
+		Object[] finderArgs = null;
+
+		finderPath = _finderPathWithPaginationFindByC_A_LikeType;
+		finderArgs = new Object[] {
+			companyId, active, type, start, end, orderByComparator
+		};
+
+		List<CommerceTermEntry> list = null;
+
+		if (useFinderCache) {
+			list = (List<CommerceTermEntry>)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if ((list != null) && !list.isEmpty()) {
+				for (CommerceTermEntry commerceTermEntry : list) {
+					if ((companyId != commerceTermEntry.getCompanyId()) ||
+						(active != commerceTermEntry.isActive()) ||
+						!StringUtil.wildcardMatches(
+							commerceTermEntry.getType(), type, '_', '%', '\\',
+							true)) {
+
+						list = null;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (list == null) {
+			StringBundler sb = null;
+
+			if (orderByComparator != null) {
+				sb = new StringBundler(
+					5 + (orderByComparator.getOrderByFields().length * 2));
+			}
+			else {
+				sb = new StringBundler(5);
+			}
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_A_LIKETYPE_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_A_LIKETYPE_ACTIVE_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_A_LIKETYPE_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_C_A_LIKETYPE_TYPE_2);
+			}
+
+			if (orderByComparator != null) {
+				appendOrderByComparator(
+					sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+			}
+			else {
+				sb.append(CommerceTermEntryModelImpl.ORDER_BY_JPQL);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(active);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				list = (List<CommerceTermEntry>)QueryUtil.list(
+					query, getDialect(), start, end);
+
+				cacheResult(list);
+
+				if (useFinderCache) {
+					finderCache.putResult(finderPath, finderArgs, list);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -2683,10 +3901,22 @@ public class CommerceTermEntryPersistenceImpl
 			return commerceTermEntry;
 		}
 
-		throw new NoSuchTermEntryException(
-			_collectionPersistenceFinderByC_A_LikeType.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY,
-				new Object[] {companyId, active, type}));
+		StringBundler sb = new StringBundler(8);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("companyId=");
+		sb.append(companyId);
+
+		sb.append(", active=");
+		sb.append(active);
+
+		sb.append(", typeLIKE");
+		sb.append(type);
+
+		sb.append("}");
+
+		throw new NoSuchTermEntryException(sb.toString());
 	}
 
 	/**
@@ -2703,9 +3933,14 @@ public class CommerceTermEntryPersistenceImpl
 		long companyId, boolean active, String type,
 		OrderByComparator<CommerceTermEntry> orderByComparator) {
 
-		return _collectionPersistenceFinderByC_A_LikeType.fetchFirst(
-			finderCache, new Object[] {companyId, active, type},
-			orderByComparator);
+		List<CommerceTermEntry> list = findByC_A_LikeType(
+			companyId, active, type, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -2893,8 +4128,13 @@ public class CommerceTermEntryPersistenceImpl
 	public void removeByC_A_LikeType(
 		long companyId, boolean active, String type) {
 
-		_collectionPersistenceFinderByC_A_LikeType.remove(
-			finderCache, new Object[] {companyId, active, type});
+		for (CommerceTermEntry commerceTermEntry :
+				findByC_A_LikeType(
+					companyId, active, type, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS, null)) {
+
+			remove(commerceTermEntry);
+		}
 	}
 
 	/**
@@ -2909,8 +4149,66 @@ public class CommerceTermEntryPersistenceImpl
 	public int countByC_A_LikeType(
 		long companyId, boolean active, String type) {
 
-		return _collectionPersistenceFinderByC_A_LikeType.count(
-			finderCache, new Object[] {companyId, active, type});
+		type = Objects.toString(type, "");
+
+		FinderPath finderPath = _finderPathWithPaginationCountByC_A_LikeType;
+
+		Object[] finderArgs = new Object[] {companyId, active, type};
+
+		Long count = (Long)finderCache.getResult(finderPath, finderArgs, this);
+
+		if (count == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_COUNT_COMMERCETERMENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_A_LIKETYPE_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_A_LIKETYPE_ACTIVE_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_A_LIKETYPE_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_C_A_LIKETYPE_TYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(active);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				count = (Long)query.uniqueResult();
+
+				finderCache.putResult(finderPath, finderArgs, count);
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		return count.intValue();
 	}
 
 	/**
@@ -2999,8 +4297,17 @@ public class CommerceTermEntryPersistenceImpl
 	private static final String _FINDER_COLUMN_C_A_LIKETYPE_COMPANYID_2 =
 		"commerceTermEntry.companyId = ? AND ";
 
+	private static final String _FINDER_COLUMN_C_A_LIKETYPE_ACTIVE_2 =
+		"commerceTermEntry.active = ? AND ";
+
 	private static final String _FINDER_COLUMN_C_A_LIKETYPE_ACTIVE_2_SQL =
 		"commerceTermEntry.active_ = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_A_LIKETYPE_TYPE_2 =
+		"commerceTermEntry.type LIKE ?";
+
+	private static final String _FINDER_COLUMN_C_A_LIKETYPE_TYPE_3 =
+		"(commerceTermEntry.type IS NULL OR commerceTermEntry.type LIKE '')";
 
 	private static final String _FINDER_COLUMN_C_A_LIKETYPE_TYPE_2_SQL =
 		"commerceTermEntry.type_ LIKE ?";
@@ -3009,8 +4316,6 @@ public class CommerceTermEntryPersistenceImpl
 		"(commerceTermEntry.type_ IS NULL OR commerceTermEntry.type_ LIKE '')";
 
 	private FinderPath _finderPathFetchByC_P_T;
-	private UniquePersistenceFinder<CommerceTermEntry>
-		_uniquePersistenceFinderByC_P_T;
 
 	/**
 	 * Returns the commerce term entry where companyId = &#63; and priority = &#63; and type = &#63; or throws a <code>NoSuchTermEntryException</code> if it could not be found.
@@ -3030,16 +4335,26 @@ public class CommerceTermEntryPersistenceImpl
 			companyId, priority, type);
 
 		if (commerceTermEntry == null) {
-			String message =
-				_uniquePersistenceFinderByC_P_T.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {companyId, priority, type});
+			StringBundler sb = new StringBundler(8);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("companyId=");
+			sb.append(companyId);
+
+			sb.append(", priority=");
+			sb.append(priority);
+
+			sb.append(", type=");
+			sb.append(type);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchTermEntryException(message);
+			throw new NoSuchTermEntryException(sb.toString());
 		}
 
 		return commerceTermEntry;
@@ -3073,9 +4388,101 @@ public class CommerceTermEntryPersistenceImpl
 	public CommerceTermEntry fetchByC_P_T(
 		long companyId, double priority, String type, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByC_P_T.fetch(
-			finderCache, new Object[] {companyId, priority, type},
-			useFinderCache);
+		type = Objects.toString(type, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {companyId, priority, type};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByC_P_T, finderArgs, this);
+		}
+
+		if (result instanceof CommerceTermEntry) {
+			CommerceTermEntry commerceTermEntry = (CommerceTermEntry)result;
+
+			if ((companyId != commerceTermEntry.getCompanyId()) ||
+				(priority != commerceTermEntry.getPriority()) ||
+				!Objects.equals(type, commerceTermEntry.getType())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(5);
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			sb.append(_FINDER_COLUMN_C_P_T_COMPANYID_2);
+
+			sb.append(_FINDER_COLUMN_C_P_T_PRIORITY_2);
+
+			boolean bindType = false;
+
+			if (type.isEmpty()) {
+				sb.append(_FINDER_COLUMN_C_P_T_TYPE_3);
+			}
+			else {
+				bindType = true;
+
+				sb.append(_FINDER_COLUMN_C_P_T_TYPE_2);
+			}
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				queryPos.add(companyId);
+
+				queryPos.add(priority);
+
+				if (bindType) {
+					queryPos.add(type);
+				}
+
+				List<CommerceTermEntry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByC_P_T, finderArgs, list);
+					}
+				}
+				else {
+					CommerceTermEntry commerceTermEntry = list.get(0);
+
+					result = commerceTermEntry;
+
+					cacheResult(commerceTermEntry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CommerceTermEntry)result;
+		}
 	}
 
 	/**
@@ -3107,13 +4514,29 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByC_P_T(long companyId, double priority, String type) {
-		return _uniquePersistenceFinderByC_P_T.count(
-			finderCache, new Object[] {companyId, priority, type});
+		CommerceTermEntry commerceTermEntry = fetchByC_P_T(
+			companyId, priority, type);
+
+		if (commerceTermEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
 
+	private static final String _FINDER_COLUMN_C_P_T_COMPANYID_2 =
+		"commerceTermEntry.companyId = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_P_T_PRIORITY_2 =
+		"commerceTermEntry.priority = ? AND ";
+
+	private static final String _FINDER_COLUMN_C_P_T_TYPE_2 =
+		"commerceTermEntry.type = ?";
+
+	private static final String _FINDER_COLUMN_C_P_T_TYPE_3 =
+		"(commerceTermEntry.type IS NULL OR commerceTermEntry.type = '')";
+
 	private FinderPath _finderPathFetchByERC_C;
-	private UniquePersistenceFinder<CommerceTermEntry>
-		_uniquePersistenceFinderByERC_C;
 
 	/**
 	 * Returns the commerce term entry where externalReferenceCode = &#63; and companyId = &#63; or throws a <code>NoSuchTermEntryException</code> if it could not be found.
@@ -3132,16 +4555,23 @@ public class CommerceTermEntryPersistenceImpl
 			externalReferenceCode, companyId);
 
 		if (commerceTermEntry == null) {
-			String message =
-				_uniquePersistenceFinderByERC_C.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {externalReferenceCode, companyId});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("externalReferenceCode=");
+			sb.append(externalReferenceCode);
+
+			sb.append(", companyId=");
+			sb.append(companyId);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchTermEntryException(message);
+			throw new NoSuchTermEntryException(sb.toString());
 		}
 
 		return commerceTermEntry;
@@ -3173,9 +4603,98 @@ public class CommerceTermEntryPersistenceImpl
 	public CommerceTermEntry fetchByERC_C(
 		String externalReferenceCode, long companyId, boolean useFinderCache) {
 
-		return _uniquePersistenceFinderByERC_C.fetch(
-			finderCache, new Object[] {externalReferenceCode, companyId},
-			useFinderCache);
+		externalReferenceCode = Objects.toString(externalReferenceCode, "");
+
+		Object[] finderArgs = null;
+
+		if (useFinderCache) {
+			finderArgs = new Object[] {externalReferenceCode, companyId};
+		}
+
+		Object result = null;
+
+		if (useFinderCache) {
+			result = finderCache.getResult(
+				_finderPathFetchByERC_C, finderArgs, this);
+		}
+
+		if (result instanceof CommerceTermEntry) {
+			CommerceTermEntry commerceTermEntry = (CommerceTermEntry)result;
+
+			if (!Objects.equals(
+					externalReferenceCode,
+					commerceTermEntry.getExternalReferenceCode()) ||
+				(companyId != commerceTermEntry.getCompanyId())) {
+
+				result = null;
+			}
+		}
+
+		if (result == null) {
+			StringBundler sb = new StringBundler(4);
+
+			sb.append(_SQL_SELECT_COMMERCETERMENTRY_WHERE);
+
+			boolean bindExternalReferenceCode = false;
+
+			if (externalReferenceCode.isEmpty()) {
+				sb.append(_FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_3);
+			}
+			else {
+				bindExternalReferenceCode = true;
+
+				sb.append(_FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_2);
+			}
+
+			sb.append(_FINDER_COLUMN_ERC_C_COMPANYID_2);
+
+			String sql = sb.toString();
+
+			Session session = null;
+
+			try {
+				session = openSession();
+
+				Query query = session.createQuery(sql);
+
+				QueryPos queryPos = QueryPos.getInstance(query);
+
+				if (bindExternalReferenceCode) {
+					queryPos.add(externalReferenceCode);
+				}
+
+				queryPos.add(companyId);
+
+				List<CommerceTermEntry> list = query.list();
+
+				if (list.isEmpty()) {
+					if (useFinderCache) {
+						finderCache.putResult(
+							_finderPathFetchByERC_C, finderArgs, list);
+					}
+				}
+				else {
+					CommerceTermEntry commerceTermEntry = list.get(0);
+
+					result = commerceTermEntry;
+
+					cacheResult(commerceTermEntry);
+				}
+			}
+			catch (Exception exception) {
+				throw processException(exception);
+			}
+			finally {
+				closeSession(session);
+			}
+		}
+
+		if (result instanceof List<?>) {
+			return null;
+		}
+		else {
+			return (CommerceTermEntry)result;
+		}
 	}
 
 	/**
@@ -3205,9 +4724,24 @@ public class CommerceTermEntryPersistenceImpl
 	 */
 	@Override
 	public int countByERC_C(String externalReferenceCode, long companyId) {
-		return _uniquePersistenceFinderByERC_C.count(
-			finderCache, new Object[] {externalReferenceCode, companyId});
+		CommerceTermEntry commerceTermEntry = fetchByERC_C(
+			externalReferenceCode, companyId);
+
+		if (commerceTermEntry == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_2 =
+		"commerceTermEntry.externalReferenceCode = ? AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_EXTERNALREFERENCECODE_3 =
+		"(commerceTermEntry.externalReferenceCode IS NULL OR commerceTermEntry.externalReferenceCode = '') AND ";
+
+	private static final String _FINDER_COLUMN_ERC_C_COMPANYID_2 =
+		"commerceTermEntry.companyId = ?";
 
 	public CommerceTermEntryPersistenceImpl() {
 		Map<String, String> dbColumnNames = new HashMap<String, String>();
@@ -3288,6 +4822,50 @@ public class CommerceTermEntryPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all commerce term entries.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(CommerceTermEntryImpl.class);
+
+		finderCache.clearCache(CommerceTermEntryImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the commerce term entry.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(CommerceTermEntry commerceTermEntry) {
+		entityCache.removeResult(
+			CommerceTermEntryImpl.class, commerceTermEntry);
+	}
+
+	@Override
+	public void clearCache(List<CommerceTermEntry> commerceTermEntries) {
+		for (CommerceTermEntry commerceTermEntry : commerceTermEntries) {
+			entityCache.removeResult(
+				CommerceTermEntryImpl.class, commerceTermEntry);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(CommerceTermEntryImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(CommerceTermEntryImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		CommerceTermEntryModelImpl commerceTermEntryModelImpl) {
 
@@ -3351,6 +4929,48 @@ public class CommerceTermEntryPersistenceImpl
 		throws NoSuchTermEntryException {
 
 		return remove((Serializable)commerceTermEntryId);
+	}
+
+	/**
+	 * Removes the commerce term entry with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the commerce term entry
+	 * @return the commerce term entry that was removed
+	 * @throws NoSuchTermEntryException if a commerce term entry with the primary key could not be found
+	 */
+	@Override
+	public CommerceTermEntry remove(Serializable primaryKey)
+		throws NoSuchTermEntryException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			CommerceTermEntry commerceTermEntry =
+				(CommerceTermEntry)session.get(
+					CommerceTermEntryImpl.class, primaryKey);
+
+			if (commerceTermEntry == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchTermEntryException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(commerceTermEntry);
+		}
+		catch (NoSuchTermEntryException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -3541,6 +5161,31 @@ public class CommerceTermEntryPersistenceImpl
 		}
 
 		commerceTermEntry.resetOriginalValues();
+
+		return commerceTermEntry;
+	}
+
+	/**
+	 * Returns the commerce term entry with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the commerce term entry
+	 * @return the commerce term entry
+	 * @throws NoSuchTermEntryException if a commerce term entry with the primary key could not be found
+	 */
+	@Override
+	public CommerceTermEntry findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchTermEntryException {
+
+		CommerceTermEntry commerceTermEntry = fetchByPrimaryKey(primaryKey);
+
+		if (commerceTermEntry == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchTermEntryException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
 
 		return commerceTermEntry;
 	}
@@ -3814,16 +5459,6 @@ public class CommerceTermEntryPersistenceImpl
 			new String[] {String.class.getName()}, new String[] {"uuid_"},
 			false);
 
-		_collectionPersistenceFinderByUuid = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByUuid,
-			_finderPathWithoutPaginationFindByUuid, _finderPathCountByUuid,
-			_SQL_SELECT_COMMERCETERMENTRY_WHERE,
-			_SQL_COUNT_COMMERCETERMENTRY_WHERE,
-			CommerceTermEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"commerceTermEntry.", "uuid", FinderColumn.Type.STRING, "=",
-				true, true, CommerceTermEntry::getUuid));
-
 		_finderPathWithPaginationFindByUuid_C = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
 			new String[] {
@@ -3842,21 +5477,6 @@ public class CommerceTermEntryPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUuid_C",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"uuid_", "companyId"}, false);
-
-		_collectionPersistenceFinderByUuid_C =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByUuid_C,
-				_finderPathWithoutPaginationFindByUuid_C,
-				_finderPathCountByUuid_C, _SQL_SELECT_COMMERCETERMENTRY_WHERE,
-				_SQL_COUNT_COMMERCETERMENTRY_WHERE,
-				CommerceTermEntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"commerceTermEntry.", "uuid", FinderColumn.Type.STRING, "=",
-					true, false, CommerceTermEntry::getUuid),
-				new FinderColumn<>(
-					"commerceTermEntry.", "companyId", FinderColumn.Type.LONG,
-					"=", true, true, CommerceTermEntry::getCompanyId));
 
 		_finderPathWithPaginationFindByC_A = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_A",
@@ -3877,32 +5497,10 @@ public class CommerceTermEntryPersistenceImpl
 			new String[] {Long.class.getName(), Boolean.class.getName()},
 			new String[] {"companyId", "active_"}, false);
 
-		_collectionPersistenceFinderByC_A = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByC_A,
-			_finderPathWithoutPaginationFindByC_A, _finderPathCountByC_A,
-			_SQL_SELECT_COMMERCETERMENTRY_WHERE,
-			_SQL_COUNT_COMMERCETERMENTRY_WHERE,
-			CommerceTermEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"commerceTermEntry.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, CommerceTermEntry::getCompanyId),
-			new FinderColumn<>(
-				"commerceTermEntry.", "active", FinderColumn.Type.BOOLEAN, "=",
-				true, true, CommerceTermEntry::isActive));
-
 		_finderPathFetchByC_N = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_N",
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"companyId", "name"}, true);
-
-		_uniquePersistenceFinderByC_N = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_N, _SQL_SELECT_COMMERCETERMENTRY_WHERE,
-			new FinderColumn<>(
-				"commerceTermEntry.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, CommerceTermEntry::getCompanyId),
-			new FinderColumn<>(
-				"commerceTermEntry.", "name", FinderColumn.Type.STRING, "=",
-				true, true, CommerceTermEntry::getName));
 
 		_finderPathWithPaginationFindByC_LikeType = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_LikeType",
@@ -3918,21 +5516,6 @@ public class CommerceTermEntryPersistenceImpl
 			new String[] {Long.class.getName(), String.class.getName()},
 			new String[] {"companyId", "type_"}, false);
 
-		_collectionPersistenceFinderByC_LikeType =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_LikeType, null,
-				_finderPathWithPaginationCountByC_LikeType,
-				_SQL_SELECT_COMMERCETERMENTRY_WHERE,
-				_SQL_COUNT_COMMERCETERMENTRY_WHERE,
-				CommerceTermEntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"commerceTermEntry.", "companyId", FinderColumn.Type.LONG,
-					"=", true, false, CommerceTermEntry::getCompanyId),
-				new FinderColumn<>(
-					"commerceTermEntry.", "type", FinderColumn.Type.STRING,
-					"LIKE", true, true, CommerceTermEntry::getType));
-
 		_finderPathWithPaginationFindByLtD_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLtD_S",
 			new String[] {
@@ -3947,19 +5530,6 @@ public class CommerceTermEntryPersistenceImpl
 			new String[] {Date.class.getName(), Integer.class.getName()},
 			new String[] {"displayDate", "status"}, false);
 
-		_collectionPersistenceFinderByLtD_S = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByLtD_S, null,
-			_finderPathWithPaginationCountByLtD_S,
-			_SQL_SELECT_COMMERCETERMENTRY_WHERE,
-			_SQL_COUNT_COMMERCETERMENTRY_WHERE,
-			CommerceTermEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"commerceTermEntry.", "displayDate", FinderColumn.Type.DATE,
-				"<", true, false, CommerceTermEntry::getDisplayDate),
-			new FinderColumn<>(
-				"commerceTermEntry.", "status", FinderColumn.Type.INTEGER, "=",
-				true, true, CommerceTermEntry::getStatus));
-
 		_finderPathWithPaginationFindByLtE_S = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByLtE_S",
 			new String[] {
@@ -3973,19 +5543,6 @@ public class CommerceTermEntryPersistenceImpl
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByLtE_S",
 			new String[] {Date.class.getName(), Integer.class.getName()},
 			new String[] {"expirationDate", "status"}, false);
-
-		_collectionPersistenceFinderByLtE_S = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByLtE_S, null,
-			_finderPathWithPaginationCountByLtE_S,
-			_SQL_SELECT_COMMERCETERMENTRY_WHERE,
-			_SQL_COUNT_COMMERCETERMENTRY_WHERE,
-			CommerceTermEntryModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"commerceTermEntry.", "expirationDate", FinderColumn.Type.DATE,
-				"<", true, false, CommerceTermEntry::getExpirationDate),
-			new FinderColumn<>(
-				"commerceTermEntry.", "status", FinderColumn.Type.INTEGER, "=",
-				true, true, CommerceTermEntry::getStatus));
 
 		_finderPathWithPaginationFindByC_A_LikeType = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_A_LikeType",
@@ -4004,24 +5561,6 @@ public class CommerceTermEntryPersistenceImpl
 			},
 			new String[] {"companyId", "active_", "type_"}, false);
 
-		_collectionPersistenceFinderByC_A_LikeType =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByC_A_LikeType, null,
-				_finderPathWithPaginationCountByC_A_LikeType,
-				_SQL_SELECT_COMMERCETERMENTRY_WHERE,
-				_SQL_COUNT_COMMERCETERMENTRY_WHERE,
-				CommerceTermEntryModelImpl.ORDER_BY_JPQL,
-				_ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"commerceTermEntry.", "companyId", FinderColumn.Type.LONG,
-					"=", true, false, CommerceTermEntry::getCompanyId),
-				new FinderColumn<>(
-					"commerceTermEntry.", "active", FinderColumn.Type.BOOLEAN,
-					"=", true, false, CommerceTermEntry::isActive),
-				new FinderColumn<>(
-					"commerceTermEntry.", "type", FinderColumn.Type.STRING,
-					"LIKE", true, true, CommerceTermEntry::getType));
-
 		_finderPathFetchByC_P_T = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByC_P_T",
 			new String[] {
@@ -4030,32 +5569,10 @@ public class CommerceTermEntryPersistenceImpl
 			},
 			new String[] {"companyId", "priority", "type_"}, true);
 
-		_uniquePersistenceFinderByC_P_T = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByC_P_T, _SQL_SELECT_COMMERCETERMENTRY_WHERE,
-			new FinderColumn<>(
-				"commerceTermEntry.", "companyId", FinderColumn.Type.LONG, "=",
-				true, false, CommerceTermEntry::getCompanyId),
-			new FinderColumn<>(
-				"commerceTermEntry.", "priority", FinderColumn.Type.DOUBLE, "=",
-				true, false, CommerceTermEntry::getPriority),
-			new FinderColumn<>(
-				"commerceTermEntry.", "type", FinderColumn.Type.STRING, "=",
-				true, true, CommerceTermEntry::getType));
-
 		_finderPathFetchByERC_C = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByERC_C",
 			new String[] {String.class.getName(), Long.class.getName()},
 			new String[] {"externalReferenceCode", "companyId"}, true);
-
-		_uniquePersistenceFinderByERC_C = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByERC_C, _SQL_SELECT_COMMERCETERMENTRY_WHERE,
-			new FinderColumn<>(
-				"commerceTermEntry.", "externalReferenceCode",
-				FinderColumn.Type.STRING, "=", true, false,
-				CommerceTermEntry::getExternalReferenceCode),
-			new FinderColumn<>(
-				"commerceTermEntry.", "companyId", FinderColumn.Type.LONG, "=",
-				true, true, CommerceTermEntry::getCompanyId));
 
 		CommerceTermEntryUtil.setPersistence(this);
 	}
@@ -4103,6 +5620,14 @@ public class CommerceTermEntryPersistenceImpl
 	protected CTermEntryLocalizationPersistence
 		cTermEntryLocalizationPersistence;
 
+	private static Long _getTime(Date date) {
+		if (date == null) {
+			return null;
+		}
+
+		return date.getTime();
+	}
+
 	private static final String _SQL_SELECT_COMMERCETERMENTRY =
 		"SELECT commerceTermEntry FROM CommerceTermEntry commerceTermEntry";
 
@@ -4140,6 +5665,9 @@ public class CommerceTermEntryPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_TABLE = "CommerceTermEntry.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No CommerceTermEntry exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No CommerceTermEntry exists with the key {";
 
@@ -4155,4 +5683,4 @@ public class CommerceTermEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-537958289
+// LIFERAY-SERVICE-BUILDER-HASH:-1007667154

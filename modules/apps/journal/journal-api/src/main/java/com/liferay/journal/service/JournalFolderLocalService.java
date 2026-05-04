@@ -551,4 +551,4 @@ public interface JournalFolderLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:394792946
+// LIFERAY-SERVICE-BUILDER-HASH:-1853803935

@@ -5,7 +5,6 @@
 
 package com.liferay.portlet.exportimport.service.persistence.impl;
 
-import com.liferay.exportimport.kernel.exception.NoSuchConfigurationException;
 import com.liferay.exportimport.kernel.model.ExportImportConfiguration;
 import com.liferay.exportimport.kernel.service.persistence.ExportImportConfigurationPersistence;
 import com.liferay.portal.kernel.bean.BeanReference;
@@ -22,8 +21,7 @@ import java.util.Set;
  * @generated
  */
 public class ExportImportConfigurationFinderBaseImpl
-	extends BasePersistenceImpl
-		<ExportImportConfiguration, NoSuchConfigurationException> {
+	extends BasePersistenceImpl<ExportImportConfiguration> {
 
 	public ExportImportConfigurationFinderBaseImpl() {
 		setModelClass(ExportImportConfiguration.class);
@@ -73,4 +71,4 @@ public class ExportImportConfigurationFinderBaseImpl
 		ExportImportConfigurationFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1719618151
+// LIFERAY-SERVICE-BUILDER-HASH:-1957604870

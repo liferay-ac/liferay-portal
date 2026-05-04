@@ -6,7 +6,6 @@
 package com.liferay.portal.service.persistence.impl;
 
 import com.liferay.portal.kernel.bean.BeanReference;
-import com.liferay.portal.kernel.exception.NoSuchPasswordPolicyException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.PasswordPolicy;
@@ -22,7 +21,7 @@ import java.util.Set;
  * @generated
  */
 public class PasswordPolicyFinderBaseImpl
-	extends BasePersistenceImpl<PasswordPolicy, NoSuchPasswordPolicyException> {
+	extends BasePersistenceImpl<PasswordPolicy> {
 
 	public PasswordPolicyFinderBaseImpl() {
 		setModelClass(PasswordPolicy.class);
@@ -66,4 +65,4 @@ public class PasswordPolicyFinderBaseImpl
 		PasswordPolicyFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:835498433
+// LIFERAY-SERVICE-BUILDER-HASH:1377613553

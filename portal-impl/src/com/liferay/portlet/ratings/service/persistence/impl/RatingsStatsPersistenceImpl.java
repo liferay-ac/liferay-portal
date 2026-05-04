@@ -23,7 +23,6 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
-import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelperUtil;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -49,7 +48,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,7 +66,7 @@ import java.util.Set;
  * @generated
  */
 public class RatingsStatsPersistenceImpl
-	extends BasePersistenceImpl<RatingsStats, NoSuchStatsException>
+	extends BasePersistenceImpl<RatingsStats>
 	implements RatingsStatsPersistence {
 
 	/*
@@ -741,6 +742,48 @@ public class RatingsStatsPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all ratings statses.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		EntityCacheUtil.clearCache(RatingsStatsImpl.class);
+
+		FinderCacheUtil.clearCache(RatingsStatsImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the ratings stats.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(RatingsStats ratingsStats) {
+		EntityCacheUtil.removeResult(RatingsStatsImpl.class, ratingsStats);
+	}
+
+	@Override
+	public void clearCache(List<RatingsStats> ratingsStatses) {
+		for (RatingsStats ratingsStats : ratingsStatses) {
+			EntityCacheUtil.removeResult(RatingsStatsImpl.class, ratingsStats);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		FinderCacheUtil.clearCache(RatingsStatsImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			EntityCacheUtil.removeResult(RatingsStatsImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		RatingsStatsModelImpl ratingsStatsModelImpl) {
 
@@ -786,6 +829,47 @@ public class RatingsStatsPersistenceImpl
 	@Override
 	public RatingsStats remove(long statsId) throws NoSuchStatsException {
 		return remove((Serializable)statsId);
+	}
+
+	/**
+	 * Removes the ratings stats with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the ratings stats
+	 * @return the ratings stats that was removed
+	 * @throws NoSuchStatsException if a ratings stats with the primary key could not be found
+	 */
+	@Override
+	public RatingsStats remove(Serializable primaryKey)
+		throws NoSuchStatsException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			RatingsStats ratingsStats = (RatingsStats)session.get(
+				RatingsStatsImpl.class, primaryKey);
+
+			if (ratingsStats == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchStatsException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(ratingsStats);
+		}
+		catch (NoSuchStatsException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -908,6 +992,31 @@ public class RatingsStatsPersistenceImpl
 	}
 
 	/**
+	 * Returns the ratings stats with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ratings stats
+	 * @return the ratings stats
+	 * @throws NoSuchStatsException if a ratings stats with the primary key could not be found
+	 */
+	@Override
+	public RatingsStats findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchStatsException {
+
+		RatingsStats ratingsStats = fetchByPrimaryKey(primaryKey);
+
+		if (ratingsStats == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchStatsException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return ratingsStats;
+	}
+
+	/**
 	 * Returns the ratings stats with the primary key or throws a <code>NoSuchStatsException</code> if it could not be found.
 	 *
 	 * @param statsId the primary key of the ratings stats
@@ -921,9 +1030,52 @@ public class RatingsStatsPersistenceImpl
 		return findByPrimaryKey((Serializable)statsId);
 	}
 
+	/**
+	 * Returns the ratings stats with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the ratings stats
+	 * @return the ratings stats, or <code>null</code> if a ratings stats with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return CTPersistenceHelperUtil.getCTPersistenceHelper();
+	public RatingsStats fetchByPrimaryKey(Serializable primaryKey) {
+		if (CTPersistenceHelperUtil.isProductionMode(
+				RatingsStats.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		RatingsStats ratingsStats = (RatingsStats)EntityCacheUtil.getResult(
+			RatingsStatsImpl.class, primaryKey);
+
+		if (ratingsStats != null) {
+			return ratingsStats;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			ratingsStats = (RatingsStats)session.get(
+				RatingsStatsImpl.class, primaryKey);
+
+			if (ratingsStats != null) {
+				cacheResult(ratingsStats);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return ratingsStats;
 	}
 
 	/**
@@ -935,6 +1087,130 @@ public class RatingsStatsPersistenceImpl
 	@Override
 	public RatingsStats fetchByPrimaryKey(long statsId) {
 		return fetchByPrimaryKey((Serializable)statsId);
+	}
+
+	@Override
+	public Map<Serializable, RatingsStats> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (CTPersistenceHelperUtil.isProductionMode(RatingsStats.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, RatingsStats> map =
+			new HashMap<Serializable, RatingsStats>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			RatingsStats ratingsStats = fetchByPrimaryKey(primaryKey);
+
+			if (ratingsStats != null) {
+				map.put(primaryKey, ratingsStats);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					CTPersistenceHelperUtil.setCTCollectionIdWithSafeCloseable(
+						RatingsStats.class, primaryKey)) {
+
+				RatingsStats ratingsStats =
+					(RatingsStats)EntityCacheUtil.getResult(
+						RatingsStatsImpl.class, primaryKey);
+
+				if (ratingsStats == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, ratingsStats);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (RatingsStats ratingsStats : (List<RatingsStats>)query.list()) {
+				map.put(ratingsStats.getPrimaryKeyObj(), ratingsStats);
+
+				cacheResult(ratingsStats);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1278,6 +1554,9 @@ public class RatingsStatsPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "ratingsStats.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No RatingsStats exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No RatingsStats exists with the key {";
 
@@ -1290,4 +1569,4 @@ public class RatingsStatsPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:677466119
+// LIFERAY-SERVICE-BUILDER-HASH:-1169377654

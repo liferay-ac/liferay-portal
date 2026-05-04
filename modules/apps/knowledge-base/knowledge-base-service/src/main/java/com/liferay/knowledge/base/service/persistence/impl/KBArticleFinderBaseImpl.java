@@ -5,7 +5,6 @@
 
 package com.liferay.knowledge.base.service.persistence.impl;
 
-import com.liferay.knowledge.base.exception.NoSuchArticleException;
 import com.liferay.knowledge.base.model.KBArticle;
 import com.liferay.knowledge.base.service.persistence.KBArticlePersistence;
 import com.liferay.knowledge.base.service.persistence.impl.constants.KBPersistenceConstants;
@@ -28,7 +27,7 @@ import org.osgi.service.component.annotations.Reference;
  * @generated
  */
 public abstract class KBArticleFinderBaseImpl
-	extends BasePersistenceImpl<KBArticle, NoSuchArticleException> {
+	extends BasePersistenceImpl<KBArticle> {
 
 	public KBArticleFinderBaseImpl() {
 		setModelClass(KBArticle.class);
@@ -78,4 +77,4 @@ public abstract class KBArticleFinderBaseImpl
 		KBArticleFinderBaseImpl.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-576910706
+// LIFERAY-SERVICE-BUILDER-HASH:415381968

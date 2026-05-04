@@ -14,6 +14,7 @@ import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
 import com.liferay.portal.kernel.dao.orm.Query;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
@@ -22,9 +23,6 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.service.persistence.impl.CollectionPersistenceFinder;
-import com.liferay.portal.kernel.service.persistence.impl.FinderColumn;
-import com.liferay.portal.kernel.service.persistence.impl.UniquePersistenceFinder;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PropsKeys;
@@ -46,7 +44,9 @@ import java.lang.reflect.InvocationHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,7 +70,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = TrashVersionPersistence.class)
 public class TrashVersionPersistenceImpl
-	extends BasePersistenceImpl<TrashVersion, NoSuchVersionException>
+	extends BasePersistenceImpl<TrashVersion>
 	implements TrashVersionPersistence {
 
 	/*
@@ -93,8 +93,6 @@ public class TrashVersionPersistenceImpl
 	private FinderPath _finderPathWithPaginationFindByEntryId;
 	private FinderPath _finderPathWithoutPaginationFindByEntryId;
 	private FinderPath _finderPathCountByEntryId;
-	private CollectionPersistenceFinder<TrashVersion>
-		_collectionPersistenceFinderByEntryId;
 
 	/**
 	 * Returns all the trash versions where entryId = &#63;.
@@ -170,9 +168,95 @@ public class TrashVersionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					TrashVersion.class)) {
 
-			return _collectionPersistenceFinderByEntryId.find(
-				finderCache, new Object[] {entryId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByEntryId;
+					finderArgs = new Object[] {entryId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByEntryId;
+				finderArgs = new Object[] {
+					entryId, start, end, orderByComparator
+				};
+			}
+
+			List<TrashVersion> list = null;
+
+			if (useFinderCache) {
+				list = (List<TrashVersion>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (TrashVersion trashVersion : list) {
+						if (entryId != trashVersion.getEntryId()) {
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						3 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(3);
+				}
+
+				sb.append(_SQL_SELECT_TRASHVERSION_WHERE);
+
+				sb.append(_FINDER_COLUMN_ENTRYID_ENTRYID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(TrashVersionModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(entryId);
+
+					list = (List<TrashVersion>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -196,9 +280,16 @@ public class TrashVersionPersistenceImpl
 			return trashVersion;
 		}
 
-		throw new NoSuchVersionException(
-			_collectionPersistenceFinderByEntryId.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {entryId}));
+		StringBundler sb = new StringBundler(4);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("entryId=");
+		sb.append(entryId);
+
+		sb.append("}");
+
+		throw new NoSuchVersionException(sb.toString());
 	}
 
 	/**
@@ -212,8 +303,14 @@ public class TrashVersionPersistenceImpl
 	public TrashVersion fetchByEntryId_First(
 		long entryId, OrderByComparator<TrashVersion> orderByComparator) {
 
-		return _collectionPersistenceFinderByEntryId.fetchFirst(
-			finderCache, new Object[] {entryId}, orderByComparator);
+		List<TrashVersion> list = findByEntryId(
+			entryId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -223,8 +320,12 @@ public class TrashVersionPersistenceImpl
 	 */
 	@Override
 	public void removeByEntryId(long entryId) {
-		_collectionPersistenceFinderByEntryId.remove(
-			finderCache, new Object[] {entryId});
+		for (TrashVersion trashVersion :
+				findByEntryId(
+					entryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)) {
+
+			remove(trashVersion);
+		}
 	}
 
 	/**
@@ -239,16 +340,55 @@ public class TrashVersionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					TrashVersion.class)) {
 
-			return _collectionPersistenceFinderByEntryId.count(
-				finderCache, new Object[] {entryId});
+			FinderPath finderPath = _finderPathCountByEntryId;
+
+			Object[] finderArgs = new Object[] {entryId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(2);
+
+				sb.append(_SQL_COUNT_TRASHVERSION_WHERE);
+
+				sb.append(_FINDER_COLUMN_ENTRYID_ENTRYID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(entryId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
+
+	private static final String _FINDER_COLUMN_ENTRYID_ENTRYID_2 =
+		"trashVersion.entryId = ?";
 
 	private FinderPath _finderPathWithPaginationFindByE_CN;
 	private FinderPath _finderPathWithoutPaginationFindByE_CN;
 	private FinderPath _finderPathCountByE_CN;
-	private CollectionPersistenceFinder<TrashVersion>
-		_collectionPersistenceFinderByE_CN;
 
 	/**
 	 * Returns all the trash versions where entryId = &#63; and classNameId = &#63;.
@@ -331,9 +471,101 @@ public class TrashVersionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					TrashVersion.class)) {
 
-			return _collectionPersistenceFinderByE_CN.find(
-				finderCache, new Object[] {entryId, classNameId}, start, end,
-				orderByComparator, useFinderCache);
+			FinderPath finderPath = null;
+			Object[] finderArgs = null;
+
+			if ((start == QueryUtil.ALL_POS) && (end == QueryUtil.ALL_POS) &&
+				(orderByComparator == null)) {
+
+				if (useFinderCache) {
+					finderPath = _finderPathWithoutPaginationFindByE_CN;
+					finderArgs = new Object[] {entryId, classNameId};
+				}
+			}
+			else if (useFinderCache) {
+				finderPath = _finderPathWithPaginationFindByE_CN;
+				finderArgs = new Object[] {
+					entryId, classNameId, start, end, orderByComparator
+				};
+			}
+
+			List<TrashVersion> list = null;
+
+			if (useFinderCache) {
+				list = (List<TrashVersion>)finderCache.getResult(
+					finderPath, finderArgs, this);
+
+				if ((list != null) && !list.isEmpty()) {
+					for (TrashVersion trashVersion : list) {
+						if ((entryId != trashVersion.getEntryId()) ||
+							(classNameId != trashVersion.getClassNameId())) {
+
+							list = null;
+
+							break;
+						}
+					}
+				}
+			}
+
+			if (list == null) {
+				StringBundler sb = null;
+
+				if (orderByComparator != null) {
+					sb = new StringBundler(
+						4 + (orderByComparator.getOrderByFields().length * 2));
+				}
+				else {
+					sb = new StringBundler(4);
+				}
+
+				sb.append(_SQL_SELECT_TRASHVERSION_WHERE);
+
+				sb.append(_FINDER_COLUMN_E_CN_ENTRYID_2);
+
+				sb.append(_FINDER_COLUMN_E_CN_CLASSNAMEID_2);
+
+				if (orderByComparator != null) {
+					appendOrderByComparator(
+						sb, _ORDER_BY_ENTITY_ALIAS, orderByComparator);
+				}
+				else {
+					sb.append(TrashVersionModelImpl.ORDER_BY_JPQL);
+				}
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(entryId);
+
+					queryPos.add(classNameId);
+
+					list = (List<TrashVersion>)QueryUtil.list(
+						query, getDialect(), start, end);
+
+					cacheResult(list);
+
+					if (useFinderCache) {
+						finderCache.putResult(finderPath, finderArgs, list);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return list;
 		}
 	}
 
@@ -359,9 +591,19 @@ public class TrashVersionPersistenceImpl
 			return trashVersion;
 		}
 
-		throw new NoSuchVersionException(
-			_collectionPersistenceFinderByE_CN.buildNoSuchKeyMessage(
-				_NO_SUCH_ENTITY_WITH_KEY, new Object[] {entryId, classNameId}));
+		StringBundler sb = new StringBundler(6);
+
+		sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+		sb.append("entryId=");
+		sb.append(entryId);
+
+		sb.append(", classNameId=");
+		sb.append(classNameId);
+
+		sb.append("}");
+
+		throw new NoSuchVersionException(sb.toString());
 	}
 
 	/**
@@ -377,9 +619,14 @@ public class TrashVersionPersistenceImpl
 		long entryId, long classNameId,
 		OrderByComparator<TrashVersion> orderByComparator) {
 
-		return _collectionPersistenceFinderByE_CN.fetchFirst(
-			finderCache, new Object[] {entryId, classNameId},
-			orderByComparator);
+		List<TrashVersion> list = findByE_CN(
+			entryId, classNameId, 0, 1, orderByComparator);
+
+		if (!list.isEmpty()) {
+			return list.get(0);
+		}
+
+		return null;
 	}
 
 	/**
@@ -390,8 +637,13 @@ public class TrashVersionPersistenceImpl
 	 */
 	@Override
 	public void removeByE_CN(long entryId, long classNameId) {
-		_collectionPersistenceFinderByE_CN.remove(
-			finderCache, new Object[] {entryId, classNameId});
+		for (TrashVersion trashVersion :
+				findByE_CN(
+					entryId, classNameId, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+					null)) {
+
+			remove(trashVersion);
+		}
 	}
 
 	/**
@@ -407,14 +659,60 @@ public class TrashVersionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					TrashVersion.class)) {
 
-			return _collectionPersistenceFinderByE_CN.count(
-				finderCache, new Object[] {entryId, classNameId});
+			FinderPath finderPath = _finderPathCountByE_CN;
+
+			Object[] finderArgs = new Object[] {entryId, classNameId};
+
+			Long count = (Long)finderCache.getResult(
+				finderPath, finderArgs, this);
+
+			if (count == null) {
+				StringBundler sb = new StringBundler(3);
+
+				sb.append(_SQL_COUNT_TRASHVERSION_WHERE);
+
+				sb.append(_FINDER_COLUMN_E_CN_ENTRYID_2);
+
+				sb.append(_FINDER_COLUMN_E_CN_CLASSNAMEID_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(entryId);
+
+					queryPos.add(classNameId);
+
+					count = (Long)query.uniqueResult();
+
+					finderCache.putResult(finderPath, finderArgs, count);
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			return count.intValue();
 		}
 	}
 
+	private static final String _FINDER_COLUMN_E_CN_ENTRYID_2 =
+		"trashVersion.entryId = ? AND ";
+
+	private static final String _FINDER_COLUMN_E_CN_CLASSNAMEID_2 =
+		"trashVersion.classNameId = ?";
+
 	private FinderPath _finderPathFetchByCN_CPK;
-	private UniquePersistenceFinder<TrashVersion>
-		_uniquePersistenceFinderByCN_CPK;
 
 	/**
 	 * Returns the trash version where classNameId = &#63; and classPK = &#63; or throws a <code>NoSuchVersionException</code> if it could not be found.
@@ -431,16 +729,23 @@ public class TrashVersionPersistenceImpl
 		TrashVersion trashVersion = fetchByCN_CPK(classNameId, classPK);
 
 		if (trashVersion == null) {
-			String message =
-				_uniquePersistenceFinderByCN_CPK.buildNoSuchKeyMessage(
-					_NO_SUCH_ENTITY_WITH_KEY,
-					new Object[] {classNameId, classPK});
+			StringBundler sb = new StringBundler(6);
+
+			sb.append(_NO_SUCH_ENTITY_WITH_KEY);
+
+			sb.append("classNameId=");
+			sb.append(classNameId);
+
+			sb.append(", classPK=");
+			sb.append(classPK);
+
+			sb.append("}");
 
 			if (_log.isDebugEnabled()) {
-				_log.debug(message);
+				_log.debug(sb.toString());
 			}
 
-			throw new NoSuchVersionException(message);
+			throw new NoSuchVersionException(sb.toString());
 		}
 
 		return trashVersion;
@@ -474,9 +779,83 @@ public class TrashVersionPersistenceImpl
 				ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
 					TrashVersion.class)) {
 
-			return _uniquePersistenceFinderByCN_CPK.fetch(
-				finderCache, new Object[] {classNameId, classPK},
-				useFinderCache);
+			Object[] finderArgs = null;
+
+			if (useFinderCache) {
+				finderArgs = new Object[] {classNameId, classPK};
+			}
+
+			Object result = null;
+
+			if (useFinderCache) {
+				result = finderCache.getResult(
+					_finderPathFetchByCN_CPK, finderArgs, this);
+			}
+
+			if (result instanceof TrashVersion) {
+				TrashVersion trashVersion = (TrashVersion)result;
+
+				if ((classNameId != trashVersion.getClassNameId()) ||
+					(classPK != trashVersion.getClassPK())) {
+
+					result = null;
+				}
+			}
+
+			if (result == null) {
+				StringBundler sb = new StringBundler(4);
+
+				sb.append(_SQL_SELECT_TRASHVERSION_WHERE);
+
+				sb.append(_FINDER_COLUMN_CN_CPK_CLASSNAMEID_2);
+
+				sb.append(_FINDER_COLUMN_CN_CPK_CLASSPK_2);
+
+				String sql = sb.toString();
+
+				Session session = null;
+
+				try {
+					session = openSession();
+
+					Query query = session.createQuery(sql);
+
+					QueryPos queryPos = QueryPos.getInstance(query);
+
+					queryPos.add(classNameId);
+
+					queryPos.add(classPK);
+
+					List<TrashVersion> list = query.list();
+
+					if (list.isEmpty()) {
+						if (useFinderCache) {
+							finderCache.putResult(
+								_finderPathFetchByCN_CPK, finderArgs, list);
+						}
+					}
+					else {
+						TrashVersion trashVersion = list.get(0);
+
+						result = trashVersion;
+
+						cacheResult(trashVersion);
+					}
+				}
+				catch (Exception exception) {
+					throw processException(exception);
+				}
+				finally {
+					closeSession(session);
+				}
+			}
+
+			if (result instanceof List<?>) {
+				return null;
+			}
+			else {
+				return (TrashVersion)result;
+			}
 		}
 	}
 
@@ -505,9 +884,20 @@ public class TrashVersionPersistenceImpl
 	 */
 	@Override
 	public int countByCN_CPK(long classNameId, long classPK) {
-		return _uniquePersistenceFinderByCN_CPK.count(
-			finderCache, new Object[] {classNameId, classPK});
+		TrashVersion trashVersion = fetchByCN_CPK(classNameId, classPK);
+
+		if (trashVersion == null) {
+			return 0;
+		}
+
+		return 1;
 	}
+
+	private static final String _FINDER_COLUMN_CN_CPK_CLASSNAMEID_2 =
+		"trashVersion.classNameId = ? AND ";
+
+	private static final String _FINDER_COLUMN_CN_CPK_CLASSPK_2 =
+		"trashVersion.classPK = ?";
 
 	public TrashVersionPersistenceImpl() {
 		setModelClass(TrashVersion.class);
@@ -573,6 +963,48 @@ public class TrashVersionPersistenceImpl
 		}
 	}
 
+	/**
+	 * Clears the cache for all trash versions.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache() {
+		entityCache.clearCache(TrashVersionImpl.class);
+
+		finderCache.clearCache(TrashVersionImpl.class);
+	}
+
+	/**
+	 * Clears the cache for the trash version.
+	 *
+	 * <p>
+	 * The <code>EntityCache</code> and <code>FinderCache</code> are both cleared by this method.
+	 * </p>
+	 */
+	@Override
+	public void clearCache(TrashVersion trashVersion) {
+		entityCache.removeResult(TrashVersionImpl.class, trashVersion);
+	}
+
+	@Override
+	public void clearCache(List<TrashVersion> trashVersions) {
+		for (TrashVersion trashVersion : trashVersions) {
+			entityCache.removeResult(TrashVersionImpl.class, trashVersion);
+		}
+	}
+
+	@Override
+	public void clearCache(Set<Serializable> primaryKeys) {
+		finderCache.clearCache(TrashVersionImpl.class);
+
+		for (Serializable primaryKey : primaryKeys) {
+			entityCache.removeResult(TrashVersionImpl.class, primaryKey);
+		}
+	}
+
 	protected void cacheUniqueFindersCache(
 		TrashVersionModelImpl trashVersionModelImpl) {
 
@@ -618,6 +1050,47 @@ public class TrashVersionPersistenceImpl
 	@Override
 	public TrashVersion remove(long versionId) throws NoSuchVersionException {
 		return remove((Serializable)versionId);
+	}
+
+	/**
+	 * Removes the trash version with the primary key from the database. Also notifies the appropriate model listeners.
+	 *
+	 * @param primaryKey the primary key of the trash version
+	 * @return the trash version that was removed
+	 * @throws NoSuchVersionException if a trash version with the primary key could not be found
+	 */
+	@Override
+	public TrashVersion remove(Serializable primaryKey)
+		throws NoSuchVersionException {
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			TrashVersion trashVersion = (TrashVersion)session.get(
+				TrashVersionImpl.class, primaryKey);
+
+			if (trashVersion == null) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+				}
+
+				throw new NoSuchVersionException(
+					_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			return remove(trashVersion);
+		}
+		catch (NoSuchVersionException noSuchEntityException) {
+			throw noSuchEntityException;
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
 	}
 
 	@Override
@@ -716,6 +1189,31 @@ public class TrashVersionPersistenceImpl
 	}
 
 	/**
+	 * Returns the trash version with the primary key or throws a <code>com.liferay.portal.kernel.exception.NoSuchModelException</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the trash version
+	 * @return the trash version
+	 * @throws NoSuchVersionException if a trash version with the primary key could not be found
+	 */
+	@Override
+	public TrashVersion findByPrimaryKey(Serializable primaryKey)
+		throws NoSuchVersionException {
+
+		TrashVersion trashVersion = fetchByPrimaryKey(primaryKey);
+
+		if (trashVersion == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+			}
+
+			throw new NoSuchVersionException(
+				_NO_SUCH_ENTITY_WITH_PRIMARY_KEY + primaryKey);
+		}
+
+		return trashVersion;
+	}
+
+	/**
 	 * Returns the trash version with the primary key or throws a <code>NoSuchVersionException</code> if it could not be found.
 	 *
 	 * @param versionId the primary key of the trash version
@@ -729,9 +1227,52 @@ public class TrashVersionPersistenceImpl
 		return findByPrimaryKey((Serializable)versionId);
 	}
 
+	/**
+	 * Returns the trash version with the primary key or returns <code>null</code> if it could not be found.
+	 *
+	 * @param primaryKey the primary key of the trash version
+	 * @return the trash version, or <code>null</code> if a trash version with the primary key could not be found
+	 */
 	@Override
-	protected CTPersistenceHelper getCTPersistenceHelper() {
-		return ctPersistenceHelper;
+	public TrashVersion fetchByPrimaryKey(Serializable primaryKey) {
+		if (ctPersistenceHelper.isProductionMode(
+				TrashVersion.class, primaryKey)) {
+
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKey(primaryKey);
+			}
+		}
+
+		TrashVersion trashVersion = (TrashVersion)entityCache.getResult(
+			TrashVersionImpl.class, primaryKey);
+
+		if (trashVersion != null) {
+			return trashVersion;
+		}
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			trashVersion = (TrashVersion)session.get(
+				TrashVersionImpl.class, primaryKey);
+
+			if (trashVersion != null) {
+				cacheResult(trashVersion);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return trashVersion;
 	}
 
 	/**
@@ -743,6 +1284,129 @@ public class TrashVersionPersistenceImpl
 	@Override
 	public TrashVersion fetchByPrimaryKey(long versionId) {
 		return fetchByPrimaryKey((Serializable)versionId);
+	}
+
+	@Override
+	public Map<Serializable, TrashVersion> fetchByPrimaryKeys(
+		Set<Serializable> primaryKeys) {
+
+		if (ctPersistenceHelper.isProductionMode(TrashVersion.class)) {
+			try (SafeCloseable safeCloseable =
+					CTCollectionThreadLocal.
+						setProductionModeWithSafeCloseable()) {
+
+				return super.fetchByPrimaryKeys(primaryKeys);
+			}
+		}
+
+		if (primaryKeys.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		Map<Serializable, TrashVersion> map =
+			new HashMap<Serializable, TrashVersion>();
+
+		if (primaryKeys.size() == 1) {
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			Serializable primaryKey = iterator.next();
+
+			TrashVersion trashVersion = fetchByPrimaryKey(primaryKey);
+
+			if (trashVersion != null) {
+				map.put(primaryKey, trashVersion);
+			}
+
+			return map;
+		}
+
+		Set<Serializable> uncachedPrimaryKeys = null;
+
+		for (Serializable primaryKey : primaryKeys) {
+			try (SafeCloseable safeCloseable =
+					ctPersistenceHelper.setCTCollectionIdWithSafeCloseable(
+						TrashVersion.class, primaryKey)) {
+
+				TrashVersion trashVersion = (TrashVersion)entityCache.getResult(
+					TrashVersionImpl.class, primaryKey);
+
+				if (trashVersion == null) {
+					if (uncachedPrimaryKeys == null) {
+						uncachedPrimaryKeys = new HashSet<>();
+					}
+
+					uncachedPrimaryKeys.add(primaryKey);
+				}
+				else {
+					map.put(primaryKey, trashVersion);
+				}
+			}
+		}
+
+		if (uncachedPrimaryKeys == null) {
+			return map;
+		}
+
+		if ((databaseInMaxParameters > 0) &&
+			(primaryKeys.size() > databaseInMaxParameters)) {
+
+			Iterator<Serializable> iterator = primaryKeys.iterator();
+
+			while (iterator.hasNext()) {
+				Set<Serializable> page = new HashSet<>();
+
+				for (int i = 0;
+					 (i < databaseInMaxParameters) && iterator.hasNext(); i++) {
+
+					page.add(iterator.next());
+				}
+
+				map.putAll(fetchByPrimaryKeys(page));
+			}
+
+			return map;
+		}
+
+		StringBundler sb = new StringBundler((primaryKeys.size() * 2) + 1);
+
+		sb.append(getSelectSQL());
+		sb.append(" WHERE ");
+		sb.append(getPKDBName());
+		sb.append(" IN (");
+
+		for (Serializable primaryKey : primaryKeys) {
+			sb.append((long)primaryKey);
+
+			sb.append(",");
+		}
+
+		sb.setIndex(sb.index() - 1);
+
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		Session session = null;
+
+		try {
+			session = openSession();
+
+			Query query = session.createQuery(sql);
+
+			for (TrashVersion trashVersion : (List<TrashVersion>)query.list()) {
+				map.put(trashVersion.getPrimaryKeyObj(), trashVersion);
+
+				cacheResult(trashVersion);
+			}
+		}
+		catch (Exception exception) {
+			throw processException(exception);
+		}
+		finally {
+			closeSession(session);
+		}
+
+		return map;
 	}
 
 	/**
@@ -1048,17 +1712,6 @@ public class TrashVersionPersistenceImpl
 			new String[] {Long.class.getName()}, new String[] {"entryId"},
 			false);
 
-		_collectionPersistenceFinderByEntryId =
-			new CollectionPersistenceFinder<>(
-				this, _finderPathWithPaginationFindByEntryId,
-				_finderPathWithoutPaginationFindByEntryId,
-				_finderPathCountByEntryId, _SQL_SELECT_TRASHVERSION_WHERE,
-				_SQL_COUNT_TRASHVERSION_WHERE,
-				TrashVersionModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-				new FinderColumn<>(
-					"trashVersion.", "entryId", FinderColumn.Type.LONG, "=",
-					true, true, TrashVersion::getEntryId));
-
 		_finderPathWithPaginationFindByE_CN = new FinderPath(
 			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByE_CN",
 			new String[] {
@@ -1078,31 +1731,10 @@ public class TrashVersionPersistenceImpl
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"entryId", "classNameId"}, false);
 
-		_collectionPersistenceFinderByE_CN = new CollectionPersistenceFinder<>(
-			this, _finderPathWithPaginationFindByE_CN,
-			_finderPathWithoutPaginationFindByE_CN, _finderPathCountByE_CN,
-			_SQL_SELECT_TRASHVERSION_WHERE, _SQL_COUNT_TRASHVERSION_WHERE,
-			TrashVersionModelImpl.ORDER_BY_JPQL, _ORDER_BY_ENTITY_ALIAS,
-			new FinderColumn<>(
-				"trashVersion.", "entryId", FinderColumn.Type.LONG, "=", true,
-				false, TrashVersion::getEntryId),
-			new FinderColumn<>(
-				"trashVersion.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, true, TrashVersion::getClassNameId));
-
 		_finderPathFetchByCN_CPK = new FinderPath(
 			FINDER_CLASS_NAME_ENTITY, "fetchByCN_CPK",
 			new String[] {Long.class.getName(), Long.class.getName()},
 			new String[] {"classNameId", "classPK"}, true);
-
-		_uniquePersistenceFinderByCN_CPK = new UniquePersistenceFinder<>(
-			this, _finderPathFetchByCN_CPK, _SQL_SELECT_TRASHVERSION_WHERE,
-			new FinderColumn<>(
-				"trashVersion.", "classNameId", FinderColumn.Type.LONG, "=",
-				true, false, TrashVersion::getClassNameId),
-			new FinderColumn<>(
-				"trashVersion.", "classPK", FinderColumn.Type.LONG, "=", true,
-				true, TrashVersion::getClassPK));
 
 		TrashVersionUtil.setPersistence(this);
 	}
@@ -1163,6 +1795,9 @@ public class TrashVersionPersistenceImpl
 
 	private static final String _ORDER_BY_ENTITY_ALIAS = "trashVersion.";
 
+	private static final String _NO_SUCH_ENTITY_WITH_PRIMARY_KEY =
+		"No TrashVersion exists with the primary key ";
+
 	private static final String _NO_SUCH_ENTITY_WITH_KEY =
 		"No TrashVersion exists with the key {";
 
@@ -1175,4 +1810,4 @@ public class TrashVersionPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:324940027
+// LIFERAY-SERVICE-BUILDER-HASH:-2080065098
