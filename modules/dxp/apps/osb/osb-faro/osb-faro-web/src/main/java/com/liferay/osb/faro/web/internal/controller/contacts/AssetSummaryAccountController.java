@@ -5,13 +5,12 @@
 
 package com.liferay.osb.faro.web.internal.controller.contacts;
 
-import com.liferay.osb.faro.engine.client.model.AssetSummary;
+import com.liferay.osb.faro.engine.client.model.AssetSummaryAccount;
 import com.liferay.osb.faro.engine.client.model.Results;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
 import com.liferay.osb.faro.web.internal.model.display.FaroFDSResultsDisplay;
-import com.liferay.osb.faro.web.internal.model.display.contacts.AssetSummaryDisplay;
-import com.liferay.petra.string.StringPool;
+import com.liferay.osb.faro.web.internal.model.display.contacts.AssetSummaryAccountDisplay;
 
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -28,35 +27,34 @@ import org.osgi.service.component.annotations.Component;
 /**
  * @author Marcos Martins
  */
-@Component(service = AssetSummaryController.class)
-@Path("/{groupId}/asset-summary")
+@Component(service = AssetSummaryAccountController.class)
+@Path("/{groupId}/asset-summary-accounts")
 @Produces(MediaType.APPLICATION_JSON)
-public class AssetSummaryController extends BaseFaroController {
+public class AssetSummaryAccountController extends BaseFaroController {
 
 	@GET
-	public FaroFDSResultsDisplay getAssetSummary(
+	public FaroFDSResultsDisplay getAssetSummaryAccounts(
 			@PathParam("groupId") long groupId,
-			@QueryParam("accountId") String accountId,
 			@QueryParam("channelId") long channelId,
-			@QueryParam("filter") String filterString,
-			@QueryParam("search") String search,
-			@QueryParam("rangeKey") int rangeKey, @QueryParam("page") int page,
-			@DefaultValue("20") @QueryParam("pageSize") int pageSize,
-			@DefaultValue(StringPool.BLANK) @QueryParam("sort") String
-				sortString)
+			@QueryParam("rangeEnd") String rangeEnd,
+			@DefaultValue("30") @QueryParam("rangeKey") int rangeKey,
+			@QueryParam("rangeStart") String rangeStart,
+			@QueryParam("cur") int cur,
+			@DefaultValue("20") @QueryParam("delta") int delta)
 		throws Exception {
 
 		FaroProject faroProject =
 			faroProjectLocalService.getFaroProjectByGroupId(groupId);
 
-		Results<AssetSummary> results = contactsEngineClient.getAssetSummaries(
-			faroProject, accountId, channelId, filterString, search, rangeKey,
-			page, pageSize, sortString);
+		Results<AssetSummaryAccount> results =
+			contactsEngineClient.getAssetSummaryAccounts(
+				faroProject, channelId, rangeEnd, rangeKey, rangeStart, cur,
+				delta);
 
-		Function<AssetSummary, AssetSummaryDisplay> function =
-			AssetSummaryDisplay::new;
+		Function<AssetSummaryAccount, AssetSummaryAccountDisplay> function =
+			AssetSummaryAccountDisplay::new;
 
-		return new FaroFDSResultsDisplay(results, function, page, pageSize);
+		return new FaroFDSResultsDisplay(results, function, cur, delta);
 	}
 
 }
