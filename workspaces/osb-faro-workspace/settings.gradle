@@ -18,4 +18,4 @@ buildscript {
 
 apply plugin: "com.liferay.workspace"
 
-include "modules:osb:osb-faro:osb-faro-theme"
+include "modules:dxp:apps:osb:osb-faro:osb-faro-theme"

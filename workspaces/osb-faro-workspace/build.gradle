@@ -3,7 +3,7 @@ ext.faroImageTag = project.findProperty("docker.image.tag") ?: "latest"
 
 task buildTheme(type: Exec) {
 	commandLine "npm", "run", "build"
-	workingDir "modules/osb/osb-faro/osb-faro-theme"
+	workingDir "modules/dxp/apps/osb/osb-faro/osb-faro-theme"
 }
 
 buildDockerImage {
@@ -18,7 +18,7 @@ dockerDeploy {
 
 	doLast {
 		copy {
-			from "modules/osb/osb-faro/osb-faro-theme/dist"
+			from "modules/dxp/apps/osb/osb-faro/osb-faro-theme/dist"
 			include "*.war"
 			into "${buildDir}/docker/deploy"
 		}
@@ -55,7 +55,8 @@ allprojects {
 }
 
 subprojects {
-	tasks.all { Task task ->
+	tasks.all {
+		Task task ->
 		if (task.name == "baseline") {
 			enabled = false
 		}
