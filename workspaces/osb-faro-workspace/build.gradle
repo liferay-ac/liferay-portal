@@ -1,7 +1,9 @@
 ext.faroEnvironmentName = System.getenv().get("FARO_ENVIRONMENT_NAME") ?: "local"
 ext.faroImageTag = project.findProperty("docker.image.tag") ?: "latest"
 
-task buildTheme(type: Exec) {
+task buildTheme(type: Exec)
+
+buildTheme {
 	commandLine "npm", "run", "build"
 	workingDir "modules/dxp/apps/osb/osb-faro/osb-faro-theme"
 }
