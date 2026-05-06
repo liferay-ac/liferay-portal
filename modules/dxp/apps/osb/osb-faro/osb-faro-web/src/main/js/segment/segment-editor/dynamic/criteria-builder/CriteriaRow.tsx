@@ -59,6 +59,7 @@ import {Option, Picker} from '@clayui/core';
 import {Property} from 'shared/util/records';
 import {RootState} from 'shared/store';
 import {SegmentTypes} from 'shared/util/constants';
+import VocabularyInput from '../inputs/VocabularyInput';
 
 const acceptedDragTypes = [DragTypes.CriteriaRow, DragTypes.Property];
 
@@ -240,6 +241,26 @@ class CriteriaRow extends React.Component<
 		};
 	}
 
+	componentDidUpdate(prevProps: ICriteriaRowProps) {
+		const {criterion, referencedProperties} = this.props;
+
+		if (prevProps.referencedProperties !== referencedProperties) {
+			const selectedProperty = findPropertyByCriterion(
+				criterion,
+				referencedProperties
+			);
+
+			if (selectedProperty) {
+				this.setState({
+					selectedProperty,
+					supportedOperators: getSupportedOperatorsFromType(
+						String(selectedProperty.type)
+					)
+				});
+			}
+		}
+	}
+
 	getSelectedOperator() {
 		const {
 			props: {
@@ -406,6 +427,7 @@ class CriteriaRow extends React.Component<
 		const inputComponentsMap = {
 			[PropertyTypes.Behavior]: BehaviorInput,
 			[PropertyTypes.Boolean]: BooleanInput,
+			[PropertyTypes.Vocabulary]: VocabularyInput,
 			[PropertyTypes.AccountDate]: AccountInput,
 			[PropertyTypes.AccountNumber]: AccountInput,
 			[PropertyTypes.AccountText]: AccountInput,
