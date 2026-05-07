@@ -199,13 +199,24 @@ const buildQueryString = (
 					: value;
 
 				if (isValueType(RelationalOperators, operatorName)) {
-					queryString = queryString.concat(
-						`${propertyName} ${operatorName} ${parsedValue}`
-					);
+					if (operatorName === RelationalOperators.In) {
+						const ids = (value as string[])
+							.map((id: string) => `'${id}'`)
+							.join(',');
+						queryString = queryString.concat(
+							`${propertyName} in (${ids})`
+						);
+					} else {
+						queryString = queryString.concat(
+							`${propertyName} ${operatorName} ${parsedValue}`
+						);
+					}
 				} else if (isValueType(CustomFunctionOperators, operatorName)) {
-					const fnName = getFunctionNameFromOperatorName(
-						operatorName ?? ''
-					);
+					const fnName =
+						operatorName ===
+						CustomFunctionOperators.VocabulariesFilter
+							? 'activities.filterByCount'
+							: getFunctionNameFromOperatorName(operatorName ?? '');
 
 					const paramKeys = value.keySeq().toJS();
 
@@ -771,7 +782,21 @@ const transformCustomFunctionNode = ({oDataASTNode}: Context): Criterion[] => {
 		}, Map())
 	);
 
-	const operatorName = getOperatorNameFromFunctionName(name, namespace);
+	const firstItemPropertyName = customValue.getIn([
+		'criterionGroup',
+		'items',
+		0,
+		'propertyName'
+	]);
+	const isVocabularyFilter = firstItemPropertyName === 'vocabularies/id';
+
+	const operatorName = isVocabularyFilter
+		? CustomFunctionOperators.VocabulariesFilter
+		: getOperatorNameFromFunctionName(name, namespace);
+
+	const propertyName = isVocabularyFilter
+		? customValue.getIn(['criterionGroup', 'items', 0, 'value'])
+		: firstItemPropertyName;
 
 	let touched:
 		| boolean
@@ -812,12 +837,7 @@ const transformCustomFunctionNode = ({oDataASTNode}: Context): Criterion[] => {
 	return [
 		{
 			operatorName,
-			propertyName: customValue.getIn([
-				'criterionGroup',
-				'items',
-				0,
-				'propertyName'
-			]),
+			propertyName,
 			rowId: generateRowId(),
 			touched,
 			valid,
@@ -892,12 +912,14 @@ const transformNotNode = ({oDataASTNode}: Context): Criteria[] => {
 			}
 		] as unknown as Criteria[];
 	} else if (isValueType(CustomFunctionOperators, nextNodeExpressionName)) {
+		const criterion = transformCustomFunctionNode({
+			oDataASTNode: nextNodeExpression
+		})[0];
+
 		returnValue = [
 			{
-				...transformCustomFunctionNode({
-					oDataASTNode: nextNodeExpression
-				})[0],
-				operatorName: `not-${nextNodeExpressionName}`
+				...criterion,
+				operatorName: `not-${criterion.operatorName}`
 			}
 		] as unknown as Criteria[];
 	} else if (nextNodeExpression.type == EXPRESSION_TYPES.PROPERTY_PATH) {
