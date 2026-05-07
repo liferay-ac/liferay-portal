@@ -165,6 +165,60 @@ const PARAM_REGEX = /\s+((?:criterionGroup|operator|value)=)/g;
 export const trimSpacesBeforeParams = (queryString: string): string =>
 	queryString.replace(PARAM_REGEX, '$1');
 
+const buildVocabularyFilterString = (criterionGroup: any): string => {
+	const items: any[] = criterionGroup?.items ?? [];
+
+	const find = (name: string) =>
+		items.find((item: any) => item.propertyName === name);
+
+	const vocIdItem = find('vocabularies/id');
+	const vocNameItem = find('vocabularies/name');
+	const activityKeyItem = find('activityKey');
+	const appIdItem = find('applicationId');
+	const eventIdItem = find('eventId');
+	const categoriesItem = find('categories');
+	const dayItem = find('day');
+
+	const parts: string[] = [];
+
+	if (vocIdItem && vocNameItem) {
+		parts.push(`vocabularies/id eq '${vocIdItem.value}'`);
+		parts.push(`vocabularies/name eq '${vocNameItem.value}'`);
+	}
+
+	if (appIdItem && eventIdItem) {
+		const appIds = (appIdItem.value as string[])
+			.map((id: string) => `'${id}'`)
+			.join(',');
+		const eventIds = (eventIdItem.value as string[])
+			.map((id: string) => `'${id}'`)
+			.join(',');
+		parts.push(
+			`(applicationId in (${appIds}) and eventId in (${eventIds}))`
+		);
+	} else if (activityKeyItem) {
+		parts.push(`activityKey eq '${activityKeyItem.value}'`);
+	}
+
+	if (categoriesItem?.value?.length > 0) {
+		const catParts = (
+			categoriesItem.value as Array<{id: string; name: string}>
+		).map(
+			cat =>
+				`(categories/id eq '${cat.id}' and categories/name eq '${cat.name}')`
+		);
+		parts.push(`(${catParts.join(' or ')})`);
+	}
+
+	if (dayItem) {
+		parts.push(
+			`${dayItem.propertyName} ${dayItem.operatorName} '${dayItem.value}'`
+		);
+	}
+
+	return parts.join(' and ');
+};
+
 /**
  * Recursively traverses the criteria object to build an oData filter query
  * string. Properties is required to parse the correctly with or without quotes
@@ -212,40 +266,75 @@ const buildQueryString = (
 						);
 					}
 				} else if (isValueType(CustomFunctionOperators, operatorName)) {
-					const fnName =
+					if (
 						operatorName ===
 						CustomFunctionOperators.VocabulariesFilter
-							? 'activities.filterByCount'
-							: getFunctionNameFromOperatorName(operatorName ?? '');
+					) {
+						const criterionGroup = value
+							.get('criterionGroup')
+							?.toJS();
+						const filterString =
+							buildVocabularyFilterString(criterionGroup);
+						const occurrenceOperator = value.get('operator');
+						const occurrenceCount = value.get('value');
 
-					const paramKeys = value.keySeq().toJS();
+						const params: string[] = [
+							`filter='${encodeQuotes(filterString)}'`
+						];
 
-					const paramsString = paramKeys
-						.map((key: string) => {
-							if (
-								(key === 'value' || key === 'operator') &&
-								isNull(value.get(key))
-							) {
-								return;
-							} else if (key === 'criterionGroup') {
-								return `filter='${encodeQuotes(
-									buildQueryString([value.get(key).toJS()])
-								)}'`;
-							} else if (
-								key === 'value' &&
-								!isString(value.get(key))
-							) {
-								return `${key}=${value.get(key)}`;
-							}
+						if (!isNull(occurrenceOperator)) {
+							params.push(`operator='${occurrenceOperator}'`);
+						}
 
-							return `${key}='${value.get(key)}'`;
-						})
-						.filter((val: string | undefined) => !isUndefined(val))
-						.join();
+						if (!isNull(occurrenceCount)) {
+							params.push(`value=${occurrenceCount}`);
+						}
 
-					queryString = queryString.concat(
-						`${fnName}(${decodeQuotesToOdataQuotes(paramsString)})`
-					);
+						queryString = queryString.concat(
+							`activities.filterByCount(${decodeQuotesToOdataQuotes(
+								params.join(',')
+							)})`
+						);
+					} else {
+						const fnName = getFunctionNameFromOperatorName(
+							operatorName ?? ''
+						);
+
+						const paramKeys = value.keySeq().toJS();
+
+						const paramsString = paramKeys
+							.map((key: string) => {
+								if (
+									(key === 'value' || key === 'operator') &&
+									isNull(value.get(key))
+								) {
+									return;
+								} else if (key === 'criterionGroup') {
+									return `filter='${encodeQuotes(
+										buildQueryString([
+											value.get(key).toJS()
+										])
+									)}'`;
+								} else if (
+									key === 'value' &&
+									!isString(value.get(key))
+								) {
+									return `${key}=${value.get(key)}`;
+								}
+
+								return `${key}='${value.get(key)}'`;
+							})
+							.filter(
+								(val: string | undefined) => !isUndefined(val)
+							)
+							.join();
+
+						queryString = queryString.concat(
+							`${fnName}(${decodeQuotesToOdataQuotes(
+								paramsString
+							)})`
+						);
+					}
 				} else if (isValueType(FunctionalOperators, operatorName)) {
 					if (operatorName === FunctionalOperators.Between) {
 						const {end, start} = parsedValue;

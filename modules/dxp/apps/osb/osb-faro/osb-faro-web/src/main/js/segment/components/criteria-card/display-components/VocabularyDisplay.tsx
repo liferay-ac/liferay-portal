@@ -29,9 +29,15 @@ const VocabularyDisplay: React.FC<IDisplayComponentProps> = ({
 	const operatorKey = maybeFormatToKnownType(operatorName ?? '', value);
 	const operatorLabel = getOperatorLabel(operatorKey, type);
 
+	const appIdIndex = valueIMap
+		? getIndexFromPropertyName(valueIMap, 'applicationId')
+		: -1;
+
 	const activityKeyIndex = valueIMap
 		? getIndexFromPropertyName(valueIMap, 'activityKey')
 		: -1;
+
+	const isAnyAsset = appIdIndex >= 0;
 
 	const activityKey =
 		activityKeyIndex >= 0
@@ -45,8 +51,12 @@ const VocabularyDisplay: React.FC<IDisplayComponentProps> = ({
 
 	const [applicationId, eventId] = activityKey?.split('#') ?? [];
 
-	const assetType = APPLICATION_ID_ASSET_TYPE_MAP[applicationId] ?? 'any';
-	const eventType = eventId ? EVENT_ID_EVENT_TYPE_MAP[eventId] ?? 'all' : 'all';
+	const assetType = isAnyAsset
+		? 'any'
+		: APPLICATION_ID_ASSET_TYPE_MAP[applicationId] ?? 'any';
+	const eventType = eventId
+		? EVENT_ID_EVENT_TYPE_MAP[eventId] ?? 'all'
+		: 'all';
 
 	const occurrenceOperator = valueIMap?.get('operator') as string | null;
 	const occurrenceCount = valueIMap?.get('value') as number | null;
@@ -60,9 +70,8 @@ const VocabularyDisplay: React.FC<IDisplayComponentProps> = ({
 		assetType;
 
 	const occurrenceLabel =
-		OCCURRENCE_OPTIONS.find(
-			({value}) => value === (occurrenceOperator ?? 'any')
-		)?.label ?? '';
+		OCCURRENCE_OPTIONS.find(({value}) => value === occurrenceOperator)
+			?.label ?? '';
 
 	const dayIndex = valueIMap
 		? getIndexFromPropertyName(valueIMap, 'day')
@@ -72,6 +81,71 @@ const VocabularyDisplay: React.FC<IDisplayComponentProps> = ({
 		dayIndex >= 0
 			? getFilterCriterionIMap(valueIMap!, dayIndex)?.toJS()
 			: undefined;
+
+	const categoryNames: string[] = (() => {
+		if (!valueIMap) return [];
+
+		const catIndex = getIndexFromPropertyName(valueIMap, 'categories');
+
+		if (catIndex >= 0) {
+			return (
+				(
+					valueIMap.getIn([
+						'criterionGroup',
+						'items',
+						catIndex,
+						'value'
+					]) as any
+				)?.toJS?.()?.map((c: {name: string}) => c.name) ?? []
+			);
+		}
+
+		const items = valueIMap.getIn(['criterionGroup', 'items']) as any;
+
+		if (!items) return [];
+
+		const orGroup = items.find(
+			(item: any) => item.get?.('conjunctionName') === 'or'
+		);
+
+		if (orGroup) {
+			const names: string[] = [];
+
+			orGroup.get?.('items')?.forEach((andGroup: any) => {
+				const andItems = andGroup.get?.('items');
+
+				if (!andItems) return;
+
+				const nameItem = andItems.find(
+					(i: any) => i.get?.('propertyName') === 'categories/name'
+				);
+
+				if (nameItem) names.push((nameItem.get?.('value') as string) ?? '');
+			});
+
+			return names;
+		}
+
+		const catNameItem = items.find(
+			(i: any) => i.get?.('propertyName') === 'categories/name'
+		);
+
+		return catNameItem ? [(catNameItem.get?.('value') as string) ?? ''] : [];
+	})();
+
+	const vocNameIndex = valueIMap
+		? getIndexFromPropertyName(valueIMap, 'vocabularies/name')
+		: -1;
+
+	const vocabularyName =
+		vocNameIndex >= 0
+			? (valueIMap?.getIn([
+					'criterionGroup',
+					'items',
+					vocNameIndex,
+					'value'
+			  ]) as string) ?? label
+			: label;
 
 	return (
 		<>
@@ -85,7 +159,15 @@ const VocabularyDisplay: React.FC<IDisplayComponentProps> = ({
 
 			<span>{Liferay.Language.get('on-the-vocabulary')}</span>
 
-			<b>{label}</b>
+			<b>{vocabularyName}</b>
+
+			{categoryNames.length > 0 && (
+				<>
+					<span>{Liferay.Language.get('on-the-categories')}</span>
+
+					<b>{categoryNames.join(', ')}</b>
+				</>
+			)}
 
 			<span>{Liferay.Language.get('for-fragment')}</span>
 

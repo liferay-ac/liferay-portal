@@ -7,6 +7,8 @@ import SelectCategoryFromModal, {
 	CategoryItem
 } from './components/SelectCategoryFromModal';
 import {
+	ALL_APPLICATION_IDS,
+	ALL_EVENT_IDS,
 	APPLICATION_ID_ASSET_TYPE_MAP,
 	ASSET_TYPE_APPLICATION_ID_MAP,
 	ASSET_TYPE_COMPATIBLE_EVENTS_MAP,
@@ -83,23 +85,21 @@ function buildValue(
 	occurrenceCount: number | string,
 	conjunctionCriterion: Criterion & {touched: boolean; valid: boolean},
 	vocabularyId: string,
+	vocabularyName: string,
 	categories: CategoryItem[]
 ): CustomValue {
-	const applicationId =
-		assetType !== 'any'
-			? ASSET_TYPE_APPLICATION_ID_MAP[assetType as string]
-			: undefined;
+	const isAnyAsset = assetType === 'any';
+
+	const applicationId = !isAnyAsset
+		? ASSET_TYPE_APPLICATION_ID_MAP[assetType as string]
+		: undefined;
 
 	const eventId =
-		eventType !== 'all' && assetType !== 'any'
-			? EVENT_TYPE_EVENT_ID_MAP[eventType as string]?.[assetType as string]
+		eventType !== 'all' && !isAnyAsset
+			? EVENT_TYPE_EVENT_ID_MAP[eventType as string]?.[
+					assetType as string
+			  ]
 			: undefined;
-
-	const activityKeyValue = applicationId
-		? eventId
-			? `${applicationId}#${eventId}`
-			: applicationId
-		: undefined;
 
 	const criterionItems: (Criterion & {touched: boolean; valid: boolean})[] = [
 		{
@@ -108,26 +108,57 @@ function buildValue(
 			touched: false,
 			valid: true,
 			value: vocabularyId
+		} as Criterion & {touched: boolean; valid: boolean},
+		{
+			operatorName: RelationalOperators.EQ as any,
+			propertyName: 'vocabularies/name',
+			touched: false,
+			valid: true,
+			value: vocabularyName
 		} as Criterion & {touched: boolean; valid: boolean}
 	];
 
-	if (activityKeyValue) {
+	if (isAnyAsset) {
 		criterionItems.push({
-			operatorName: RelationalOperators.EQ as any,
-			propertyName: 'activityKey',
+			operatorName: RelationalOperators.In as any,
+			propertyName: 'applicationId',
 			touched: false,
 			valid: true,
-			value: activityKeyValue
+			value: ALL_APPLICATION_IDS
 		} as Criterion & {touched: boolean; valid: boolean});
+
+		criterionItems.push({
+			operatorName: RelationalOperators.In as any,
+			propertyName: 'eventId',
+			touched: false,
+			valid: true,
+			value: ALL_EVENT_IDS
+		} as Criterion & {touched: boolean; valid: boolean});
+	} else {
+		const activityKeyValue = applicationId
+			? eventId
+				? `${applicationId}#${eventId}`
+				: applicationId
+			: undefined;
+
+		if (activityKeyValue) {
+			criterionItems.push({
+				operatorName: RelationalOperators.EQ as any,
+				propertyName: 'activityKey',
+				touched: false,
+				valid: true,
+				value: activityKeyValue
+			} as Criterion & {touched: boolean; valid: boolean});
+		}
 	}
 
 	if (categories.length > 0) {
 		criterionItems.push({
 			operatorName: RelationalOperators.In as any,
-			propertyName: 'categories/id',
+			propertyName: 'categories',
 			touched: false,
 			valid: true,
-			value: categories.map(c => c.id)
+			value: categories
 		} as Criterion & {touched: boolean; valid: boolean});
 	}
 
@@ -142,6 +173,10 @@ function buildValue(
 
 function getAssetTypeFromValue(value: CustomValue | undefined): React.Key {
 	if (!value) return 'any';
+
+	const appIdIndex = getIndexFromPropertyName(value, 'applicationId');
+
+	if (appIdIndex >= 0) return 'any';
 
 	const activityKeyIndex = getIndexFromPropertyName(value, 'activityKey');
 
@@ -197,6 +232,77 @@ function getConjunctionCriterionFromValue(
 	);
 }
 
+function getCategoriesFromValue(
+	value: CustomValue | undefined
+): CategoryItem[] {
+	if (!value) return [];
+
+	const catIndex = getIndexFromPropertyName(value, 'categories');
+
+	if (catIndex >= 0) {
+		const catValue = value.getIn([
+			'criterionGroup',
+			'items',
+			catIndex,
+			'value'
+		]) as any;
+
+		return catValue ? ((catValue.toJS?.() ?? catValue) as CategoryItem[]) : [];
+	}
+
+	const items = value.getIn(['criterionGroup', 'items']) as any;
+
+	if (!items) return [];
+
+	const orGroup = items.find(
+		(item: any) => item.get?.('conjunctionName') === 'or'
+	);
+
+	if (orGroup) {
+		const categories: CategoryItem[] = [];
+
+		orGroup.get?.('items')?.forEach((andGroup: any) => {
+			const andItems = andGroup.get?.('items');
+
+			if (!andItems) return;
+
+			const idItem = andItems.find(
+				(i: any) => i.get?.('propertyName') === 'categories/id'
+			);
+			const nameItem = andItems.find(
+				(i: any) => i.get?.('propertyName') === 'categories/name'
+			);
+
+			if (idItem && nameItem) {
+				categories.push({
+					id: (idItem.get?.('value') as string) ?? '',
+					name: (nameItem.get?.('value') as string) ?? ''
+				});
+			}
+		});
+
+		return categories;
+	}
+
+	const catIdItem = items.find(
+		(i: any) => i.get?.('propertyName') === 'categories/id'
+	);
+	const catNameItem = items.find(
+		(i: any) => i.get?.('propertyName') === 'categories/name'
+	);
+
+	if (catIdItem && catNameItem) {
+		return [
+			{
+				id: (catIdItem.get?.('value') as string) ?? '',
+				name: (catNameItem.get?.('value') as string) ?? ''
+			}
+		];
+	}
+
+	return [];
+}
+
 export default function VocabularyInput({
 	channelId = '',
 	displayValue,
@@ -225,7 +331,9 @@ export default function VocabularyInput({
 	const [conjunctionCriterion, setConjunctionCriterion] = useState<
 		Criterion & {touched: boolean; valid: boolean}
 	>(getConjunctionCriterionFromValue(value));
-	const [categories, setCategories] = useState<CategoryItem[]>([]);
+	const [categories, setCategories] = useState<CategoryItem[]>(
+		getCategoriesFromValue(value)
+	);
 
 	useEffect(() => {
 		if (!value?.get('criterionGroup')) {
@@ -239,6 +347,7 @@ export default function VocabularyInput({
 					occurrenceCount,
 					conjunctionCriterion,
 					property.name,
+					displayValue ?? '',
 					categories
 				)
 			});
@@ -263,6 +372,7 @@ export default function VocabularyInput({
 				occurrenceCount,
 				conjunctionCriterion,
 				property.name,
+				displayValue ?? '',
 				newCategories
 			)
 		});
@@ -285,6 +395,7 @@ export default function VocabularyInput({
 				occurrenceCount,
 				newCriterion,
 				property.name,
+				displayValue ?? '',
 				categories
 			)
 		});
@@ -329,6 +440,7 @@ export default function VocabularyInput({
 									occurrenceCount,
 									conjunctionCriterion,
 									property.name,
+									displayValue ?? '',
 									categories
 								)
 							});
@@ -405,6 +517,7 @@ export default function VocabularyInput({
 									occurrenceCount,
 									conjunctionCriterion,
 									property.name,
+									displayValue ?? '',
 									categories
 								)
 							});
@@ -443,6 +556,7 @@ export default function VocabularyInput({
 									occurrenceCount,
 									conjunctionCriterion,
 									property.name,
+									displayValue ?? '',
 									categories
 								)
 							});
@@ -482,6 +596,7 @@ export default function VocabularyInput({
 									inputVal,
 									conjunctionCriterion,
 									property.name,
+									displayValue ?? '',
 									categories
 								)
 							});
@@ -511,6 +626,7 @@ export default function VocabularyInput({
 									numberVal,
 									conjunctionCriterion,
 									property.name,
+									displayValue ?? '',
 									categories
 								)
 							});
