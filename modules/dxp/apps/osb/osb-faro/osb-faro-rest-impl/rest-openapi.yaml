@@ -235,7 +235,8 @@ info:
     description:
         "Read-only headless REST API for Liferay Analytics Cloud. Exposes events, pages, and asset-summary metrics for
         use as MCP tools and external integrations. All endpoints are scoped to a provisioned Analytics Cloud
-        workspace."
+        workspace.. A Java client JAR is available for use with the group ID 'com.liferay', artifact ID
+        'com.liferay.osb.faro.rest.client', and version '1.0.0'."
     license:
         name: Apache 2.0
         url: http://www.apache.org/licenses/LICENSE-2.0.html
