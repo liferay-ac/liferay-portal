@@ -5,9 +5,25 @@
 
 package com.liferay.osb.faro.rest.internal.resource.v1_0;
 
+import com.liferay.osb.faro.model.FaroProject;
+import com.liferay.osb.faro.rest.dto.v1_0.AssetSummaryMetric;
+import com.liferay.osb.faro.rest.internal.dto.v1_0.util.FaroDTOUtil;
+import com.liferay.osb.faro.rest.internal.dto.v1_0.util.FaroPaginationUtil;
+import com.liferay.osb.faro.rest.internal.graphql.client.FaroGraphQLClient;
+import com.liferay.osb.faro.rest.internal.graphql.dto.GetSiteAssetSummariesPageResponse;
 import com.liferay.osb.faro.rest.resource.v1_0.AssetSummaryMetricResource;
+import com.liferay.osb.faro.service.FaroProjectLocalService;
+import com.liferay.portal.kernel.search.Sort;
+import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.vulcan.pagination.Page;
+import com.liferay.portal.vulcan.pagination.Pagination;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ServiceScope;
 
 /**
@@ -19,5 +35,77 @@ import org.osgi.service.component.annotations.ServiceScope;
 )
 public class AssetSummaryMetricResourceImpl
 	extends BaseAssetSummaryMetricResourceImpl {
+
+	@Override
+	public Page<AssetSummaryMetric> getSiteAssetSummariesPage(
+			Long siteId, String channelId, String search, Integer rangeKey,
+			String rangeStart, String rangeEnd, Pagination pagination,
+			Sort[] sorts)
+		throws Exception {
+
+		FaroProject faroProject =
+			_faroProjectLocalService.getFaroProjectByGroupId(siteId);
+
+		int cur = FaroPaginationUtil.getCur(pagination);
+		int delta = FaroPaginationUtil.getDelta(pagination);
+
+		GetSiteAssetSummariesPageResponse response = _faroGraphQLClient.execute(
+			faroProject, "getSiteAssetSummariesPage",
+			HashMapBuilder.<String, Object>put(
+				"channelId", channelId
+			).put(
+				"keywords", search
+			).put(
+				"rangeEnd", rangeEnd
+			).put(
+				"rangeKey", rangeKey
+			).put(
+				"rangeStart", rangeStart
+			).put(
+				"size", delta
+			).put(
+				"sort", FaroPaginationUtil.toGraphQLSort(sorts)
+			).put(
+				"start", (cur - 1) * delta
+			).build(),
+			GetSiteAssetSummariesPageResponse.class);
+
+		GetSiteAssetSummariesPageResponse.AssetSummaryMetricBag bag =
+			response.getAssetSummaries();
+
+		if (bag == null) {
+			return Page.of(Collections.emptyList(), pagination, 0);
+		}
+
+		List<GetSiteAssetSummariesPageResponse.AssetSummaryMetric>
+			assetSummaryMetrics = bag.getAssetSummaryMetrics();
+
+		if (assetSummaryMetrics == null) {
+			assetSummaryMetrics = Collections.emptyList();
+		}
+
+		List<AssetSummaryMetric> mapped = new ArrayList<>(
+			assetSummaryMetrics.size());
+
+		for (GetSiteAssetSummariesPageResponse.AssetSummaryMetric
+				assetSummaryMetric : assetSummaryMetrics) {
+
+			mapped.add(FaroDTOUtil.toAssetSummaryMetric(assetSummaryMetric));
+		}
+
+		Integer total = bag.getTotal();
+
+		if (total == null) {
+			total = 0;
+		}
+
+		return Page.of(mapped, pagination, total);
+	}
+
+	@Reference
+	private FaroGraphQLClient _faroGraphQLClient;
+
+	@Reference
+	private FaroProjectLocalService _faroProjectLocalService;
+
 }
-// LIFERAY-REST-BUILDER-HASH:412236728
