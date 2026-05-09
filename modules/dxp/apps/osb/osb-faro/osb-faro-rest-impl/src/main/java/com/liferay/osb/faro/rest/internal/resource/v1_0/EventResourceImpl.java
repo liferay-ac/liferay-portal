@@ -5,9 +5,24 @@
 
 package com.liferay.osb.faro.rest.internal.resource.v1_0;
 
+import com.liferay.osb.faro.model.FaroProject;
+import com.liferay.osb.faro.rest.dto.v1_0.Event;
+import com.liferay.osb.faro.rest.internal.dto.v1_0.util.FaroDTOUtil;
+import com.liferay.osb.faro.rest.internal.dto.v1_0.util.FaroPaginationUtil;
+import com.liferay.osb.faro.rest.internal.graphql.client.FaroGraphQLClient;
+import com.liferay.osb.faro.rest.internal.graphql.dto.GetSiteChannelEventsPageResponse;
 import com.liferay.osb.faro.rest.resource.v1_0.EventResource;
+import com.liferay.osb.faro.service.FaroProjectLocalService;
+import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.vulcan.pagination.Page;
+import com.liferay.portal.vulcan.pagination.Pagination;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ServiceScope;
 
 /**
@@ -18,5 +33,71 @@ import org.osgi.service.component.annotations.ServiceScope;
 	scope = ServiceScope.PROTOTYPE, service = EventResource.class
 )
 public class EventResourceImpl extends BaseEventResourceImpl {
+
+	@Override
+	public Page<Event> getSiteChannelEventsPage(
+			Long siteId, String channelId, Boolean includeAnonymousUsers,
+			String search, Integer rangeKey, String rangeStart, String rangeEnd,
+			Pagination pagination)
+		throws Exception {
+
+		FaroProject faroProject =
+			_faroProjectLocalService.getFaroProjectByGroupId(siteId);
+
+		GetSiteChannelEventsPageResponse response = _faroGraphQLClient.execute(
+			faroProject, "getSiteChannelEventsPage",
+			HashMapBuilder.<String, Object>put(
+				"channelId", channelId
+			).put(
+				"includeAnonymousUsers", includeAnonymousUsers
+			).put(
+				"keywords", search
+			).put(
+				"page", Math.max(0, FaroPaginationUtil.getCur(pagination) - 1)
+			).put(
+				"rangeEnd", rangeEnd
+			).put(
+				"rangeKey", rangeKey
+			).put(
+				"rangeStart", rangeStart
+			).put(
+				"size", FaroPaginationUtil.getDelta(pagination)
+			).build(),
+			GetSiteChannelEventsPageResponse.class);
+
+		GetSiteChannelEventsPageResponse.EventBag eventBag =
+			response.getEvents();
+
+		if (eventBag == null) {
+			return Page.of(Collections.emptyList(), pagination, 0);
+		}
+
+		List<GetSiteChannelEventsPageResponse.Event> events =
+			eventBag.getEvents();
+
+		if (events == null) {
+			events = Collections.emptyList();
+		}
+
+		List<Event> mapped = new ArrayList<>(events.size());
+
+		for (GetSiteChannelEventsPageResponse.Event event : events) {
+			mapped.add(FaroDTOUtil.toEvent(event));
+		}
+
+		Integer total = eventBag.getTotal();
+
+		if (total == null) {
+			total = 0;
+		}
+
+		return Page.of(mapped, pagination, total);
+	}
+
+	@Reference
+	private FaroGraphQLClient _faroGraphQLClient;
+
+	@Reference
+	private FaroProjectLocalService _faroProjectLocalService;
+
 }
-// LIFERAY-REST-BUILDER-HASH:-136677358

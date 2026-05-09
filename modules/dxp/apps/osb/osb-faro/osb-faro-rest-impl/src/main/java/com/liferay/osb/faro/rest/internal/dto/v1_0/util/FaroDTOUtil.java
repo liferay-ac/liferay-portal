@@ -6,7 +6,14 @@
 package com.liferay.osb.faro.rest.internal.dto.v1_0.util;
 
 import com.liferay.osb.faro.rest.dto.v1_0.AssetSummaryMetric;
+import com.liferay.osb.faro.rest.dto.v1_0.Event;
 import com.liferay.osb.faro.rest.internal.graphql.dto.GetSiteAssetSummariesPageResponse;
+import com.liferay.osb.faro.rest.internal.graphql.dto.GetSiteChannelEventsPageResponse;
+import com.liferay.portal.kernel.util.ListUtil;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Leslie Wong
@@ -43,6 +50,52 @@ public class FaroDTOUtil {
 			() -> _trendPercentage(engineMetric.getViewsMetric()));
 
 		return assetSummaryMetric;
+	}
+
+	public static Event toEvent(
+		GetSiteChannelEventsPageResponse.Event engineEvent) {
+
+		if (engineEvent == null) {
+			return null;
+		}
+
+		Event event = new Event();
+
+		event.setApplicationId(engineEvent::getApplicationId);
+		event.setAssetTitle(engineEvent::getAssetTitle);
+		event.setAttributes(
+			() -> _propertiesToMap(engineEvent.getProperties()));
+		event.setCanonicalUrl(engineEvent::getCanonicalUrl);
+		event.setCreateDate(engineEvent::getCreateDate);
+		event.setEmailAddressHashed(engineEvent::getEmailAddressHashed);
+		event.setName(engineEvent::getName);
+		event.setPageDescription(engineEvent::getPageDescription);
+		event.setPageKeywords(engineEvent::getPageKeywords);
+		event.setPageTitle(engineEvent::getPageTitle);
+		event.setReferrer(engineEvent::getReferrer);
+		event.setUrl(engineEvent::getUrl);
+
+		return event;
+	}
+
+	private static Map<String, String> _propertiesToMap(
+		List<GetSiteChannelEventsPageResponse.Property> properties) {
+
+		if (ListUtil.isEmpty(properties)) {
+			return null;
+		}
+
+		Map<String, String> attributes = new LinkedHashMap<>(properties.size());
+
+		for (GetSiteChannelEventsPageResponse.Property property : properties) {
+			String name = property.getName();
+
+			if (name != null) {
+				attributes.put(name, property.getValue());
+			}
+		}
+
+		return attributes;
 	}
 
 	private static Double _trendPercentage(
