@@ -4,8 +4,8 @@ components:
             description:
                 "An aggregated set of analytics metrics for a single tracked asset (page, blog, document, form, journal,
                 object entry, etc.) over the selected date range. Counts and trends are flattened from the underlying
-                metric tree for LLM-friendly consumption — `*TrendPercentage` fields express change vs. the
-                previous comparable period."
+                metric tree for LLM-friendly consumption — `*TrendPercentage` fields express change vs. the previous
+                comparable period."
             properties:
                 assetId:
                     description:
@@ -73,9 +73,9 @@ components:
             type: object
         Event:
             description:
-                "A single tracked analytics event captured — page views, custom events, form submissions, etc.
-                Each event carries free-form `attributes` (a name-value map of contextual properties)
-                plus any matching page metadata."
+                "A single tracked analytics event captured — page views, custom events, form submissions, etc. Each
+                event carries free-form `attributes` (a name-value map of contextual properties) plus any matching page
+                metadata."
             properties:
                 applicationId:
                     description:
@@ -144,6 +144,101 @@ components:
                     readOnly: true
                     type: string
             type: object
+        PageMetric:
+            description:
+                "Analytics metrics for a single tracked page over the selected date range. Aggregates view, visitor,
+                bounce, and access-path metrics flattened from the metric tree. Use `getSitePagesPage` to list these for
+                a site."
+            properties:
+                assetId:
+                    description:
+                        "Identifier of the page. The canonical URL of the page."
+                    readOnly: true
+                    type: string
+                assetTitle:
+                    description:
+                        "Display title of the page."
+                    readOnly: true
+                    type: string
+                assetType:
+                    description:
+                        "Always 'PAGE' for results from this endpoint."
+                    readOnly: true
+                    type: string
+                avgTimeOnPage:
+                    description:
+                        "Average time-on-page in seconds across all sessions in the date range."
+                    format: double
+                    readOnly: true
+                    type: number
+                bounceRate:
+                    description:
+                        "Fraction (0–1) of sessions that landed on this page and exited without further interaction."
+                    format: double
+                    readOnly: true
+                    type: number
+                dataSourceId:
+                    description:
+                        "Identifier of the data source providing this page's analytics events."
+                    readOnly: true
+                    type: string
+                directAccess:
+                    description:
+                        "Visit count where this page was the entry point with no referrer (direct URL)."
+                    format: double
+                    readOnly: true
+                    type: number
+                entrances:
+                    description:
+                        "Total entrance count: sessions that started on this page (regardless of access type)."
+                    format: double
+                    readOnly: true
+                    type: number
+                exitRate:
+                    description:
+                        "Fraction (0–1) of sessions on which this page was the last page viewed before exit."
+                    format: double
+                    readOnly: true
+                    type: number
+                indirectAccess:
+                    description:
+                        "Visit count where this page was reached via a referrer (search engine, link, etc.)."
+                    format: double
+                    readOnly: true
+                    type: number
+                urls:
+                    description:
+                        "All distinct URLs that resolve to this page (canonical plus alternates), within the selected
+                        date range."
+                    items:
+                        type: string
+                    readOnly: true
+                    type: array
+                views:
+                    description:
+                        "Total page-view count over the selected date range."
+                    format: double
+                    readOnly: true
+                    type: number
+                viewsTrendPercentage:
+                    description:
+                        "Percentage change in views vs. the previous comparable period."
+                    format: double
+                    readOnly: true
+                    type: number
+                visitors:
+                    description:
+                        "Distinct visitor count (deduplicated by individual or session) over the date range."
+                    format: double
+                    readOnly: true
+                    type: number
+                visitorsTrendPercentage:
+                    description:
+                        "Percentage change in distinct visitors vs. the previous comparable period."
+                    format: double
+                    readOnly: true
+                    type: number
+            type: object
 info:
     license:
         name: Apache 2.0
@@ -159,7 +254,8 @@ paths:
                 "List analytics asset summaries (page, blog, document, form, journal, object-entry) ranked by the
                 requested sort metric, returning download/impression/read/view counts plus their period-over-period
                 trend percentages, optionally narrowed to a single channel (also know as property) or to a date range.
-                Use this to answer 'what content is performing best'."
+                Use this to answer 'what content is performing best' and to pick assets for deeper drill-down via
+                `getSitePagesPage`."
             operationId: getSiteAssetSummariesPage
             parameters:
                 -   in: path
@@ -196,9 +292,10 @@ paths:
                         type: string
                 -   in: query
                     description:
-                        "Date-range preset code (0 = LAST_24_HOURS, 1 = YESTERDAY, 7 = LAST_7_DAYS, 28 = LAST_28_DAYS, 30 =
-                        LAST_30_DAYS, 90 = LAST_90_DAYS, 180 = LAST_180_DAYS, 365 = LAST_YEAR). Otherwise, provide the
-                        rangeStart/rangeEnd. Mutually exclusive with rangeStart/rangeEnd; if provided, those are ignored."
+                        "Date-range preset code (0 = LAST_24_HOURS, 1 = YESTERDAY, 7 = LAST_7_DAYS, 28 = LAST_28_DAYS,
+                        30 = LAST_30_DAYS, 90 = LAST_90_DAYS, 180 = LAST_180_DAYS, 365 = LAST_YEAR). Otherwise, provide
+                        the rangeStart/rangeEnd. Mutually exclusive with rangeStart/rangeEnd; if provided, those are
+                        ignored."
                     name: rangeKey
                     schema:
                         format: int32
@@ -242,9 +339,9 @@ paths:
         get:
             description:
                 "List tracked analytics events (page views, custom events, form submissions, etc.) for a specific
-                channel (also known as property), optionally narrowed to a single Individual or to a date range.
-                Use this to inspect raw activity for a channel; for aggregated metrics across events, prefer
-                `getSiteAssetSummariesPage`."
+                channel (also known as property), optionally narrowed to a date range. Use this to inspect raw activity
+                for a channel; for aggregated metrics across events, prefer `getSiteAssetSummariesPage` or
+                `getSitePagesPage`."
             operationId: getSiteChannelEventsPage
             parameters:
                 -   in: path
@@ -288,9 +385,10 @@ paths:
                         type: string
                 -   in: query
                     description:
-                        "Date-range preset code (0 = LAST_24_HOURS, 1 = YESTERDAY, 7 = LAST_7_DAYS, 28 = LAST_28_DAYS, 30 =
-                        LAST_30_DAYS, 90 = LAST_90_DAYS, 180 = LAST_180_DAYS, 365 = LAST_YEAR). Otherwise, provide the
-                        rangeStart/rangeEnd. Mutually exclusive with rangeStart/rangeEnd; if provided, those are ignored."
+                        "Date-range preset code (0 = LAST_24_HOURS, 1 = YESTERDAY, 7 = LAST_7_DAYS, 28 = LAST_28_DAYS,
+                        30 = LAST_30_DAYS, 90 = LAST_90_DAYS, 180 = LAST_180_DAYS, 365 = LAST_YEAR). Otherwise, provide
+                        the rangeStart/rangeEnd. Mutually exclusive with rangeStart/rangeEnd; if provided, those are
+                        ignored."
                     name: rangeKey
                     schema:
                         format: int32
@@ -322,3 +420,95 @@ paths:
                                     $ref: "#/components/schemas/Event"
                                 type: array
             tags: ["Event"]
+    "/sites/{siteId}/pages":
+        get:
+            description:
+                "List analytics metrics for tracked pages on the site, ranked by views or another metric, optionally
+                narrowed to a single channel (also known as property) or data source. Use this for 'top pages' style
+                queries. Returns flattened view, visitor, bounce, exit, and access-path metrics for each page; for
+                cross-asset comparisons that include non-pages, use `getSiteAssetSummariesPage`."
+            operationId: getSitePagesPage
+            parameters:
+                -   in: path
+                    description:
+                        "Identifier of the Liferay site that owns the Analytics Cloud workspace."
+                    name: siteId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    description:
+                        "Optional channel ID to scope results to a single channel."
+                    name: channelId
+                    schema:
+                        type: string
+                -   in: query
+                    description:
+                        "Optional data source ID to scope results to a single data source."
+                    name: dataSourceId
+                    schema:
+                        type: string
+                -   in: query
+                    description:
+                        "1-based page number."
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    description:
+                        "Page size."
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    description:
+                        "Custom range end as ISO datetime. Pair with rangeStart."
+                    name: rangeEnd
+                    schema:
+                        type: string
+                -   in: query
+                    description:
+                        "Date-range preset code (0 = LAST_24_HOURS, 1 = YESTERDAY, 7 = LAST_7_DAYS, 28 = LAST_28_DAYS,
+                        30 = LAST_30_DAYS, 90 = LAST_90_DAYS, 180 = LAST_180_DAYS, 365 = LAST_YEAR). Otherwise, provide
+                        the rangeStart/rangeEnd. Mutually exclusive with rangeStart/rangeEnd; if provided, those are
+                        ignored."
+                    name: rangeKey
+                    schema:
+                        format: int32
+                        type: integer
+                -   in: query
+                    description:
+                        "Custom range start as ISO datetime (e.g. 2026-01-01T00:00:00Z). Use with rangeEnd as a rangeKey
+                        alternative."
+                    name: rangeStart
+                    schema:
+                        type: string
+                -   in: query
+                    description:
+                        "Free-text keyword search across page titles and URLs."
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    description:
+                        "Sort expression `column:asc|desc`. Defaults to `views:desc`. Common columns: views, visitors,
+                        bounceRate, avgTimeOnPage."
+                    example: views:desc
+                    name: sort
+                    schema:
+                        type: string
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                items:
+                                    $ref: "#/components/schemas/PageMetric"
+                                type: array
+                        application/xml:
+                            schema:
+                                items:
+                                    $ref: "#/components/schemas/PageMetric"
+                                type: array
+            tags: ["PageMetric"]
