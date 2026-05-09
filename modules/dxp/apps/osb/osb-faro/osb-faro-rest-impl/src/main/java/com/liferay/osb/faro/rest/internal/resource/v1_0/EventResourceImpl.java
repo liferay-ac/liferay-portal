@@ -7,19 +7,18 @@ package com.liferay.osb.faro.rest.internal.resource.v1_0;
 
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.rest.dto.v1_0.Event;
-import com.liferay.osb.faro.rest.internal.dto.v1_0.util.FaroDTOUtil;
+import com.liferay.osb.faro.rest.internal.dto.v1_0.converter.FaroDTOConverterContext;
 import com.liferay.osb.faro.rest.internal.dto.v1_0.util.FaroPaginationUtil;
 import com.liferay.osb.faro.rest.internal.graphql.client.FaroGraphQLClient;
 import com.liferay.osb.faro.rest.internal.graphql.dto.GetSiteChannelEventsPageResponse;
 import com.liferay.osb.faro.rest.resource.v1_0.EventResource;
 import com.liferay.osb.faro.service.FaroProjectLocalService;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -72,27 +71,28 @@ public class EventResourceImpl extends BaseEventResourceImpl {
 			return Page.of(Collections.emptyList(), pagination, 0);
 		}
 
-		List<GetSiteChannelEventsPageResponse.Event> events =
-			eventBag.getEvents();
-
-		if (events == null) {
-			events = Collections.emptyList();
-		}
-
-		List<Event> mapped = new ArrayList<>(events.size());
-
-		for (GetSiteChannelEventsPageResponse.Event event : events) {
-			mapped.add(FaroDTOUtil.toEvent(event));
-		}
-
 		Integer total = eventBag.getTotal();
 
 		if (total == null) {
 			total = 0;
 		}
 
-		return Page.of(mapped, pagination, total);
+		return Page.of(
+			transform(
+				eventBag.getEvents(),
+				engineEvent -> _eventDTOConverter.toDTO(
+					new FaroDTOConverterContext(
+						contextAcceptLanguage.isAcceptAllLanguages(), null,
+						contextAcceptLanguage.getPreferredLocale()),
+					engineEvent)),
+			pagination, total);
 	}
+
+	@Reference(
+		target = "(component.name=com.liferay.osb.faro.rest.internal.dto.v1_0.converter.EventDTOConverter)"
+	)
+	private DTOConverter<GetSiteChannelEventsPageResponse.Event, Event>
+		_eventDTOConverter;
 
 	@Reference
 	private FaroGraphQLClient _faroGraphQLClient;

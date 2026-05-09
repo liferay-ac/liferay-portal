@@ -7,7 +7,7 @@ package com.liferay.osb.faro.rest.internal.resource.v1_0;
 
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.rest.dto.v1_0.AssetSummaryMetric;
-import com.liferay.osb.faro.rest.internal.dto.v1_0.util.FaroDTOUtil;
+import com.liferay.osb.faro.rest.internal.dto.v1_0.converter.FaroDTOConverterContext;
 import com.liferay.osb.faro.rest.internal.dto.v1_0.util.FaroPaginationUtil;
 import com.liferay.osb.faro.rest.internal.graphql.client.FaroGraphQLClient;
 import com.liferay.osb.faro.rest.internal.graphql.dto.GetSiteAssetSummariesPageResponse;
@@ -15,12 +15,11 @@ import com.liferay.osb.faro.rest.resource.v1_0.AssetSummaryMetricResource;
 import com.liferay.osb.faro.service.FaroProjectLocalService;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -77,30 +76,30 @@ public class AssetSummaryMetricResourceImpl
 			return Page.of(Collections.emptyList(), pagination, 0);
 		}
 
-		List<GetSiteAssetSummariesPageResponse.AssetSummaryMetric>
-			assetSummaryMetrics = bag.getAssetSummaryMetrics();
-
-		if (assetSummaryMetrics == null) {
-			assetSummaryMetrics = Collections.emptyList();
-		}
-
-		List<AssetSummaryMetric> mapped = new ArrayList<>(
-			assetSummaryMetrics.size());
-
-		for (GetSiteAssetSummariesPageResponse.AssetSummaryMetric
-				assetSummaryMetric : assetSummaryMetrics) {
-
-			mapped.add(FaroDTOUtil.toAssetSummaryMetric(assetSummaryMetric));
-		}
-
 		Integer total = bag.getTotal();
 
 		if (total == null) {
 			total = 0;
 		}
 
-		return Page.of(mapped, pagination, total);
+		return Page.of(
+			transform(
+				bag.getAssetSummaryMetrics(),
+				engineMetric -> _assetSummaryMetricDTOConverter.toDTO(
+					new FaroDTOConverterContext(
+						contextAcceptLanguage.isAcceptAllLanguages(),
+						engineMetric.getAssetId(),
+						contextAcceptLanguage.getPreferredLocale()),
+					engineMetric)),
+			pagination, total);
 	}
+
+	@Reference(
+		target = "(component.name=com.liferay.osb.faro.rest.internal.dto.v1_0.converter.AssetSummaryMetricDTOConverter)"
+	)
+	private DTOConverter
+		<GetSiteAssetSummariesPageResponse.AssetSummaryMetric,
+		 AssetSummaryMetric> _assetSummaryMetricDTOConverter;
 
 	@Reference
 	private FaroGraphQLClient _faroGraphQLClient;
