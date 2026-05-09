@@ -5,19 +5,15 @@
 
 package com.liferay.osb.faro.rest.internal.dto.v1_0.util;
 
-import com.liferay.osb.faro.engine.client.model.Results;
 import com.liferay.osb.faro.engine.client.util.OrderByField;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
-import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * @author Leslie Wong
@@ -79,24 +75,6 @@ public class FaroPaginationUtil {
 		}
 
 		return orderByFields;
-	}
-
-	public static <S, T> Page<T> toPage(
-		Results<S> results, Pagination pagination, Function<S, T> mapper) {
-
-		List<S> items = results.getItems();
-
-		if (items == null) {
-			items = Collections.emptyList();
-		}
-
-		List<T> mapped = new ArrayList<>(items.size());
-
-		for (S item : items) {
-			mapped.add(mapper.apply(item));
-		}
-
-		return Page.of(mapped, pagination, results.getTotal());
 	}
 
 	private static final int _DEFAULT_CUR = 1;
