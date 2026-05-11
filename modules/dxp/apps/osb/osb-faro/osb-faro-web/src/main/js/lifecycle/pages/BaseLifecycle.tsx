@@ -34,6 +34,8 @@ const LifecycleOverview = () => {
 };
 
 const LifecycleStagesSection = () => {
+	const {filters} = useLifecycle();
+
 	const {groupId} = useParams();
 
 	const {
@@ -45,7 +47,9 @@ const LifecycleStagesSection = () => {
 			[key: string]: any;
 		}) => Promise<any>,
 		variables: {
+			country: filters.countryFilter,
 			groupId,
+			industry: filters.industryFilter,
 			lifecycleId: API.lifecycle.DEFAULT_LIFECYCLE_ID
 		}
 	});
