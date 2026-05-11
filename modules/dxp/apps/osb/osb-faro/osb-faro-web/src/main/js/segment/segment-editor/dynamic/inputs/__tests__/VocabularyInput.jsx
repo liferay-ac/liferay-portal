@@ -77,7 +77,7 @@ describe('VocabularyInput', () => {
 			expect(getIndexFromPropertyName(value, 'activityKey')).toBe(-1);
 		});
 
-		it('should set activityKey with eventId for a specific asset type and event', () => {
+		it('should set applicationId and eventId for a specific asset type and event', () => {
 			const value = buildValue(
 				'view',
 				'web-content',
@@ -88,15 +88,25 @@ describe('VocabularyInput', () => {
 				VOC_NAME,
 				[]
 			);
-			const idx = getIndexFromPropertyName(value, 'activityKey');
+			const appIdx = getIndexFromPropertyName(value, 'applicationId');
+			const eventIdx = getIndexFromPropertyName(value, 'eventId');
 
-			expect(idx).toBeGreaterThanOrEqual(0);
-			expect(value.getIn(['criterionGroup', 'items', idx, 'value'])).toBe(
-				'WebContent#webContentViewed'
-			);
+			expect(appIdx).toBeGreaterThanOrEqual(0);
+			expect(
+				value.getIn(['criterionGroup', 'items', appIdx, 'value']).toJS()
+			).toEqual(['WebContent']);
+
+			expect(eventIdx).toBeGreaterThanOrEqual(0);
+			expect(
+				value
+					.getIn(['criterionGroup', 'items', eventIdx, 'value'])
+					.toJS()
+			).toEqual(['webContentViewed']);
+
+			expect(getIndexFromPropertyName(value, 'activityKey')).toBe(-1);
 		});
 
-		it('should set activityKey without eventId when event type is all', () => {
+		it('should set multiple eventIds when event type is all for a specific asset type', () => {
 			const value = buildValue(
 				'all',
 				'web-content',
@@ -107,12 +117,27 @@ describe('VocabularyInput', () => {
 				VOC_NAME,
 				[]
 			);
-			const idx = getIndexFromPropertyName(value, 'activityKey');
+			const appIdx = getIndexFromPropertyName(value, 'applicationId');
+			const eventIdx = getIndexFromPropertyName(value, 'eventId');
 
-			expect(idx).toBeGreaterThanOrEqual(0);
-			expect(value.getIn(['criterionGroup', 'items', idx, 'value'])).toBe(
-				'WebContent'
+			expect(appIdx).toBeGreaterThanOrEqual(0);
+			expect(
+				value.getIn(['criterionGroup', 'items', appIdx, 'value']).toJS()
+			).toEqual(['WebContent']);
+
+			expect(eventIdx).toBeGreaterThanOrEqual(0);
+			expect(
+				value
+					.getIn(['criterionGroup', 'items', eventIdx, 'value'])
+					.toJS()
+			).toEqual(
+				expect.arrayContaining([
+					'webContentViewed',
+					'webContentImpressionMade'
+				])
 			);
+
+			expect(getIndexFromPropertyName(value, 'activityKey')).toBe(-1);
 		});
 
 		it('should include a categories item when categories are provided', () => {
@@ -179,7 +204,7 @@ describe('VocabularyInput', () => {
 			expect(getAssetTypeFromValue(undefined)).toBe('any');
 		});
 
-		it('should return any when value has an applicationId item', () => {
+		it('should return any when value has multiple applicationIds', () => {
 			const value = buildValue(
 				'all',
 				'any',
@@ -194,7 +219,7 @@ describe('VocabularyInput', () => {
 			expect(getAssetTypeFromValue(value)).toBe('any');
 		});
 
-		it('should return the correct asset type from activityKey with eventId', () => {
+		it('should return the correct asset type from applicationId', () => {
 			const value = buildValue(
 				'view',
 				'web-content',
@@ -209,7 +234,7 @@ describe('VocabularyInput', () => {
 			expect(getAssetTypeFromValue(value)).toBe('web-content');
 		});
 
-		it('should return the correct asset type from activityKey without eventId', () => {
+		it('should return the correct asset type when event type is all', () => {
 			const value = buildValue(
 				'all',
 				'blogs',
@@ -228,11 +253,11 @@ describe('VocabularyInput', () => {
 			const value = makeValue([
 				...BASE_ITEMS,
 				{
-					operatorName: 'eq',
-					propertyName: 'activityKey',
+					operatorName: 'in',
+					propertyName: 'applicationId',
 					touched: false,
 					valid: true,
-					value: 'Unknown#someEvent'
+					value: ['Unknown']
 				},
 				DAY_CRITERION
 			]);
@@ -246,7 +271,7 @@ describe('VocabularyInput', () => {
 			expect(getEventTypeFromValue(undefined)).toBe('all');
 		});
 
-		it('should return all when value has no activityKey item', () => {
+		it('should return all when value has no specific eventId item or has all events', () => {
 			const value = buildValue(
 				'all',
 				'any',
@@ -261,7 +286,7 @@ describe('VocabularyInput', () => {
 			expect(getEventTypeFromValue(value)).toBe('all');
 		});
 
-		it('should return the correct event type from activityKey with eventId', () => {
+		it('should return the correct event type from eventId', () => {
 			const value = buildValue(
 				'view',
 				'web-content',
@@ -291,7 +316,7 @@ describe('VocabularyInput', () => {
 			expect(getEventTypeFromValue(value)).toBe('download');
 		});
 
-		it('should return all when activityKey has no eventId part', () => {
+		it('should return all when eventId contains multiple events', () => {
 			const value = buildValue(
 				'all',
 				'web-content',
@@ -332,11 +357,11 @@ describe('VocabularyInput', () => {
 			const value = makeValue([
 				...BASE_ITEMS,
 				{
-					operatorName: 'eq',
-					propertyName: 'activityKey',
+					operatorName: 'in',
+					propertyName: 'applicationId',
 					touched: false,
 					valid: true,
-					value: 'WebContent'
+					value: ['WebContent']
 				},
 				{
 					conjunctionName: 'or',
@@ -397,11 +422,11 @@ describe('VocabularyInput', () => {
 			const value = makeValue([
 				...BASE_ITEMS,
 				{
-					operatorName: 'eq',
-					propertyName: 'activityKey',
+					operatorName: 'in',
+					propertyName: 'applicationId',
 					touched: false,
 					valid: true,
-					value: 'WebContent'
+					value: ['WebContent']
 				},
 				{
 					operatorName: 'eq',
