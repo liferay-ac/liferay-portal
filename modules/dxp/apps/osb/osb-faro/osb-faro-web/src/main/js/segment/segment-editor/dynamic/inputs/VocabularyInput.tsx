@@ -87,17 +87,6 @@ export function buildValue(
 ): CustomValue {
 	const isAnyAsset = assetType === 'any';
 
-	const applicationId = !isAnyAsset
-		? ASSET_TYPE_APPLICATION_ID_MAP[assetType as string]
-		: undefined;
-
-	const eventId =
-		eventType !== 'all' && !isAnyAsset
-			? EVENT_TYPE_EVENT_ID_MAP[eventType as string]?.[
-					assetType as string
-			  ]
-			: undefined;
-
 	const criterionItems: (Criterion & {touched: boolean; valid: boolean})[] = [
 		{
 			operatorName: RelationalOperators.EQ as any,
@@ -115,39 +104,62 @@ export function buildValue(
 		} as Criterion & {touched: boolean; valid: boolean}
 	];
 
-	if (isAnyAsset) {
-		criterionItems.push({
-			operatorName: RelationalOperators.In as any,
-			propertyName: 'applicationId',
-			touched: false,
-			valid: true,
-			value: ALL_APPLICATION_IDS
-		} as Criterion & {touched: boolean; valid: boolean});
+	const applicationIds = isAnyAsset
+		? ALL_APPLICATION_IDS
+		: [ASSET_TYPE_APPLICATION_ID_MAP[assetType as string]];
 
-		criterionItems.push({
-			operatorName: RelationalOperators.In as any,
-			propertyName: 'eventId',
-			touched: false,
-			valid: true,
-			value: ALL_EVENT_IDS
-		} as Criterion & {touched: boolean; valid: boolean});
+	criterionItems.push({
+		operatorName: RelationalOperators.In as any,
+		propertyName: 'applicationId',
+		touched: false,
+		valid: true,
+		value: applicationIds
+	} as Criterion & {touched: boolean; valid: boolean});
+
+	let eventIds: string[] = [];
+
+	if (eventType === 'all') {
+		if (isAnyAsset) {
+			eventIds = ALL_EVENT_IDS;
+		} else {
+			const compatibleEvents =
+				ASSET_TYPE_COMPATIBLE_EVENTS_MAP[assetType as string] || [];
+
+			const ids: string[] = [];
+			compatibleEvents.forEach(type => {
+				if (type !== 'all') {
+					const eventIdForAsset =
+						EVENT_TYPE_EVENT_ID_MAP[type]?.[assetType as string];
+					if (eventIdForAsset) ids.push(eventIdForAsset);
+				}
+			});
+			eventIds = Array.from(new Set(ids));
+		}
 	} else {
-		const activityKeyValue = applicationId
-			? eventId
-				? `${applicationId}#${eventId}`
-				: applicationId
-			: undefined;
-
-		if (activityKeyValue) {
-			criterionItems.push({
-				operatorName: RelationalOperators.EQ as any,
-				propertyName: 'activityKey',
-				touched: false,
-				valid: true,
-				value: activityKeyValue
-			} as Criterion & {touched: boolean; valid: boolean});
+		if (isAnyAsset) {
+			const eventMapForType =
+				EVENT_TYPE_EVENT_ID_MAP[eventType as string] || {};
+			eventIds = Array.from(
+				new Set(
+					Object.keys(eventMapForType).map(k => eventMapForType[k])
+				)
+			);
+		} else {
+			const specificId =
+				EVENT_TYPE_EVENT_ID_MAP[eventType as string]?.[
+					assetType as string
+				];
+			eventIds = specificId ? [specificId] : [];
 		}
 	}
+
+	criterionItems.push({
+		operatorName: RelationalOperators.In as any,
+		propertyName: 'eventId',
+		touched: false,
+		valid: true,
+		value: eventIds
+	} as Criterion & {touched: boolean; valid: boolean});
 
 	if (categories.length > 0) {
 		criterionItems.push({
@@ -175,22 +187,22 @@ export function getAssetTypeFromValue(
 
 	const appIdIndex = getIndexFromPropertyName(value, 'applicationId');
 
-	if (appIdIndex >= 0) return 'any';
+	if (appIdIndex >= 0) {
+		const appIdValue = value.getIn([
+			'criterionGroup',
+			'items',
+			appIdIndex,
+			'value'
+		]) as any;
 
-	const activityKeyIndex = getIndexFromPropertyName(value, 'activityKey');
+		const appIds = appIdValue?.toJS?.() ?? appIdValue;
 
-	if (activityKeyIndex < 0) return 'any';
+		if (Array.isArray(appIds) && appIds.length === 1) {
+			return APPLICATION_ID_ASSET_TYPE_MAP[appIds[0]] ?? 'any';
+		}
+	}
 
-	const activityKey = value.getIn([
-		'criterionGroup',
-		'items',
-		activityKeyIndex,
-		'value'
-	]) as string;
-
-	const [applicationId] = activityKey.split('#');
-
-	return APPLICATION_ID_ASSET_TYPE_MAP[applicationId] ?? 'any';
+	return 'any';
 }
 
 export function getEventTypeFromValue(
@@ -198,25 +210,27 @@ export function getEventTypeFromValue(
 ): React.Key {
 	if (!value) return 'all';
 
-	const activityKeyIndex = getIndexFromPropertyName(value, 'activityKey');
+	const eventIdIndex = getIndexFromPropertyName(value, 'eventId');
 
-	if (activityKeyIndex < 0) return 'all';
+	if (eventIdIndex >= 0) {
+		const eventIdValue = value.getIn([
+			'criterionGroup',
+			'items',
+			eventIdIndex,
+			'value'
+		]) as any;
 
-	const activityKey = value.getIn([
-		'criterionGroup',
-		'items',
-		activityKeyIndex,
-		'value'
-	]) as string;
+		const eventIds = eventIdValue?.toJS?.() ?? eventIdValue;
 
-	const [, eventId] = activityKey.split('#');
+		if (Array.isArray(eventIds) && eventIds.length === 1) {
+			return EVENT_ID_EVENT_TYPE_MAP[eventIds[0]] ?? 'all';
+		}
+	}
 
-	if (!eventId) return 'all';
-
-	return EVENT_ID_EVENT_TYPE_MAP[eventId] ?? 'all';
+	return 'all';
 }
 
-function getConjunctionCriterionFromValue(
+export function getConjunctionCriterionFromValue(
 	value: CustomValue | undefined
 ): Criterion & {touched: boolean; valid: boolean} {
 	if (!value) return DEFAULT_CONJUNCTION_CRITERION;
