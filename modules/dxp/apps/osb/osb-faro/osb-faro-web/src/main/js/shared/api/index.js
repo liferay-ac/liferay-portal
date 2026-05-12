@@ -23,6 +23,7 @@ import * as projects from './projects';
 import * as session from './session';
 import * as user from './user';
 import * as vocabularies from './vocabularies';
+import * as tags from './tags';
 
 export {
 	accounts,
@@ -49,5 +50,6 @@ export {
 	projects,
 	session,
 	user,
-	vocabularies
+	vocabularies,
+	tags
 };

@@ -107,6 +107,7 @@ export enum PropertyTypes {
 	SessionGeolocation = 'session-geolocation',
 	SessionNumber = 'session-number',
 	SessionText = 'session-text',
+	Tag = 'tag',
 	Text = 'text',
 	Vocabulary = 'vocabulary'
 }

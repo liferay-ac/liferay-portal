@@ -60,6 +60,7 @@ import {Option, Picker} from '@clayui/core';
 import {Property} from 'shared/util/records';
 import {RootState} from 'shared/store';
 import {SegmentTypes} from 'shared/util/constants';
+import TagInput from '../inputs/TagInput';
 
 const acceptedDragTypes = [DragTypes.CriteriaRow, DragTypes.Property];
 
@@ -448,7 +449,8 @@ class CriteriaRow extends React.Component<
 			[PropertyTypes.SessionGeolocation]: GeolocationInput,
 			[PropertyTypes.SessionNumber]: SessionInput,
 			[PropertyTypes.SessionText]: SessionInput,
-			[PropertyTypes.Text]: StringInput
+			[PropertyTypes.Text]: StringInput,
+			[PropertyTypes.Tag]: TagInput
 		};
 
 		const InputComponent: React.ElementType =

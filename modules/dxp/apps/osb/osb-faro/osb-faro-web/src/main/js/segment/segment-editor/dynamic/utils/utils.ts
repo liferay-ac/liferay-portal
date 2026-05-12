@@ -51,6 +51,22 @@ export const createVocabularyProperty = ({
 		type: PropertyTypes.Vocabulary
 	});
 
+export function createTagProperty({
+	id,
+	name
+}: {
+	id: string;
+	name: string;
+}): Property {
+	return new Property({
+		entityName: Liferay.Language.get('tags'),
+		label: name,
+		name: id,
+		propertyKey: 'tag',
+		type: PropertyTypes.Tag
+	});
+}
+
 /**
  * Creates a new group object with items.
  */
