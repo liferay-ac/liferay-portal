@@ -64,7 +64,7 @@ const LifecycleStagesSection = () => {
 const LifecycleAccounts = () => {
 	const {filters} = useLifecycle();
 
-	const {channelId, groupId} = useParams();
+	const {channelId, groupId, lifecycleId} = useParams();
 
 	return (
 		<section>
@@ -74,6 +74,7 @@ const LifecycleAccounts = () => {
 			/>
 
 			<AccountsDataSet
+				apiURL={`/o/faro/contacts/${groupId!}/account-lifecycle/${lifecycleId!}/accounts`}
 				channelId={channelId!}
 				countryFilter={filters.countryFilter}
 				groupId={groupId!}
