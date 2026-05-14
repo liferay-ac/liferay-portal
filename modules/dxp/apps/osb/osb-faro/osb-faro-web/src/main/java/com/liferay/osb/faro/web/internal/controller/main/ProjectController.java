@@ -997,7 +997,14 @@ public class ProjectController extends BaseFaroController {
 			return createOSBAccountEntry(true);
 		}
 
-		return _provisioningClient.getOSBAccountEntry(corpProjectUuid);
+		try {
+			return _provisioningClient.getOSBAccountEntry(corpProjectUuid);
+		}
+		catch (Exception exception) {
+			_log.error("Cound not found OSBAccountEntry " + corpProjectUuid, exception);
+			
+			throw exception;
+		}
 	}
 
 	private FaroProject _create(
@@ -1015,6 +1022,8 @@ public class ProjectController extends BaseFaroController {
 
 		FaroSubscriptionDisplay faroSubscriptionDisplay =
 			new FaroSubscriptionDisplay(osbAccountEntry);
+		
+		_log.info("FaroSubscriptionDisplay " + faroSubscriptionDisplay);
 
 		User user = getUser();
 
@@ -1029,6 +1038,8 @@ public class ProjectController extends BaseFaroController {
 				serverLocation, JSONConstants.NULL_JSON_ARRAY, state,
 				JSONUtil.writeValueAsString(faroSubscriptionDisplay),
 				timeZoneId, null);
+			
+			_log.info("FaroProject " + faroProject);
 		}
 		catch (EmailAddressDomainException emailAddressDomainException) {
 			throw new FaroValidationException(
@@ -1057,8 +1068,13 @@ public class ProjectController extends BaseFaroController {
 		faroProject.setWeDeployKey(weDeployKey);
 
 		if (!Objects.equals(corpProjectUuid, FaroPropsValues.FARO_PROJECT_ID)) {
-			_provisioningClient.addProductConsumption(
-				corpProjectUuid, faroProject.getGroupId());
+			try {
+				_provisioningClient.addProductConsumption(
+						corpProjectUuid, faroProject.getGroupId());
+			}
+			catch (Exception exception) {
+				_log.error(exception);
+			}
 		}
 
 		return _faroProjectLocalService.updateFaroProject(faroProject);
