@@ -662,7 +662,7 @@ public class ContactsEngineClientImpl
 		Map<String, Object> uriVariables = getUriVariables(
 			faroProject, cur, delta, null);
 
-		uriVariables.put("id", accountId);
+		uriVariables.put("accountId", accountId);
 
 		if (Validator.isNotNull(sortString)) {
 			uriVariables.put(
@@ -673,7 +673,7 @@ public class ContactsEngineClientImpl
 		}
 
 		PagedModel<?, Individual> pagedModel = get(
-			faroProject, Rels.ACCOUNT_INDIVIDUALS,
+			faroProject, Rels.INDIVIDUALS,
 			new ParameterizedTypeReference
 				<EntityModelPagedModel<Individual>>() {
 			},
