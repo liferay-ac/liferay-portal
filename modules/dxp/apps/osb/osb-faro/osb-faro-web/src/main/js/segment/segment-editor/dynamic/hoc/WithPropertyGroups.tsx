@@ -138,13 +138,13 @@ const mapResultToProps = (
 				propertySubgroups: List(
 					[
 						new PropertySubgroup({
-							label: Liferay.Language.get('default-events'),
+							label: Liferay.Language.get('default'),
 
 							properties: webBehaviors
 						}),
 
 						new PropertySubgroup({
-							label: Liferay.Language.get('custom-events'),
+							label: Liferay.Language.get('custom'),
 							properties: List(
 								eventProperties?.data?.eventDefinitions?.eventDefinitions?.map(
 									convertEventToProperty

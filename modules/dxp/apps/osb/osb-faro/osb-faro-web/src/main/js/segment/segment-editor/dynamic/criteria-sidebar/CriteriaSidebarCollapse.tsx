@@ -1,8 +1,9 @@
 import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
+import ClayTabs from '@clayui/tabs';
 import CriteriaSidebarItem from './CriteriaSidebarItem';
 import EmptyState from '@clayui/empty-state';
-import React from 'react';
+import React, {useState} from 'react';
 import URLConstants from 'shared/util/url-constants';
 import {
 	ACTIVITY_KEY,
@@ -217,6 +218,7 @@ const CriteriaSidebarCollapse: React.FC<ICriteriaSidebarCollapseProps> = ({
 	propertyKey,
 	searchValue
 }) => {
+	const [activeTab, setActiveTab] = useState(0);
 	const {groupId} = useParams();
 	const currentUser = useCurrentUser();
 	const authorized = currentUser.isAdmin();
@@ -316,6 +318,73 @@ const CriteriaSidebarCollapse: React.FC<ICriteriaSidebarCollapseProps> = ({
 		);
 	}
 
+	const renderPropertiesList = (properties: List<Property>) => {
+		if (properties.isEmpty()) {
+			return (
+				<div className='empty-message'>
+					{Liferay.Language.get('no-results-were-found')}
+				</div>
+			);
+		}
+
+		return (
+			<ul className='properties-list'>
+				{properties.toArray().map((property, i) => {
+					const {label, name, propertyKey, type} = property;
+
+					return (
+						<CriteriaSidebarItem
+							className={`color--${propertyKey}`}
+							defaultValue={getDefaultValue(property)}
+							key={`${name}-${i}`}
+							label={label}
+							name={name}
+							property={property}
+							propertyKey={propertyKey}
+							type={type}
+						/>
+					);
+				})}
+			</ul>
+		);
+	};
+
+	if (propertyKey === 'web' && !searchValue) {
+		const subgroups = filteredProperties.toArray();
+
+		return (
+			<>
+				<ClayTabs active={activeTab} onActiveChange={setActiveTab}>
+					{subgroups.map(({label}, i) => (
+						<ClayTabs.Item
+							innerProps={{
+								'aria-controls': `tabpanel-events-${i}`
+							}}
+							key={i}
+						>
+							{label}
+						</ClayTabs.Item>
+					))}
+				</ClayTabs>
+
+				<ClayTabs.Content activeIndex={activeTab} fade>
+					{subgroups.map(({properties}, i) => (
+						<ClayTabs.TabPane
+							aria-labelledby={`tab-events-${i}`}
+							key={i}
+						>
+							<ul className='property-subgroups-list active'>
+								<li>
+									{renderPropertiesList(properties)}
+								</li>
+							</ul>
+						</ClayTabs.TabPane>
+					))}
+				</ClayTabs.Content>
+			</>
+		);
+	}
+
 	return (
 		<ul className='property-subgroups-list active'>
 			{filteredProperties.toArray().map(({label, properties}, i) => (
@@ -324,31 +393,7 @@ const CriteriaSidebarCollapse: React.FC<ICriteriaSidebarCollapseProps> = ({
 						<div className='property-subgroup-label'>{label}</div>
 					)}
 
-					{properties.isEmpty() ? (
-						<div className='empty-message'>
-							{Liferay.Language.get('no-results-were-found')}
-						</div>
-					) : (
-						<ul className='properties-list'>
-							{properties.toArray().map((property, i) => {
-								const {label, name, propertyKey, type} =
-									property;
-
-								return (
-									<CriteriaSidebarItem
-										className={`color--${propertyKey}`}
-										defaultValue={getDefaultValue(property)}
-										key={`${name}-${i}`}
-										label={label}
-										name={name}
-										property={property}
-										propertyKey={propertyKey}
-										type={type}
-									/>
-								);
-							})}
-						</ul>
-					)}
+					{renderPropertiesList(properties)}
 				</li>
 			))}
 		</ul>
