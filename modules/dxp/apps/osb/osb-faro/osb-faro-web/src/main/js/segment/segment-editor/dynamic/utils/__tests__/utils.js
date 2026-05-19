@@ -190,7 +190,7 @@ describe('utils', () => {
 	});
 
 	describe('findPropertyByCriterion', () => {
-		it('should return the blog viewed Property when provided with a blog viewed Criterion', () => {
+		it('should return the view asset Property when provided with a view asset Criterion', () => {
 			const criterion = data.generateCriterion({
 				operatorName: ActivitiesFilterByCount,
 				propertyName: ACTIVITY_KEY,
@@ -202,7 +202,7 @@ describe('utils', () => {
 							{
 								operatorName: EQ,
 								propertyName: ACTIVITY_KEY,
-								value: 'Blog#blogViewed#123123'
+								value: 'Asset#viewAsset#123123'
 							},
 							{
 								operatorName: GT,
@@ -219,8 +219,8 @@ describe('utils', () => {
 			const property = utils.findPropertyByCriterion(criterion);
 
 			expect(property).toBeInstanceOf(Property);
-			expect(property.entityType).toBe('Blog');
-			expect(property.name).toBe('blogViewed');
+			expect(property.entityType).toBe('Asset');
+			expect(property.name).toBe('viewAsset');
 			expect(property.propertyKey).toBe('web');
 			expect(property.type).toBe('behavior');
 		});
