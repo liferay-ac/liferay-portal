@@ -26,44 +26,39 @@ const createWebProperty = ({
 const WEB_BEHAVIORS = List(
 	[
 		{
-			entityType: AssetTypes.Document,
-			label: Liferay.Language.get('downloaded-document-&-media'),
-			name: AssetNames.DocumentDownloaded
+			entityType: AssetTypes.Asset,
+			label: Liferay.Language.get('click'),
+			name: AssetNames.Click
 		},
 		{
-			entityType: AssetTypes.Form,
-			label: Liferay.Language.get('submitted-form'),
-			name: AssetNames.FormSubmitted
+			entityType: AssetTypes.Asset,
+			label: Liferay.Language.get('comment'),
+			name: AssetNames.Comment
 		},
 		{
-			entityType: AssetTypes.Form,
-			label: Liferay.Language.get('viewed-form'),
-			name: AssetNames.FormViewed
+			entityType: AssetTypes.Asset,
+			label: Liferay.Language.get('download'),
+			name: AssetNames.Download
+		},
+		{
+			entityType: AssetTypes.Asset,
+			label: Liferay.Language.get('impression'),
+			name: AssetNames.Impression
+		},
+		{
+			entityType: AssetTypes.Asset,
+			label: Liferay.Language.get('submit'),
+			name: AssetNames.Submit
+		},
+		{
+			entityType: AssetTypes.Asset,
+			label: Liferay.Language.get('view-asset'),
+			name: AssetNames.ViewAsset
 		},
 		{
 			entityType: AssetTypes.WebPage,
-			label: Liferay.Language.get('viewed-page'),
-			name: AssetNames.PageViewed
-		},
-		{
-			entityType: AssetTypes.Blog,
-			label: Liferay.Language.get('commented-on-blog'),
-			name: AssetNames.CommentPosted
-		},
-		{
-			entityType: AssetTypes.Blog,
-			label: Liferay.Language.get('viewed-blog'),
-			name: AssetNames.BlogViewed
-		},
-		{
-			entityType: AssetTypes.Document,
-			label: Liferay.Language.get('viewed-document-&-media'),
-			name: AssetNames.DocumentPreviewed
-		},
-		{
-			entityType: AssetTypes.WebContent,
-			label: Liferay.Language.get('viewed-web-content'),
-			name: AssetNames.WebContentViewed
+			label: Liferay.Language.get('view-page'),
+			name: AssetNames.ViewPage
 		}
 	].map(createWebProperty)
 );

@@ -21,12 +21,19 @@ export enum Applications {
 
 export enum AssetNames {
 	BlogViewed = 'blogViewed',
+	Click = 'click',
+	Comment = 'comment',
 	CommentPosted = 'commentPosted',
 	DocumentDownloaded = 'documentDownloaded',
 	DocumentPreviewed = 'documentPreviewed',
+	Download = 'download',
 	FormSubmitted = 'formSubmitted',
 	FormViewed = 'formViewed',
+	Impression = 'impression',
 	PageViewed = 'pageViewed',
+	Submit = 'submit',
+	ViewAsset = 'viewAsset',
+	ViewPage = 'viewPage',
 	WebContentViewed = 'webContentViewed'
 }
 

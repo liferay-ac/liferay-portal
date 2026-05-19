@@ -9,7 +9,7 @@ import {Property} from 'shared/util/records';
 import {PropertyTypes} from '../utils/constants';
 
 const TYPE_ICON_MAP = {
-	[PropertyTypes.Behavior]: 'web-content',
+	[PropertyTypes.Behavior]: 'click',
 	[PropertyTypes.Boolean]: 'check',
 	[PropertyTypes.AccountDate]: 'date',
 	[PropertyTypes.AccountNumber]: 'integer',
@@ -17,7 +17,7 @@ const TYPE_ICON_MAP = {
 	[PropertyTypes.Date]: 'date',
 	[PropertyTypes.DateTime]: 'date',
 	[PropertyTypes.Duration]: 'time',
-	[PropertyTypes.Event]: 'ac_event_analysis',
+	[PropertyTypes.Event]: 'click',
 	[PropertyTypes.Number]: 'integer',
 	[PropertyTypes.OrganizationBoolean]: 'check',
 	[PropertyTypes.OrganizationDate]: 'date',
