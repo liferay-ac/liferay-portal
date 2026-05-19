@@ -1,7 +1,8 @@
 import * as API from 'shared/api';
 import Card from 'shared/components/Card';
-import React, {useMemo} from 'react';
+import React, {useMemo, useState} from 'react';
 import SearchableEntityTable from 'shared/components/SearchableEntityTable';
+import {DropdownRangeKey} from 'shared/components/dropdown-range-key/DropdownRangeKey';
 import {
 	ACCOUNT_NAME,
 	COUNTRY,
@@ -16,11 +17,12 @@ import {
 	ProfileTypes,
 	RelationalOperators
 } from 'segment/segment-editor/dynamic/utils/constants';
-import {FilterOptionType} from 'shared/types';
+import {FilterOptionType, RangeSelectors} from 'shared/types';
 import {IndividualsListCDPColumns} from 'shared/util/table-columns';
 import {useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
 import {useStatefulPagination} from 'shared/hooks/useStatefulPagination';
+import {RangeKeyTimeRanges} from 'shared/util/constants';
 
 const ORDER_BY_OPTIONS = [
 	{
@@ -85,6 +87,12 @@ const IndividualsList = () => {
 		groupId: string;
 	}>();
 
+	const [rangeSelectors, setRangeSelectors] = useState<RangeSelectors>({
+		rangeEnd: null,
+		rangeKey: RangeKeyTimeRanges.Last30Days,
+		rangeStart: null
+	});
+
 	const paginationParams = useStatefulPagination(undefined, {
 		initialOrderIOMap: createOrderIOMap(NAME)
 	});
@@ -128,8 +136,14 @@ const IndividualsList = () => {
 
 	return (
 		<Card>
-			<Card.Title className='card-header'>
+			<Card.Title className='card-header align-items-center d-flex justify-content-between'>
 				{Liferay.Language.get('individual-profiles')}
+
+				<DropdownRangeKey
+					legacy={false}
+					onRangeSelectorChange={setRangeSelectors}
+					rangeSelectors={rangeSelectors}
+				/>
 			</Card.Title>
 			<Card.Body className='no-padding'>
 				<div className='individuals-dashboard-known-individuals-root'>
