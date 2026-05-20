@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2025 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -15,46 +15,60 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 import org.osgi.service.component.annotations.Component;
 
 /**
- * @author Rachael Koestartyo
+ * @author Nilton Vieira
  */
-@Component(service = SalesforceController.class)
-@Path("/{groupId}/salesforce")
+@Component(service = DataSourceMetricsController.class)
+@Path("/{groupId}/data-source-metrics")
 @Produces(MediaType.APPLICATION_JSON)
-public class SalesforceController extends BaseFaroController {
+public class DataSourceMetricsController extends BaseFaroController {
 
 	@GET
-	@Path("/accounts_count")
+	@Path("/{dataSourceId}/accounts_count")
 	@RolesAllowed(RoleConstants.SITE_ADMINISTRATOR)
-	public Long getSalesforceAccountsCount(
+	public Long getAccountsCount(
 			@PathParam("groupId") long groupId,
-			@QueryParam("dataSourceId") String dataSourceId)
+			@PathParam("dataSourceId") String dataSourceId)
 		throws Exception {
 
 		FaroProject faroProject =
 			faroProjectLocalService.getFaroProjectByGroupId(groupId);
 
-		return contactsEngineClient.getSalesforceAccountsCount(
+		return contactsEngineClient.getDataSourceMetricsAccountsCount(
 			dataSourceId, faroProject);
 	}
 
 	@GET
-	@Path("/users_count")
+	@Path("/{dataSourceId}/events_count")
 	@RolesAllowed(RoleConstants.SITE_ADMINISTRATOR)
-	public Long getSalesforceUsersCount(
+	public Long getEventsCount(
 			@PathParam("groupId") long groupId,
-			@QueryParam("dataSourceId") String dataSourceId)
+			@PathParam("dataSourceId") String dataSourceId)
 		throws Exception {
 
 		FaroProject faroProject =
 			faroProjectLocalService.getFaroProjectByGroupId(groupId);
 
-		return contactsEngineClient.getSalesforceUsersCount(
+		return contactsEngineClient.getDataSourceMetricsEventsCount(
+			dataSourceId, faroProject);
+	}
+
+	@GET
+	@Path("/{dataSourceId}/users_count")
+	@RolesAllowed(RoleConstants.SITE_ADMINISTRATOR)
+	public Long getUsersCount(
+			@PathParam("groupId") long groupId,
+			@PathParam("dataSourceId") String dataSourceId)
+		throws Exception {
+
+		FaroProject faroProject =
+			faroProjectLocalService.getFaroProjectByGroupId(groupId);
+
+		return contactsEngineClient.getDataSourceMetricsUsersCount(
 			dataSourceId, faroProject);
 	}
 
