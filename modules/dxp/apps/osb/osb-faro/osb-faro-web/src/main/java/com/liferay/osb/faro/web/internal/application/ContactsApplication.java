@@ -21,14 +21,13 @@ import com.liferay.osb.faro.web.internal.controller.contacts.ContactsCardTemplat
 import com.liferay.osb.faro.web.internal.controller.contacts.ContactsLayoutController;
 import com.liferay.osb.faro.web.internal.controller.contacts.ContactsLayoutTemplateController;
 import com.liferay.osb.faro.web.internal.controller.contacts.DataSourceController;
-import com.liferay.osb.faro.web.internal.controller.contacts.DemandbaseController;
+import com.liferay.osb.faro.web.internal.controller.contacts.DataSourceMetricsController;
 import com.liferay.osb.faro.web.internal.controller.contacts.FieldController;
 import com.liferay.osb.faro.web.internal.controller.contacts.FieldMappingController;
 import com.liferay.osb.faro.web.internal.controller.contacts.IndividualController;
 import com.liferay.osb.faro.web.internal.controller.contacts.IndividualSegmentController;
 import com.liferay.osb.faro.web.internal.controller.contacts.InterestController;
 import com.liferay.osb.faro.web.internal.controller.contacts.PagesVisitedController;
-import com.liferay.osb.faro.web.internal.controller.contacts.SalesforceController;
 import com.liferay.osb.faro.web.internal.controller.contacts.SessionController;
 
 import jakarta.ws.rs.ApplicationPath;
@@ -66,14 +65,13 @@ public class ContactsApplication extends BaseApplication {
 		controllers.add(_contactsLayoutController);
 		controllers.add(_contactsLayoutTemplateController);
 		controllers.add(_dataSourceController);
-		controllers.add(_demandbaseController);
+		controllers.add(_dataSourceMetricsController);
 		controllers.add(_fieldController);
 		controllers.add(_fieldMappingController);
 		controllers.add(_individualController);
 		controllers.add(_individualSegmentController);
 		controllers.add(_interestController);
 		controllers.add(_pagesVisitedController);
-		controllers.add(_salesforceController);
 		controllers.add(_sessionController);
 
 		return controllers;
@@ -125,7 +123,7 @@ public class ContactsApplication extends BaseApplication {
 	private DataSourceController _dataSourceController;
 
 	@Reference
-	private DemandbaseController _demandbaseController;
+	private DataSourceMetricsController _dataSourceMetricsController;
 
 	@Reference
 	private FieldController _fieldController;
@@ -144,9 +142,6 @@ public class ContactsApplication extends BaseApplication {
 
 	@Reference
 	private PagesVisitedController _pagesVisitedController;
-
-	@Reference
-	private SalesforceController _salesforceController;
 
 	@Reference
 	private SessionController _sessionController;
