@@ -37,7 +37,8 @@ import com.liferay.osb.faro.util.DateUtil;
 import com.liferay.osb.faro.util.FaroPropsValues;
 import com.liferay.osb.faro.web.internal.annotations.Unauthenticated;
 import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
-import com.liferay.osb.faro.web.internal.controller.contacts.FieldMappingController;
+import com.liferay.osb.faro.web.internal.controller.contacts.DataSourceFaroController;
+import com.liferay.osb.faro.web.internal.controller.contacts.FieldMappingFaroController;
 import com.liferay.osb.faro.web.internal.exception.FaroException;
 import com.liferay.osb.faro.web.internal.exception.FaroValidationException;
 import com.liferay.osb.faro.web.internal.model.display.contacts.JoinableProjectDisplay;
@@ -116,10 +117,10 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 /**
  * @author Matthew Kong
  */
-@Component(service = ProjectController.class)
+@Component(service = ProjectFaroController.class)
 @Path("/project")
 @Produces(MediaType.APPLICATION_JSON)
-public class ProjectController extends BaseFaroController {
+public class ProjectFaroController extends BaseFaroController {
 
 	@Path("/{groupId}/activate")
 	@POST
@@ -723,7 +724,7 @@ public class ProjectController extends BaseFaroController {
 	public void populateBQProjects() throws Exception {
 		ExecutorService executorService =
 			_portalExecutorManager.getPortalExecutor(
-				ProjectController.class.getName());
+				ProjectFaroController.class.getName());
 
 		executorService.submit(
 			new CompanyInheritableThreadLocalCallable<>(
@@ -783,7 +784,7 @@ public class ProjectController extends BaseFaroController {
 	public void resetProjectUsageMetricDisplays() throws Exception {
 		ExecutorService executorService =
 			_portalExecutorManager.getPortalExecutor(
-				ProjectController.class.getName());
+				ProjectFaroController.class.getName());
 
 		executorService.submit(
 			new CompanyInheritableThreadLocalCallable<>(
@@ -1499,7 +1500,7 @@ public class ProjectController extends BaseFaroController {
 
 			cerebroEngineClient.updateTimeZone(faroProject);
 
-			_fieldMappingController.addDefaultFieldMappings(groupId);
+			_fieldMappingFaroController.addDefaultFieldMappings(groupId);
 
 			faroProject.setState(FaroProjectConstants.STATE_READY);
 
@@ -1675,7 +1676,7 @@ public class ProjectController extends BaseFaroController {
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
-		ProjectController.class);
+		ProjectFaroController.class);
 
 	private static final CopyOnWriteArraySet<Long> _initializingGroupIds =
 		new CopyOnWriteArraySet<>();
@@ -1686,6 +1687,9 @@ public class ProjectController extends BaseFaroController {
 	@Reference
 	private ContactsLayoutTemplateLocalService
 		_contactsLayoutTemplateLocalService;
+
+	@Reference
+	private DataSourceFaroController _dataSourceFaroController;
 
 	@Reference
 	private FaroNotificationLocalService _faroNotificationLocalService;
@@ -1704,7 +1708,7 @@ public class ProjectController extends BaseFaroController {
 	private FaroUserLocalService _faroUserLocalService;
 
 	@Reference
-	private FieldMappingController _fieldMappingController;
+	private FieldMappingFaroController _fieldMappingFaroController;
 
 	@Reference
 	private GroupLocalService _groupLocalService;

@@ -46,7 +46,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 /**
  * @author Inácio Nery
  */
-public class DataSourceControllerTest {
+public class DataSourceFaroControllerTest {
 
 	@ClassRule
 	@Rule
@@ -83,7 +83,7 @@ public class DataSourceControllerTest {
 		);
 
 		ReflectionTestUtils.setField(
-			_dataSourceController, "_contactsCSVHelper", _contactsCSVHelper);
+			_dataSourceFaroController, "_contactsCSVHelper", _contactsCSVHelper);
 
 		Mockito.when(
 			_contactsEngineClient.getFieldMappings(
@@ -165,7 +165,7 @@ public class DataSourceControllerTest {
 		);
 
 		ReflectionTestUtils.setField(
-			_dataSourceController, "contactsEngineClient",
+			_dataSourceFaroController, "contactsEngineClient",
 			_contactsEngineClient);
 
 		Mockito.when(
@@ -175,8 +175,36 @@ public class DataSourceControllerTest {
 		);
 
 		ReflectionTestUtils.setField(
-			_dataSourceController, "faroProjectLocalService",
+			_dataSourceFaroController, "faroProjectLocalService",
 			_faroProjectLocalService);
+	}
+
+	@Test
+	public void testGenerateDataSourceAccessToken() throws Exception {
+		JSONFactoryUtil jsonFactoryUtil = new JSONFactoryUtil();
+
+		jsonFactoryUtil.setJSONFactory(new JSONFactoryImpl());
+
+		ReflectionTestUtil.setFieldValue(
+			FaroPropsValues.class, "FARO_URL", "https://faro.test");
+
+		String dataSourceAccessToken =
+			_dataSourceFaroController.generateDataSourceAccessToken(12345L, 67890L);
+
+		Assert.assertNotNull(dataSourceAccessToken);
+
+		JSONObject jsonObject = JSONFactoryUtil.createJSONObject(
+			new String(
+				Base64.decode(dataSourceAccessToken), StandardCharsets.UTF_8));
+
+		Assert.assertEquals(
+			"https://faro.test/o/faro/contacts/12345/data_source/connect",
+			jsonObject.getString("url"));
+
+		String token = jsonObject.getString("token");
+
+		Assert.assertNotNull(token);
+		Assert.assertFalse(token.isEmpty());
 	}
 
 	@Test
@@ -219,7 +247,7 @@ public class DataSourceControllerTest {
 		);
 
 		List<DataSourceMappingDisplay> dataSourceMappingDisplays =
-			_dataSourceController.getDataSourceMappingDisplays(
+			_dataSourceFaroController.getDataSourceMappingDisplays(
 				32719, 32783, null);
 
 		Assert.assertEquals(
@@ -267,8 +295,8 @@ public class DataSourceControllerTest {
 		ContactsCSVHelper.class);
 	private final ContactsEngineClient _contactsEngineClient = Mockito.mock(
 		ContactsEngineClient.class);
-	private final DataSourceController _dataSourceController =
-		new DataSourceController();
+	private final DataSourceFaroController _dataSourceFaroController =
+		new DataSourceFaroController();
 	private final FaroProject _faroProject = Mockito.mock(FaroProject.class);
 	private final FaroProjectLocalService _faroProjectLocalService =
 		Mockito.mock(FaroProjectLocalService.class);
