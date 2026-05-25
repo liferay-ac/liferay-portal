@@ -12,20 +12,13 @@ import {
 import {Routes} from 'shared/util/router';
 import {toThousands} from 'shared/util/numbers';
 
-const lifecycleStageItems = Object.entries(lifecycleStagesLabelMap).map(
-	([stage]) => ({
-		label: lifecycleStagesLabelMap[stage as LifecycleStages].label,
-		value: stage
-	})
-);
-
 interface IAccountsDataSetProps {
 	apiURL: string;
 	channelId: string;
 	countryFilter?: string;
 	groupId: string;
 	industryFilter?: string;
-	lifecycleStageFilter?: LifecycleStages;
+	lifecycleStageFilter?: string;
 }
 
 const buildSelectionPreloadedData = (value?: string, label?: string) =>
@@ -92,17 +85,14 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 				}}
 				filters={[
 					{
+						apiURL: `/o/faro/contacts/${groupId}/account/fds_field_values?channelId=${channelId}&fieldMappingFieldName=lifecycleStatus&accountLifecycleId=1`,
 						id: 'lifecycleStatus',
-						items: lifecycleStageItems,
+						itemKey: 'id',
+						itemLabel: 'stageType',
 						label: Liferay.Language.get('status'),
 						name: 'status',
-						preloadedData: buildSelectionPreloadedData(
-							lifecycleStageFilter,
-							lifecycleStageFilter
-								? lifecycleStagesLabelMap[lifecycleStageFilter]
-										.label
-								: undefined
-						),
+						preloadedData:
+							buildSelectionPreloadedData(lifecycleStageFilter),
 						type: 'selection'
 					},
 					{

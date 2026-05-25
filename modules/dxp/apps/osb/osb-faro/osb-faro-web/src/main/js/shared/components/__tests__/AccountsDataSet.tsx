@@ -1,7 +1,6 @@
 import AccountsDataSet from '../AccountsDataSet';
 import React from 'react';
 import {cleanup, render, screen} from '@testing-library/react';
-import {LifecycleStages} from 'contacts/pages/account/utils/constants';
 
 jest.unmock('react-dom');
 
@@ -119,7 +118,7 @@ describe('AccountsDataSet', () => {
 				apiURL='fake-url'
 				channelId='123'
 				groupId='23'
-				lifecycleStageFilter={LifecycleStages.AT_RISK}
+				lifecycleStageFilter='9963'
 			/>
 		);
 
@@ -129,7 +128,7 @@ describe('AccountsDataSet', () => {
 
 		expect(lifecycleStatusFilter?.preloadedData).toEqual({
 			exclude: false,
-			selectedItems: [{label: 'At Risk', value: 'AT_RISK'}]
+			selectedItems: [{label: '9963', value: '9963'}]
 		});
 	});
 
