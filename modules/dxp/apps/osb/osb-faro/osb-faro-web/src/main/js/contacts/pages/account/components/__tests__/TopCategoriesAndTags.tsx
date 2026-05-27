@@ -184,7 +184,7 @@ describe('TopCategoriesAndTags', () => {
 			const {container} = render(<TopCategoriesAndTags />);
 
 			const tabPanel = container.querySelector(
-				'[aria-labelledby="tab-top-categories-and-tags-category"]'
+				'.tab-pane'
 			) as HTMLElement;
 
 			expect(
@@ -198,12 +198,10 @@ describe('TopCategoriesAndTags', () => {
 		it('should render the vocabulary name of every category returned', () => {
 			render(<TopCategoriesAndTags />);
 
-			expect(
-				screen.getAllByText('Department').length
-			).toBeGreaterThan(0);
-			expect(
-				screen.getAllByText('Document Type').length
-			).toBeGreaterThan(0);
+			expect(screen.getAllByText('Department').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('Document Type').length).toBeGreaterThan(
+				0
+			);
 			expect(
 				screen.getAllByText('Employment Type').length
 			).toBeGreaterThan(0);
@@ -357,14 +355,46 @@ describe('TopCategoriesAndTags', () => {
 	});
 
 	describe('empty state', () => {
-		it('should render the empty message when no items are returned', () => {
+		it('should render the categories empty message on the Category tab when no items are returned', () => {
 			mockUseRequestWith({data: {items: []}});
 
 			render(<TopCategoriesAndTags />);
 
 			expect(
-				screen.getAllByText('No data available').length
+				screen.getAllByText('No Categories Available').length
 			).toBeGreaterThan(0);
+			expect(
+				screen.getAllByText(
+					'Categories will appear here when available.'
+				).length
+			).toBeGreaterThan(0);
+		});
+
+		it('should render the tags empty message on the Tag tab when no items are returned', () => {
+			mockUseRequestWith({data: {items: []}});
+
+			render(<TopCategoriesAndTags />);
+
+			fireEvent.click(screen.getByRole('tab', {name: 'Tag'}));
+
+			expect(
+				screen.getAllByText('No Tags Available').length
+			).toBeGreaterThan(0);
+			expect(
+				screen.getAllByText('Tags will appear here when available.')
+					.length
+			).toBeGreaterThan(0);
+		});
+
+		it('should keep tabs visible in the empty state', () => {
+			mockUseRequestWith({data: {items: []}});
+
+			render(<TopCategoriesAndTags />);
+
+			expect(
+				screen.getByRole('tab', {name: 'Category'})
+			).toBeInTheDocument();
+			expect(screen.getByRole('tab', {name: 'Tag'})).toBeInTheDocument();
 		});
 
 		it('should not render rows when no items are returned', () => {
@@ -395,7 +425,7 @@ describe('TopCategoriesAndTags', () => {
 			const {container} = render(<TopCategoriesAndTags />);
 
 			const tabPanel = container.querySelector(
-				'[aria-labelledby="tab-top-categories-and-tags-category"]'
+				'.tab-pane'
 			) as HTMLElement;
 
 			expect(within(tabPanel).getAllByText('999').length).toBe(1);

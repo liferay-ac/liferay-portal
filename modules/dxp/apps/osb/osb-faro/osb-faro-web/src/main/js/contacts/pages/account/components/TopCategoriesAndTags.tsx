@@ -3,11 +3,12 @@ import Card from 'shared/components/Card';
 import classNames from 'classnames';
 import ClayButton from '@clayui/button';
 import ClayDropDown, {Align} from '@clayui/drop-down';
+import ClayEmptyState from '@clayui/empty-state';
 import ClayIcon from '@clayui/icon';
 import ClayTable from '@clayui/table';
 import ClayTabs from '@clayui/tabs';
-import Loading from 'shared/components/Loading';
 import React, {useState} from 'react';
+import StatesRenderer from 'shared/components/states-renderer/StatesRenderer';
 import {Text} from '@clayui/core';
 import {toThousands} from 'shared/util/numbers';
 import {useParams} from 'react-router-dom';
@@ -58,6 +59,7 @@ type TaxonomyItem = ITopCategory | ITopTag;
 
 interface ITabContentProps {
 	groupBy: GroupByMetric;
+	isCategory: boolean;
 	items: TaxonomyItem[];
 	loading: boolean;
 	selectedMetric: TaxonomyMetric;
@@ -66,6 +68,7 @@ interface ITabContentProps {
 
 const TabContent: React.FC<ITabContentProps> = ({
 	groupBy,
+	isCategory,
 	items,
 	loading,
 	selectedMetric,
@@ -79,64 +82,77 @@ const TabContent: React.FC<ITabContentProps> = ({
 
 	const groupByLabel = groupByLabels[groupBy];
 
+	const isEmpty = !loading && items.length === 0;
+
 	return (
-		<>
-			<ClayDropDown
-				alignmentPosition={Align.BottomRight}
-				closeOnClick
-				trigger={
-					<ClayButton
-						borderless
-						className='align-items-baseline d-inline-flex'
-						displayType='unstyled'
-						size='sm'
-					>
-						<div className='font-weight-semi-bold mr-3'>
-							<Text size={3}>
-								{Liferay.Language.get('group-by')}
-							</Text>
-						</div>
+		<StatesRenderer empty={isEmpty} loading={loading}>
+			<StatesRenderer.Loading />
+			<StatesRenderer.Empty>
+				<ClayEmptyState
+					className='py-3 text-center'
+					description={
+						isCategory
+							? Liferay.Language.get(
+									'categories-will-appear-here-when-available'
+							  )
+							: Liferay.Language.get(
+									'tags-will-appear-here-when-available'
+							  )
+					}
+					small
+					title={
+						isCategory
+							? Liferay.Language.get('no-categories-available')
+							: Liferay.Language.get('no-tags-available')
+					}
+				/>
+			</StatesRenderer.Empty>
+			<StatesRenderer.Success>
+				<ClayDropDown
+					alignmentPosition={Align.BottomRight}
+					closeOnClick
+					trigger={
+						<ClayButton
+							borderless
+							className='align-items-baseline d-inline-flex'
+							displayType='unstyled'
+							size='sm'
+						>
+							<div className='font-weight-semi-bold mr-3'>
+								<Text size={3}>
+									{Liferay.Language.get('group-by')}
+								</Text>
+							</div>
 
-						<div className='font-weight-semi-bold text-secondary'>
-							<Text size={3}>
-								{groupByLabel}
-								<ClayIcon
-									className='ml-1'
-									symbol='caret-bottom'
-								/>
-							</Text>
-						</div>
-					</ClayButton>
-				}
-			>
-				<ClayDropDown.ItemList>
-					{(Object.keys(groupByLabels) as GroupByMetric[]).map(
-						key => (
-							<ClayDropDown.Item
-								key={key}
-								onClick={() => setGroupBy(key)}
-								symbolRight={
-									groupBy === key ? 'check' : undefined
-								}
-							>
-								{groupByLabels[key]}
-							</ClayDropDown.Item>
-						)
-					)}
-				</ClayDropDown.ItemList>
-			</ClayDropDown>
+							<div className='font-weight-semi-bold text-secondary'>
+								<Text size={3}>
+									{groupByLabel}
+									<ClayIcon
+										className='ml-1'
+										symbol='caret-bottom'
+									/>
+								</Text>
+							</div>
+						</ClayButton>
+					}
+				>
+					<ClayDropDown.ItemList>
+						{(Object.keys(groupByLabels) as GroupByMetric[]).map(
+							key => (
+								<ClayDropDown.Item
+									key={key}
+									onClick={() => setGroupBy(key)}
+									symbolRight={
+										groupBy === key ? 'check' : undefined
+									}
+								>
+									{groupByLabels[key]}
+								</ClayDropDown.Item>
+							)
+						)}
+					</ClayDropDown.ItemList>
+				</ClayDropDown>
 
-			{loading ? (
-				<div className='p-4'>
-					<Loading />
-				</div>
-			) : items.length === 0 ? (
-				<div className='p-4 text-center'>
-					<Text color='secondary'>
-						{Liferay.Language.get('no-data-available')}
-					</Text>
-				</div>
-			) : (
 				<ClayTable className='mt-3'>
 					<ClayTable.Head>
 						<ClayTable.Row>
@@ -166,7 +182,10 @@ const TabContent: React.FC<ITabContentProps> = ({
 								{isCategory && (
 									<ClayTable.Cell>
 										<Text size={3}>
-											{(item as ITopCategory).vocabularyName}
+											{
+												(item as ITopCategory)
+													.vocabularyName
+											}
 										</Text>
 									</ClayTable.Cell>
 								)}
@@ -177,8 +196,8 @@ const TabContent: React.FC<ITabContentProps> = ({
 						))}
 					</ClayTable.Body>
 				</ClayTable>
-			)}
-		</>
+			</StatesRenderer.Success>
+		</StatesRenderer>
 	);
 };
 
@@ -224,6 +243,7 @@ const TopCategoriesAndTags: React.FC<ITopCategoriesAndTagsProps> = ({
 	const tabContent = (
 		<TabContent
 			groupBy={groupBy}
+			isCategory={isCategory}
 			items={items}
 			loading={loading}
 			selectedMetric={selectedMetric}
@@ -232,7 +252,7 @@ const TopCategoriesAndTags: React.FC<ITopCategoriesAndTagsProps> = ({
 	);
 
 	return (
-		<Card className={classNames(className)}>
+		<Card className={classNames(className)} minHeight={260}>
 			<Card.Title className='p-3'>
 				<Text weight='semi-bold'>
 					{Liferay.Language.get(
