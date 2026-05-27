@@ -58,10 +58,16 @@ describe('subscriptions', () => {
 	});
 
 	describe('getPlanLabel', () => {
-		it('should return the label for the Liferay Data Platform plan', () => {
+		it('should return the label for the legacy Liferay Data Platform plan', () => {
 			expect(getPlanLabel(SubscriptionNames.LiferayDataPlatform)).toEqual(
 				'Liferay Data Platform'
 			);
+		});
+
+		it('should return the label for the Liferay Data Platform Private Beta plan', () => {
+			expect(
+				getPlanLabel(SubscriptionNames.LiferayDataPlatformPrivateBeta)
+			).toEqual('Liferay Data Platform (Private Beta)');
 		});
 
 		it('should return the label for the Liferay Data Platform Enterprise plan', () => {
@@ -140,7 +146,8 @@ describe('subscriptions', () => {
 	describe('isLDPPlan', () => {
 		it.each([
 			SubscriptionNames.LiferayDataPlatform,
-			SubscriptionNames.LiferayDataPlatformEnterprise
+			SubscriptionNames.LiferayDataPlatformEnterprise,
+			SubscriptionNames.LiferayDataPlatformPrivateBeta
 		])('returns true for %s', name => {
 			expect(isLDPPlan(name)).toBe(true);
 		});
