@@ -97,7 +97,9 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 		rangeSelectorParams += `&rangeStart=${rangeSelectors.rangeStart}`;
 	}
 
-	const rangeApiURL = `${apiURL}&${rangeSelectorParams}`;
+	const separator = apiURL.includes('?') ? '&' : '?';
+
+	const rangeApiURL = `${apiURL}${separator}${rangeSelectorParams}`;
 
 	return (
 		<Card>
