@@ -284,6 +284,8 @@ public class ProjectFaroController extends BaseFaroController {
 	@POST
 	@RolesAllowed(StringPool.BLANK)
 	public ProjectDisplay createProvisioned(
+			@DefaultValue("false") @FormParam("autoConfigure") boolean
+				autoConfigure,
 			@FormParam("corpProjectUuid") String corpProjectUuid,
 			@DefaultValue(JSONConstants.NULL_JSON_ARRAY)
 			@FormParam("emailAddressDomains")
@@ -320,7 +322,17 @@ public class ProjectFaroController extends BaseFaroController {
 				faroProject.getWeDeployKey());
 		}
 
-		ProjectDisplay projectDisplay = new ProjectDisplay(faroProject);
+		ProjectDisplay projectDisplay = null;
+
+		if (autoConfigure) {
+			projectDisplay = configure(
+				friendlyURL, faroProject.getGroupId(),
+				emailAddressDomainsFaroParam,
+				incidentReportEmailAddressesFaroParam, name, timeZoneId);
+		}
+		else {
+			projectDisplay = new ProjectDisplay(faroProject);
+		}
 
 		projectDisplay.setDataSourceAccessToken(
 			_dataSourceFaroController.generateDataSourceAccessToken(
