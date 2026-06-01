@@ -2,52 +2,107 @@ import AccountsDataSet from '../AccountsDataSet';
 import React from 'react';
 import {cleanup, render, screen} from '@testing-library/react';
 import {LifecycleStages} from 'contacts/pages/account/utils/constants';
+import {RangeKeyTimeRanges} from 'shared/util/constants';
+import {useRequest} from 'shared/hooks/useRequest';
+
+const defaultRangeSelectors = {
+	rangeEnd: null,
+	rangeKey: RangeKeyTimeRanges.Last30Days,
+	rangeStart: null
+};
+
+const DEFAULT_STAGE_ITEMS = [
+	{id: '9990', stageType: LifecycleStages.AWARE},
+	{id: '9991', stageType: LifecycleStages.ENGAGED},
+	{id: '9992', stageType: LifecycleStages.PIPELINE},
+	{id: '9993', stageType: LifecycleStages.AT_RISK}
+];
 
 jest.unmock('react-dom');
 
-const useFrontendDataSetMock = jest.fn();
-
-jest.mock('shared/hooks/useFrontendDataSet', () => ({
-	useFrontendDataSet: () => useFrontendDataSetMock()
+jest.mock('shared/api', () => ({
+	accounts: {
+		fetchLifecycleStageFieldValues: jest.fn()
+	}
 }));
+
+jest.mock('shared/hooks/useRequest', () => ({
+	useRequest: jest.fn()
+}));
+
+const mockedUseRequest = useRequest as jest.Mock;
+
+const mockStages = (items: typeof DEFAULT_STAGE_ITEMS | undefined) => {
+	mockedUseRequest.mockReturnValue({
+		data: items ? {items} : undefined,
+		loading: false
+	});
+};
 
 type FakeFilter = {
 	id: string;
+	items?: Array<{label: string; value: string}>;
 	preloadedData?: {
 		exclude: boolean;
 		selectedItems: Array<{label?: string; value: string}>;
 	};
 };
 
+type FakeCustomDataRenderers = {
+	accountActivityStatusRenderer: (props: {
+		value: string;
+	}) => React.ReactElement | null | false;
+	accountNameRenderer: (props: {
+		itemData: {id: string | number};
+		value: string;
+	}) => React.ReactElement;
+};
+
+let lastApiURL: string | undefined;
+let lastCustomDataRenderers: FakeCustomDataRenderers | undefined;
 let lastFilters: FakeFilter[] | undefined;
 
-const FakeDataSet = ({filters, id}: {filters: FakeFilter[]; id: string}) => {
-	lastFilters = filters;
+jest.mock('@liferay/frontend-data-set-web', () => ({
+	...jest.requireActual('@liferay/frontend-data-set-web'),
+	FrontendDataSet: ({
+		apiURL,
+		customDataRenderers,
+		filters,
+		id
+	}: {
+		apiURL: string;
+		customDataRenderers: FakeCustomDataRenderers;
+		filters: FakeFilter[];
+		id: string;
+	}) => {
+		lastApiURL = apiURL;
+		lastCustomDataRenderers = customDataRenderers;
+		lastFilters = filters;
 
-	return <div data-testid='fds-component' id={id} />;
-};
+		return <div data-testid='fds-component' id={id} />;
+	}
+}));
 
 describe('AccountsDataSet', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		mockStages(DEFAULT_STAGE_ITEMS);
+		lastApiURL = undefined;
+		lastCustomDataRenderers = undefined;
 		lastFilters = undefined;
-		useFrontendDataSetMock.mockReturnValue(FakeDataSet);
 	});
 
 	afterEach(cleanup);
 
-	it('should render nothing while FrontendDataSet is loading', () => {
-		useFrontendDataSetMock.mockReturnValue(null);
-
-		const {container} = render(
-			<AccountsDataSet channelId='123' groupId='23' />
-		);
-
-		expect(container).toBeEmptyDOMElement();
-	});
-
 	it('should render the FrontendDataSet with id "accounts-list-dataset"', () => {
-		render(<AccountsDataSet channelId='123' groupId='23' />);
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
 
 		expect(screen.getByTestId('fds-component')).toHaveAttribute(
 			'id',
@@ -55,23 +110,74 @@ describe('AccountsDataSet', () => {
 		);
 	});
 
-	it('should leave country/industry/lifecycleStatus filters without preloadedData when no props are passed', () => {
-		render(<AccountsDataSet channelId='123' groupId='23' />);
+	it('should leave activityStatus/country/industry filters without preloadedData when no props are passed', () => {
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
 
+		const activityStatusFilter = lastFilters?.find(
+			f => f.id === 'activityStatus'
+		);
 		const countryFilter = lastFilters?.find(f => f.id === 'country');
 		const industryFilter = lastFilters?.find(f => f.id === 'industry');
+
+		expect(activityStatusFilter?.preloadedData).toBeUndefined();
+		expect(countryFilter?.preloadedData).toBeUndefined();
+		expect(industryFilter?.preloadedData).toBeUndefined();
+	});
+
+	it('should omit the lifecycleStatus filter when accountLifecycleId is not provided', () => {
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
+
 		const lifecycleStatusFilter = lastFilters?.find(
 			f => f.id === 'lifecycleStatus'
 		);
 
-		expect(countryFilter?.preloadedData).toBeUndefined();
-		expect(industryFilter?.preloadedData).toBeUndefined();
-		expect(lifecycleStatusFilter?.preloadedData).toBeUndefined();
+		expect(lifecycleStatusFilter).toBeUndefined();
+	});
+
+	it('should preload the activityStatus filter when activityStatusFilter prop is provided', () => {
+		render(
+			<AccountsDataSet
+				activityStatusFilter='ACTIVE'
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
+
+		const activityStatusFilter = lastFilters?.find(
+			f => f.id === 'activityStatus'
+		);
+
+		expect(activityStatusFilter?.preloadedData).toEqual({
+			exclude: false,
+			selectedItems: [{label: 'Active', value: 'ACTIVE'}]
+		});
 	});
 
 	it('should preload the country filter when countryFilter prop is provided', () => {
 		render(
-			<AccountsDataSet channelId='123' countryFilter='US' groupId='23' />
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				countryFilter='US'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
 		);
 
 		const countryFilter = lastFilters?.find(f => f.id === 'country');
@@ -85,9 +191,11 @@ describe('AccountsDataSet', () => {
 	it('should preload the industry filter when industryFilter prop is provided', () => {
 		render(
 			<AccountsDataSet
+				apiURL='fake-url'
 				channelId='123'
 				groupId='23'
 				industryFilter='Tech'
+				rangeSelectors={defaultRangeSelectors}
 			/>
 		);
 
@@ -99,12 +207,38 @@ describe('AccountsDataSet', () => {
 		});
 	});
 
-	it('should preload the lifecycleStatus filter when lifecycleStageFilter prop is provided', () => {
+	it('should build the lifecycleStatus items from the fetched stages with localized labels', () => {
 		render(
 			<AccountsDataSet
+				accountLifecycleId='al-1'
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
+
+		const lifecycleStatusFilter = lastFilters?.find(
+			f => f.id === 'lifecycleStatus'
+		);
+
+		expect(lifecycleStatusFilter?.items).toEqual([
+			{label: 'Aware', value: '9990'},
+			{label: 'Engaged', value: '9991'},
+			{label: 'Pipeline', value: '9992'},
+			{label: 'At Risk', value: '9993'}
+		]);
+	});
+
+	it('should preload the lifecycleStatus filter with the stage id and localized label when lifecycleStageFilter prop is provided', () => {
+		render(
+			<AccountsDataSet
+				accountLifecycleId='al-1'
+				apiURL='fake-url'
 				channelId='123'
 				groupId='23'
 				lifecycleStageFilter={LifecycleStages.AT_RISK}
+				rangeSelectors={defaultRangeSelectors}
 			/>
 		);
 
@@ -114,7 +248,142 @@ describe('AccountsDataSet', () => {
 
 		expect(lifecycleStatusFilter?.preloadedData).toEqual({
 			exclude: false,
-			selectedItems: [{label: 'At Risk', value: 'atRisk'}]
+			selectedItems: [{label: 'At Risk', value: '9993'}]
 		});
+	});
+
+	it('should leave the lifecycleStatus preloadedData undefined when stages have not loaded yet', () => {
+		mockStages(undefined);
+
+		render(
+			<AccountsDataSet
+				accountLifecycleId='al-1'
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				lifecycleStageFilter={LifecycleStages.AT_RISK}
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
+
+		const lifecycleStatusFilter = lastFilters?.find(
+			f => f.id === 'lifecycleStatus'
+		);
+
+		expect(lifecycleStatusFilter?.preloadedData).toBeUndefined();
+	});
+
+	it('should render the account name link with channelId in the href', () => {
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
+
+		const {container} = render(
+			lastCustomDataRenderers!.accountNameRenderer({
+				itemData: {id: 'abc'},
+				value: 'Acme Corp'
+			})
+		);
+
+		expect(container.querySelector('a')).toHaveAttribute(
+			'href',
+			'/workspace/23/123/contacts/accounts/abc'
+		);
+	});
+
+	it('should append rangeKey as query param when a preset range is provided', () => {
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={{
+					rangeEnd: null,
+					rangeKey: RangeKeyTimeRanges.Last30Days,
+					rangeStart: null
+				}}
+			/>
+		);
+
+		expect(lastApiURL).toBe('fake-url?rangeKey=30');
+	});
+
+	it('should append rangeStart and rangeEnd as query params when a custom range is provided', () => {
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={{
+					rangeEnd: '2024-01-31',
+					rangeKey: RangeKeyTimeRanges.CustomRange,
+					rangeStart: '2024-01-01'
+				}}
+			/>
+		);
+
+		expect(lastApiURL).toBe(
+			'fake-url?rangeKey=CUSTOM&rangeEnd=2024-01-31&rangeStart=2024-01-01'
+		);
+	});
+
+	it('should render "Active" label for ACTIVE activity status', () => {
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
+
+		const {getByText} = render(
+			lastCustomDataRenderers!.accountActivityStatusRenderer({
+				value: 'ACTIVE'
+			}) as React.ReactElement
+		);
+
+		expect(getByText('Active')).toBeInTheDocument();
+	});
+
+	it('should render "Inactive" label for INACTIVE activity status', () => {
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
+
+		const {getByText} = render(
+			lastCustomDataRenderers!.accountActivityStatusRenderer({
+				value: 'INACTIVE'
+			}) as React.ReactElement
+		);
+
+		expect(getByText('Inactive')).toBeInTheDocument();
+	});
+
+	it('should render nothing when activity status value is empty', () => {
+		render(
+			<AccountsDataSet
+				apiURL='fake-url'
+				channelId='123'
+				groupId='23'
+				rangeSelectors={defaultRangeSelectors}
+			/>
+		);
+
+		const result = lastCustomDataRenderers!.accountActivityStatusRenderer({
+			value: ''
+		});
+
+		expect(result).toBeFalsy();
 	});
 });

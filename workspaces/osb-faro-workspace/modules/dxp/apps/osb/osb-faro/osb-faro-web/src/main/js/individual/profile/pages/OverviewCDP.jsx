@@ -3,35 +3,26 @@ import Card from 'shared/components/Card';
 import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
 import ContextualInformation from '../components/ContextualInformation';
-import Loading from 'shared/components/Loading';
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import ProfileCardCDP from '../hoc/ProfileCardCDP';
 import React from 'react';
 import URLConstants from 'shared/util/url-constants';
 import {connect} from 'react-redux';
-import {isNil} from 'lodash';
 import {Routes, toRoute} from 'shared/util/router';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useDataSources} from 'shared/context/dataSources';
 import {useRequest} from 'shared/hooks/useRequest';
 
 const OverviewCDPEmptyState = ({
 	authorized,
 	dataSourceData,
-	dataSourceLoading,
 	groupId,
+	hasConnectedDataSources,
 	pageDisplay = true
 }) => {
-	if (dataSourceLoading) {
-		return (
-			<NoResultsDisplay>
-				<Loading key='LOADING' />
-			</NoResultsDisplay>
-		);
-	}
-
-	const sitesSelected = dataSourceData?.items[0]?.sitesSelected;
-
-	const noSitesSelected = isNil(sitesSelected) || !sitesSelected;
+	const noSitesSelected = !dataSourceData?.items?.some(
+		dataSource => dataSource.sitesSelected
+	);
 
 	if (noSitesSelected) {
 		return (
@@ -71,7 +62,7 @@ const OverviewCDPEmptyState = ({
 						primary
 						title={Liferay.Language.get('no-site-data-synced')}
 					>
-						{authorized && (
+						{authorized && !hasConnectedDataSources && (
 							<ClayLink
 								button
 								className='button-root mt-1'
@@ -100,15 +91,21 @@ const Overview = ({channelId, groupId, individual, tabId, timeZoneId}) => {
 
 	const authorized = currentUser.isAdmin();
 
+	const dataSourceStates = useDataSources();
+
 	const {data: dataSourceData, loading: dataSourceLoading} = useRequest({
 		dataSourceFn: API.dataSource.search,
 		variables: {
-			delta: 1,
+			delta: 500,
 			groupId
 		}
 	});
 
-	const sitesSelected = dataSourceData?.items[0]?.sitesSelected;
+	const sitesSelected = dataSourceData?.items?.some(
+		dataSource => dataSource.sitesSelected
+	);
+
+	const showEmptyState = !dataSourceLoading && !sitesSelected;
 
 	return (
 		<div className='overview-column-main'>
@@ -116,15 +113,16 @@ const Overview = ({channelId, groupId, individual, tabId, timeZoneId}) => {
 				contactId={individual.get('id')}
 				contextData={individual.get('context')}
 				email={individual.getIn(['properties', 'email'])}
-				showEmptyState={!sitesSelected}
+				loading={dataSourceLoading}
+				showEmptyState={showEmptyState}
 				userId={individual.getIn(['properties', 'userId'])}
 				uuid={individual.getIn(['properties', 'uuid'])}
 			>
 				<OverviewCDPEmptyState
 					authorized={authorized}
 					dataSourceData={dataSourceData}
-					dataSourceLoading={dataSourceLoading}
 					groupId={groupId}
+					hasConnectedDataSources={!dataSourceStates.empty}
 					pageDisplay={false}
 				/>
 			</ContextualInformation>
@@ -133,15 +131,15 @@ const Overview = ({channelId, groupId, individual, tabId, timeZoneId}) => {
 				channelId={channelId}
 				entity={individual}
 				groupId={groupId}
-				showEmptyState={!sitesSelected}
+				showEmptyState={showEmptyState}
 				tabId={tabId}
 				timeZoneId={timeZoneId}
 			>
 				<OverviewCDPEmptyState
 					authorized={authorized}
 					dataSourceData={dataSourceData}
-					dataSourceLoading={dataSourceLoading}
 					groupId={groupId}
+					hasConnectedDataSources={!dataSourceStates.empty}
 				/>
 			</ProfileCardCDP>
 		</div>

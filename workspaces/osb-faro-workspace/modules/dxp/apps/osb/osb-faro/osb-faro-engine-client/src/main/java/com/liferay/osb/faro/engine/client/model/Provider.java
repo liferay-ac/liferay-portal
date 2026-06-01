@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -10,7 +10,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import com.liferay.osb.faro.engine.client.model.provider.CSVProvider;
 import com.liferay.osb.faro.engine.client.model.provider.DemandbaseProvider;
+import com.liferay.osb.faro.engine.client.model.provider.HubSpotProvider;
 import com.liferay.osb.faro.engine.client.model.provider.LiferayProvider;
+import com.liferay.osb.faro.engine.client.model.provider.MarketoProvider;
 import com.liferay.osb.faro.engine.client.model.provider.SalesforceProvider;
 
 /**
@@ -23,7 +25,13 @@ import com.liferay.osb.faro.engine.client.model.provider.SalesforceProvider;
 			name = DemandbaseProvider.TYPE, value = DemandbaseProvider.class
 		),
 		@JsonSubTypes.Type(
+			name = HubSpotProvider.TYPE, value = HubSpotProvider.class
+		),
+		@JsonSubTypes.Type(
 			name = LiferayProvider.TYPE, value = LiferayProvider.class
+		),
+		@JsonSubTypes.Type(
+			name = MarketoProvider.TYPE, value = MarketoProvider.class
 		),
 		@JsonSubTypes.Type(
 			name = SalesforceProvider.TYPE, value = SalesforceProvider.class

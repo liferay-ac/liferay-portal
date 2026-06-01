@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -90,12 +90,20 @@ public class ProjectDisplay {
 		return _corpProjectUuid;
 	}
 
+	public String getDataSourceAccessToken() {
+		return _dataSourceAccessToken;
+	}
+
 	public FaroSubscriptionDisplay getFaroSubscriptionDisplay() {
 		return _faroSubscriptionDisplay;
 	}
 
 	public String getState() {
 		return _state;
+	}
+
+	public void setDataSourceAccessToken(String dataSourceAccessToken) {
+		_dataSourceAccessToken = dataSourceAccessToken;
 	}
 
 	public void setFriendlyURL(String friendlyURL) {
@@ -124,6 +132,7 @@ public class ProjectDisplay {
 	private String _accountName;
 	private String _corpProjectName;
 	private String _corpProjectUuid;
+	private String _dataSourceAccessToken;
 	private FaroSubscriptionDisplay _faroSubscriptionDisplay;
 	private String _friendlyURL;
 	private long _groupId;

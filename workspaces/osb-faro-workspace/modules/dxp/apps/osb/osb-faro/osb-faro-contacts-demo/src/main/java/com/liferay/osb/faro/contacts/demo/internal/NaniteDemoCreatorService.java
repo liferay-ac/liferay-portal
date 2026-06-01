@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -21,6 +21,7 @@ import com.liferay.osb.faro.contacts.demo.internal.data.creator.SalesforceIndivi
 import com.liferay.osb.faro.engine.client.constants.FieldMappingConstants;
 import com.liferay.osb.faro.engine.client.model.Author;
 import com.liferay.osb.faro.engine.client.model.Channel;
+import com.liferay.osb.faro.engine.client.model.ChannelsConfiguration;
 import com.liferay.osb.faro.engine.client.model.Credentials;
 import com.liferay.osb.faro.engine.client.model.DataSource;
 import com.liferay.osb.faro.engine.client.model.FieldMapping;
@@ -185,7 +186,7 @@ public class NaniteDemoCreatorService extends DemoCreatorService {
 				_individualSegments.entrySet()) {
 
 			contactsEngineClient.addIndividualSegment(
-				faroProject, user.getUserId(), channelId,
+				faroProject, user.getUserId(), channelId, null,
 				individualSegment.getValue(), false, individualSegment.getKey(),
 				IndividualSegment.Type.BATCH.name(), false,
 				IndividualSegment.Status.ACTIVE.name());
@@ -399,6 +400,9 @@ public class NaniteDemoCreatorService extends DemoCreatorService {
 					HashMapBuilder.<String, Object>put(
 						"channelId", individualSegment.getChannelId()
 					).put(
+						"externalReferenceCode",
+						individualSegment.getExternalReferenceCode()
+					).put(
 						"filter", individualSegment.getFilterString()
 					).put(
 						"id", individualSegment.getId()
@@ -535,8 +539,8 @@ public class NaniteDemoCreatorService extends DemoCreatorService {
 
 		salesforceProvider.setAccountsConfiguration(accountsConfiguration);
 
-		SalesforceProvider.ChannelsConfiguration channelsConfiguration =
-			new SalesforceProvider.ChannelsConfiguration();
+		ChannelsConfiguration channelsConfiguration =
+			new ChannelsConfiguration();
 
 		channelsConfiguration.setEnableAllChannels(false);
 

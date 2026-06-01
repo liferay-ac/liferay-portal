@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -23,7 +23,7 @@ import com.liferay.osb.faro.engine.client.model.credentials.TokenCredentials;
 			name = BasicCredentials.TYPE, value = BasicCredentials.class
 		),
 		@JsonSubTypes.Type(
-			name = DummyCredentials.TYPE, value = TokenCredentials.class
+			name = DummyCredentials.TYPE, value = DummyCredentials.class
 		),
 		@JsonSubTypes.Type(
 			name = OAuth1Credentials.TYPE, value = OAuth1Credentials.class

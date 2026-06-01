@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -409,13 +409,15 @@ public class FaroSubscriptionDisplay {
 
 	private boolean _isBasicSubscription(String subscriptionProductName) {
 		if (StringUtil.equals(
-				subscriptionProductName, ProductConstants.BASIC_PRODUCT_NAME) ||
+				subscriptionProductName,
+				ProductConstants.BASIC_PRODUCT_ENTRY_NAME) ||
 			StringUtil.equals(
 				subscriptionProductName,
-				ProductConstants.DATA_PLATFORM_PRODUCT_NAME) ||
+				ProductConstants.
+					DATA_PLATFORM_PRIVATE_BETA_PRODUCT_ENTRY_NAME) ||
 			StringUtil.equals(
 				subscriptionProductName,
-				ProductConstants.LXC_PRO_PRODUCT_NAME)) {
+				ProductConstants.LXC_PRO_PRODUCT_ENTRY_NAME)) {
 
 			return true;
 		}

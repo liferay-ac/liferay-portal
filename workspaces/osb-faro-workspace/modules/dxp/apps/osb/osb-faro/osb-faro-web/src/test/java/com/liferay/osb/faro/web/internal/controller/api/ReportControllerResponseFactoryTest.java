@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -44,7 +44,7 @@ public class ReportControllerResponseFactoryTest {
 			"type", "PAGE"
 		).build();
 
-		Response response = _reportControllerResponseFactory.create(
+		Response response = _reportFaroControllerResponseFactory.create(
 			responseMap, Response.Status.OK);
 
 		Map<String, Object> expectedMap = new HashMap<>(responseMap);
@@ -74,7 +74,7 @@ public class ReportControllerResponseFactoryTest {
 			"type", "PAGE"
 		).build();
 
-		Response response = _reportControllerResponseFactory.create(
+		Response response = _reportFaroControllerResponseFactory.create(
 			responseMap, Response.Status.OK);
 
 		AssertUtils.assertEquals(
@@ -94,7 +94,7 @@ public class ReportControllerResponseFactoryTest {
 			"message", "Some error message"
 		).build();
 
-		Response response = _reportControllerResponseFactory.create(
+		Response response = _reportFaroControllerResponseFactory.create(
 			responseMap, Response.Status.BAD_REQUEST);
 
 		AssertUtils.assertEquals(
@@ -122,7 +122,7 @@ public class ReportControllerResponseFactoryTest {
 			"type", "PAGE"
 		).build();
 
-		Response response = _reportControllerResponseFactory.create(
+		Response response = _reportFaroControllerResponseFactory.create(
 			responseMap, Response.Status.OK);
 
 		AssertUtils.assertEquals(
@@ -152,7 +152,7 @@ public class ReportControllerResponseFactoryTest {
 			"type", "PAGE"
 		).build();
 
-		Response response = _reportControllerResponseFactory.create(
+		Response response = _reportFaroControllerResponseFactory.create(
 			responseMap, Response.Status.OK);
 
 		Map<String, Object> expectedMap = new HashMap<>(responseMap);
@@ -169,7 +169,7 @@ public class ReportControllerResponseFactoryTest {
 	}
 
 	private static final ReportControllerResponseFactory
-		_reportControllerResponseFactory =
+		_reportFaroControllerResponseFactory =
 			new ReportControllerResponseFactory();
 
 }

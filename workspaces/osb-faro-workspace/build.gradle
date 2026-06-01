@@ -46,10 +46,29 @@ dockerDeploy {
 	}
 }
 
+def buildUserProperties = new Properties()
+
+def buildUserPropertiesFile = new File(rootProject.projectDir, "../../build.${System.getProperty('user.name')}.properties")
+
+if (buildUserPropertiesFile.exists()) {
+	buildUserPropertiesFile.withInputStream { buildUserProperties.load(it) }
+}
+
 allprojects {
 	repositories {
 		maven {
 			url new File(rootProject.projectDir, "../../.m2-tmp")
+		}
+
+		if (buildUserProperties["build.repository.private.url"]) {
+			maven {
+				credentials {
+					password buildUserProperties["build.repository.private.password"] ?: ""
+					username buildUserProperties["build.repository.private.username"] ?: ""
+				}
+
+				url buildUserProperties["build.repository.private.url"]
+			}
 		}
 
 		mavenCentral()

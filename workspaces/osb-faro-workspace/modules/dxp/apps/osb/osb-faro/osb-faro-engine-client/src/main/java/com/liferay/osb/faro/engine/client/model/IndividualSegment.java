@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -55,6 +55,10 @@ public class IndividualSegment {
 	@JsonProperty("_embedded")
 	public Map<String, Object> getEmbeddedResources() {
 		return _embeddedResources;
+	}
+
+	public String getExternalReferenceCode() {
+		return _externalReferenceCode;
 	}
 
 	public String getFilterMetadata() {
@@ -162,6 +166,10 @@ public class IndividualSegment {
 		_embeddedResources = embeddedResources;
 	}
 
+	public void setExternalReferenceCode(String externalReferenceCode) {
+		_externalReferenceCode = externalReferenceCode;
+	}
+
 	public void setFilterMetadata(String filterMetadata) {
 		_filterMetadata = filterMetadata;
 	}
@@ -259,6 +267,7 @@ public class IndividualSegment {
 	private Date _dateCreated;
 	private Date _dateModified;
 	private Map<String, Object> _embeddedResources = new HashMap<>();
+	private String _externalReferenceCode;
 	private String _filterMetadata;
 	private String _filterString;
 	private String _id;

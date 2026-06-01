@@ -4,7 +4,10 @@ import CriteriaBuilder from './criteria-builder';
 import CriteriaSidebar from './criteria-sidebar';
 import DndProvider from 'shared/components/DndProvider';
 import EmbeddedAlertList from 'shared/components/EmbeddedAlertList';
-import Form, {withField} from 'shared/components/form';
+import Form, {
+	validateExternalReferenceCode,
+	withField
+} from 'shared/components/form';
 import NavigationWarning from 'shared/components/NavigationWarning';
 import React from 'react';
 import Toolbar from './Toolbar';
@@ -15,12 +18,15 @@ import {
 	wrapInCriteriaGroup
 } from './utils/odata';
 import {Criteria, CriterionGroup} from './utils/types';
-import {HTML5Backend} from 'react-dnd-html5-backend';
 import {
+	hasNestedOrExceeded,
+	hasRootAndExceeded,
 	invalidateCriterionWithMissingProperty,
 	validateSegmentInputs
 } from './utils/utils';
+import {HTML5Backend} from 'react-dnd-html5-backend';
 import {List} from 'immutable';
+import {NESTED_OR_LIMIT_ALERT, SEQUENTIAL_LIMIT_ALERT} from './utils/constants';
 import {PropertyGroup, Segment} from 'shared/util/records';
 import {
 	ReferencedObjectsContext,
@@ -28,11 +34,16 @@ import {
 } from './context/referencedObjects';
 import {SegmentEnabledSequentialCard} from 'segment/components/SegmentEnabledSequentialCard';
 import {SegmentStates, SegmentTypes} from 'shared/util/constants';
+import {v4 as uuidv4} from 'uuid';
 
 /**
- * Returns an error message if the criteria contains an invalid row.
+ * Returns an error message if the criteria contains an invalid row,
+ * or if sequential mode is enabled and the criteria exceed the limit.
  */
-export function validateSegmentEditor(criteria: CriterionGroup | null) {
+export function validateSegmentEditor(
+	criteria: CriterionGroup | null,
+	sequential?: boolean
+) {
 	let error;
 
 	if (
@@ -41,6 +52,12 @@ export function validateSegmentEditor(criteria: CriterionGroup | null) {
 		!validateSegmentInputs(criteria)
 	) {
 		error = Liferay.Language.get('empty-fields');
+	} else if (sequential) {
+		if (hasNestedOrExceeded(criteria)) {
+			error = NESTED_OR_LIMIT_ALERT.exceedsLimit.text;
+		} else if (hasRootAndExceeded(criteria)) {
+			error = SEQUENTIAL_LIMIT_ALERT.exceedsLimit.text;
+		}
 	}
 
 	return error;
@@ -85,6 +102,7 @@ const CriteriaBuilderForm = withField(
 
 type FormValues = {
 	criteria: CriterionGroup;
+	externalReferenceCode: string;
 	includeAnonymousUsers: boolean;
 	name: string;
 	sequential: boolean;
@@ -117,11 +135,14 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 		enabledSequentialSegment: false
 	};
 
+	_defaultExternalReferenceCode = uuidv4();
+
 	_formRef = React.createRef<any>();
 
 	@autobind
 	createSegment({
 		criteria,
+		externalReferenceCode,
 		includeAnonymousUsers,
 		name,
 		sequential
@@ -141,6 +162,7 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 			channelId,
 			criteriaString: buildQueryString([criteria]),
 			description: '',
+			externalReferenceCode,
 			groupId,
 			id,
 			includeAnonymousUsers,
@@ -157,17 +179,25 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 		newIncludeAnonymousUsers: boolean,
 		newName: string,
 		newCriteriaString: string,
-		newSequential: boolean
+		newSequential: boolean,
+		newExternalReferenceCode: string
 	) {
 		const {
-			segment: {criteriaString, includeAnonymousUsers, name, sequential}
+			segment: {
+				criteriaString,
+				externalReferenceCode,
+				includeAnonymousUsers,
+				name,
+				sequential
+			}
 		} = this.props;
 
 		return (
 			newIncludeAnonymousUsers !== includeAnonymousUsers ||
 			name !== newName ||
 			criteriaString !== newCriteriaString ||
-			sequential !== newSequential
+			sequential !== newSequential ||
+			externalReferenceCode !== newExternalReferenceCode
 		);
 	}
 
@@ -189,6 +219,7 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 				propertyGroupsIList,
 				segment: {
 					criteriaString,
+					externalReferenceCode,
 					includeAnonymousUsers,
 					name,
 					sequential,
@@ -212,12 +243,24 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 											referencedProperties as any
 									  ) as CriterionGroup)
 									: wrapInCriteriaGroup([]),
+							externalReferenceCode:
+								externalReferenceCode ||
+								this._defaultExternalReferenceCode,
 							includeAnonymousUsers,
 							name,
 							sequential
 						}}
 						innerRef={this._formRef as any}
 						onSubmit={this.handleSubmit}
+						validate={(values: FormValues) => {
+							const error = validateSegmentEditor(
+								values.criteria,
+								values.sequential
+							);
+
+							return error ? {criteria: error} : {};
+						}}
+						validateOnMount
 					>
 						{({
 							handleSubmit,
@@ -225,6 +268,7 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 							isValid,
 							values: {
 								criteria,
+								externalReferenceCode,
 								includeAnonymousUsers,
 								name,
 								sequential
@@ -237,7 +281,8 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 								includeAnonymousUsers,
 								name,
 								newCriteriaString,
-								sequential
+								sequential,
+								externalReferenceCode
 							);
 
 							return (
@@ -269,9 +314,15 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 									<div className='form-body'>
 										<div className='criteria-builder-section-sidebar'>
 											<CriteriaSidebar
+												channelId={channelId}
+												criteriaString={
+													criteriaString ?? undefined
+												}
+												groupId={groupId}
 												propertyGroupsIList={
 													propertyGroupsIList
 												}
+												type={type}
 											/>
 										</div>
 
@@ -279,6 +330,57 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 											<div className='contributor-container'>
 												<div className='container-fluid container-fluid-max-xl'>
 													<div className='content-wrapper'>
+														<div className='segment-erc'>
+															<Form.Group autoFit>
+																<Form.GroupItem
+																	label
+																	shrink
+																>
+																	<Form.Label
+																		htmlFor='externalReferenceCode'
+																		popover={{
+																			content:
+																				(
+																					<>
+																						<span>
+																							{Liferay.Language.get(
+																								'unique-key-for-referencing-the-segment-definition'
+																							)}
+																						</span>
+
+																						<br />
+																						<br />
+
+																						<span>
+																							{Liferay.Language.get(
+																								'erc-must-contain-only-lowercase-letters-numbers-hyphens-and-underscores'
+																							)}
+																						</span>
+																					</>
+																				),
+																			title: Liferay.Language.get(
+																				'segment-erc'
+																			)
+																		}}
+																		required
+																	>
+																		{Liferay.Language.get(
+																			'segment-erc'
+																		)}
+																	</Form.Label>
+																</Form.GroupItem>
+
+																<Form.GroupItem>
+																	<Form.Input
+																		name='externalReferenceCode'
+																		validate={
+																			validateExternalReferenceCode
+																		}
+																	/>
+																</Form.GroupItem>
+															</Form.Group>
+														</div>
+
 														{type ===
 															SegmentTypes.RealTime && (
 															<SegmentEnabledSequentialCard />
@@ -314,9 +416,6 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 															segmentType={type}
 															sequential={
 																sequential
-															}
-															validate={
-																validateSegmentEditor
 															}
 														/>
 													</div>

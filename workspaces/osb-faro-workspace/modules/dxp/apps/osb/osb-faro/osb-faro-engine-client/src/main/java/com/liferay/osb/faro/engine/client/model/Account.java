@@ -1,11 +1,12 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
 package com.liferay.osb.faro.engine.client.model;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author Matthew Kong
@@ -14,6 +15,10 @@ public class Account {
 
 	public String getAccountName() {
 		return _accountName;
+	}
+
+	public String getAccountType() {
+		return _accountType;
 	}
 
 	public Double getAnnualRevenue() {
@@ -40,8 +45,8 @@ public class Account {
 		return new Date(_lastActivityDate.getTime());
 	}
 
-	public String getLifecycleStage() {
-		return _lifecycleStage;
+	public List<LifecycleStage> getLifecycleStages() {
+		return _lifecycleStages;
 	}
 
 	public Date getModifiedDate() {
@@ -52,8 +57,20 @@ public class Account {
 		return new Date(_modifiedDate.getTime());
 	}
 
+	public Integer getNumberOfEmployees() {
+		return _numberOfEmployees;
+	}
+
+	public String getWebsite() {
+		return _website;
+	}
+
 	public void setAccountName(String accountName) {
 		_accountName = accountName;
+	}
+
+	public void setAccountType(String accountType) {
+		_accountType = accountType;
 	}
 
 	public void setAnnualRevenue(Double annualRevenue) {
@@ -78,8 +95,8 @@ public class Account {
 		}
 	}
 
-	public void setLifecycleStage(String lifecycleStage) {
-		_lifecycleStage = lifecycleStage;
+	public void setLifecycleStages(List<LifecycleStage> lifecycleStages) {
+		_lifecycleStages = lifecycleStages;
 	}
 
 	public void setModifiedDate(Date modifiedDate) {
@@ -88,13 +105,47 @@ public class Account {
 		}
 	}
 
+	public void setNumberOfEmployees(Integer numberOfEmployees) {
+		_numberOfEmployees = numberOfEmployees;
+	}
+
+	public void setWebsite(String website) {
+		_website = website;
+	}
+
+	public static class LifecycleStage {
+
+		public String getLifecycleName() {
+			return _lifecycleName;
+		}
+
+		public String getStageType() {
+			return _stageType;
+		}
+
+		public void setLifecycleName(String lifecycleName) {
+			_lifecycleName = lifecycleName;
+		}
+
+		public void setStageType(String stageType) {
+			_stageType = stageType;
+		}
+
+		private String _lifecycleName;
+		private String _stageType;
+
+	}
+
 	private String _accountName;
+	private String _accountType;
 	private Double _annualRevenue;
 	private String _country;
 	private String _id;
 	private String _industry;
 	private Date _lastActivityDate;
-	private String _lifecycleStage;
+	private List<LifecycleStage> _lifecycleStages;
 	private Date _modifiedDate;
+	private Integer _numberOfEmployees;
+	private String _website;
 
 }

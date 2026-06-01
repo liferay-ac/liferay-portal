@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -12,8 +12,28 @@ public interface Rels {
 
 	public static final String ACCOUNT = "account";
 
+	public static final String ACCOUNT_DETAILS = "account-details";
+
+	public static final String ACCOUNT_INDIVIDUALS = "account-individuals";
+
+	public static final String ACCOUNT_LIFECYCLE = "account-lifecycle";
+
+	public static final String ACCOUNT_LIFECYCLE_ACCOUNTS =
+		"account-lifecycle-accounts";
+
 	public static final String ACCOUNT_LIFECYCLE_OVERVIEW =
 		"account-lifecycle-overview";
+
+	public static final String ACCOUNT_LIFECYCLE_STAGE_RULES =
+		"account-lifecycle-stage-rules";
+
+	public static final String ACCOUNT_LIFECYCLE_STAGES =
+		"account-lifecycle-stages";
+
+	public static final String ACCOUNT_LIFECYCLE_STATUS =
+		"account-lifecycle-status";
+
+	public static final String ACCOUNT_LIFECYCLES = "account-lifecycles";
 
 	public static final String ACCOUNTS = "accounts";
 
@@ -104,7 +124,18 @@ public interface Rels {
 	public static final String DATA_SOURCE_DXP_USERS_TOTAL =
 		"data-source-dxp-users-total";
 
+	public static final String DATA_SOURCE_METRICS_ACCOUNTS_COUNT =
+		"data-source-metrics-accounts-count";
+
+	public static final String DATA_SOURCE_METRICS_EVENTS_COUNT =
+		"data-source-metrics-events-count";
+
+	public static final String DATA_SOURCE_METRICS_USERS_COUNT =
+		"data-source-metrics-users-count";
+
 	public static final String DATA_SOURCE_PROGRESS = "data-source-progress";
+
+	public static final String DATA_SOURCE_RECONNECT = "data-source-reconnect";
 
 	public static final String DATA_SOURCE_REFRESH_LIFERAY =
 		"data-source-refresh-liferay";
@@ -119,9 +150,6 @@ public interface Rels {
 
 	public static final String DEFINITIONS_INDIVIDUAL_ATTRIBUTES =
 		"definitions-individual-attributes";
-
-	public static final String DEMANDBASE_ACCOUNTS_COUNT =
-		"demandbase-accounts-count";
 
 	public static final String DXP_ENTITIES_USERS_COUNT =
 		"dxp-entities-users-count";
@@ -239,12 +267,6 @@ public interface Rels {
 
 	public static final String REPORTS_EXPORT_CSV_COUNT =
 		"reports-export-csv-count";
-
-	public static final String SALESFORCE_ENTITIES_ACCOUNTS_COUNT =
-		"salesforce-entities-accounts-count";
-
-	public static final String SALESFORCE_ENTITIES_USERS_COUNT =
-		"salesforce-entities-users-count";
 
 	public static final String SESSION_VALUES = "session-values";
 

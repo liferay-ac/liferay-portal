@@ -10,6 +10,7 @@ import {MemoryRouter, Route} from 'react-router-dom';
 import {mockChannelContext} from 'test/mock-channel-context';
 import {Provider} from 'react-redux';
 import {Routes} from 'shared/util/router';
+import {SegmentTypes} from 'shared/util/constants';
 import {UnassignedSegmentsContext} from 'shared/context/unassignedSegments';
 import {User} from 'shared/util/records';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
@@ -218,5 +219,63 @@ describe('List', () => {
 		await waitForLoadingToBeRemoved(document.body);
 
 		expect(screen.getByText('Segments')).toBeInTheDocument();
+	});
+
+	it('should show the sequential info icon for real time sequential segments', async () => {
+		API.projects.fetchFeatureUsages.mockResolvedValueOnce([]);
+		API.individualSegment.search.mockReturnValue(
+			Promise.resolve(
+				data.mockSearch(data.mockSegment, 1, {
+					segmentType: SegmentTypes.RealTime,
+					sequential: true
+				})
+			)
+		);
+
+		const {container} = render(<DefaultComponent />);
+
+		await waitForLoadingToBeRemoved(document.body);
+
+		expect(container.querySelector('.sticker-info')).toBeInTheDocument();
+	});
+
+	it('should not show the sequential info icon for real time non-sequential segments', async () => {
+		API.projects.fetchFeatureUsages.mockResolvedValueOnce([]);
+		API.individualSegment.search.mockReturnValue(
+			Promise.resolve(
+				data.mockSearch(data.mockSegment, 1, {
+					segmentType: SegmentTypes.RealTime,
+					sequential: false
+				})
+			)
+		);
+
+		const {container} = render(<DefaultComponent />);
+
+		await waitForLoadingToBeRemoved(document.body);
+
+		expect(
+			container.querySelector('.sticker-info')
+		).not.toBeInTheDocument();
+	});
+
+	it('should not show the sequential info icon for batch segments', async () => {
+		API.projects.fetchFeatureUsages.mockResolvedValueOnce([]);
+		API.individualSegment.search.mockReturnValue(
+			Promise.resolve(
+				data.mockSearch(data.mockSegment, 1, {
+					segmentType: SegmentTypes.Batch,
+					sequential: true
+				})
+			)
+		);
+
+		const {container} = render(<DefaultComponent />);
+
+		await waitForLoadingToBeRemoved(document.body);
+
+		expect(
+			container.querySelector('.sticker-info')
+		).not.toBeInTheDocument();
 	});
 });

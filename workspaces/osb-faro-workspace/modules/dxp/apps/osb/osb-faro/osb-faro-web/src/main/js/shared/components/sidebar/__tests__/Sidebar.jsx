@@ -1,4 +1,4 @@
-import mockStore from 'test/mock-store';
+import mockStore, {mockStoreDataLDP} from 'test/mock-store';
 import React from 'react';
 import Sidebar from '../index';
 import {Provider} from 'react-redux';
@@ -18,7 +18,7 @@ jest.unmock('react-dom');
 describe('Sidebar', () => {
 	it('should render', () => {
 		const {container} = render(
-			<Provider store={mockStore()}>
+			<Provider store={mockStore(mockStoreDataLDP)}>
 				<StaticRouter>
 					<Sidebar {...defaultProps} />
 				</StaticRouter>
@@ -30,7 +30,7 @@ describe('Sidebar', () => {
 
 	it('should render as collapsed', () => {
 		const {container} = render(
-			<Provider store={mockStore()}>
+			<Provider store={mockStore(mockStoreDataLDP)}>
 				<StaticRouter>
 					<Sidebar {...defaultProps} collapsed />
 				</StaticRouter>
@@ -46,7 +46,7 @@ describe('Sidebar', () => {
 		const activePathName = '/workspace/23/123/contacts/individuals';
 
 		const {container} = render(
-			<Provider store={mockStore()}>
+			<Provider store={mockStore(mockStoreDataLDP)}>
 				<StaticRouter>
 					<Sidebar
 						{...defaultProps}
@@ -59,5 +59,31 @@ describe('Sidebar', () => {
 		expect(
 			container.querySelector('.sidebar-item-root.active').firstChild
 		).toHaveAttribute('href', activePathName);
+	});
+
+	it('should render lifecycle and accounts items when LDP is enabled', () => {
+		const {queryByText} = render(
+			<Provider store={mockStore(mockStoreDataLDP)}>
+				<StaticRouter>
+					<Sidebar {...defaultProps} />
+				</StaticRouter>
+			</Provider>
+		);
+
+		expect(queryByText('Lifecycles')).toBeTruthy();
+		expect(queryByText('Accounts')).toBeTruthy();
+	});
+
+	it('should not render lifecycle and accounts items when LDP is not enabled', () => {
+		const {queryByText} = render(
+			<Provider store={mockStore()}>
+				<StaticRouter>
+					<Sidebar {...defaultProps} />
+				</StaticRouter>
+			</Provider>
+		);
+
+		expect(queryByText('Lifecycles')).toBeNull();
+		expect(queryByText('Accounts')).toBeNull();
 	});
 });

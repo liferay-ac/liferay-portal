@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -52,6 +52,7 @@ public class IndividualSegmentDisplay implements FaroEntityDisplay {
 		_channelId = individualSegment.getChannelId();
 		_dateCreated = individualSegment.getDateCreated();
 		_dateModified = individualSegment.getDateModified();
+		_externalReferenceCode = individualSegment.getExternalReferenceCode();
 		_filterString = individualSegment.getFilterString();
 		_id = individualSegment.getId();
 		_includeAnonymousUsers = individualSegment.isIncludeAnonymousUsers();
@@ -227,6 +228,7 @@ public class IndividualSegmentDisplay implements FaroEntityDisplay {
 	private String _channelId;
 	private Date _dateCreated;
 	private Date _dateModified;
+	private String _externalReferenceCode;
 
 	@JsonProperty("filter")
 	private String _filterString;

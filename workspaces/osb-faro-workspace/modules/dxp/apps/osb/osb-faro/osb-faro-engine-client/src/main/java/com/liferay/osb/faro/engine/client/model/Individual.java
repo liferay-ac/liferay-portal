@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -28,6 +28,10 @@ public class Individual {
 
 	public Long getActivitiesCount() {
 		return _activitiesCount;
+	}
+
+	public String getActivityStatus() {
+		return _activityStatus;
 	}
 
 	public Map<String, String> getContext() {
@@ -105,6 +109,10 @@ public class Individual {
 
 	public void setActivitiesCount(long activitiesCount) {
 		_activitiesCount = activitiesCount;
+	}
+
+	public void setActivityStatus(String activityStatus) {
+		_activityStatus = activityStatus;
 	}
 
 	public void setContext(Map<String, String> context) {
@@ -326,6 +334,7 @@ public class Individual {
 	private String _accountName;
 	private List<Account> _accounts;
 	private Long _activitiesCount;
+	private String _activityStatus;
 	private Map<String, String> _context = new HashMap<>();
 	private Map<String, List<Field>> _custom = new HashMap<>();
 	private List<DataSourceIndividualPK> _dataSourceIndividualPKs =

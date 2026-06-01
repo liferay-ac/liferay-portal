@@ -29,14 +29,35 @@ import {
 	getConnectorConfig,
 	listAvailableConnectors
 } from 'settings/components/3rd-party-connector/registry';
+import {getConnectorStatusDisplay} from 'settings/components/3rd-party-connector/getConnectorStatusDisplay';
 import {getDataSourceDisplayObject} from 'shared/util/data-sources';
+import {isLDPPlan} from 'shared/util/subscriptions';
 import {Link, useHistory, useParams} from 'react-router-dom';
 import {Routes, toRoute} from 'shared/util/router';
 import {sub} from 'shared/util/lang';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
 import {useRequest} from 'shared/hooks/useRequest';
+import {useSubscriptionName} from 'shared/hooks/useSubscriptionName';
 import {useTimeZone} from 'shared/hooks/useTimeZone';
+
+interface StandaloneDataSourceDescriptor {
+	label: string;
+	requiresLDP?: boolean;
+	type: DataSourceTypes;
+}
+
+const STANDALONE_DATA_SOURCES: StandaloneDataSourceDescriptor[] = [
+	{
+		label: Liferay.Language.get('liferay-dxp'),
+		type: DataSourceTypes.Liferay
+	},
+	{
+		label: Liferay.Language.get('salesforce'),
+		requiresLDP: true,
+		type: DataSourceTypes.Salesforce
+	}
+];
 
 interface ICellProps {
 	data: {[key: string]: any};
@@ -67,9 +88,11 @@ export const DataSourceName: React.FC<IDataSourceNameProps> = ({
 );
 
 export const StatusRenderer: React.FC<ICellProps> = ({data}) => {
-	const {display, label} = getDataSourceDisplayObject(
-		new DataSource(fromJS(data))
-	);
+	const dataSource = new DataSource(fromJS(data));
+
+	const {display, label} = getConnectorConfig(data.providerType)
+		? getConnectorStatusDisplay(dataSource)
+		: getDataSourceDisplayObject(dataSource);
 
 	return (
 		<td>
@@ -163,6 +186,7 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 			type: AlertTypes;
 		}[]
 	>([]);
+	const subscriptionName = useSubscriptionName({groupId});
 	const {timeZoneId} = useTimeZone();
 
 	const {delta, orderIOMap, page, query} = useQueryPagination({
@@ -171,9 +195,7 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 
 	const {data: invalidDataSources, loading: invalidDataSourcesLoading} =
 		useRequest({
-			dataSourceFn: API.dataSource.search as (params: {
-				[key: string]: any;
-			}) => Promise<any>,
+			dataSourceFn: API.dataSource.search,
 			variables: {
 				delta: 1,
 				groupId,
@@ -204,9 +226,7 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 	}, [invalidDataSourcesLoading]);
 
 	const {data, error, loading} = useRequest({
-		dataSourceFn: API.dataSource.search as (params: {
-			[key: string]: any;
-		}) => Promise<any>,
+		dataSourceFn: API.dataSource.search,
 		variables: {
 			delta,
 			groupId,
@@ -222,47 +242,40 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 		)
 	);
 
-	const connectorItems = listAvailableConnectors(existingConnectorTypes).map(
-		config => ({
-			label: config.displayName,
-			onClick: () => {
-				history.push(
-					toRoute(Routes.SETTINGS_DATA_SOURCE_ONBOARDING, {
-						groupId,
-						id: config.type
-					})
-				);
-			}
-		})
-	);
+	const ldpAllowed = isLDPPlan(subscriptionName);
+
+	const connectorItems = listAvailableConnectors(
+		existingConnectorTypes,
+		subscriptionName
+	).map(config => ({
+		label: config.displayName,
+		onClick: () => {
+			history.push(
+				toRoute(Routes.SETTINGS_DATA_SOURCE_ONBOARDING, {
+					groupId,
+					id: config.type
+				})
+			);
+		}
+	}));
+
+	const dataSourceItems = STANDALONE_DATA_SOURCES.filter(
+		({requiresLDP}) => !requiresLDP || ldpAllowed
+	).map(({label, type}) => ({
+		label,
+		onClick: () => {
+			history.push(
+				toRoute(Routes.SETTINGS_DATA_SOURCE_ONBOARDING, {
+					groupId,
+					id: type
+				})
+			);
+		}
+	}));
 
 	const renderDataSourcesDropdown = () => (
 		<ClayDropDownWithItems
-			items={[
-				{
-					label: Liferay.Language.get('liferay-dxp'),
-					onClick: () => {
-						history.push(
-							toRoute(Routes.SETTINGS_DATA_SOURCE_ONBOARDING, {
-								groupId,
-								id: DataSourceTypes.Liferay
-							})
-						);
-					}
-				},
-				{
-					label: Liferay.Language.get('salesforce'),
-					onClick: () => {
-						history.push(
-							toRoute(Routes.SETTINGS_DATA_SOURCE_ONBOARDING, {
-								groupId,
-								id: DataSourceTypes.Salesforce
-							})
-						);
-					}
-				},
-				...connectorItems
-			]}
+			items={[...dataSourceItems, ...connectorItems]}
 			trigger={
 				<ClayButton displayType='primary' size='sm'>
 					{Liferay.Language.get('add-data-source')}

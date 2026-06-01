@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -17,9 +17,11 @@ import com.liferay.oauth2.provider.scope.spi.prefix.handler.PrefixHandlerFactory
 import com.liferay.oauth2.provider.scope.spi.scope.finder.ScopeFinder;
 import com.liferay.oauth2.provider.scope.spi.scope.mapper.ScopeMapper;
 import com.liferay.osb.faro.web.internal.application.ApiApplication;
-import com.liferay.osb.faro.web.internal.controller.api.DemandbaseAccountController;
-import com.liferay.osb.faro.web.internal.controller.api.RecommendationController;
-import com.liferay.osb.faro.web.internal.controller.api.ReportController;
+import com.liferay.osb.faro.web.internal.controller.api.DemandbaseAccountFaroController;
+import com.liferay.osb.faro.web.internal.controller.api.HubSpotWebhookFaroController;
+import com.liferay.osb.faro.web.internal.controller.api.MarketoWebhookFaroController;
+import com.liferay.osb.faro.web.internal.controller.api.RecommendationFaroController;
+import com.liferay.osb.faro.web.internal.controller.api.ReportFaroController;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.instance.lifecycle.BasePortalInstanceLifecycleListener;
@@ -192,16 +194,24 @@ public class OAuth2AuthorizationExpandoPortalInstanceLifecycleListener
 	private static final String[][] _SAP_ENTRY_OBJECT_ARRAYS = {
 		{
 			"OAUTH2_" + ApiApplication.OAuth2ScopeAliases.ACCOUNTS_WRITE,
-			DemandbaseAccountController.class.getName() + "#postAccount"
+			DemandbaseAccountFaroController.class.getName() + "#postAccount"
+		},
+		{
+			"OAUTH2_" + ApiApplication.OAuth2ScopeAliases.HUBSPOT_WRITE,
+			HubSpotWebhookFaroController.class.getName() + "#postHubSpotWebhook"
+		},
+		{
+			"OAUTH2_" + ApiApplication.OAuth2ScopeAliases.MARKETO_WRITE,
+			MarketoWebhookFaroController.class.getName() + "#postMarketoWebhook"
 		},
 		{
 			"OAUTH2_" +
 				ApiApplication.OAuth2ScopeAliases.RECOMMENDATIONS_EVERYTHING,
-			RecommendationController.class.getName() + "*"
+			RecommendationFaroController.class.getName() + "*"
 		},
 		{
 			"OAUTH2_" + ApiApplication.OAuth2ScopeAliases.REPORTS_EVERYTHING,
-			ReportController.class.getName() + "*"
+			ReportFaroController.class.getName() + "*"
 		}
 	};
 
