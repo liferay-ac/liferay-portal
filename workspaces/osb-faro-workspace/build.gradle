@@ -51,7 +51,9 @@ def buildUserProperties = new Properties()
 def buildUserPropertiesFile = new File(rootProject.projectDir, "../../build.${System.getProperty('user.name')}.properties")
 
 if (buildUserPropertiesFile.exists()) {
-	buildUserPropertiesFile.withInputStream { buildUserProperties.load(it) }
+	buildUserPropertiesFile.withInputStream {
+		buildUserProperties.load(it)
+	}
 }
 
 allprojects {
@@ -85,5 +87,11 @@ subprojects {
 
 	tasks.withType(Test) {
 		maxHeapSize = "4096m"
+	}
+}
+
+project(":modules:dxp:apps:osb:osb-faro:osb-faro-contacts-demo") {
+	tasks.all {
+		enabled = false
 	}
 }

@@ -16,7 +16,7 @@ dependencies {
 	compileInclude group: "fi.solita.clamav", name: "clamav-client", version: "1.0.1"
 	compileInclude group: "org.apache.httpcomponents", name: "httpclient", version: "4.5.13"
 	compileInclude group: "org.apache.httpcomponents", name: "httpcore", version: "4.4.14"
-	compileOnly group: "com.liferay", name: "jakarta.ws.rs", version: "3.1.0.LIFERAY-PATCHED-1"
+	compileOnly group: "com.liferay", name: "jakarta.ws.rs", version: "3.1.0.LIFERAY-PATCHED-2"
 	compileOnly group: "com.liferay", name: "org.apache.cxf.core", version: "3.6.9.JAKARTA-LIFERAY-PATCHED-1"
 	compileOnly group: "com.liferay", name: "org.apache.cxf.rt.frontend.jaxrs", version: "3.6.9.JAKARTA-LIFERAY-PATCHED-1"
 	compileOnly group: "com.liferay.portal", name: "release.dxp.api", version: "2026.q1.5"
@@ -24,15 +24,19 @@ dependencies {
 	compileOnly group: "jakarta.annotation", name: "jakarta.annotation-api", version: "2.1.1"
 	compileOnly group: "org.apache.commons", name: "commons-collections4", version: "4.5.0"
 	compileOnly group: "org.apache.commons", name: "commons-lang3", version: "3.18.0"
-	compileOnly project(":modules:dxp:apps:osb:osb-faro:osb-faro-api")
-	compileOnly project(":modules:dxp:apps:osb:osb-faro:osb-faro-contacts-api")
-	compileOnly project(":modules:dxp:apps:osb:osb-faro:osb-faro-engine-client")
-	compileOnly project(":modules:dxp:apps:osb:osb-faro:osb-faro-provisioning-client")
+	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-api")
+	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-contacts-api")
+	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-engine-client")
+	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-provisioning-client")
 	testImplementation group: "org.mockito", name: "mockito-core", version: "5.14.2"
 }
 
 generateJSPJava {
 	enabled = false
+}
+
+jarSources {
+	mustRunAfter packageRunWebpack
 }
 
 node {
