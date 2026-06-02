@@ -37,5 +37,8 @@
 		<suppress checks="PropertiesVerifyPropertiesCheck" files=".*configs/.*" />
 		<suppress checks="SHSubshellCheck" files=".*/set_nexus_credentials\.sh" />
 		<suppress checks="SQLLongNamesCheck" files=".*" />
+		<suppress checks="XMLIndentationCheck" files=".*/osb-faro-web/src/main/resources/META-INF/resources/dist/.*" />
+		<suppress checks="XMLTagAttributesCheck" files=".*/osb-faro-web/src/main/resources/META-INF/resources/dist/.*" />
+		<suppress checks="XMLWhitespaceCheck" files=".*/osb-faro-web/src/main/resources/META-INF/resources/dist/.*" />
 	</source-check>
 </suppressions>
