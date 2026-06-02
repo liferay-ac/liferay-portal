@@ -36,7 +36,6 @@
 		}
 
 		String redirect = ParamUtil.getString(request, "redirect");
-		
 		String login = (String)SessionErrors.get(renderRequest, "login");
 
 		if (Validator.isNull(login)) {
