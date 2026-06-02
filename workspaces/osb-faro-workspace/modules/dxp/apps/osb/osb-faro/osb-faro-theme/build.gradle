@@ -1,0 +1,21 @@
+import com.liferay.gradle.plugins.node.NodePlugin
+
+apply plugin: NodePlugin
+
+node {
+	global = false
+	nodeVersion = "18.18.0"
+	useNpm = true
+}
+
+task buildTheme(type: Exec) {
+	dependsOn npmInstall
+
+	workingDir = projectDir
+
+	doFirst {
+		executable = new File(npmInstall.nodeDir, "bin/node")
+
+		args = [new File(npmInstall.nodeDir, "lib/node_modules/npm/bin/npm-cli.js"), "run", "build"]
+	}
+}

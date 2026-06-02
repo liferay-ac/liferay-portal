@@ -1,17 +1,6 @@
 ext.faroEnvironmentName = System.getenv().get("FARO_ENVIRONMENT_NAME") ?: "local"
 ext.faroImageTag = project.findProperty("docker.image.tag") ?: "latest"
 
-task buildTheme(type: Exec)
-
-buildTheme {
-	dependsOn yarnInstall
-	environment "PATH", "${project.buildDir}/node/bin:${System.getenv('PATH') ?: ''}"
-	commandLine "${project.buildDir}/node/bin/node",
-	"${project.buildDir}/node/lib/node_modules/npm/bin/npm-cli.js",
-	"run", "build"
-	workingDir "modules/dxp/apps/osb/osb-faro/osb-faro-theme"
-}
-
 buildDockerImage {
 	def tag = faroEnvironmentName == "prd" ? "prd-" + new Date().format("yyyyMMdd") : faroImageTag
 
@@ -20,7 +9,7 @@ buildDockerImage {
 }
 
 dockerDeploy {
-	dependsOn buildTheme
+	dependsOn ":modules:dxp:apps:osb:osb-faro:osb-faro-theme:buildTheme"
 
 	doLast {
 		copy {
