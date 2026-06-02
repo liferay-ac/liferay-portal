@@ -1,22 +1,13 @@
 {
-	"devDependencies": {
-		"@testing-library/react-hooks": "^8.0.1",
-		"@types/d3": "^7.4.3",
-		"@types/minimatch": "5",
-		"@types/uuid": "^11.0.0"
-	},
-	"private": true,
-	"resolutions": {
-		"@types/react": "18.3.28"
-	},
-	"workspaces": {
-		"nohoist": [
-			"**/osb-faro-web/@clayui/css",
-			"**/osb-faro-web/@clayui/css/**"
-		],
-		"packages": [
-			"modules/dxp/apps/osb/osb-faro/osb-faro-web",
-			"modules/dxp/apps/osb/osb-faro/osb-faro-theme"
-		]
-	}
+    "private": true,
+    "workspaces": {
+        "nohoist": [
+            "**/osb-faro-web/@clayui/css",
+            "**/osb-faro-web/@clayui/css/**"
+        ],
+        "packages": [
+            "modules/dxp/apps/osb/osb-faro/osb-faro-theme",
+            "modules/dxp/apps/osb/osb-faro/osb-faro-web"
+        ]
+    }
 }
