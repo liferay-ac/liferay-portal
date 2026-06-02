@@ -7,8 +7,8 @@ buildTheme {
 	dependsOn yarnInstall
 	environment "PATH", "${project.buildDir}/node/bin:${System.getenv('PATH') ?: ''}"
 	commandLine "${project.buildDir}/node/bin/node",
-		"${project.buildDir}/node/lib/node_modules/npm/bin/npm-cli.js",
-		"run", "build"
+	"${project.buildDir}/node/lib/node_modules/npm/bin/npm-cli.js",
+	"run", "build"
 	workingDir "modules/dxp/apps/osb/osb-faro/osb-faro-theme"
 }
 
