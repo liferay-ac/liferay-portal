@@ -174,13 +174,12 @@ public class DataSourceFaroController extends BaseFaroController {
 		}
 		else {
 			dataSource = contactsEngineClient.reconnectDataSource(
-				faroProject, dataSourceId,
 				OAuthUtil.getOAuth20Credentials(
 					"CLIENT_CREDENTIALS", portalURL, "",
 					"https://analytics.liferay.com/oauth/receive",
 					oAuthClientId, oAuthClientSecret, "LIFERAY"),
-				getUserId(), null, portalURL, new LiferayProvider(), null,
-				DataSource.Status.ACTIVE.toString());
+				null, faroProject, dataSourceId, null, new LiferayProvider(),
+				DataSource.Status.ACTIVE.toString(), portalURL, getUserId());
 
 			_tokenManager.clearToken(token);
 		}
@@ -1327,11 +1326,11 @@ public class DataSourceFaroController extends BaseFaroController {
 		}
 
 		return contactsEngineClient.patchDataSource(
-			faroProject, id,
 			OAuthUtil.getOAuth20Credentials(
 				"CLIENT_CREDENTIALS", "", "", "", oAuthClientId,
 				oAuthClientSecret, "LIFERAY"),
-			0, null, null, null, null, DataSource.Status.ACTIVE.toString());
+			null, faroProject, id, null, null,
+			DataSource.Status.ACTIVE.toString(), null, 0);
 	}
 
 	@Override
@@ -1740,8 +1739,8 @@ public class DataSourceFaroController extends BaseFaroController {
 
 		if (patch) {
 			dataSource = contactsEngineClient.patchDataSource(
-				faroProject, id, credentials, getUserId(), name, url, provider,
-				event, status);
+				credentials, event, faroProject, id, name, provider, status,
+				url, getUserId());
 		}
 		else {
 			dataSource = contactsEngineClient.updateDataSource(
