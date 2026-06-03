@@ -46,6 +46,8 @@ function copy_remove_dir {
 }
 
 function main {
+	echo "[FARO] FARO_ENVIRONMENT_NAME=${FARO_ENVIRONMENT_NAME}, using configs from ${LIFERAY_WORKSPACE_ENVIRONMENT}"
+	
 	copy_remove_dir "/home/liferay/configs/${LIFERAY_WORKSPACE_ENVIRONMENT}/scripts" scripts
 
 	copy_remove_dir "/home/liferay/configs/${LIFERAY_WORKSPACE_ENVIRONMENT}/patching" patching
