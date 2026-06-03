@@ -17,6 +17,19 @@ buildDockerImage {
 
 	buildArgs = ["FARO_ENVIRONMENT_NAME": faroEnvironmentName]
 	images = ["liferay/com-liferay-osb-faro:${tag}"]
+
+	if (faroEnvironmentName != "local") {
+		def dockerfileExtFile = file("Dockerfile.ext")
+		def originalContent = dockerfileExtFile.text
+
+		doFirst {
+			dockerfileExtFile.text = file("docker/Dockerfile.cloud.ext").text
+		}
+
+		gradle.buildFinished {
+			dockerfileExtFile.text = originalContent
+		}
+	}
 }
 
 dockerDeploy {
