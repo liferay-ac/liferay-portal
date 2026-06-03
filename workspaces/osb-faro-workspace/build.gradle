@@ -7,9 +7,24 @@ buildTheme {
 	dependsOn yarnInstall
 	environment "PATH", "${project.buildDir}/node/bin:${System.getenv('PATH') ?: ''}"
 	commandLine "${project.buildDir}/node/bin/node",
-		"${project.buildDir}/node/lib/node_modules/npm/bin/npm-cli.js",
-		"run", "build"
+	"${project.buildDir}/node/lib/node_modules/npm/bin/npm-cli.js",
+	"run", "build"
 	workingDir "modules/dxp/apps/osb/osb-faro/osb-faro-theme"
+}
+
+if (faroEnvironmentName != "local") {
+	def dockerfileExtFile = file("Dockerfile.ext")
+	def originalContent = dockerfileExtFile.text
+
+	createDockerfile {
+		doFirst {
+			dockerfileExtFile.text = file("docker/Dockerfile.cloud.ext").text
+		}
+
+		doLast {
+			dockerfileExtFile.text = originalContent
+		}
+	}
 }
 
 buildDockerImage {
@@ -17,19 +32,6 @@ buildDockerImage {
 
 	buildArgs = ["FARO_ENVIRONMENT_NAME": faroEnvironmentName]
 	images = ["liferay/com-liferay-osb-faro:${tag}"]
-
-	if (faroEnvironmentName != "local") {
-		def dockerfileExtFile = file("Dockerfile.ext")
-		def originalContent = dockerfileExtFile.text
-
-		doFirst {
-			dockerfileExtFile.text = file("docker/Dockerfile.cloud.ext").text
-		}
-
-		gradle.buildFinished {
-			dockerfileExtFile.text = originalContent
-		}
-	}
 }
 
 dockerDeploy {
