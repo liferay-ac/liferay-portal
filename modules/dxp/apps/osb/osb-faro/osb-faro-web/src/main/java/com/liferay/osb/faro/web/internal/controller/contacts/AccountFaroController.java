@@ -19,7 +19,6 @@ import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
 import com.liferay.osb.faro.web.internal.controller.FaroController;
 import com.liferay.osb.faro.web.internal.model.display.FaroFDSResultsDisplay;
 import com.liferay.osb.faro.web.internal.model.display.FaroResultsDisplay;
-import com.liferay.osb.faro.web.internal.model.display.contacts.AccountDetailsDisplay;
 import com.liferay.osb.faro.web.internal.model.display.contacts.AccountDisplay;
 import com.liferay.osb.faro.web.internal.model.display.contacts.IndividualDisplay;
 import com.liferay.osb.faro.web.internal.param.FaroParam;
@@ -100,19 +99,6 @@ public class AccountFaroController extends BaseFaroController {
 	}
 
 	@GET
-	@Path("/{id}/account-lifecycles/{accountLifecycleId}")
-	@RolesAllowed(RoleConstants.SITE_MEMBER)
-	public AccountLifecycleStatus getAccountLifecycleStatus(
-			@PathParam("groupId") long groupId, @PathParam("id") String id,
-			@PathParam("accountLifecycleId") String accountLifecycleId)
-		throws Exception {
-
-		return contactsEngineClient.getAccountLifecycleStatus(
-			faroProjectLocalService.getFaroProjectByGroupId(groupId),
-			accountLifecycleId, id);
-	}
-
-	@GET
 	@Path("/distribution")
 	@RolesAllowed(RoleConstants.SITE_MEMBER)
 	public FaroResultsDisplay getAccountDistributionFaroResultsDisplay(
@@ -133,6 +119,19 @@ public class AccountFaroController extends BaseFaroController {
 				channelId, fieldMappingFieldName, filterString,
 				individualSegmentId, count, numberOfBins,
 				orderByFieldsFaroParam.getValue()));
+	}
+
+	@GET
+	@Path("/{id}/account-lifecycles/{accountLifecycleId}")
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public AccountLifecycleStatus getAccountLifecycleStatus(
+			@PathParam("groupId") long groupId, @PathParam("id") String id,
+			@PathParam("accountLifecycleId") String accountLifecycleId)
+		throws Exception {
+
+		return contactsEngineClient.getAccountLifecycleStatus(
+			faroProjectLocalService.getFaroProjectByGroupId(groupId),
+			accountLifecycleId, id);
 	}
 
 	@GET
