@@ -12,18 +12,11 @@ buildTheme {
 	workingDir "modules/dxp/apps/osb/osb-faro/osb-faro-theme"
 }
 
-if (faroEnvironmentName != "local") {
-	def dockerfileExtFile = file("Dockerfile.ext")
-	def originalContent = dockerfileExtFile.text
+createDockerfile {
+	doFirst {
+		def variant = (faroEnvironmentName == "local") ? "local" : "cloud"
 
-	createDockerfile {
-		doFirst {
-			dockerfileExtFile.text = file("docker/Dockerfile.cloud.ext").text
-		}
-
-		doLast {
-			dockerfileExtFile.text = originalContent
-		}
+		file("Dockerfile.ext").text = file("docker/Dockerfile.${variant}.ext").text
 	}
 }
 

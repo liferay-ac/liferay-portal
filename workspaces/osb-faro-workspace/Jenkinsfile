@@ -48,15 +48,13 @@ pipeline {
 
 							ssh-add ~/.ssh/id_ed25519
 
-							if [ "$FARO_ENVIRONMENT" != "local" ]; then
+							if [ "$FARO_ENVIRONMENT" = "local" ]; then
+								cp docker/Dockerfile.local.ext Dockerfile.ext
+							else
 								cp docker/Dockerfile.cloud.ext Dockerfile.ext
 							fi
 
 							./gradlew createDockerfile
-
-							if [ "$FARO_ENVIRONMENT" != "local" ]; then
-								git checkout -- Dockerfile.ext
-							fi
 
 							echo "${LICENSE}" | base64 --decode > build/docker/deploy/license.xml
 						'''
