@@ -312,7 +312,7 @@ export const IndividualsListCDPColumns = {
 								? 'success'
 								: 'secondary'
 						}
-						size='lg'
+						size='sm'
 						uppercase
 					>
 						{activityStatus === 'ACTIVE'

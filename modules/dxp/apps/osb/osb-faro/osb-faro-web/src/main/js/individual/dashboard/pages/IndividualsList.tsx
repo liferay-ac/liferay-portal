@@ -213,8 +213,8 @@ const IndividualsList: React.FC<IIndividualsList> = ({rangeSelectors}) => {
 							IndividualsListCDPColumns.country,
 							IndividualsListCDPColumns.firstSeen,
 							IndividualsListCDPColumns.lastActive,
-							IndividualsListCDPColumns.profileType,
-							IndividualsListCDPColumns.activityStatus
+							IndividualsListCDPColumns.activityStatus,
+							IndividualsListCDPColumns.profileType
 						]}
 						dataSourceFn={API.individuals.search}
 						dataSourceParams={{
