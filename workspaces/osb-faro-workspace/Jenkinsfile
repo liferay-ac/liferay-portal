@@ -54,7 +54,7 @@ pipeline {
 								cp docker/Dockerfile.cloud.ext Dockerfile.ext
 							fi
 
-							./gradlew createDockerfile dockerDeploy
+							./gradlew -Dliferay.ci=true createDockerfile dockerDeploy
 
 							echo "${LICENSE}" | base64 --decode > build/docker/deploy/license.xml
 						'''
