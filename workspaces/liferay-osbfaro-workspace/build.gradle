@@ -1,263 +1,108 @@
-import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
-import com.bmuschko.gradle.docker.tasks.container.DockerRemoveContainer
-import com.bmuschko.gradle.docker.tasks.container.DockerStartContainer
-import com.bmuschko.gradle.docker.tasks.container.DockerStopContainer
-import com.bmuschko.gradle.docker.tasks.container.extras.DockerWaitHealthyContainer
-
-buildscript {
-	dependencies {
-		classpath group: "com.bmuschko", name: "gradle-docker-plugin", version: "6.7.0"
-		classpath group: "com.liferay", name: "com.liferay.gradle.plugins.app.docker", version: "1.0.17"
-	}
-
-	repositories {
-		File dir = rootProject.projectDir
-
-		while (dir != null) {
-			File tmpMavenRepositoryDir = new File(dir, ".m2-tmp")
-
-			if (tmpMavenRepositoryDir.exists()) {
-				maven {
-					url tmpMavenRepositoryDir
-
-					println tmpMavenRepositoryDir
-				}
-			}
-
-			dir = dir.getParentFile();
-		}
-
-		maven {
-			url "https://repository-cdn.liferay.com/nexus/content/groups/public"
-		}
-	}
-}
-
-apply plugin: "com.liferay.app.docker"
-apply plugin: "com.liferay.root.defaults.plugin"
-
-task buildNexusCredentials(type: Exec)
-task checkDocker(type: DockerWaitHealthyContainer)
-task copyDatabaseConnector(type: Copy)
-task copyDockerResources(type: Copy)
-task createDocker(type: DockerCreateContainer)
-task removeDocker(type: DockerRemoveContainer)
-task startDocker(type: DockerStartContainer)
-task stopDocker(type: DockerStopContainer)
-
-def dockerContainerId = "faro"
-
 ext.faroEnvironmentName = System.getenv().get("FARO_ENVIRONMENT_NAME") ?: "local"
-ext.faroImageTag = project.hasProperty("docker.image.tag") ? project.getProperty("docker.image.tag") : "latest"
+ext.faroImageTag = project.findProperty("docker.image.tag") ?: "latest"
 
-appDocker {
-	imageName "liferay/com-liferay-osb-faro"
-	imageTags = [faroEnvironmentName.equals("prd") ? "prd-" + new Date().format("yyyyMMdd") : faroImageTag]
-	inputDir = faroEnvironmentName.equals("local") ? (System.getProperty("liferay.ci") != "true") ? "osb-faro-docker/local/dev" : "osb-faro-docker/local/test" : "osb-faro-docker/" + faroEnvironmentName
 
-	onlyIf {
-		false
+buildDockerImage {
+	def tag = faroEnvironmentName == "prd" ? "prd-" + new Date().format("yyyyMMdd") : faroImageTag
+
+	buildArgs = ["FARO_ENVIRONMENT_NAME": faroEnvironmentName]
+	images = ["liferay/com-liferay-osb-faro:${tag}"]
+}
+
+task buildTheme(type: Exec)
+
+buildTheme {
+	dependsOn yarnInstall
+	environment "PATH", "${project.buildDir}/node/bin:${System.getenv('PATH') ?: ''}"
+	commandLine "${project.buildDir}/node/bin/node",
+	"${project.buildDir}/node/lib/node_modules/npm/bin/npm-cli.js",
+	"run", "build"
+	workingDir "modules/osb-faro-theme"
+}
+
+createDockerfile {
+	doFirst {
+		file("Dockerfile.ext").text = file(faroEnvironmentName == "local" ? "docker/local/Dockerfile.ext" : "docker/cloud/Dockerfile.ext").text
 	}
 }
 
-buildAppDockerImage {
-	mustRunAfter copyDockerResources
-}
+dockerDeploy {
+	dependsOn buildTheme
 
-buildNexusCredentials {
-	commandLine("/bin/sh", "-c", "./set_nexus_credentials.sh")
-
-	onlyIf {
-		faroEnvironmentName.equals("local") && (System.getProperty("liferay.ci") != "true")
-	}
-}
-
-checkDocker {
-	targetContainerId {
-		dockerContainerId
-	}
-}
-
-copyDatabaseConnector {
-	from "../../../../../lib/development/mysql.jar"
-	into "osb-faro-docker/local/common/resources/lib"
-
-	onlyIf {
-		faroEnvironmentName.equals("local")
-	}
-}
-
-copyDockerResources {
-	from "osb-faro-docker/" + faroEnvironmentName + "/common"
-	into "${buildDir}/docker/common"
-}
-
-createDocker {
-	dependsOn buildAppDockerImage, removeDocker
-
-	containerName = dockerContainerId
-	hostConfig.portBindings = ["8000:8000", "8080:8080", "11311:11311"]
-
-	targetImageId {
-		appDocker.imageName
-	}
-
-	def envFile = file("${rootDir}/local.env")
-
-	if (envFile.exists()) {
-		def props = new Properties()
-
-		envFile.withInputStream {
-			props.load(it)
+	doLast {
+		copy {
+			from "modules/osb-faro-theme/dist"
+			include "*.war"
+			into "${buildDir}/docker/deploy"
 		}
 
-		props.each{
-			withEnvVar(it.key, it.value)
+		copy {
+			from "docker"
+			exclude "cloud"
+			exclude "100_liferay_image_setup.sh"
+			into "${buildDir}/docker/docker"
+		}
+
+		copy {
+			from "docker/100_liferay_image_setup.sh"
+			into "${buildDir}/docker"
+		}
+
+		if (faroEnvironmentName != "local") {
+			copy {
+				from "docker/cloud"
+				into "${buildDir}/docker/docker"
+			}
 		}
 	}
 }
 
-buildAppDockerImage {
-	images.add(appDocker.imageName + ":" + appDocker.imageTags[0])
+def buildUserProperties = new Properties()
 
-	def LABEL_BUILD_DATE = ('git log -1 --format=%cd').execute().text.trim()
-	def LABEL_VCS_REF = ('git rev-parse --short=7 HEAD').execute().text.trim()
-	buildArgs = ['LABEL_BUILD_DATE': LABEL_BUILD_DATE, 'LABEL_VCS_REF': LABEL_VCS_REF]
-}
+def buildUserPropertiesFile = new File(rootProject.projectDir, "../../build.${System.getProperty('user.name')}.properties")
 
-docker {
-	registryCredentials {
-		password = System.getenv("DOCKER_PASSWORD")
-		username = System.getenv("DOCKER_USERNAME")
+if (buildUserPropertiesFile.exists()) {
+	buildUserPropertiesFile.withInputStream {
+		buildUserProperties.load(it)
 	}
 }
 
-prepareAppDockerImageInputDir {
-	dependsOn buildNexusCredentials, copyDatabaseConnector
-	finalizedBy copyDockerResources
+allprojects {
+	repositories {
+		maven {
+			url new File(rootProject.projectDir, "../../.m2-tmp")
+		}
 
-	rename {
-		String fileName ->
+		if (buildUserProperties["build.repository.private.url"]) {
+			maven {
+				credentials {
+					password buildUserProperties["build.repository.private.password"] ?: ""
+					username buildUserProperties["build.repository.private.username"] ?: ""
+				}
 
-		if (fileName.endsWith(".jar")) {
-			int pos = fileName.indexOf('-')
-
-			if (pos != -1) {
-				fileName = fileName.substring(0, pos) + ".jar"
+				url buildUserProperties["build.repository.private.url"]
 			}
 		}
 
-		fileName
-	}
-}
-
-pushAppDockerImage {
-	enabled = false
-}
-
-removeDocker {
-	force = true
-
-	onError {
-	}
-
-	targetContainerId {
-		dockerContainerId
-	}
-}
-
-startDocker {
-	finalizedBy {
-		checkDocker
-	}
-
-	targetContainerId {
-		dockerContainerId
-	}
-}
-
-stopDocker {
-	onError {
-	}
-
-	targetContainerId {
-		dockerContainerId
-	}
-}
-
-configure(project(":dxp:apps:osb:osb-faro:osb-faro-dependencies")) {
-	task copyCloudResources(type: Copy)
-
-	String deployDir = "../osb-faro-docker/cloud/modules"
-
-	copyCloudResources {
-		doFirst {
-			delete file(deployDir)
-		}
-
-		from configurations.compileOnly
-		into deployDir
-	}
-}
-
-configure(project(":dxp:apps:osb:osb-faro:osb-faro-dependencies")) {
-	task copyWedeployResources(type: Copy)
-	task wedeploy(type: Exec)
-
-	String deployDir = "../wedeploy/" + faroEnvironmentName + "/deploy"
-
-	copyWedeployResources {
-		doFirst {
-			delete file(deployDir)
-		}
-
-		from configurations.compileOnly
-		into deployDir
-	}
-
-	wedeploy {
-		args "deploy", "--project", "ac-" + faroEnvironmentName
-		dependsOn copyWedeployResources
-		executable = "lcp"
-		workingDir "../wedeploy/".concat(faroEnvironmentName)
+		mavenCentral()
 	}
 }
 
 subprojects {
-	afterEvaluate {
-		task moveToDocker(type: Exec)
-
-		deploy {
-			doFirst {
-				delete file(liferay.deployDir)
-			}
-
-			finalizedBy moveToDocker
-
-			liferay {
-				deployDir = new File("${rootDir}/dxp/apps/osb/osb-faro/build/deploy")
-			}
-		}
-
-		moveToDocker {
-			commandLine "docker", "cp", "-a", liferay.deployDir, dockerContainerId + ":/opt/liferay"
-		}
-	}
-
 	tasks.all {
 		Task task ->
-
 		if (task.name == "baseline") {
 			enabled = false
-		}
-		else if (task.name == "deployDependencies") {
-			prepareAppDockerImageInputDir {
-				from task.inputs.files
-			}
 		}
 	}
 
 	tasks.withType(Test) {
 		maxHeapSize = "4096m"
+	}
+}
+
+project(":modules:osb-faro-contacts-demo") {
+	tasks.all {
+		enabled = false
 	}
 }
