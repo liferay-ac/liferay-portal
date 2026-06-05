@@ -1,75 +1,93 @@
-# Faro
+# OSB Faro Workspace
 
-[![Build Status](https://travis-ci.com/liferay/com-liferay-osb-faro-private.svg?token=a43XxxAet6usa4DRSqNr&branch=7.1.x)](https://travis-ci.com/liferay/com-liferay-osb-faro-private)
-[![Coverage Status](https://coveralls.io/repos/github/liferay/com-liferay-osb-faro-private/badge.svg?branch=7.1.x&t=Qnhecp)](https://coveralls.io/github/liferay/com-liferay-osb-faro-private?branch=7.1.x)
+## Folder Structure
 
-## Prerequisites
+```
+osb-faro-workspace
+├── configs
+│   ├── common              # Applied to all environments
+│   ├── local               # Local development overrides
+│   └── cloud               # Staging/integration/production overrides
+├── docker
+│   ├── 100_liferay_image_setup.sh  # Startup script (selects config by FARO_ENVIRONMENT_NAME)
+│   ├── context.xml
+│   ├── healthcheck.sh
+│   ├── log4j               # DEBUG-level log4j configs (local)
+│   ├── rewrite.config
+│   ├── system-ext.properties
+│   └── cloud
+│       └── log4j           # INFO-level log4j configs (cloud builds)
+├── modules
+│   └── osb/osb-faro        # OSGi modules
+├── themes
+├── Dockerfile.ext           # Docker image extensions (ENV, EXPOSE, COPY, RUN)
+├── build.gradle
+├── gradle.properties
+└── Jenkinsfile
+```
 
-Download Docker for [Mac](https://www.docker.com/docker-mac) or [Windows](https://www.docker.com/docker-windows). If you are running Windows,
-make sure "Expose daemon on tcp://localhost:2375 without TLS" on the "General" page in Settings is checked.
+## Environment Variable
 
-### Running Experience Cloud
+All Docker build and runtime behaviour is controlled by a single variable:
 
-1. Start Docker.
+| Value | Description |
+|---------|--------------------------------------------------|
+| `local` | Default. Uses `configs/local/`. Debug log level. |
+| `stg` | Cloud build. Uses `configs/cloud/`. Info log level. |
+| `int` | Cloud build. Uses `configs/cloud/`. Info log level. |
+| `prd` | Cloud build. Uses `configs/cloud/`. Info log level. Image tagged `prd-YYYYMMDD`. |
 
-1. Create the docker image: `./gradlew createDocker` (You only need to do this once).
+## Building the Docker Image
 
-1. Start the image: `./gradlew startDocker`.
+### Local
 
-#### Building Local Docker Image
+```bash
+./gradlew dockerDeploy buildDockerImage
+```
 
-1. Install 1Password.
+Produces `liferay/com-liferay-osb-faro:latest`.
 
-1. Install 1Password [CLI](https://developer.1password.com/docs/cli/get-started/#install).
+### Cloud environment
 
-1. Turn on [Integrate with 1Password CLI](https://developer.1password.com/docs/cli/get-started/#step-2-turn-on-the-1password-desktop-app-integration) in 1Password.
+```bash
+FARO_ENVIRONMENT_NAME=stg ./gradlew dockerDeploy buildDockerImage
+```
 
-1. Run `./gradlew buildAppDockerImage`
+Produces `liferay/com-liferay-osb-faro:latest`.
 
-#### Redeploying Faro Apps
+### Production (date-stamped tag)
 
-1. Navigate to root directory of `com-liferay-osb-faro-private`.
+```bash
+FARO_ENVIRONMENT_NAME=prd ./gradlew dockerDeploy buildDockerImage
+```
 
-1. Run `./gradlew deploy`.
+Produces `liferay/com-liferay-osb-faro:prd-YYYYMMDD`.
 
-#### Running Frontend Development Server
+### Custom tag
 
-1. Run `./gradlew packageRunStart`.
+```bash
+./gradlew dockerDeploy buildDockerImage -Pdocker.image.tag=my-tag
+```
 
-1. Then open [http://localhost:3000](http://localhost:3000).
+## CI/CD
 
-#### Frontend Architecture
+The `Jenkinsfile` at the workspace root drives the CI pipeline. It:
 
-If you are new to the project, here is a non exhaustive list of the technologies we are using. It is important to be familiar
-with them if you are going to contribute:
+1. Runs `./gradlew dockerDeploy` with `FARO_ENVIRONMENT_NAME=$FARO_ENVIRONMENT`
 
-* [Typescript](https://www.typescriptlang.org/) as our programming language.
-* [Apollo](https://www.apollographql.com/) for our graphql implementation.
-* [Redux](https://redux.js.org/) for state management.
-* [React](https://reactjs.org/) for our view layer.
-* [Webpack](https://webpack.js.org/) for bundling and fast re-deploying.
-* [Babel](https://babeljs.io/) so we can write modern Javascript.
-* [Jest](https://facebook.github.io/jest/) as our unit-testing framework.
-* [Testing-Library/React](https://testing-library.com/docs/react-testing-library/intro/) as our testing utilities.
-* [Sass](https://sass-lang.com/) as our CSS pre-processor.
-* [Clay](https://clayui.com/) as our CSS and markup foundation.
-* [Lodash](https://lodash.com/) as our JS utility library.
-* [Prettier](https://prettier.io/) to format our code.
-* [ESLint](https://eslint.org/) as our linter.
-* [MJML](https://mjml.io/) as our email framework.
+1. Injects the license into `build/docker/deploy/license.xml`
 
-Our code is organized into components and pages. Components are resuable views, and pages are specialized components that are mapped to a URL
-using `react-router`. Most of our components are located under `shared`. Our pages will be under another directory that relates to
-a sub-application in Faro. Right now there are these: `assets`, `contacts`, `event-analysis`, `experiments`, `settings`, `sites`, `test`, `touchpoints`, and `ui-kit`.
+1. Builds the Docker image with `FARO_ENVIRONMENT_NAME`, `LABEL_BUILD_DATE`, and `LABEL_VCS_REF` as build args
 
-#### Pull Requests
+1. Scans with Prisma Cloud
 
-Before you open your pull request, make sure you have these:
+1. Pushes to DockerHub as `liferaycloud/com-liferay-osb-faro:<tag>`
 
-* Commit messages that are linked back to a ticket or story on [Jira](https://issues.liferay.com).
-* Unit tests (if applicable, and they generally are...).
-* All unit tests passing: `./gradlew packageRunTest`.
-* Beautifully formatted code: `./gradlew formatSource`.
+## Gradle Properties
 
-After submitting your PR, Github will automatically add reviewers. They will either approve your pull request, or leave a review and request some changes. Feel free
-to ask questions and clarify, as this is a collaborative process. It's common for most pull requests to have changes requested, so don't sweat it.
+See `gradle.properties` for active settings. Key property:
+
+#### `liferay.workspace.product`
+
+Pins the DXP version used for the bundle URL, Docker base image, and target platform.
+Current value: `dxp-2026.q1.5-lts`.
