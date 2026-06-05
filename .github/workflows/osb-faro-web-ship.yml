@@ -1,0 +1,223 @@
+name: osb-faro-web ship to liferay-ac
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  ship:
+    if: |
+      github.event.issue.pull_request != null &&
+      (github.event.comment.body == '/pr' || startsWith(github.event.comment.body, '/pr ')) &&
+      github.event.comment.user.login == github.event.issue.user.login
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Determine whether a checkout is needed
+        id: target
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          set -uo pipefail
+
+          target_branch="master"
+
+          if [ "$COMMENT_BODY" != "/pr" ]; then
+            args="${COMMENT_BODY#/pr }"
+            for token in $args; do
+              case "$token" in
+                --no-ci-forward|--force) ;;
+                *) target_branch="$token" ;;
+              esac
+            done
+          fi
+
+          if [ "$target_branch" = "master" ]; then
+            echo "needs_checkout=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_checkout=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout (only for cherry-pick onto a non-master branch)
+        if: steps.target.outputs.needs_checkout == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Ship to liferay-ac
+        env:
+          FORK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPSTREAM_TOKEN: ${{ secrets.LIFERAY_AC_PR_TOKEN }}
+          PR: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          set -uo pipefail
+
+          target_branch="master"
+          ci_forward=true
+          force=false
+
+          if [ "$COMMENT_BODY" != "/pr" ]; then
+            args="${COMMENT_BODY#/pr }"
+            for token in $args; do
+              case "$token" in
+                --no-ci-forward) ci_forward=false ;;
+                --force) force=true ;;
+                *) target_branch="$token" ;;
+              esac
+            done
+          fi
+
+          export GH_TOKEN="$FORK_TOKEN"
+          gh pr view "$PR" --repo "$REPO" --json title,body,headRefName,baseRefName,labels,state > /tmp/pr.json
+
+          state=$(jq -r '.state' /tmp/pr.json)
+          base=$(jq -r '.baseRefName' /tmp/pr.json)
+          branch=$(jq -r '.headRefName' /tmp/pr.json)
+
+          if [ "$state" != "OPEN" ]; then
+            gh pr comment "$PR" --repo "$REPO" --body "$(cat <<MSG
+          > [!WARNING]
+          > Cannot ship: PR is not open (state: $state).
+          MSG
+          )"
+            exit 1
+          fi
+
+          if [ "$base" != "master" ]; then
+            gh pr comment "$PR" --repo "$REPO" --body "$(cat <<MSG
+          > [!WARNING]
+          > Cannot ship: PR base is \`$base\`, expected \`master\`.
+          MSG
+          )"
+            exit 1
+          fi
+
+          if [ "$force" != "true" ]; then
+            has_tests=$(jq -r '.labels[] | select(.name == "unit tests passed") | .name' /tmp/pr.json)
+
+            if [ -z "$has_tests" ]; then
+              gh pr comment "$PR" --repo "$REPO" --body "$(cat <<MSG
+          > [!WARNING]
+          > Cannot ship: the \`unit tests passed\` label is required. Wait for CI to finish, or use \`--force\` to bypass.
+          MSG
+          )"
+              exit 1
+            fi
+          fi
+
+          if [ "$target_branch" = "master" ]; then
+            head_branch="$branch"
+          else
+            head_branch="${branch}-onto-${target_branch}"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git remote add upstream "https://x-access-token:${UPSTREAM_TOKEN}@github.com/liferay-ac/liferay-portal.git"
+
+            git fetch origin master "$branch" 2>/dev/null
+
+            if ! git fetch upstream "$target_branch" 2>/tmp/fetch-error.log; then
+              error_msg=$(cat /tmp/fetch-error.log)
+              export GH_TOKEN="$FORK_TOKEN"
+              gh pr comment "$PR" --repo "$REPO" --body "$(cat <<MSG
+          > [!CAUTION]
+          > Failed to ship: could not fetch target branch \`$target_branch\` from \`liferay-ac/liferay-portal\`.
+          >
+          > \`\`\`
+          > $error_msg
+          > \`\`\`
+          MSG
+          )"
+              exit 1
+            fi
+
+            commits=$(git rev-list --no-merges --reverse "origin/master..origin/$branch")
+
+            if [ -z "$commits" ]; then
+              export GH_TOKEN="$FORK_TOKEN"
+              gh pr comment "$PR" --repo "$REPO" --body "$(cat <<MSG
+          > [!CAUTION]
+          > Failed to ship: branch \`$branch\` has no commits beyond \`origin/master\`. Nothing to cherry-pick onto \`$target_branch\`.
+          MSG
+          )"
+              exit 1
+            fi
+
+            git checkout -B "$head_branch" "upstream/$target_branch"
+
+            for c in $commits; do
+              if ! git cherry-pick "$c" 2>/tmp/cp-error.log; then
+                error_msg=$(cat /tmp/cp-error.log)
+                git cherry-pick --abort 2>/dev/null || true
+                export GH_TOKEN="$FORK_TOKEN"
+                gh pr comment "$PR" --repo "$REPO" --body "$(cat <<MSG
+          > [!CAUTION]
+          > Failed to ship: cherry-pick of commit \`$c\` onto \`$target_branch\` had a conflict.
+          >
+          > \`\`\`
+          > $error_msg
+          > \`\`\`
+          MSG
+          )"
+                exit 1
+              fi
+            done
+
+            git push --force-with-lease origin "$head_branch"
+          fi
+
+          export GH_TOKEN="$UPSTREAM_TOKEN"
+          existing=$(gh pr list --repo liferay-ac/liferay-portal --head "interaminense:$head_branch" --base "$target_branch" --state open --json url --jq '.[0].url // ""')
+
+          if [ -n "$existing" ]; then
+            export GH_TOKEN="$FORK_TOKEN"
+            gh pr comment "$PR" --repo "$REPO" --body "$(cat <<MSG
+          > [!WARNING]
+          > Cannot ship: an upstream PR for branch \`$head_branch\` against base \`$target_branch\` already exists at $existing
+          MSG
+          )"
+            exit 1
+          fi
+
+          export GH_TOKEN="$UPSTREAM_TOKEN"
+          title=$(jq -r '.title' /tmp/pr.json)
+          jq -r '.body' /tmp/pr.json > /tmp/body.txt
+          if ! upstream_url=$(gh pr create --repo liferay-ac/liferay-portal --head "interaminense:$head_branch" --base "$target_branch" --title "$title" --body-file /tmp/body.txt 2>/tmp/gh-error.log); then
+            error_msg=$(cat /tmp/gh-error.log)
+            export GH_TOKEN="$FORK_TOKEN"
+            gh pr comment "$PR" --repo "$REPO" --body "$(cat <<MSG
+          > [!CAUTION]
+          > Failed to ship: could not create PR in \`liferay-ac/liferay-portal\` with base \`$target_branch\`.
+          >
+          > \`\`\`
+          > $error_msg
+          > \`\`\`
+          MSG
+          )"
+            exit 1
+          fi
+
+          fork_pr_url="https://github.com/$REPO/pull/$PR"
+
+          gh pr comment "$upstream_url" --body "$(cat <<MSG
+          > [!IMPORTANT]
+          > All checks passed from $fork_pr_url :rocket:!
+          MSG
+          )"
+
+          if [ "$ci_forward" = "true" ]; then
+            gh pr comment "$upstream_url" --body "ci:forward"
+          fi
+
+          export GH_TOKEN="$FORK_TOKEN"
+          gh pr close "$PR" --repo "$REPO" --comment "$(cat <<MSG
+          > [!IMPORTANT]
+          > Shipped upstream at $upstream_url. Closing this fork PR.
+          MSG
+          )"

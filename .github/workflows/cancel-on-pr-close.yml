@@ -1,0 +1,30 @@
+name: Cancel runs on PR close
+
+on:
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel in-progress and queued runs for this PR branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          CURRENT_RUN: ${{ github.run_id }}
+        run: |
+          set -uo pipefail
+
+          for status in in_progress queued; do
+            gh run list --repo "$REPO" --branch "$BRANCH" --status "$status" --json databaseId --jq '.[].databaseId' \
+              | while read -r run_id; do
+                if [ -n "$run_id" ] && [ "$run_id" != "$CURRENT_RUN" ]; then
+                  echo "Cancelling $status run $run_id"
+                  gh run cancel "$run_id" --repo "$REPO" || true
+                fi
+              done
+          done

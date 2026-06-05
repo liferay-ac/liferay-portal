@@ -1,0 +1,70 @@
+name: Sync fork master with liferay
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 10,16 * * *"  # 07:00 and 13:00 BRT (UTC-3)
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync from upstream, preserve fork-only commits
+        run: |
+          set -euo pipefail
+
+          git remote add upstream https://github.com/liferay/liferay-portal.git
+          git fetch --no-tags upstream master
+
+          upstream_sha=$(git rev-parse upstream/master)
+          current_base=$(git merge-base master upstream/master)
+
+          if [ "$current_base" = "$upstream_sha" ]; then
+            echo "Already in sync with upstream"
+            exit 0
+          fi
+
+          extra_commits=$(git log --reverse --format=%H upstream/master..master)
+
+          if [ -z "$extra_commits" ]; then
+            echo "No fork-only commits; fast-forwarding to upstream"
+            git reset --hard upstream/master
+            git push --force-with-lease origin master
+            exit 0
+          fi
+
+          echo "Resetting to upstream/master and replaying fork commits:"
+          echo "$extra_commits"
+          git reset --hard upstream/master
+
+          for sha in $extra_commits; do
+            echo "Cherry-picking $sha"
+            git cherry-pick "$sha" || {
+              echo "::error::Cherry-pick of $sha failed. Manual intervention needed."
+              git cherry-pick --abort || true
+              exit 1
+            }
+          done
+
+          git push --force-with-lease origin master
+
+  keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1.2.1

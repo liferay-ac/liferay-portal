@@ -1,0 +1,239 @@
+name: osb-faro-web checks
+
+on:
+  pull_request_target:
+    branches:
+      - master
+    paths:
+      - 'workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/**'
+
+concurrency:
+  group: faro-web-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: workspaces/liferay-osbfaro-workspace
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+          cache-dependency-path: workspaces/liferay-osbfaro-workspace/yarn.lock
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn workspace osb-faro-web test
+
+      - name: Label and comment on tests success
+        if: success()
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR" --repo "$REPO" --remove-label "unit tests failed" || true
+          gh pr edit "$PR" --repo "$REPO" --add-label "unit tests passed"
+          gh pr comment "$PR" --repo "$REPO" --body "$(cat <<'EOF'
+          > [!TIP]
+          > **Unit tests passed** — all `yarn test` cases are green.
+          EOF
+          )"
+
+      - name: Label and comment on tests failure
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          XML_PATH: workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/TEST-frontend-js.xml
+        run: |
+          cat > "$RUNNER_TEMP/parse.mjs" <<'PARSER'
+          /**
+           * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
+           * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
+           */
+
+          /**
+           * Reads the JUnit XML emitted by @liferay/jest-junit-reporter (TEST-frontend-js.xml)
+           * and prints a Markdown summary of the failing tests to stdout, for posting as a
+           * pull request comment. Falls back to a generic message when no failing testcases
+           * can be parsed (for example, the run crashed before producing a report).
+           *
+           * Usage: XML_PATH=path/to/TEST-frontend-js.xml node faro-web-test-failures.mjs
+           */
+
+          import {readFileSync} from 'fs';
+
+          const MAX_COMMENT = 60000;
+          const MAX_DETAIL = 2000;
+          const MAX_SUMMARY = 300;
+
+          const xmlPath = process.env.XML_PATH || process.argv[2];
+
+          function decodeEntities(value) {
+          	return value
+          		.replace(/&lt;/g, '<')
+          		.replace(/&gt;/g, '>')
+          		.replace(/&quot;/g, '"')
+          		.replace(/&apos;/g, "'")
+          		.replace(/&amp;/g, '&');
+          }
+
+          // The reporter dots the absolute directory path. Keep the part from "src" on and
+          // turn it back into a slash path so the location reads like a directory again.
+
+          function cleanLocation(classname) {
+          	const index = classname.indexOf('.src.');
+          	const tail = index >= 0 ? classname.slice(index + 1) : classname;
+
+          	return tail.replace(/\./g, '/');
+          }
+
+          // Drop the jest internal stack frames so the detail shows the assertion and the
+          // test's own frames, not the runner's plumbing.
+
+          function trimStack(detail) {
+          	return detail
+          		.split('\n')
+          		.filter((line) => !/^\s*at .*\/node_modules\//.test(line))
+          		.join('\n')
+          		.trim();
+          }
+
+          let xml = '';
+
+          try {
+          	xml = readFileSync(xmlPath, 'utf8');
+          }
+          catch {
+
+          	// Leave xml empty so the fallback message is emitted below.
+
+          }
+
+          const failures = [];
+          const testcaseRegExp = /<testcase\b([^>]*)>([\s\S]*?)<\/testcase>/g;
+
+          let match;
+
+          while ((match = testcaseRegExp.exec(xml)) !== null) {
+          	const attributes = match[1];
+          	const failureMatch = match[2].match(
+          		/<failure\b([^>]*)>([\s\S]*?)<\/failure>/
+          	);
+
+          	if (!failureMatch) {
+          		continue;
+          	}
+
+          	const classnameMatch = attributes.match(/\bclassname="([^"]*)"/);
+          	const messageMatch = failureMatch[1].match(/\bmessage="([^"]*)"/);
+          	const nameMatch = attributes.match(/\bname="([^"]*)"/);
+
+          	failures.push({
+          		detail: trimStack(decodeEntities(failureMatch[2])),
+          		location: classnameMatch
+          			? cleanLocation(decodeEntities(classnameMatch[1]))
+          			: '',
+          		message: messageMatch ? decodeEntities(messageMatch[1]) : '',
+          		name: nameMatch ? decodeEntities(nameMatch[1]) : '(unknown test)',
+          	});
+          }
+
+          if (failures.length === 0) {
+          	process.stdout.write(
+          		[
+          			'> [!CAUTION]',
+          			'> **Unit tests failed** — `yarn test` reported a failure, but no ' +
+          				'individual failing tests could be parsed (the run may have ' +
+          				'crashed before producing results). Check the workflow logs.',
+          			'',
+          		].join('\n')
+          	);
+
+          	process.exit(0);
+          }
+
+          const plural = failures.length === 1 ? '' : 's';
+          const lines = [
+          	'> [!CAUTION]',
+          	`> **Unit tests failed** — ${failures.length} failing test${plural}. Fix ` +
+          		'locally with `yarn workspace osb-faro-web test` and push again.',
+          	'',
+          	`**Failing test${plural}:**`,
+          	'',
+          ];
+
+          for (const failure of failures) {
+          	const summary = failure.message.split('\n')[0].slice(0, MAX_SUMMARY);
+
+          	lines.push(`- **${failure.name}**${summary ? ` — \`${summary}\`` : ''}`);
+          }
+
+          let body = lines.join('\n');
+
+          const detailChunks = [];
+
+          let remaining = MAX_COMMENT - body.length - 100;
+
+          for (const failure of failures) {
+          	const header = failure.location
+          		? `${failure.location}\n${failure.name}`
+          		: failure.name;
+          	const chunk = `${header}\n\n${failure.detail.slice(0, MAX_DETAIL)}`;
+
+          	if (chunk.length > remaining) {
+          		detailChunks.push('... (remaining failure details truncated)');
+
+          		break;
+          	}
+
+          	remaining -= chunk.length;
+
+          	detailChunks.push(chunk);
+          }
+
+          if (detailChunks.length) {
+          	body +=
+          		'\n\n<details><summary>Failure details</summary>\n\n```text\n' +
+          		detailChunks.join('\n\n') +
+          		'\n```\n\n</details>';
+          }
+
+          process.stdout.write(body + '\n');
+          PARSER
+          node "$RUNNER_TEMP/parse.mjs" > "$RUNNER_TEMP/tests-comment.md"
+          gh pr edit "$PR" --repo "$REPO" --remove-label "unit tests passed" || true
+          gh pr edit "$PR" --repo "$REPO" --add-label "unit tests failed"
+          gh pr comment "$PR" --repo "$REPO" --body-file "$RUNNER_TEMP/tests-comment.md"
+
+  pr-ready:
+    needs: [unit-tests]
+    if: success()
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment ready for /pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr comment "$PR" --repo "$REPO" --body "$(cat <<'EOF'
+          > [!IMPORTANT]
+          > All checks passed :tada:. You can now comment /pr to send this PR upstream to liferay-ac/liferay-portal.
+          EOF
+          )"
