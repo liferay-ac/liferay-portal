@@ -47,7 +47,7 @@ import org.osgi.service.component.annotations.Component;
 /**
  * @author Matthew Kong
  */
-@Component(service = {FaroController.class, IndividualFaroController.class})
+@Component(service = FaroController.class)
 @Path("/{groupId}/individual")
 @Produces(MediaType.APPLICATION_JSON)
 public class IndividualFaroController extends BaseFaroController {
