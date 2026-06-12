@@ -106,7 +106,8 @@ export default request => {
 		if (status === 204) {
 			return {};
 		} else if (status === 400 || status === 500) {
-			const {field, localizedMessage, messageKey} = await response.json();
+			const {field, localizedMessage, messageKey} =
+				parseFromJSON(await response.text()) || {};
 
 			if (field) {
 				throw new ValidationError(field, localizedMessage);
