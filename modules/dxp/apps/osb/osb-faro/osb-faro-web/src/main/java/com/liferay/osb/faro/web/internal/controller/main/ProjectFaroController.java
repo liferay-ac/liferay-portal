@@ -1448,11 +1448,11 @@ public class ProjectFaroController extends BaseFaroController {
 
 				usageMetrics.add(
 					new UsageMetric(
-						GetterUtil.getString(objects[1]),
-						GetterUtil.getLong(objects[0]),
+						1000, 1000, 5, 5, GetterUtil.getString(objects[1]),
+						100000, GetterUtil.getLong(objects[0]),
 						GetterUtil.getLong(tuple.getObject(0)),
 						GetterUtil.getLong(objects[2]),
-						GetterUtil.getLong(tuple.getObject(1))));
+						GetterUtil.getLong(tuple.getObject(1)), 3));
 			}
 		}
 
