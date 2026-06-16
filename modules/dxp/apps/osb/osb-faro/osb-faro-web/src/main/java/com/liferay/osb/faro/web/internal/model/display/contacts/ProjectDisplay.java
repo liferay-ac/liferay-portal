@@ -102,6 +102,14 @@ public class ProjectDisplay {
 		return _state;
 	}
 
+	public List<UsageMetricSummary> getUsageMetrics() {
+		return _usageMetrics;
+	}
+
+	public String getWeDeployKey() {
+		return _weDeployKey;
+	}
+
 	public void setDataSourceAccessToken(String dataSourceAccessToken) {
 		_dataSourceAccessToken = dataSourceAccessToken;
 	}
@@ -126,6 +134,14 @@ public class ProjectDisplay {
 		}
 	}
 
+	public void setUsageMetrics(List<UsageMetricSummary> usageMetrics) {
+		_usageMetrics = usageMetrics;
+	}
+
+	public void setWeDeployKey(String weDeployKey) {
+		_weDeployKey = weDeployKey;
+	}
+
 	private static final Log _log = LogFactoryUtil.getLog(ProjectDisplay.class);
 
 	private String _accountKey;
@@ -145,6 +161,8 @@ public class ProjectDisplay {
 	private Date _stateEndDate;
 	private Date _stateStartDate;
 	private TimeZoneDisplay _timeZoneDisplay;
+	private List<UsageMetricSummary> _usageMetrics;
 	private long _userId;
+	private String _weDeployKey;
 
 }

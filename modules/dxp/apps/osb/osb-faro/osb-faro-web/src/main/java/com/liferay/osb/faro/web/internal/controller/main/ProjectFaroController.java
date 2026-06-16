@@ -46,6 +46,7 @@ import com.liferay.osb.faro.web.internal.model.display.contacts.ProjectDisplay;
 import com.liferay.osb.faro.web.internal.model.display.contacts.ProjectUsageMetricDisplay;
 import com.liferay.osb.faro.web.internal.model.display.contacts.TimeZoneDisplay;
 import com.liferay.osb.faro.web.internal.model.display.contacts.UsageMetric;
+import com.liferay.osb.faro.web.internal.model.display.contacts.UsageMetricSummary;
 import com.liferay.osb.faro.web.internal.param.FaroParam;
 import com.liferay.osb.faro.web.internal.util.JSONUtil;
 import com.liferay.osb.faro.web.internal.util.TimeZoneUtil;
@@ -73,6 +74,7 @@ import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
@@ -599,7 +601,14 @@ public class ProjectFaroController extends BaseFaroController {
 				faroProject);
 		}
 
-		return _getProjectDisplay(faroProject);
+		ProjectDisplay projectDisplay = _getProjectDisplay(faroProject);
+
+		if (projectDisplay != null) {
+			projectDisplay.setUsageMetrics(_getMockUsageMetricSummaries());
+			projectDisplay.setWeDeployKey(faroProject.getWeDeployKey());
+		}
+
+		return projectDisplay;
 	}
 
 	@GET
@@ -1311,6 +1320,17 @@ public class ProjectFaroController extends BaseFaroController {
 
 		return language.get(
 			resourceBundle, "invalid-incident-report-email-addresses");
+	}
+
+	private List<UsageMetricSummary> _getMockUsageMetricSummaries() {
+
+		return ListUtil.fromArray(
+			new UsageMetricSummary(
+				1000, 5, 5, "2026-06-01", 100000, 0, 60, 1344, 142101, 3),
+			new UsageMetricSummary(
+				1000, 5, 5, "2026-05-01", 100000, 0, 60, 5072, 140757, 3),
+			new UsageMetricSummary(
+				1000, 5, 5, "2026-04-01", 100000, 0, 60, 4820, 135685, 3));
 	}
 
 	private String _getMonthDateKey(Date date) {
