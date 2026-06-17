@@ -150,8 +150,6 @@ export class FileDropTarget extends React.Component<IFileDropTargetProps> {
 		file: null,
 	};
 
-	private _uploader: any;
-
 	componentDidMount() {
 		const {fileTypes, uploadURL, useJaxRS} = this.props;
 
@@ -163,6 +161,8 @@ export class FileDropTarget extends React.Component<IFileDropTargetProps> {
 			useJaxRS,
 		}).render();
 	}
+
+	private _uploader: any;
 
 	@autobind
 	handleCancel() {

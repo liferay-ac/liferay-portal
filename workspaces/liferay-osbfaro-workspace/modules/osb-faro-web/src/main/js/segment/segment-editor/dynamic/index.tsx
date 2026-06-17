@@ -127,7 +127,6 @@ interface ISegmentEditorProps {
 
 class SegmentEditor extends React.Component<ISegmentEditorProps> {
 	static contextType = ReferencedObjectsContext;
-	declare context: React.ContextType<typeof ReferencedObjectsContext>;
 
 	static defaultProps = {
 		segment: new Segment(),
@@ -136,6 +135,8 @@ class SegmentEditor extends React.Component<ISegmentEditorProps> {
 	state = {
 		enabledSequentialSegment: false,
 	};
+
+	declare context: React.ContextType<typeof ReferencedObjectsContext>;
 
 	_defaultExternalReferenceCode = uuidv4();
 

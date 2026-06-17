@@ -33,15 +33,15 @@ export default class EntityDetailsList extends React.Component<IEntityDetailsLis
 		hideBlanks: false,
 	};
 
-	_detailsData: any;
-	_knownCount: any;
-
 	constructor(props: IEntityDetailsListProps) {
 		super(props);
 
 		this.getDetailsData();
 		this.getKnownCount();
 	}
+
+	_detailsData: any;
+	_knownCount: any;
 
 	@autobind
 	filterDetails({

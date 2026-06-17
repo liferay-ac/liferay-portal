@@ -103,8 +103,6 @@ class CriteriaGroup extends React.Component<ICriteriaGroupProps> {
 		root: false,
 	};
 
-	private NestedCriteriaGroupWithDrag: React.ComponentType<any>;
-
 	constructor(props: ICriteriaGroupProps) {
 		super(props);
 
@@ -112,6 +110,8 @@ class CriteriaGroup extends React.Component<ICriteriaGroupProps> {
 			CriteriaGroup
 		) as React.ComponentType<any>;
 	}
+
+	private NestedCriteriaGroupWithDrag: React.ComponentType<any>;
 
 	@autobind
 	handleConjunctionClick(event: React.MouseEvent) {

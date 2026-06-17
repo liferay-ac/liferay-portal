@@ -97,9 +97,6 @@ interface IBehaviorInputProps extends ISegmentEditorCustomInputBase {
 
 export class BehaviorInput extends React.Component<IBehaviorInputProps> {
 	static contextType = ReferencedObjectsContext;
-	declare context: React.ContextType<typeof ReferencedObjectsContext>;
-
-	_completedAnalytics = false;
 
 	componentDidUpdate() {
 		const {
@@ -115,6 +112,10 @@ export class BehaviorInput extends React.Component<IBehaviorInputProps> {
 			this._completedAnalytics = true;
 		}
 	}
+
+	_completedAnalytics = false;
+
+	declare context: React.ContextType<typeof ReferencedObjectsContext>;
 
 	@autobind
 	assetsDataFn({delta, orderIOMap, page, query}: {[key: string]: any}) {
