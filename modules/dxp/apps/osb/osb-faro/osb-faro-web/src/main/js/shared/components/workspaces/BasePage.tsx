@@ -96,10 +96,7 @@ export class WorkspacesBasePage extends React.Component<IWorkspacesBasePageProps
 					<DocumentTitle title={title} />
 
 					<div className='header-container'>
-						<ClayLink
-							href='https://liferay.com'
-							target='_blank'
-						>
+						<ClayLink href='https://liferay.com' target='_blank'>
 							<ClayIcon
 								className='icon-root liferay-logo'
 								symbol='liferay_logo'
