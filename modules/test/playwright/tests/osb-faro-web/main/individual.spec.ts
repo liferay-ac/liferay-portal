@@ -150,6 +150,72 @@ test(
 );
 
 test(
+	'A new individuals attribute breakdown can be deleted',
+	{
+		tag: '@LRAC-8658',
+	},
+	async ({apiHelpers, page}) => {
+		const individuals = [
+			generateIndividual({
+				name: 'bd' + getRandomString(),
+			}),
+		];
+
+		await test.step('Create new Individual', async () => {
+			await createIndividuals({
+				apiHelpers,
+				individuals,
+			});
+		});
+
+		const date = new Date();
+
+		await test.step('Create Individual Event', async () => {
+			const events = individuals.map((individual) => ({
+				applicationId: 'Page',
+				canonicalUrl: 'https://www.liferay.com',
+				channelId: channel.id,
+				eventDate: date.toISOString(),
+				eventId: 'pageViewed',
+				title: 'pageViewed',
+				userId: individual.id,
+			}));
+
+			await apiHelpers.jsonWebServicesOSBAsah.createEvents(events);
+		});
+
+		await test.step('Go to Individuals Dashboard', async () => {
+			await navigateToACPageViaURL({
+				acPage: ACPage.individualPage,
+				channelID: channel.id,
+				page,
+				projectID: project.groupId,
+			});
+		});
+
+		const attributeValue = getRandomString();
+
+		await test.step('Add a new breakdown', async () => {
+			await addBreakdownByAttribute({
+				attributeName: 'email',
+				attributeValue,
+				page,
+			});
+		});
+
+		await test.step('Remove the new breakdown', async () => {
+			await page.getByText(attributeValue).hover();
+
+			await page.getByRole('button', {name: 'Close'}).click();
+		});
+
+		await test.step('View the breakdown is deleted', async () => {
+			await expect(page.locator('.tab-item')).toHaveCount(0);
+		});
+	}
+);
+
+test(
 	'Distribution page can be filtered by a specific string',
 	{
 		tag: '@Legacy',
