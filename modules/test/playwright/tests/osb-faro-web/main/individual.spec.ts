@@ -216,6 +216,115 @@ test(
 );
 
 test(
+	'Individuals attribute breakdowns can be switched between tabs',
+	{
+		tag: '@LRAC-9000',
+	},
+	async ({apiHelpers, page}) => {
+		const individualName = 'det' + getRandomString();
+		const individuals = [
+			{
+				...generateIndividual({name: individualName}),
+				familyName: 'Smith',
+			},
+		];
+
+		await test.step('Create new Individual', async () => {
+			await createIndividuals({
+				apiHelpers,
+				individuals,
+			});
+		});
+
+		const date = new Date();
+
+		await test.step('Create Individual Event', async () => {
+			const events = individuals.map((individual) => ({
+				applicationId: 'Page',
+				canonicalUrl: 'https://www.liferay.com',
+				channelId: channel.id,
+				eventDate: date.toISOString(),
+				eventId: 'pageViewed',
+				title: 'Liferay',
+				userId: individual.id,
+			}));
+
+			await apiHelpers.jsonWebServicesOSBAsah.createEvents(events);
+		});
+
+		await test.step('Create Individual Session', async () => {
+			const sessions = individuals.map((individual) => ({
+				channelId: channel.id,
+				id: individual.id,
+				sessionEnd: date.toISOString(),
+				sessionStart: date.toISOString(),
+				userId: individual.id,
+			}));
+
+			await apiHelpers.jsonWebServicesOSBAsah.createSessions(sessions);
+		});
+
+		await test.step('Go to Individuals Dashboard', async () => {
+			await navigateToACPageViaURL({
+				acPage: ACPage.individualPage,
+				channelID: channel.id,
+				page,
+				projectID: project.groupId,
+			});
+		});
+
+		const emailValue = getRandomString();
+		const familyNameValue = getRandomString();
+
+		try {
+			await test.step('Add a breakdown by email', async () => {
+				await addBreakdownByAttribute({
+					attributeName: 'email',
+					attributeValue: emailValue,
+					page,
+				});
+			});
+
+			await test.step('Add a breakdown by last name', async () => {
+				await addBreakdownByAttribute({
+					attributeName: 'familyName',
+					attributeValue: familyNameValue,
+					page,
+				});
+			});
+
+			await test.step('Switch to the email breakdown tab and assert its data', async () => {
+				await page.getByText(emailValue).click();
+
+				await viewBreakdownRechartsData({
+					attributeValue: `${individualName}@liferay.com`,
+					maxCount: '1',
+					page,
+				});
+			});
+
+			await test.step('Switch to the last name breakdown tab and assert its data', async () => {
+				await page.getByText(familyNameValue).click();
+
+				await viewBreakdownRechartsData({
+					attributeValue: 'Smith',
+					maxCount: '1',
+					page,
+				});
+			});
+		}
+		finally {
+			for (const breakdownName of [emailValue, familyNameValue]) {
+				await apiHelpers.jsonWebServicesOSBFaro.deleteDistributionTab(
+					breakdownName.toLowerCase(),
+					project.groupId
+				);
+			}
+		}
+	}
+);
+
+test(
 	'Distribution page can be filtered by a specific string',
 	{
 		tag: '@Legacy',
