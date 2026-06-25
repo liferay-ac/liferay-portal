@@ -77,14 +77,6 @@ const AccountIndividuals: React.FC<IAccountIndividualsProps> = ({
 						id={FDS_ID}
 						pagination={pagination}
 						showPagination
-						sorts={[
-							{
-								active: true,
-								direction: 'desc',
-								key: 'lastActivityDate',
-								label: Liferay.Language.get('last-active')
-							}
-						]}
 						views={[
 							{
 								contentRenderer: 'table',
