@@ -20,7 +20,10 @@ import com.liferay.osb.faro.web.internal.model.display.FaroResultsDisplay;
 import com.liferay.osb.faro.web.internal.model.display.contacts.IndividualDisplay;
 import com.liferay.osb.faro.web.internal.param.FaroParam;
 import com.liferay.osb.faro.web.internal.search.FaroSearchContext;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.RoleConstants;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 
@@ -264,6 +267,15 @@ public class IndividualFaroController extends BaseFaroController {
 		FaroProject faroProject =
 			faroProjectLocalService.getFaroProjectByGroupId(groupId);
 
+		if (_log.isInfoEnabled()) {
+			_log.info(
+				StringBundler.concat(
+					"[LDP DEBUG] faro IndividualFaroController.search ",
+					"activityStatus=", activityStatus, ", profileTypes=",
+					profileTypes, ", rangeStart=", rangeStart, ", rangeEnd=",
+					rangeEnd, ", rangeKey=", rangeKey));
+		}
+
 		Results<Individual> results = contactsEngineClient.getIndividuals(
 			faroProject, accountId, activityStatus, channelId, dataSourceId,
 			FieldMappingConstants.getSearchFieldMappingNames(), filterString,
@@ -310,5 +322,8 @@ public class IndividualFaroController extends BaseFaroController {
 	}
 
 	private static final int[] _ENTITY_TYPES = {FaroConstants.TYPE_INDIVIDUAL};
+
+	private static final Log _log = LogFactoryUtil.getLog(
+		IndividualFaroController.class);
 
 }

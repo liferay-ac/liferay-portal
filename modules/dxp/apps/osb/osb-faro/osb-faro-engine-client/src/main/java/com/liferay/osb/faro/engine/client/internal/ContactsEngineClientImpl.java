@@ -83,6 +83,8 @@ import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.search.SearchPaginationUtil;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -2541,6 +2543,16 @@ public class ContactsEngineClientImpl
 			uriVariables.put("rangeStart", rangeStart);
 		}
 
+		if (_log.isInfoEnabled()) {
+			_log.info(
+				StringBundler.concat(
+					"[LDP DEBUG] faro ContactsEngineClientImpl.getIndividuals ",
+					"sending to asah activityStatus=", activityStatus,
+					", profileTypes=", profileTypes, ", rangeStart=", rangeStart,
+					", rangeEnd=", rangeEnd, ", rangeKey=", rangeKey,
+					", uriVariables=", uriVariables));
+		}
+
 		PagedModel<?, Individual> pagedModel = get(
 			faroProject, Rels.INDIVIDUALS,
 			new ParameterizedTypeReference
@@ -3684,6 +3696,9 @@ public class ContactsEngineClientImpl
 	}
 
 	private static final String _FARO_TEMP_FIELD = "faro_temp_field";
+
+	private static final Log _log = LogFactoryUtil.getLog(
+		ContactsEngineClientImpl.class);
 
 	private static final int _PAYLOAD_MAX_BYTE_SIZE = 200000;
 
