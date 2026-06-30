@@ -182,6 +182,16 @@ const List = () => {
 				type: 'selection',
 			},
 			{
+				apiURL: `/o/faro/contacts/${groupId}/individual_segment?channelId=${channelId}&${rangeSelectorParams}`,
+				entityFieldType: 'string',
+				id: 'segmentIds',
+				itemKey: 'id',
+				itemLabel: 'name',
+				label: Liferay.Language.get('segment'),
+				multiple: true,
+				type: 'selection',
+			},
+			{
 				apiURL: `/o/faro/contacts/${groupId}/asset-summary-types?channelId=${channelId}&${rangeSelectorParams}`,
 				entityFieldType: 'string',
 				id: 'assetType',
@@ -226,7 +236,7 @@ const List = () => {
 				type: 'selection',
 			},
 		],
-		[accountId, accountName, groupId, rangeSelectorParams]
+		[accountId, accountName, channelId, groupId, rangeSelectorParams]
 	);
 
 	return (
@@ -294,6 +304,21 @@ const List = () => {
 							),
 						}}
 						filters={filters}
+						groupedFilters={[
+							{
+								filters: [
+									'assetType',
+									'tags/id',
+									'categories/id',
+									'mimeType',
+								],
+								label: Liferay.Language.get('filter-by'),
+							},
+							{
+								filters: ['accountIds', 'segmentIds'],
+								label: Liferay.Language.get('filter-by-people'),
+							},
+						]}
 						id="assetTable"
 						itemsActions={[
 							{
