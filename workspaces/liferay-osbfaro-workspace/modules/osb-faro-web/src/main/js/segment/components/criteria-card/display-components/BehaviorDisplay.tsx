@@ -62,7 +62,7 @@ const BehaviorDisplay: React.FC<IDisplayComponentProps> = ({
 
 				return (
 					<React.Fragment key={activityKey}>
-						{index > 0 && <span>,</span>}
+						{index > 0 && <span>{','}</span>}
 
 						<ReferencedEntityDisplay
 							id={id}
