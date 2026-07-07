@@ -164,7 +164,7 @@ const List = () => {
 	const filters = useMemo(
 		() => [
 			{
-				apiURL: `/o/faro/contacts/${groupId}/account/search?channelId=${channelId}&filter=(rangeKey eq '${rangeSelectors.rangeKey}')`,
+				apiURL: `/o/faro/contacts/${groupId}/account/search?channelId=${channelId}&${rangeSelectorParams}`,
 				autocompleteEnabled: true,
 				entityFieldType: 'string',
 				id: 'accountIds',
