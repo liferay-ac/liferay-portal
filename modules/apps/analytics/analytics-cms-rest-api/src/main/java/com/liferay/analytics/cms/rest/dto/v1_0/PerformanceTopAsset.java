@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
@@ -24,6 +25,8 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -50,29 +53,29 @@ public class PerformanceTopAsset implements Serializable {
 	}
 
 	@io.swagger.v3.oas.annotations.media.Schema
-	public Long getLastPage() {
-		if (_lastPageSupplier != null) {
-			lastPage = _lastPageSupplier.get();
+	public Double getDownloads() {
+		if (_downloadsSupplier != null) {
+			downloads = _downloadsSupplier.get();
 
-			_lastPageSupplier = null;
+			_downloadsSupplier = null;
 		}
 
-		return lastPage;
+		return downloads;
 	}
 
-	public void setLastPage(Long lastPage) {
-		this.lastPage = lastPage;
+	public void setDownloads(Double downloads) {
+		this.downloads = downloads;
 
-		_lastPageSupplier = null;
+		_downloadsSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setLastPage(
-		UnsafeSupplier<Long, Exception> lastPageUnsafeSupplier) {
+	public void setDownloads(
+		UnsafeSupplier<Double, Exception> downloadsUnsafeSupplier) {
 
-		_lastPageSupplier = () -> {
+		_downloadsSupplier = () -> {
 			try {
-				return lastPageUnsafeSupplier.get();
+				return downloadsUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -85,119 +88,36 @@ public class PerformanceTopAsset implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Long lastPage;
+	protected Double downloads;
 
 	@JsonIgnore
-	private Supplier<Long> _lastPageSupplier;
-
-	@io.swagger.v3.oas.annotations.media.Schema
-	public Long getPage() {
-		if (_pageSupplier != null) {
-			page = _pageSupplier.get();
-
-			_pageSupplier = null;
-		}
-
-		return page;
-	}
-
-	public void setPage(Long page) {
-		this.page = page;
-
-		_pageSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setPage(UnsafeSupplier<Long, Exception> pageUnsafeSupplier) {
-		_pageSupplier = () -> {
-			try {
-				return pageUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Long page;
-
-	@JsonIgnore
-	private Supplier<Long> _pageSupplier;
-
-	@io.swagger.v3.oas.annotations.media.Schema
-	public Long getPageSize() {
-		if (_pageSizeSupplier != null) {
-			pageSize = _pageSizeSupplier.get();
-
-			_pageSizeSupplier = null;
-		}
-
-		return pageSize;
-	}
-
-	public void setPageSize(Long pageSize) {
-		this.pageSize = pageSize;
-
-		_pageSizeSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setPageSize(
-		UnsafeSupplier<Long, Exception> pageSizeUnsafeSupplier) {
-
-		_pageSizeSupplier = () -> {
-			try {
-				return pageSizeUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Long pageSize;
-
-	@JsonIgnore
-	private Supplier<Long> _pageSizeSupplier;
+	private Supplier<Double> _downloadsSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public PerformanceTopAssetItem[] getPerformanceTopAssetItems() {
-		if (_performanceTopAssetItemsSupplier != null) {
-			performanceTopAssetItems = _performanceTopAssetItemsSupplier.get();
+	public Object getEmbedded() {
+		if (_embeddedSupplier != null) {
+			embedded = _embeddedSupplier.get();
 
-			_performanceTopAssetItemsSupplier = null;
+			_embeddedSupplier = null;
 		}
 
-		return performanceTopAssetItems;
+		return embedded;
 	}
 
-	public void setPerformanceTopAssetItems(
-		PerformanceTopAssetItem[] performanceTopAssetItems) {
+	public void setEmbedded(Object embedded) {
+		this.embedded = embedded;
 
-		this.performanceTopAssetItems = performanceTopAssetItems;
-
-		_performanceTopAssetItemsSupplier = null;
+		_embeddedSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setPerformanceTopAssetItems(
-		UnsafeSupplier<PerformanceTopAssetItem[], Exception>
-			performanceTopAssetItemsUnsafeSupplier) {
+	public void setEmbedded(
+		UnsafeSupplier<Object, Exception> embeddedUnsafeSupplier) {
 
-		_performanceTopAssetItemsSupplier = () -> {
+		_embeddedSupplier = () -> {
 			try {
-				return performanceTopAssetItemsUnsafeSupplier.get();
+				return embeddedUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -210,36 +130,35 @@ public class PerformanceTopAsset implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected PerformanceTopAssetItem[] performanceTopAssetItems;
+	protected Object embedded;
 
 	@JsonIgnore
-	private Supplier<PerformanceTopAssetItem[]>
-		_performanceTopAssetItemsSupplier;
+	private Supplier<Object> _embeddedSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema
-	public Long getTotalCount() {
-		if (_totalCountSupplier != null) {
-			totalCount = _totalCountSupplier.get();
+	public Double getEngagement() {
+		if (_engagementSupplier != null) {
+			engagement = _engagementSupplier.get();
 
-			_totalCountSupplier = null;
+			_engagementSupplier = null;
 		}
 
-		return totalCount;
+		return engagement;
 	}
 
-	public void setTotalCount(Long totalCount) {
-		this.totalCount = totalCount;
+	public void setEngagement(Double engagement) {
+		this.engagement = engagement;
 
-		_totalCountSupplier = null;
+		_engagementSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setTotalCount(
-		UnsafeSupplier<Long, Exception> totalCountUnsafeSupplier) {
+	public void setEngagement(
+		UnsafeSupplier<Double, Exception> engagementUnsafeSupplier) {
 
-		_totalCountSupplier = () -> {
+		_engagementSupplier = () -> {
 			try {
-				return totalCountUnsafeSupplier.get();
+				return engagementUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -252,10 +171,255 @@ public class PerformanceTopAsset implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Long totalCount;
+	protected Double engagement;
 
 	@JsonIgnore
-	private Supplier<Long> _totalCountSupplier;
+	private Supplier<Double> _engagementSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
+	public String getExternalReferenceCode() {
+		if (_externalReferenceCodeSupplier != null) {
+			externalReferenceCode = _externalReferenceCodeSupplier.get();
+
+			_externalReferenceCodeSupplier = null;
+		}
+
+		return externalReferenceCode;
+	}
+
+	public void setExternalReferenceCode(String externalReferenceCode) {
+		this.externalReferenceCode = externalReferenceCode;
+
+		_externalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setExternalReferenceCode(
+		UnsafeSupplier<String, Exception> externalReferenceCodeUnsafeSupplier) {
+
+		_externalReferenceCodeSupplier = () -> {
+			try {
+				return externalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String externalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _externalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
+	public Double getImpressions() {
+		if (_impressionsSupplier != null) {
+			impressions = _impressionsSupplier.get();
+
+			_impressionsSupplier = null;
+		}
+
+		return impressions;
+	}
+
+	public void setImpressions(Double impressions) {
+		this.impressions = impressions;
+
+		_impressionsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setImpressions(
+		UnsafeSupplier<Double, Exception> impressionsUnsafeSupplier) {
+
+		_impressionsSupplier = () -> {
+			try {
+				return impressionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Double impressions;
+
+	@JsonIgnore
+	private Supplier<Double> _impressionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
+	public String getMimeType() {
+		if (_mimeTypeSupplier != null) {
+			mimeType = _mimeTypeSupplier.get();
+
+			_mimeTypeSupplier = null;
+		}
+
+		return mimeType;
+	}
+
+	public void setMimeType(String mimeType) {
+		this.mimeType = mimeType;
+
+		_mimeTypeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setMimeType(
+		UnsafeSupplier<String, Exception> mimeTypeUnsafeSupplier) {
+
+		_mimeTypeSupplier = () -> {
+			try {
+				return mimeTypeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String mimeType;
+
+	@JsonIgnore
+	private Supplier<String> _mimeTypeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
+	public String getTitle() {
+		if (_titleSupplier != null) {
+			title = _titleSupplier.get();
+
+			_titleSupplier = null;
+		}
+
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+
+		_titleSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setTitle(
+		UnsafeSupplier<String, Exception> titleUnsafeSupplier) {
+
+		_titleSupplier = () -> {
+			try {
+				return titleUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String title;
+
+	@JsonIgnore
+	private Supplier<String> _titleSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
+	@Valid
+	public Trend getTrend() {
+		if (_trendSupplier != null) {
+			trend = _trendSupplier.get();
+
+			_trendSupplier = null;
+		}
+
+		return trend;
+	}
+
+	public void setTrend(Trend trend) {
+		this.trend = trend;
+
+		_trendSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setTrend(UnsafeSupplier<Trend, Exception> trendUnsafeSupplier) {
+		_trendSupplier = () -> {
+			try {
+				return trendUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Trend trend;
+
+	@JsonIgnore
+	private Supplier<Trend> _trendSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
+	public Double getViews() {
+		if (_viewsSupplier != null) {
+			views = _viewsSupplier.get();
+
+			_viewsSupplier = null;
+		}
+
+		return views;
+	}
+
+	public void setViews(Double views) {
+		this.views = views;
+
+		_viewsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setViews(
+		UnsafeSupplier<Double, Exception> viewsUnsafeSupplier) {
+
+		_viewsSupplier = () -> {
+			try {
+				return viewsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Double views;
+
+	@JsonIgnore
+	private Supplier<Double> _viewsSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -284,75 +448,144 @@ public class PerformanceTopAsset implements Serializable {
 
 		sb.append("{");
 
-		Long lastPage = getLastPage();
+		Double downloads = getDownloads();
 
-		if (lastPage != null) {
+		if (downloads != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"lastPage\": ");
+			sb.append("\"downloads\": ");
 
-			sb.append(lastPage);
+			sb.append(downloads);
 		}
 
-		Long page = getPage();
+		Object embedded = getEmbedded();
 
-		if (page != null) {
+		if (embedded != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"page\": ");
+			sb.append("\"embedded\": ");
 
-			sb.append(page);
+			if (embedded instanceof Collection) {
+				sb.append(
+					JSONFactoryUtil.createJSONArray((Collection<?>)embedded));
+			}
+			else if (embedded instanceof Map) {
+				sb.append(
+					JSONFactoryUtil.createJSONObject((Map<?, ?>)embedded));
+			}
+			else if (embedded instanceof Object[]) {
+				sb.append(
+					JSONFactoryUtil.createJSONArray(
+						Arrays.asList((Object[])embedded)));
+			}
+			else if (embedded instanceof String) {
+				sb.append("\"");
+				sb.append(_escape((String)embedded));
+				sb.append("\"");
+			}
+			else {
+				sb.append(embedded);
+			}
 		}
 
-		Long pageSize = getPageSize();
+		Double engagement = getEngagement();
 
-		if (pageSize != null) {
+		if (engagement != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"pageSize\": ");
+			sb.append("\"engagement\": ");
 
-			sb.append(pageSize);
+			sb.append(engagement);
 		}
 
-		PerformanceTopAssetItem[] performanceTopAssetItems =
-			getPerformanceTopAssetItems();
+		String externalReferenceCode = getExternalReferenceCode();
 
-		if (performanceTopAssetItems != null) {
+		if (externalReferenceCode != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"performanceTopAssetItems\": ");
+			sb.append("\"externalReferenceCode\": ");
 
-			sb.append("[");
+			sb.append("\"");
 
-			for (int i = 0; i < performanceTopAssetItems.length; i++) {
-				sb.append(String.valueOf(performanceTopAssetItems[i]));
+			sb.append(_escape(externalReferenceCode));
 
-				if ((i + 1) < performanceTopAssetItems.length) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
+			sb.append("\"");
 		}
 
-		Long totalCount = getTotalCount();
+		Double impressions = getImpressions();
 
-		if (totalCount != null) {
+		if (impressions != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"totalCount\": ");
+			sb.append("\"impressions\": ");
 
-			sb.append(totalCount);
+			sb.append(impressions);
+		}
+
+		String mimeType = getMimeType();
+
+		if (mimeType != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"mimeType\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(mimeType));
+
+			sb.append("\"");
+		}
+
+		String title = getTitle();
+
+		if (title != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"title\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(title));
+
+			sb.append("\"");
+		}
+
+		Trend trend = getTrend();
+
+		if (trend != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"trend\": ");
+
+			sb.append(String.valueOf(trend));
+		}
+
+		Double views = getViews();
+
+		if (views != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"views\": ");
+
+			sb.append(views);
 		}
 
 		sb.append("}");
@@ -456,4 +689,4 @@ public class PerformanceTopAsset implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
-// LIFERAY-REST-BUILDER-HASH:1438622282
+// LIFERAY-REST-BUILDER-HASH:1426865371
