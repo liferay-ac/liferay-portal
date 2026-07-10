@@ -6,7 +6,6 @@
 package com.liferay.analytics.cms.rest.client.serdes.v1_0;
 
 import com.liferay.analytics.cms.rest.client.dto.v1_0.PerformanceTopAsset;
-import com.liferay.analytics.cms.rest.client.dto.v1_0.PerformanceTopAssetItem;
 import com.liferay.analytics.cms.rest.client.json.BaseJSONParser;
 
 import jakarta.annotation.Generated;
@@ -47,72 +46,113 @@ public class PerformanceTopAssetSerDes {
 
 		sb.append("{");
 
-		if (performanceTopAsset.getLastPage() != null) {
+		if (performanceTopAsset.getDownloads() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"lastPage\": ");
+			sb.append("\"downloads\": ");
 
-			sb.append(performanceTopAsset.getLastPage());
+			sb.append(performanceTopAsset.getDownloads());
 		}
 
-		if (performanceTopAsset.getPage() != null) {
+		if (performanceTopAsset.getEmbedded() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"page\": ");
+			sb.append("\"embedded\": ");
 
-			sb.append(performanceTopAsset.getPage());
+			if (performanceTopAsset.getEmbedded() instanceof String) {
+				sb.append("\"");
+				sb.append((String)performanceTopAsset.getEmbedded());
+				sb.append("\"");
+			}
+			else {
+				sb.append(performanceTopAsset.getEmbedded());
+			}
 		}
 
-		if (performanceTopAsset.getPageSize() != null) {
+		if (performanceTopAsset.getEngagement() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"pageSize\": ");
+			sb.append("\"engagement\": ");
 
-			sb.append(performanceTopAsset.getPageSize());
+			sb.append(performanceTopAsset.getEngagement());
 		}
 
-		if (performanceTopAsset.getPerformanceTopAssetItems() != null) {
+		if (performanceTopAsset.getExternalReferenceCode() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"performanceTopAssetItems\": ");
+			sb.append("\"externalReferenceCode\": ");
 
-			sb.append("[");
+			sb.append("\"");
 
-			for (int i = 0;
-				 i < performanceTopAsset.getPerformanceTopAssetItems().length;
-				 i++) {
+			sb.append(_escape(performanceTopAsset.getExternalReferenceCode()));
 
-				sb.append(
-					String.valueOf(
-						performanceTopAsset.getPerformanceTopAssetItems()[i]));
-
-				if ((i + 1) <
-						performanceTopAsset.
-							getPerformanceTopAssetItems().length) {
-
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
+			sb.append("\"");
 		}
 
-		if (performanceTopAsset.getTotalCount() != null) {
+		if (performanceTopAsset.getImpressions() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"totalCount\": ");
+			sb.append("\"impressions\": ");
 
-			sb.append(performanceTopAsset.getTotalCount());
+			sb.append(performanceTopAsset.getImpressions());
+		}
+
+		if (performanceTopAsset.getMimeType() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"mimeType\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(performanceTopAsset.getMimeType()));
+
+			sb.append("\"");
+		}
+
+		if (performanceTopAsset.getTitle() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"title\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(performanceTopAsset.getTitle()));
+
+			sb.append("\"");
+		}
+
+		if (performanceTopAsset.getTrend() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"trend\": ");
+
+			sb.append(String.valueOf(performanceTopAsset.getTrend()));
+		}
+
+		if (performanceTopAsset.getViews() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"views\": ");
+
+			sb.append(performanceTopAsset.getViews());
 		}
 
 		sb.append("}");
@@ -136,46 +176,77 @@ public class PerformanceTopAssetSerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
-		if (performanceTopAsset.getLastPage() == null) {
-			map.put("lastPage", null);
+		if (performanceTopAsset.getDownloads() == null) {
+			map.put("downloads", null);
 		}
 		else {
 			map.put(
-				"lastPage", String.valueOf(performanceTopAsset.getLastPage()));
+				"downloads",
+				String.valueOf(performanceTopAsset.getDownloads()));
 		}
 
-		if (performanceTopAsset.getPage() == null) {
-			map.put("page", null);
-		}
-		else {
-			map.put("page", String.valueOf(performanceTopAsset.getPage()));
-		}
-
-		if (performanceTopAsset.getPageSize() == null) {
-			map.put("pageSize", null);
+		if (performanceTopAsset.getEmbedded() == null) {
+			map.put("embedded", null);
 		}
 		else {
 			map.put(
-				"pageSize", String.valueOf(performanceTopAsset.getPageSize()));
+				"embedded", String.valueOf(performanceTopAsset.getEmbedded()));
 		}
 
-		if (performanceTopAsset.getPerformanceTopAssetItems() == null) {
-			map.put("performanceTopAssetItems", null);
+		if (performanceTopAsset.getEngagement() == null) {
+			map.put("engagement", null);
 		}
 		else {
 			map.put(
-				"performanceTopAssetItems",
-				String.valueOf(
-					performanceTopAsset.getPerformanceTopAssetItems()));
+				"engagement",
+				String.valueOf(performanceTopAsset.getEngagement()));
 		}
 
-		if (performanceTopAsset.getTotalCount() == null) {
-			map.put("totalCount", null);
+		if (performanceTopAsset.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
 		}
 		else {
 			map.put(
-				"totalCount",
-				String.valueOf(performanceTopAsset.getTotalCount()));
+				"externalReferenceCode",
+				String.valueOf(performanceTopAsset.getExternalReferenceCode()));
+		}
+
+		if (performanceTopAsset.getImpressions() == null) {
+			map.put("impressions", null);
+		}
+		else {
+			map.put(
+				"impressions",
+				String.valueOf(performanceTopAsset.getImpressions()));
+		}
+
+		if (performanceTopAsset.getMimeType() == null) {
+			map.put("mimeType", null);
+		}
+		else {
+			map.put(
+				"mimeType", String.valueOf(performanceTopAsset.getMimeType()));
+		}
+
+		if (performanceTopAsset.getTitle() == null) {
+			map.put("title", null);
+		}
+		else {
+			map.put("title", String.valueOf(performanceTopAsset.getTitle()));
+		}
+
+		if (performanceTopAsset.getTrend() == null) {
+			map.put("trend", null);
+		}
+		else {
+			map.put("trend", String.valueOf(performanceTopAsset.getTrend()));
+		}
+
+		if (performanceTopAsset.getViews() == null) {
+			map.put("views", null);
+		}
+		else {
+			map.put("views", String.valueOf(performanceTopAsset.getViews()));
 		}
 
 		return map;
@@ -196,21 +267,33 @@ public class PerformanceTopAssetSerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "lastPage")) {
+			if (Objects.equals(jsonParserFieldName, "downloads")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "page")) {
+			else if (Objects.equals(jsonParserFieldName, "embedded")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "pageSize")) {
+			else if (Objects.equals(jsonParserFieldName, "engagement")) {
 				return false;
 			}
 			else if (Objects.equals(
-						jsonParserFieldName, "performanceTopAssetItems")) {
+						jsonParserFieldName, "externalReferenceCode")) {
 
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "totalCount")) {
+			else if (Objects.equals(jsonParserFieldName, "impressions")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "mimeType")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "title")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "trend")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "views")) {
 				return false;
 			}
 
@@ -222,51 +305,59 @@ public class PerformanceTopAssetSerDes {
 			PerformanceTopAsset performanceTopAsset, String jsonParserFieldName,
 			Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "lastPage")) {
+			if (Objects.equals(jsonParserFieldName, "downloads")) {
 				if (jsonParserFieldValue != null) {
-					performanceTopAsset.setLastPage(
-						Long.valueOf((String)jsonParserFieldValue));
+					performanceTopAsset.setDownloads(
+						Double.valueOf((String)jsonParserFieldValue));
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "page")) {
+			else if (Objects.equals(jsonParserFieldName, "embedded")) {
 				if (jsonParserFieldValue != null) {
-					performanceTopAsset.setPage(
-						Long.valueOf((String)jsonParserFieldValue));
+					performanceTopAsset.setEmbedded(
+						(Object)jsonParserFieldValue);
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "pageSize")) {
+			else if (Objects.equals(jsonParserFieldName, "engagement")) {
 				if (jsonParserFieldValue != null) {
-					performanceTopAsset.setPageSize(
-						Long.valueOf((String)jsonParserFieldValue));
+					performanceTopAsset.setEngagement(
+						Double.valueOf((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(
-						jsonParserFieldName, "performanceTopAssetItems")) {
+						jsonParserFieldName, "externalReferenceCode")) {
 
 				if (jsonParserFieldValue != null) {
-					Object[] jsonParserFieldValues =
-						(Object[])jsonParserFieldValue;
-
-					PerformanceTopAssetItem[] performanceTopAssetItemsArray =
-						new PerformanceTopAssetItem
-							[jsonParserFieldValues.length];
-
-					for (int i = 0; i < performanceTopAssetItemsArray.length;
-						 i++) {
-
-						performanceTopAssetItemsArray[i] =
-							PerformanceTopAssetItemSerDes.toDTO(
-								(String)jsonParserFieldValues[i]);
-					}
-
-					performanceTopAsset.setPerformanceTopAssetItems(
-						performanceTopAssetItemsArray);
+					performanceTopAsset.setExternalReferenceCode(
+						(String)jsonParserFieldValue);
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "totalCount")) {
+			else if (Objects.equals(jsonParserFieldName, "impressions")) {
 				if (jsonParserFieldValue != null) {
-					performanceTopAsset.setTotalCount(
-						Long.valueOf((String)jsonParserFieldValue));
+					performanceTopAsset.setImpressions(
+						Double.valueOf((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "mimeType")) {
+				if (jsonParserFieldValue != null) {
+					performanceTopAsset.setMimeType(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "title")) {
+				if (jsonParserFieldValue != null) {
+					performanceTopAsset.setTitle((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "trend")) {
+				if (jsonParserFieldValue != null) {
+					performanceTopAsset.setTrend(
+						TrendSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "views")) {
+				if (jsonParserFieldValue != null) {
+					performanceTopAsset.setViews(
+						Double.valueOf((String)jsonParserFieldValue));
 				}
 			}
 		}
@@ -350,4 +441,4 @@ public class PerformanceTopAssetSerDes {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:1444694026
+// LIFERAY-REST-BUILDER-HASH:-567313071
