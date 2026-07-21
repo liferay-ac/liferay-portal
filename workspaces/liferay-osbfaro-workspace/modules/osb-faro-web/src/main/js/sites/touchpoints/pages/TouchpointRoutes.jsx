@@ -202,6 +202,12 @@ function TouchpointRoutes({className, router}) {
 			>
 				{matchedRoute === Routes.SITES_TOUCHPOINTS_PATH && (
 					<BasePage.SubHeader>
+						{LDPEnabled && (
+							<FilterByAccount
+								onFilterChange={setSelectedAccount}
+							/>
+						)}
+
 						<FilterBySegment
 							onFilterChange={setSelectedSegment}
 							rangeSelectors={pathRangeSelectors}
@@ -237,6 +243,7 @@ function TouchpointRoutes({className, router}) {
 							<BundleRouter
 								componentProps={{
 									rangeSelectors: pathRangeSelectors,
+									selectedAccount,
 									selectedSegment
 								}}
 								data={TouchpointPathPage}
