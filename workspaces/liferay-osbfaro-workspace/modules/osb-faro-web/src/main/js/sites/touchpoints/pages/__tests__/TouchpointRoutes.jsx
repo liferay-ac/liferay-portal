@@ -45,18 +45,18 @@ jest.mock('../../components/ExperienceDropdown', () => ({
 	default: () => <div data-testid='experience-dropdown' />
 }));
 
-jest.mock('shared/components/FilterByAccount', () => ({
+jest.mock('shared/components/AccountDropdown', () => ({
 	__esModule: true,
 	default: ({initialAccountId, initialAccountName}) => (
 		<div
 			data-initial-account-id={initialAccountId}
 			data-initial-account-name={initialAccountName}
-			data-testid='filter-by-account'
+			data-testid='account-dropdown'
 		/>
 	)
 }));
 
-jest.mock('../../components/FilterBySegment', () => ({
+jest.mock('../../components/SegmentDropdown', () => ({
 	__esModule: true,
 	default: () => null
 }));
@@ -200,7 +200,7 @@ describe('TouchpointRoutes', () => {
 			</Provider>
 		);
 
-		expect(screen.queryByTestId('filter-by-account')).toBeTruthy();
+		expect(screen.queryByTestId('account-dropdown')).toBeTruthy();
 	});
 
 	it('hides the account filter on the overview route for non-LDP workspaces', () => {
@@ -226,7 +226,7 @@ describe('TouchpointRoutes', () => {
 			</Provider>
 		);
 
-		expect(screen.queryByTestId('filter-by-account')).toBeNull();
+		expect(screen.queryByTestId('account-dropdown')).toBeNull();
 	});
 
 	it('shows the account filter on the path route for LDP workspaces', () => {
@@ -252,7 +252,7 @@ describe('TouchpointRoutes', () => {
 			</Provider>
 		);
 
-		expect(screen.queryByTestId('filter-by-account')).toBeTruthy();
+		expect(screen.queryByTestId('account-dropdown')).toBeTruthy();
 	});
 
 	it('hides the account filter on the path route for non-LDP workspaces', () => {
@@ -278,7 +278,7 @@ describe('TouchpointRoutes', () => {
 			</Provider>
 		);
 
-		expect(screen.queryByTestId('filter-by-account')).toBeNull();
+		expect(screen.queryByTestId('account-dropdown')).toBeNull();
 	});
 
 	it('shows the accounts tab for LDP workspaces', () => {
@@ -356,11 +356,11 @@ describe('TouchpointRoutes', () => {
 			</Provider>
 		);
 
-		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
+		expect(screen.getByTestId('account-dropdown')).toHaveAttribute(
 			'data-initial-account-id',
 			'100'
 		);
-		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
+		expect(screen.getByTestId('account-dropdown')).toHaveAttribute(
 			'data-initial-account-name',
 			'Account 100'
 		);
@@ -389,7 +389,7 @@ describe('TouchpointRoutes', () => {
 			</Provider>
 		);
 
-		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
+		expect(screen.getByTestId('account-dropdown')).toHaveAttribute(
 			'data-initial-account-id',
 			'100'
 		);

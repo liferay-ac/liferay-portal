@@ -34,7 +34,7 @@ jest.mock('route-middleware/BundleRouter', () => ({
 	default: () => null,
 }));
 
-jest.mock('shared/components/FilterByAccount', () => ({
+jest.mock('shared/components/AccountDropdown', () => ({
 	__esModule: true,
 	default: ({
 		assetType,

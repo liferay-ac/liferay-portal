@@ -1,16 +1,16 @@
 import * as breadcrumbs from 'shared/util/breadcrumbs';
+import AccountDropdown from 'shared/components/AccountDropdown';
 import BasePage from 'shared/components/base-page';
 import BundleRouter from 'route-middleware/BundleRouter';
 import ClayLink from '@clayui/link';
 import DownloadCSVReport from 'shared/components/download-report/DownloadCSVReport';
 import DownloadPDFReport from 'shared/components/download-report/DownloadPDFReport';
 import ExperienceDropdown from '../components/ExperienceDropdown';
-import FilterByAccount from 'shared/components/FilterByAccount';
-import FilterBySegment from '../components/FilterBySegment';
 import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
 import React, {lazy, Suspense, useEffect, useState} from 'react';
 import RouteNotFound from 'shared/components/RouteNotFound';
+import SegmentDropdown from '../components/SegmentDropdown';
 import TextTruncate from 'shared/components/TextTruncate';
 import {CSVType} from 'shared/components/download-report/utils';
 import {DropdownRangeKey} from 'shared/components/dropdown-range-key/DropdownRangeKey';
@@ -164,7 +164,7 @@ function TouchpointRoutes({className, router}) {
 					)}
 
 					{LDPEnabled && (
-						<FilterByAccount
+						<AccountDropdown
 							assetType='page'
 							initialAccountId={accountIdFromURL}
 							initialAccountName={accountNameFromURL}
@@ -232,7 +232,7 @@ function TouchpointRoutes({className, router}) {
 				{matchedRoute === Routes.SITES_TOUCHPOINTS_PATH && (
 					<BasePage.SubHeader>
 						{LDPEnabled && (
-							<FilterByAccount
+							<AccountDropdown
 								assetType='page'
 								initialAccountId={accountIdFromURL}
 								initialAccountName={accountNameFromURL}
@@ -240,7 +240,7 @@ function TouchpointRoutes({className, router}) {
 							/>
 						)}
 
-						<FilterBySegment
+						<SegmentDropdown
 							onFilterChange={setSelectedSegment}
 							rangeSelectors={pathRangeSelectors}
 						/>

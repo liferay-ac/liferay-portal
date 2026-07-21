@@ -32,14 +32,14 @@ const ALL_ACCOUNTS_ITEM: IAccountItem = {
 	name: Liferay.Language.get('all-accounts'),
 };
 
-interface IFilterByAccount {
+interface IAccountDropdownProps {
 	assetType: string;
 	initialAccountId?: string | null;
 	initialAccountName?: string | null;
 	onFilterChange: (item: Item | null) => void;
 }
 
-const filterByAccount: React.FC<IFilterByAccount> = ({
+const AccountDropdown: React.FC<IAccountDropdownProps> = ({
 	assetType,
 	initialAccountId,
 	initialAccountName,
@@ -149,4 +149,4 @@ const filterByAccount: React.FC<IFilterByAccount> = ({
 	);
 };
 
-export default filterByAccount;
+export default AccountDropdown;

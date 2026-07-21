@@ -1,9 +1,9 @@
 import * as breadcrumbs from 'shared/util/breadcrumbs';
+import AccountDropdown from 'shared/components/AccountDropdown';
 import BasePage from 'shared/components/base-page';
 import BundleRouter from 'route-middleware/BundleRouter';
 import DownloadCSVReport from 'shared/components/download-report/DownloadCSVReport';
 import DownloadPDFReport from 'shared/components/download-report/DownloadPDFReport';
-import FilterByAccount from 'shared/components/FilterByAccount';
 import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
 import React, {lazy, Suspense, useState} from 'react';
@@ -156,7 +156,7 @@ const DocumentAndMedia: React.FC<{
 				Routes.ASSETS_DOCUMENTS_AND_MEDIA_OVERVIEW && (
 				<BasePage.SubHeader>
 					{LDPEnabled && (
-						<FilterByAccount
+						<AccountDropdown
 							assetType="document"
 							initialAccountId={accountIdFromURL}
 							initialAccountName={accountNameFromURL}

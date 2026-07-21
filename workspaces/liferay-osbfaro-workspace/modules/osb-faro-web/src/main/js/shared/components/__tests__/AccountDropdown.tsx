@@ -1,5 +1,5 @@
 import * as API from 'shared/api';
-import FilterByAccount from '../FilterByAccount';
+import AccountDropdown from '../AccountDropdown';
 import React from 'react';
 import {
 	cleanup,
@@ -41,7 +41,7 @@ const AssetWrapper = ({children}: {children: React.ReactNode}) => (
 	</MemoryRouter>
 );
 
-describe('FilterByAccount', () => {
+describe('AccountDropdown', () => {
 	afterEach(cleanup);
 
 	it('should render with "All Accounts" as the default value', async () => {
@@ -54,7 +54,7 @@ describe('FilterByAccount', () => {
 
 		const {container} = render(
 			<Wrapper>
-				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
+				<AccountDropdown assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
@@ -82,7 +82,7 @@ describe('FilterByAccount', () => {
 
 		render(
 			<Wrapper>
-				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
+				<AccountDropdown assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
@@ -115,7 +115,7 @@ describe('FilterByAccount', () => {
 
 		render(
 			<Wrapper>
-				<FilterByAccount
+				<AccountDropdown
 					assetType="page"
 					onFilterChange={onFilterChange}
 				/>
@@ -149,7 +149,7 @@ describe('FilterByAccount', () => {
 
 		render(
 			<Wrapper>
-				<FilterByAccount
+				<AccountDropdown
 					assetType="page"
 					onFilterChange={onFilterChange}
 				/>
@@ -182,7 +182,7 @@ describe('FilterByAccount', () => {
 
 		render(
 			<Wrapper>
-				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
+				<AccountDropdown assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
@@ -207,7 +207,7 @@ describe('FilterByAccount', () => {
 
 		render(
 			<Wrapper>
-				<FilterByAccount
+				<AccountDropdown
 					assetType="page"
 					initialAccountId="100"
 					initialAccountName="Account 100"
@@ -232,7 +232,7 @@ describe('FilterByAccount', () => {
 
 		render(
 			<Wrapper>
-				<FilterByAccount
+				<AccountDropdown
 					assetType="page"
 					initialAccountId="100"
 					onFilterChange={jest.fn()}
@@ -252,7 +252,7 @@ describe('FilterByAccount', () => {
 
 		render(
 			<AssetWrapper>
-				<FilterByAccount assetType="blog" onFilterChange={jest.fn()} />
+				<AccountDropdown assetType="blog" onFilterChange={jest.fn()} />
 			</AssetWrapper>
 		);
 
