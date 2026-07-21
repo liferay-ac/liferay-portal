@@ -197,6 +197,54 @@ describe('FilterByAccount', () => {
 		);
 	});
 
+	it('should preselect the account passed via initialAccountId/initialAccountName', async () => {
+		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
+			Promise.resolve({
+				items: [MOCK_ACCOUNT('200', 'Account 200')],
+				total: 1,
+			})
+		);
+
+		render(
+			<Wrapper>
+				<FilterByAccount
+					assetType="page"
+					initialAccountId="100"
+					initialAccountName="Account 100"
+					onFilterChange={jest.fn()}
+				/>
+			</Wrapper>
+		);
+
+		expect(
+			screen.getByRole('combobox', {name: 'All Accounts'})
+		).toHaveTextContent('Account 100');
+
+		await waitFor(() =>
+			expect(API.accounts.searchAccounts).toHaveBeenCalled()
+		);
+	});
+
+	it('should fall back to the raw id when initialAccountName is missing', () => {
+		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
+			Promise.resolve({items: [], total: 0})
+		);
+
+		render(
+			<Wrapper>
+				<FilterByAccount
+					assetType="page"
+					initialAccountId="100"
+					onFilterChange={jest.fn()}
+				/>
+			</Wrapper>
+		);
+
+		expect(
+			screen.getByRole('combobox', {name: 'All Accounts'})
+		).toHaveTextContent('100');
+	});
+
 	it('should search accounts by the assetId route param for non-page asset types', async () => {
 		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
 			Promise.resolve({items: [], total: 0})

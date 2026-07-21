@@ -47,7 +47,13 @@ jest.mock('../../components/ExperienceDropdown', () => ({
 
 jest.mock('shared/components/FilterByAccount', () => ({
 	__esModule: true,
-	default: () => <div data-testid='filter-by-account' />
+	default: ({initialAccountId, initialAccountName}) => (
+		<div
+			data-initial-account-id={initialAccountId}
+			data-initial-account-name={initialAccountName}
+			data-testid='filter-by-account'
+		/>
+	)
 }));
 
 jest.mock('../../components/FilterBySegment', () => ({
@@ -98,7 +104,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/人事発告'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -129,7 +136,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/home'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -154,7 +162,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/home'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -179,7 +188,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/home'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -204,7 +214,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/home'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -229,7 +240,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/home'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -254,7 +266,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/home'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -279,7 +292,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/home'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -304,7 +318,8 @@ describe('TouchpointRoutes', () => {
 				groupId: '2',
 				title: 'page',
 				touchpoint: 'http://example.com/web/site/home'
-			}
+			},
+			query: {}
 		};
 
 		render(
@@ -316,5 +331,67 @@ describe('TouchpointRoutes', () => {
 		);
 
 		expect(screen.queryByText('Accounts')).toBeNull();
+	});
+
+	it('seeds the account filter from the accountId/accountName URL query params on the overview route', () => {
+		getMatchedRoute.mockReturnValue(Routes.SITES_TOUCHPOINTS_OVERVIEW);
+		useLDPEnabled.mockReturnValue(true);
+
+		const router = {
+			params: {
+				channelId: '1',
+				experienceId: '',
+				groupId: '2',
+				title: 'page',
+				touchpoint: 'http://example.com/web/site/home'
+			},
+			query: {accountId: '100', accountName: 'Account 100'}
+		};
+
+		render(
+			<Provider store={mockStore()}>
+				<MemoryRouter>
+					<TouchpointRoutes router={router} />
+				</MemoryRouter>
+			</Provider>
+		);
+
+		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
+			'data-initial-account-id',
+			'100'
+		);
+		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
+			'data-initial-account-name',
+			'Account 100'
+		);
+	});
+
+	it('seeds the account filter from the accountId/accountName URL query params on the path route', () => {
+		getMatchedRoute.mockReturnValue(Routes.SITES_TOUCHPOINTS_PATH);
+		useLDPEnabled.mockReturnValue(true);
+
+		const router = {
+			params: {
+				channelId: '1',
+				experienceId: '',
+				groupId: '2',
+				title: 'page',
+				touchpoint: 'http://example.com/web/site/home'
+			},
+			query: {accountId: '100', accountName: 'Account 100'}
+		};
+
+		render(
+			<Provider store={mockStore()}>
+				<MemoryRouter>
+					<TouchpointRoutes router={router} />
+				</MemoryRouter>
+			</Provider>
+		);
+
+		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
+			'data-initial-account-id',
+			'100'
+		);
 	});
 });

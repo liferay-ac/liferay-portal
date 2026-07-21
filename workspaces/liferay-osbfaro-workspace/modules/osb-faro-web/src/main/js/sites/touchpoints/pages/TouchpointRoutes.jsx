@@ -52,6 +52,8 @@ function TouchpointRoutes({className, router}) {
 		title,
 		touchpoint
 	} = router.params;
+	const {accountId: accountIdFromURL, accountName: accountNameFromURL} =
+		router.query;
 	const LDPEnabled = useLDPEnabled({groupId});
 	const NAV_ITEMS = [
 		{
@@ -82,9 +84,24 @@ function TouchpointRoutes({className, router}) {
 	const decodedTitle = getSafeDecodedURIComponent(title);
 	const decodedTouchpoint = getSafeDecodedURIComponent(touchpoint);
 	const [selectedSegment, setSelectedSegment] = useState({});
-	const [selectedAccount, setSelectedAccount] = useState(null);
+	const [selectedAccount, setSelectedAccount] = useState(
+		accountIdFromURL
+			? {id: accountIdFromURL, name: accountNameFromURL || accountIdFromURL}
+			: null
+	);
 	const [experienceId, setExperienceId] = useState(experienceIdfromURL);
 	const history = useHistory();
+
+	const handleAccountFilterChange = account => {
+		history.push(
+			setUriQueryValues({
+				accountId: account?.id ?? null,
+				accountName: account?.name ?? null
+			})
+		);
+
+		setSelectedAccount(account);
+	};
 
 	useEffect(() => {
 		setPathRangeSelectors(rangeSelectors);
@@ -149,7 +166,9 @@ function TouchpointRoutes({className, router}) {
 					{LDPEnabled && (
 						<FilterByAccount
 							assetType='page'
-							onFilterChange={setSelectedAccount}
+							initialAccountId={accountIdFromURL}
+							initialAccountName={accountNameFromURL}
+							onFilterChange={handleAccountFilterChange}
 						/>
 					)}
 
@@ -215,7 +234,9 @@ function TouchpointRoutes({className, router}) {
 						{LDPEnabled && (
 							<FilterByAccount
 								assetType='page'
-								onFilterChange={setSelectedAccount}
+								initialAccountId={accountIdFromURL}
+								initialAccountName={accountNameFromURL}
+								onFilterChange={handleAccountFilterChange}
 							/>
 						)}
 

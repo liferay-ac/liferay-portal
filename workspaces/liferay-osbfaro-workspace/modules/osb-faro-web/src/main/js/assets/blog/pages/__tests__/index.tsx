@@ -36,8 +36,21 @@ jest.mock('route-middleware/BundleRouter', () => ({
 
 jest.mock('shared/components/FilterByAccount', () => ({
 	__esModule: true,
-	default: ({assetType}: {assetType: string}) => (
-		<div data-asset-type={assetType} data-testid="filter-by-account" />
+	default: ({
+		assetType,
+		initialAccountId,
+		initialAccountName,
+	}: {
+		assetType: string;
+		initialAccountId?: string;
+		initialAccountName?: string;
+	}) => (
+		<div
+			data-asset-type={assetType}
+			data-initial-account-id={initialAccountId}
+			data-initial-account-name={initialAccountName}
+			data-testid="filter-by-account"
+		/>
 	),
 }));
 
@@ -76,6 +89,7 @@ describe('Blog', () => {
 			touchpoint: 'https://liferay.com/blog',
 			type: 'Blog',
 		},
+		query: {},
 	};
 
 	beforeEach(() => {
@@ -141,5 +155,37 @@ describe('Blog', () => {
 		);
 
 		expect(screen.queryByText('Accounts')).toBeNull();
+	});
+
+	it('seeds the account filter from the accountId/accountName URL query params', () => {
+		(useLDPEnabled as jest.Mock).mockReturnValue(true);
+
+		render(
+			<Provider store={mockStore()}>
+				<MemoryRouter>
+					<Blog
+						className=""
+						router={
+							{
+								...router,
+								query: {
+									accountId: '100',
+									accountName: 'Account 100',
+								},
+							} as any
+						}
+					/>
+				</MemoryRouter>
+			</Provider>
+		);
+
+		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
+			'data-initial-account-id',
+			'100'
+		);
+		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
+			'data-initial-account-name',
+			'Account 100'
+		);
 	});
 });

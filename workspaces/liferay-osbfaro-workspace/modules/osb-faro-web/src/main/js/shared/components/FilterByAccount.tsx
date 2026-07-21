@@ -34,11 +34,15 @@ const ALL_ACCOUNTS_ITEM: IAccountItem = {
 
 interface IFilterByAccount {
 	assetType: string;
+	initialAccountId?: string | null;
+	initialAccountName?: string | null;
 	onFilterChange: (item: Item | null) => void;
 }
 
 const filterByAccount: React.FC<IFilterByAccount> = ({
 	assetType,
+	initialAccountId,
+	initialAccountName,
 	onFilterChange,
 }) => {
 	const {assetId, channelId, groupId, title, touchpoint} = useParams<{
@@ -51,7 +55,9 @@ const filterByAccount: React.FC<IFilterByAccount> = ({
 	const {delta: pageSize} = useQueryPagination({
 		initialOrderIOMap: createOrderIOMap(NAME, getDefaultSortOrder(NAME)),
 	});
-	const [selectedKey, setSelectedKey] = useState<string>('null');
+	const [selectedKey, setSelectedKey] = useState<string>(
+		initialAccountId ? String(initialAccountId) : 'null'
+	);
 
 	const {data} = useRequest({
 		dataSourceFn: API.accounts.searchAccounts,
@@ -71,12 +77,28 @@ const filterByAccount: React.FC<IFilterByAccount> = ({
 	const displayItems = useMemo(() => {
 		const apiItems: IAccountItem[] = data?.items ?? [];
 
-		return [ALL_ACCOUNTS_ITEM, ...apiItems].map((item) => ({
-			...item,
-			displayName: truncateText(item.name, 35, null),
-			id: item.id === null ? 'null' : String(item.id),
-		}));
-	}, [data]);
+		const hasSelectedItem = apiItems.some(
+			(item) => String(item.id) === selectedKey
+		);
+
+		const preloadedItems: IAccountItem[] =
+			selectedKey !== 'null' && !hasSelectedItem
+				? [
+						{
+							id: selectedKey,
+							name: initialAccountName || selectedKey,
+						},
+					]
+				: [];
+
+		return [ALL_ACCOUNTS_ITEM, ...preloadedItems, ...apiItems].map(
+			(item) => ({
+				...item,
+				displayName: truncateText(item.name, 35, null),
+				id: item.id === null ? 'null' : String(item.id),
+			})
+		);
+	}, [data, initialAccountName, selectedKey]);
 
 	const handleSelectionChange = (key: string) => {
 		setSelectedKey(key);

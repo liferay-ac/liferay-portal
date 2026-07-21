@@ -121,6 +121,8 @@ export type Router = {
 		type?: string;
 	};
 	query: {
+		accountId?: string;
+		accountName?: string;
 		field?: string;
 		page?: string;
 		query?: string;

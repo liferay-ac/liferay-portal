@@ -9,12 +9,12 @@ import Loading from 'shared/components/Loading';
 import React, {lazy, Suspense, useState} from 'react';
 import RouteNotFound from 'shared/components/RouteNotFound';
 import {CSVType} from 'shared/components/download-report/utils';
-import {getMatchedRoute, Routes} from 'shared/util/router';
+import {getMatchedRoute, Routes, setUriQueryValues} from 'shared/util/router';
 import {getSafeDecodedURIComponent} from 'shared/util/util';
 import {pickBy} from 'lodash';
 import {Router} from 'shared/types';
 import {sub} from 'shared/util/lang';
-import {Switch} from 'react-router-dom';
+import {Switch, useHistory} from 'react-router-dom';
 import {useChannelContext} from 'shared/context/channel';
 import {useDataSources} from 'shared/context/dataSources';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
@@ -49,6 +49,7 @@ const DocumentAndMedia: React.FC<{
 			touchpoint,
 			type = '',
 		},
+		query: {accountId: accountIdFromURL, accountName: accountNameFromURL},
 	} = router;
 
 	const LDPEnabled = useLDPEnabled({groupId});
@@ -78,7 +79,15 @@ const DocumentAndMedia: React.FC<{
 	const [filters] = useState({});
 	const [selectedAccount, setSelectedAccount] = useState<{
 		id: string;
-	} | null>(null);
+		name: string;
+	} | null>(
+		accountIdFromURL
+			? {
+					id: accountIdFromURL,
+					name: accountNameFromURL || accountIdFromURL,
+				}
+			: null
+	);
 
 	const dataSourceStates = useDataSources();
 
@@ -88,6 +97,21 @@ const DocumentAndMedia: React.FC<{
 	const rangeSelectorsFromQuery = useQueryRangeSelectors();
 
 	const {selectedChannel} = useChannelContext();
+
+	const history = useHistory();
+
+	const handleAccountFilterChange = (
+		account: {id: string; name: string} | null
+	) => {
+		history.push(
+			setUriQueryValues({
+				accountId: account?.id ?? null,
+				accountName: account?.name ?? null,
+			})
+		);
+
+		setSelectedAccount(account);
+	};
 
 	return (
 		<BasePage
@@ -134,7 +158,9 @@ const DocumentAndMedia: React.FC<{
 					{LDPEnabled && (
 						<FilterByAccount
 							assetType="document"
-							onFilterChange={setSelectedAccount}
+							initialAccountId={accountIdFromURL}
+							initialAccountName={accountNameFromURL}
+							onFilterChange={handleAccountFilterChange}
 						/>
 					)}
 
