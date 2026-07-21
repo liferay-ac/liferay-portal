@@ -67,6 +67,8 @@ public interface Rels {
 
 	public static final String ASSET = "asset";
 
+	public static final String ASSET_ACCOUNTS = "asset-accounts";
+
 	public static final String ASSET_SUMMARIES = "asset-summaries";
 
 	public static final String ASSET_SUMMARY_CATEGORIES =

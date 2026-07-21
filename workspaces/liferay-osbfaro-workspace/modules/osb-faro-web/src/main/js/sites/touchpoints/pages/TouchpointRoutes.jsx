@@ -5,6 +5,7 @@ import ClayLink from '@clayui/link';
 import DownloadCSVReport from 'shared/components/download-report/DownloadCSVReport';
 import DownloadPDFReport from 'shared/components/download-report/DownloadPDFReport';
 import ExperienceDropdown from '../components/ExperienceDropdown';
+import FilterByAccount from '../components/FilterByAccount';
 import FilterBySegment from '../components/FilterBySegment';
 import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
@@ -73,6 +74,7 @@ function TouchpointRoutes({className, router}) {
 	const decodedTitle = getSafeDecodedURIComponent(title);
 	const decodedTouchpoint = getSafeDecodedURIComponent(touchpoint);
 	const [selectedSegment, setSelectedSegment] = useState({});
+	const [selectedAccount, setSelectedAccount] = useState(null);
 	const [experienceId, setExperienceId] = useState(experienceIdfromURL);
 	const history = useHistory();
 	const LDPEnabled = useLDPEnabled({groupId});
@@ -137,6 +139,10 @@ function TouchpointRoutes({className, router}) {
 						/>
 					)}
 
+					{LDPEnabled && (
+						<FilterByAccount onFilterChange={setSelectedAccount} />
+					)}
+
 					<div className='d-flex justify-content-end w-100'>
 						<DropdownRangeKey
 							legacy={false}
@@ -187,6 +193,7 @@ function TouchpointRoutes({className, router}) {
 
 			<BasePage.Context.Provider
 				value={{
+					accountId: selectedAccount?.id,
 					experienceId,
 					filters: {},
 					rangeSelectors: pathRangeSelectors,

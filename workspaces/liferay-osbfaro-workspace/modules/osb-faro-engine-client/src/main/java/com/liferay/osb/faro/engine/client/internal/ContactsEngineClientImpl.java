@@ -29,6 +29,7 @@ import com.liferay.osb.faro.engine.client.model.ActivityGroup;
 import com.liferay.osb.faro.engine.client.model.ApiUsageMetric;
 import com.liferay.osb.faro.engine.client.model.AsahProject;
 import com.liferay.osb.faro.engine.client.model.Asset;
+import com.liferay.osb.faro.engine.client.model.AssetAccount;
 import com.liferay.osb.faro.engine.client.model.AssetSummary;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryCategory;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryMimeType;
@@ -1199,6 +1200,50 @@ public class ContactsEngineClientImpl
 		throws FaroEngineClientException {
 
 		return get(faroProject, Rels.ASSET, id, Asset.class);
+	}
+
+	@Override
+	public Results<AssetAccount> getAssetAccounts(
+		FaroProject faroProject, String assetId, String assetTitle,
+		String assetType, Long channelId, String keywords, String rangeEnd,
+		Integer rangeKey, String rangeStart, int page, int pageSize) {
+
+		Map<String, Object> uriVariables = getUriVariables(faroProject);
+
+		uriVariables.put("assetId", assetId);
+		uriVariables.put("assetType", assetType);
+		uriVariables.put("channelId", channelId);
+		uriVariables.put("page", page);
+		uriVariables.put("pageSize", pageSize);
+
+		if (Validator.isNotNull(assetTitle)) {
+			uriVariables.put("assetTitle", assetTitle);
+		}
+
+		if (Validator.isNotNull(keywords)) {
+			uriVariables.put("keywords", keywords);
+		}
+
+		if (Validator.isNotNull(rangeEnd)) {
+			uriVariables.put("rangeEnd", rangeEnd);
+		}
+
+		if (rangeKey != null) {
+			uriVariables.put("rangeKey", rangeKey);
+		}
+
+		if (Validator.isNotNull(rangeStart)) {
+			uriVariables.put("rangeStart", rangeStart);
+		}
+
+		PagedModel<?, AssetAccount> pagedModel = get(
+			faroProject, Rels.ASSET_ACCOUNTS,
+			new ParameterizedTypeReference
+				<EntityModelPagedModel<AssetAccount>>() {
+			},
+			uriVariables);
+
+		return pagedModel.getResults();
 	}
 
 	@Override

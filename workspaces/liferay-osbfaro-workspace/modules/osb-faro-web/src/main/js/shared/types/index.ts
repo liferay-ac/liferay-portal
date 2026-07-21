@@ -50,6 +50,7 @@ export interface ICompositionBag {
 }
 
 export interface IBasePageContext {
+	accountId?: string | null;
 	experienceId?: string | null;
 	filters: any;
 	router: any;

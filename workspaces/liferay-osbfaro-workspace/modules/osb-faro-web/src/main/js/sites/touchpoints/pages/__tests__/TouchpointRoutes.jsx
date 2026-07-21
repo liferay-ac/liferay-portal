@@ -45,6 +45,11 @@ jest.mock('../../components/ExperienceDropdown', () => ({
 	default: () => <div data-testid='experience-dropdown' />
 }));
 
+jest.mock('../../components/FilterByAccount', () => ({
+	__esModule: true,
+	default: () => null
+}));
+
 jest.mock('../../components/FilterBySegment', () => ({
 	__esModule: true,
 	default: () => null

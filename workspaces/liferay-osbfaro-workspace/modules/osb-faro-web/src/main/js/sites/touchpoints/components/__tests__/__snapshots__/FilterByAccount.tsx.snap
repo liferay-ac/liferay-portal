@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`FilterByAccount should render 1`] = `
+<div>
+  <div
+    class="align-items-center d-flex analytics-account-filter-root"
+  >
+    <div
+      class="dropdown"
+    >
+      <button
+        aria-expanded="false"
+        aria-haspopup="true"
+        class="dropdown-toggle btn btn-outline-borderless btn-sm btn-outline-secondary"
+        type="button"
+      >
+        Filter
+        <svg
+          class="lexicon-icon lexicon-icon-caret-bottom ml-2"
+          role="presentation"
+        >
+          <use
+            href="#caret-bottom"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+`;
