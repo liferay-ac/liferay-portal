@@ -132,12 +132,14 @@ export const Routes = buildRoutes({
 									ASSETS_OBJECT_ENTRY: {
 										path: '/object-entry',
 										routes: {
+											ASSETS_OBJECT_ENTRY_ACCOUNTS:
+												'/:assetId/accounts/:touchpoint/:title?/:type?',
 											ASSETS_OBJECT_ENTRY_KNOWN_INDIVIDUALS:
 												'/:assetId/known-individuals/:touchpoint/:title?/:type?',
 											ASSETS_OBJECT_ENTRY_OVERVIEW:
 												'/:assetId/page/:touchpoint/:title?/:type?',
 											ASSETS_OBJECT_ENTRY_ROUTES:
-												'/:assetId/:tabId(page|known-individuals)/:touchpoint/:title?/:type?',
+												'/:assetId/:tabId(accounts|page|known-individuals)/:touchpoint/:title?/:type?',
 										},
 									},
 									ASSETS_WEB_CONTENT: {
