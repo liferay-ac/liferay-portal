@@ -1,18 +1,17 @@
 import * as API from 'shared/api';
-import ClayButton from '@clayui/button';
-import ClayDropDown from '@clayui/drop-down';
-import ClayIcon from '@clayui/icon';
-import ClayLabel from '@clayui/label';
-import Loading, {Align} from 'shared/components/Loading';
-import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import React, {useMemo, useState} from 'react';
+import {ClayTooltipProvider} from '@clayui/tooltip';
 import {
 	createOrderIOMap,
 	getDefaultSortOrder,
 	NAME,
 } from 'shared/util/pagination';
-import {getSafeDecodedURIComponent, getSafeTouchpoint} from 'shared/util/util';
-import {sub} from 'shared/util/lang';
+import {
+	getSafeDecodedURIComponent,
+	getSafeTouchpoint,
+	truncateText,
+} from 'shared/util/util';
+import {Option, Picker, Text} from '@clayui/core';
 import {useParams} from 'react-router-dom';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -20,6 +19,17 @@ import {useRequest} from 'shared/hooks/useRequest';
 type Item = {
 	id: string;
 	name: string;
+};
+
+interface IAccountItem {
+	id: string | null;
+	name: string;
+	displayName?: string;
+}
+
+const ALL_ACCOUNTS_ITEM: IAccountItem = {
+	id: null,
+	name: Liferay.Language.get('all-accounts'),
 };
 
 interface IFilterByAccount {
@@ -38,12 +48,12 @@ const filterByAccount: React.FC<IFilterByAccount> = ({
 		title: string;
 		touchpoint: string;
 	}>();
-	const {delta: pageSize, query} = useQueryPagination({
+	const {delta: pageSize} = useQueryPagination({
 		initialOrderIOMap: createOrderIOMap(NAME, getDefaultSortOrder(NAME)),
 	});
-	const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+	const [selectedKey, setSelectedKey] = useState<string>('null');
 
-	const {data, loading} = useRequest({
+	const {data} = useRequest({
 		dataSourceFn: API.accounts.searchAccounts,
 		variables: {
 			assetId:
@@ -55,136 +65,65 @@ const filterByAccount: React.FC<IFilterByAccount> = ({
 			channelId,
 			groupId,
 			pageSize,
-			query,
 		},
 	});
 
-	const items: Item[] = data?.items ?? [];
+	const displayItems = useMemo(() => {
+		const apiItems: IAccountItem[] = data?.items ?? [];
 
-	return (
-		<div className="align-items-center d-flex analytics-account-filter-root">
-			<Dropdown
-				items={items}
-				loading={loading}
-				onFilterChange={(item: Item | null) => {
-					setSelectedItem(item);
+		return [ALL_ACCOUNTS_ITEM, ...apiItems].map((item) => ({
+			...item,
+			displayName: truncateText(item.name, 35, null),
+			id: item.id === null ? 'null' : String(item.id),
+		}));
+	}, [data]);
 
-					onFilterChange(item);
-				}}
-			/>
+	const handleSelectionChange = (key: string) => {
+		setSelectedKey(key);
 
-			{selectedItem && (
-				<ClayLabel
-					className="ml-2"
-					closeButtonProps={{
-						'aria-label': Liferay.Language.get('close'),
-						id: 'closeId',
-						title: Liferay.Language.get('close'),
-					}}
-					large
-					onClick={() => {
-						setSelectedItem(null);
-						onFilterChange(null);
-					}}
-				>
-					{selectedItem.name}
-				</ClayLabel>
-			)}
-		</div>
-	);
-};
+		if (key === 'null') {
+			onFilterChange(null);
 
-const Dropdown = ({items, loading, onFilterChange}: any) => {
-	const [value, setValue] = useState('');
-
-	const filteredItems = useMemo(() => {
-		if (!value) {
-			return items;
+			return;
 		}
 
-		return items.filter(
-			({name}: any) => name.match(new RegExp(value, 'i')) !== null
+		const selectedItem = displayItems.find((item) => item.id === key);
+
+		onFilterChange(
+			selectedItem ? {id: selectedItem.id, name: selectedItem.name} : null
 		);
-	}, [items, value]);
+	};
 
 	return (
-		<ClayDropDown
-			closeOnClick
-			trigger={
-				<ClayButton
-					borderless
-					disabled={loading}
-					displayType="secondary"
-					size="sm"
+		<ClayTooltipProvider>
+			<div className="account-filter-dropdown">
+				<Picker
+					aria-label={Liferay.Language.get('all-accounts')}
+					className="border-light form-control-sm"
+					items={displayItems}
+					onSelectionChange={(key) =>
+						handleSelectionChange(String(key))
+					}
+					searchable
+					selectedKey={selectedKey}
 				>
-					{loading && <Loading align={Align.Left} />}
-
-					{Liferay.Language.get('filter')}
-
-					<ClayIcon className="ml-2" symbol="caret-bottom" />
-				</ClayButton>
-			}
-		>
-			<ClayDropDown.Search
-				onChange={setValue}
-				placeholder={Liferay.Language.get('search')}
-			/>
-
-			<ClayDropDown.ItemList
-				items={[
-					{
-						children: filteredItems,
-						id: 1,
-						name: sub(Liferay.Language.get('filter-by-x'), [
-							Liferay.Language.get('account'),
-						]),
-					},
-				]}
-			>
-				{(item: any) => (
-					<ClayDropDown.Group
-						header={item.name}
-						items={item.children}
-						key={item.name}
-					>
-						{(item: any) => (
-							<ClayDropDown.Item
-								key={item.id}
-								onClick={() => {
-									onFilterChange(item);
-								}}
-							>
-								{item.name}
-							</ClayDropDown.Item>
-						)}
-					</ClayDropDown.Group>
-				)}
-			</ClayDropDown.ItemList>
-
-			{!filteredItems.length && (
-				<ClayDropDown.Section>
-					<NoResultsDisplay
-						description={
+					{(item: IAccountItem) => (
+						<Option key={String(item.id)} textValue={item.name}>
 							<div
-								className="d-flex flex-column justify-content-center"
-								style={{minHeight: 240}}
+								className="w-100"
+								title={
+									item.name.length > 35
+										? item.name
+										: undefined
+								}
 							>
-								<div className="h4 no-results-title">
-									{Liferay.Language.get(
-										'there-are-no-results-found'
-									)}
-								</div>
-
-								{Liferay.Language.get(
-									'please-try-a-different-search-term'
-								)}
+								<Text size={3}>{item.displayName}</Text>
 							</div>
-						}
-						title={undefined}
-					/>
-				</ClayDropDown.Section>
-			)}
-		</ClayDropDown>
+						</Option>
+					)}
+				</Picker>
+			</div>
+		</ClayTooltipProvider>
 	);
 };
 

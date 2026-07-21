@@ -1,9 +1,14 @@
 import * as API from 'shared/api';
 import FilterByAccount from '../FilterByAccount';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from '@testing-library/react';
 import {MemoryRouter, Route} from 'react-router-dom';
-import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 jest.unmock('react-dom');
 
@@ -39,7 +44,7 @@ const AssetWrapper = ({children}: {children: React.ReactNode}) => (
 describe('FilterByAccount', () => {
 	afterEach(cleanup);
 
-	it('should render', async () => {
+	it('should render with "All Accounts" as the default value', async () => {
 		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
 			Promise.resolve({
 				items: [MOCK_ACCOUNT('100', 'Account 100')],
@@ -53,93 +58,52 @@ describe('FilterByAccount', () => {
 			</Wrapper>
 		);
 
-		await waitForLoadingToBeRemoved(container);
+		expect(
+			screen.getByRole('combobox', {name: 'All Accounts'})
+		).toHaveTextContent('All Accounts');
 
-		expect(screen.getByText('Filter')).toBeInTheDocument();
+		await waitFor(() =>
+			expect(API.accounts.searchAccounts).toHaveBeenCalled()
+		);
+
 		expect(container).toMatchSnapshot();
 	});
 
-	it('should open dropdown w/ no accounts empty state', async () => {
-		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
-			Promise.resolve({
-				items: [],
-				total: 0,
-			})
-		);
-
-		const {container} = render(
-			<Wrapper>
-				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
-			</Wrapper>
-		);
-
-		await waitForLoadingToBeRemoved(container);
-
-		fireEvent.click(screen.getByText('Filter'));
-
-		expect(screen.getByText('Filter By Account')).toBeInTheDocument();
-		expect(
-			screen.getByText('There are no results found.')
-		).toBeInTheDocument();
-	});
-
-	it('should open dropdown w/ a list of accounts', async () => {
+	it('should list the fetched accounts when opened', async () => {
 		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
 			Promise.resolve({
 				items: [
 					MOCK_ACCOUNT('100', 'Account 100'),
 					MOCK_ACCOUNT('200', 'Account 200'),
-					MOCK_ACCOUNT('999', 'Account 999'),
 				],
-				total: 3,
+				total: 2,
 			})
 		);
 
-		const {container} = render(
+		render(
 			<Wrapper>
 				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
-		await waitForLoadingToBeRemoved(container);
-
-		fireEvent.click(screen.getByText('Filter'));
-
-		expect(screen.getByText('Account 100')).toBeInTheDocument();
-		expect(screen.getByText('Account 200')).toBeInTheDocument();
-		expect(screen.getByText('Account 999')).toBeInTheDocument();
-	});
-
-	it('should open dropdown w/ no accounts found empty state', async () => {
-		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
-			Promise.resolve({
-				items: [MOCK_ACCOUNT('100', 'Account 100')],
-				total: 1,
-			})
+		await waitFor(() =>
+			expect(API.accounts.searchAccounts).toHaveBeenCalled()
 		);
 
-		const {container} = render(
-			<Wrapper>
-				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
-			</Wrapper>
-		);
-
-		await waitForLoadingToBeRemoved(container);
-
-		fireEvent.click(screen.getByText('Filter'));
-
-		expect(screen.getByText('Account 100')).toBeInTheDocument();
-
-		fireEvent.change(screen.getByRole('textbox'), {
-			target: {value: 'Account 200'},
-		});
+		fireEvent.click(screen.getByRole('combobox', {name: 'All Accounts'}));
 
 		expect(
-			screen.getByText('There are no results found.')
+			await screen.findByRole('option', {name: 'Account 100'})
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole('option', {name: 'Account 200'})
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole('option', {name: 'All Accounts'})
 		).toBeInTheDocument();
 	});
 
-	it('should open dropdown w/ accounts and select one of them', async () => {
+	it('should call onFilterChange with the selected account', async () => {
 		const onFilterChange = jest.fn();
 
 		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
@@ -149,7 +113,7 @@ describe('FilterByAccount', () => {
 			})
 		);
 
-		const {container} = render(
+		render(
 			<Wrapper>
 				<FilterByAccount
 					assetType="page"
@@ -158,20 +122,22 @@ describe('FilterByAccount', () => {
 			</Wrapper>
 		);
 
-		await waitForLoadingToBeRemoved(container);
+		await waitFor(() =>
+			expect(API.accounts.searchAccounts).toHaveBeenCalled()
+		);
 
-		fireEvent.click(screen.getByText('Filter'));
+		fireEvent.click(screen.getByRole('combobox', {name: 'All Accounts'}));
 
-		fireEvent.click(screen.getByText('Account 100'));
+		fireEvent.click(
+			await screen.findByRole('option', {name: 'Account 100'})
+		);
 
 		expect(onFilterChange).toHaveBeenCalledWith(
 			expect.objectContaining({id: '100', name: 'Account 100'})
 		);
-
-		expect(container.querySelector('.label')).toBeInTheDocument();
 	});
 
-	it('should open dropdown w/ accounts, select one of them, and then, remove filter', async () => {
+	it('should call onFilterChange with null when "All Accounts" is selected again', async () => {
 		const onFilterChange = jest.fn();
 
 		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
@@ -181,7 +147,7 @@ describe('FilterByAccount', () => {
 			})
 		);
 
-		const {container} = render(
+		render(
 			<Wrapper>
 				<FilterByAccount
 					assetType="page"
@@ -190,19 +156,21 @@ describe('FilterByAccount', () => {
 			</Wrapper>
 		);
 
-		await waitForLoadingToBeRemoved(container);
-
-		fireEvent.click(screen.getByText('Filter'));
-
-		fireEvent.click(screen.getByText('Account 100'));
-
-		expect(onFilterChange).toHaveBeenCalledWith(
-			expect.objectContaining({id: '100', name: 'Account 100'})
+		await waitFor(() =>
+			expect(API.accounts.searchAccounts).toHaveBeenCalled()
 		);
 
-		fireEvent.click(screen.getByTitle('Close'));
+		fireEvent.click(screen.getByRole('combobox', {name: 'All Accounts'}));
 
-		expect(container.querySelector('.label')).not.toBeInTheDocument();
+		fireEvent.click(
+			await screen.findByRole('option', {name: 'Account 100'})
+		);
+
+		fireEvent.click(screen.getByRole('combobox', {name: 'All Accounts'}));
+
+		fireEvent.click(
+			await screen.findByRole('option', {name: 'All Accounts'})
+		);
 
 		expect(onFilterChange).toHaveBeenCalledWith(null);
 	});
@@ -212,20 +180,20 @@ describe('FilterByAccount', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		const {container} = render(
+		render(
 			<Wrapper>
 				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
-		await waitForLoadingToBeRemoved(container);
-
-		expect(API.accounts.searchAccounts).toHaveBeenCalledWith(
-			expect.objectContaining({
-				assetId: 'http://liferay.com',
-				assetTitle: 'Liferay DXP - Home',
-				assetType: 'page',
-			})
+		await waitFor(() =>
+			expect(API.accounts.searchAccounts).toHaveBeenCalledWith(
+				expect.objectContaining({
+					assetId: 'http://liferay.com',
+					assetTitle: 'Liferay DXP - Home',
+					assetType: 'page',
+				})
+			)
 		);
 	});
 
@@ -234,20 +202,20 @@ describe('FilterByAccount', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		const {container} = render(
+		render(
 			<AssetWrapper>
 				<FilterByAccount assetType="blog" onFilterChange={jest.fn()} />
 			</AssetWrapper>
 		);
 
-		await waitForLoadingToBeRemoved(container);
-
-		expect(API.accounts.searchAccounts).toHaveBeenCalledWith(
-			expect.objectContaining({
-				assetId: '999',
-				assetTitle: 'Liferay DXP - Home',
-				assetType: 'blog',
-			})
+		await waitFor(() =>
+			expect(API.accounts.searchAccounts).toHaveBeenCalledWith(
+				expect.objectContaining({
+					assetId: '999',
+					assetTitle: 'Liferay DXP - Home',
+					assetType: 'blog',
+				})
+			)
 		);
 	});
 });

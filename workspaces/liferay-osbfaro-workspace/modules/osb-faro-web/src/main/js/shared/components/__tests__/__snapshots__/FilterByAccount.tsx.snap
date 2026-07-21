@@ -1,30 +1,22 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`FilterByAccount should render 1`] = `
+exports[`FilterByAccount should render with "All Accounts" as the default value 1`] = `
 <div>
   <div
-    class="align-items-center d-flex analytics-account-filter-root"
+    class="account-filter-dropdown"
   >
-    <div
-      class="dropdown"
+    <button
+      aria-activedescendant=""
+      aria-expanded="false"
+      aria-haspopup="listbox"
+      aria-label="All Accounts"
+      class="form-control form-control-select form-control-select-secondary border-light form-control-sm"
+      role="combobox"
+      tabindex="0"
+      type="button"
     >
-      <button
-        aria-expanded="false"
-        aria-haspopup="true"
-        class="dropdown-toggle btn btn-outline-borderless btn-sm btn-outline-secondary"
-        type="button"
-      >
-        Filter
-        <svg
-          class="lexicon-icon lexicon-icon-caret-bottom ml-2"
-          role="presentation"
-        >
-          <use
-            href="#caret-bottom"
-          />
-        </svg>
-      </button>
-    </div>
+      All Accounts
+    </button>
   </div>
 </div>
 `;
