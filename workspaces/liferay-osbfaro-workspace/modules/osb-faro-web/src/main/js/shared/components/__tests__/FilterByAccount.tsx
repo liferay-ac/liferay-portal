@@ -24,6 +24,18 @@ const Wrapper = ({children}: {children: React.ReactNode}) => (
 	</MemoryRouter>
 );
 
+const AssetWrapper = ({children}: {children: React.ReactNode}) => (
+	<MemoryRouter
+		initialEntries={[
+			'/workspace/123/456/assets/blogs/999/page/http%3A%2F%2Fliferay.com/Liferay%20DXP%20-%20Home',
+		]}
+	>
+		<Route path="/workspace/:groupId/:channelId/assets/blogs/:assetId/page/:touchpoint/:title">
+			{children}
+		</Route>
+	</MemoryRouter>
+);
+
 describe('FilterByAccount', () => {
 	afterEach(cleanup);
 
@@ -37,7 +49,7 @@ describe('FilterByAccount', () => {
 
 		const {container} = render(
 			<Wrapper>
-				<FilterByAccount onFilterChange={jest.fn()} />
+				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
@@ -57,7 +69,7 @@ describe('FilterByAccount', () => {
 
 		const {container} = render(
 			<Wrapper>
-				<FilterByAccount onFilterChange={jest.fn()} />
+				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
@@ -85,7 +97,7 @@ describe('FilterByAccount', () => {
 
 		const {container} = render(
 			<Wrapper>
-				<FilterByAccount onFilterChange={jest.fn()} />
+				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
@@ -108,7 +120,7 @@ describe('FilterByAccount', () => {
 
 		const {container} = render(
 			<Wrapper>
-				<FilterByAccount onFilterChange={jest.fn()} />
+				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
 			</Wrapper>
 		);
 
@@ -139,7 +151,10 @@ describe('FilterByAccount', () => {
 
 		const {container} = render(
 			<Wrapper>
-				<FilterByAccount onFilterChange={onFilterChange} />
+				<FilterByAccount
+					assetType="page"
+					onFilterChange={onFilterChange}
+				/>
 			</Wrapper>
 		);
 
@@ -168,7 +183,10 @@ describe('FilterByAccount', () => {
 
 		const {container} = render(
 			<Wrapper>
-				<FilterByAccount onFilterChange={onFilterChange} />
+				<FilterByAccount
+					assetType="page"
+					onFilterChange={onFilterChange}
+				/>
 			</Wrapper>
 		);
 
@@ -187,5 +205,49 @@ describe('FilterByAccount', () => {
 		expect(container.querySelector('.label')).not.toBeInTheDocument();
 
 		expect(onFilterChange).toHaveBeenCalledWith(null);
+	});
+
+	it('should search accounts by the canonical URL for the page asset type', async () => {
+		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
+			Promise.resolve({items: [], total: 0})
+		);
+
+		const {container} = render(
+			<Wrapper>
+				<FilterByAccount assetType="page" onFilterChange={jest.fn()} />
+			</Wrapper>
+		);
+
+		await waitForLoadingToBeRemoved(container);
+
+		expect(API.accounts.searchAccounts).toHaveBeenCalledWith(
+			expect.objectContaining({
+				assetId: 'http://liferay.com',
+				assetTitle: 'Liferay DXP - Home',
+				assetType: 'page',
+			})
+		);
+	});
+
+	it('should search accounts by the assetId route param for non-page asset types', async () => {
+		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
+			Promise.resolve({items: [], total: 0})
+		);
+
+		const {container} = render(
+			<AssetWrapper>
+				<FilterByAccount assetType="blog" onFilterChange={jest.fn()} />
+			</AssetWrapper>
+		);
+
+		await waitForLoadingToBeRemoved(container);
+
+		expect(API.accounts.searchAccounts).toHaveBeenCalledWith(
+			expect.objectContaining({
+				assetId: '999',
+				assetTitle: 'Liferay DXP - Home',
+				assetType: 'blog',
+			})
+		);
 	});
 });

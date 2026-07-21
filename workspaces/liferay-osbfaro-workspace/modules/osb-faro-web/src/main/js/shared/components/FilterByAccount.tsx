@@ -23,11 +23,21 @@ type Item = {
 };
 
 interface IFilterByAccount {
+	assetType: string;
 	onFilterChange: (item: Item | null) => void;
 }
 
-const filterByAccount: React.FC<IFilterByAccount> = ({onFilterChange}) => {
-	const {channelId, groupId, title, touchpoint} = useParams();
+const filterByAccount: React.FC<IFilterByAccount> = ({
+	assetType,
+	onFilterChange,
+}) => {
+	const {assetId, channelId, groupId, title, touchpoint} = useParams<{
+		assetId: string;
+		channelId: string;
+		groupId: string;
+		title: string;
+		touchpoint: string;
+	}>();
 	const {delta: pageSize, query} = useQueryPagination({
 		initialOrderIOMap: createOrderIOMap(NAME, getDefaultSortOrder(NAME)),
 	});
@@ -36,9 +46,12 @@ const filterByAccount: React.FC<IFilterByAccount> = ({onFilterChange}) => {
 	const {data, loading} = useRequest({
 		dataSourceFn: API.accounts.searchAccounts,
 		variables: {
-			assetId: getSafeTouchpoint(touchpoint as string),
-			assetTitle: getSafeDecodedURIComponent(title as string),
-			assetType: 'page',
+			assetId:
+				assetType === 'page'
+					? getSafeTouchpoint(touchpoint)
+					: getSafeDecodedURIComponent(assetId),
+			assetTitle: getSafeDecodedURIComponent(title),
+			assetType,
 			channelId,
 			groupId,
 			pageSize,

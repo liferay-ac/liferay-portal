@@ -3,6 +3,7 @@ import BasePage from 'shared/components/base-page';
 import BundleRouter from 'route-middleware/BundleRouter';
 import DownloadCSVReport from 'shared/components/download-report/DownloadCSVReport';
 import DownloadPDFReport from 'shared/components/download-report/DownloadPDFReport';
+import FilterByAccount from 'shared/components/FilterByAccount';
 import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
 import React, {lazy, Suspense, useState} from 'react';
@@ -16,6 +17,7 @@ import {sub} from 'shared/util/lang';
 import {Switch} from 'react-router-dom';
 import {useChannelContext} from 'shared/context/channel';
 import {useDataSources} from 'shared/context/dataSources';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useQueryRangeSelectors} from 'shared/hooks/useQueryRangeSelectors';
 
 const Overview = lazy(
@@ -58,11 +60,16 @@ const WebContent: React.FC<{
 	} = router;
 
 	const [filters] = useState({});
+	const [selectedAccount, setSelectedAccount] = useState<{
+		id: string;
+	} | null>(null);
 
 	const dataSourceStates = useDataSources();
 
 	const decodedTitle = getSafeDecodedURIComponent(title);
 	const decodedType = getSafeDecodedURIComponent(type);
+
+	const LDPEnabled = useLDPEnabled({groupId});
 
 	const rangeSelectorsFromQuery = useQueryRangeSelectors();
 
@@ -110,6 +117,13 @@ const WebContent: React.FC<{
 			{getMatchedRoute(NAV_ITEMS) ===
 				Routes.ASSETS_WEB_CONTENT_OVERVIEW && (
 				<BasePage.SubHeader>
+					{LDPEnabled && (
+						<FilterByAccount
+							assetType="journal"
+							onFilterChange={setSelectedAccount}
+						/>
+					)}
+
 					<div className="d-flex justify-content-end w-100">
 						<DownloadPDFReport
 							disabled={!!dataSourceStates.empty}
@@ -139,7 +153,13 @@ const WebContent: React.FC<{
 				</BasePage.SubHeader>
 			)}
 
-			<BasePage.Context.Provider value={{filters, router}}>
+			<BasePage.Context.Provider
+				value={{
+					accountId: selectedAccount?.id,
+					filters,
+					router,
+				}}
+			>
 				<BasePage.Body>
 					<Suspense fallback={<Loading />}>
 						<Switch>

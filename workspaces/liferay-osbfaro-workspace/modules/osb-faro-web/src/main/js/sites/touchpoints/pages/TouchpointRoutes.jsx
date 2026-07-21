@@ -5,7 +5,7 @@ import ClayLink from '@clayui/link';
 import DownloadCSVReport from 'shared/components/download-report/DownloadCSVReport';
 import DownloadPDFReport from 'shared/components/download-report/DownloadPDFReport';
 import ExperienceDropdown from '../components/ExperienceDropdown';
-import FilterByAccount from '../components/FilterByAccount';
+import FilterByAccount from 'shared/components/FilterByAccount';
 import FilterBySegment from '../components/FilterBySegment';
 import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
@@ -140,7 +140,10 @@ function TouchpointRoutes({className, router}) {
 					)}
 
 					{LDPEnabled && (
-						<FilterByAccount onFilterChange={setSelectedAccount} />
+						<FilterByAccount
+							assetType='page'
+							onFilterChange={setSelectedAccount}
+						/>
 					)}
 
 					<div className='d-flex justify-content-end w-100'>
@@ -204,6 +207,7 @@ function TouchpointRoutes({className, router}) {
 					<BasePage.SubHeader>
 						{LDPEnabled && (
 							<FilterByAccount
+								assetType='page'
 								onFilterChange={setSelectedAccount}
 							/>
 						)}
