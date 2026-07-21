@@ -20,6 +20,9 @@ import {useDataSources} from 'shared/context/dataSources';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useQueryRangeSelectors} from 'shared/hooks/useQueryRangeSelectors';
 
+const Accounts = lazy(
+	() => import(/* webpackChunkName: "FormsAccounts" */ './Accounts')
+);
 const Overview = lazy(
 	() => import(/* webpackChunkName: "FormsOverview" */ './Overview')
 );
@@ -30,19 +33,6 @@ const KnownIndividuals = lazy(
 			/* webpackChunkName: "FormsKnownIndividuals" */ './KnownIndividuals'
 		)
 );
-
-const NAV_ITEMS = [
-	{
-		exact: true,
-		label: Liferay.Language.get('overview'),
-		route: Routes.ASSETS_FORMS_OVERVIEW,
-	},
-	{
-		exact: true,
-		label: Liferay.Language.get('known-individuals'),
-		route: Routes.ASSETS_FORMS_KNOWN_INDIVIDUALS,
-	},
-];
 
 const Form: React.FC<{
 	className: string;
@@ -59,6 +49,30 @@ const Form: React.FC<{
 		},
 	} = router;
 
+	const LDPEnabled = useLDPEnabled({groupId});
+
+	const NAV_ITEMS = [
+		{
+			exact: true,
+			label: Liferay.Language.get('overview'),
+			route: Routes.ASSETS_FORMS_OVERVIEW,
+		},
+		{
+			exact: true,
+			label: Liferay.Language.get('known-individuals'),
+			route: Routes.ASSETS_FORMS_KNOWN_INDIVIDUALS,
+		},
+		...(LDPEnabled
+			? [
+					{
+						exact: true,
+						label: Liferay.Language.get('accounts'),
+						route: Routes.ASSETS_FORMS_ACCOUNTS,
+					},
+				]
+			: []),
+	];
+
 	const [filters] = useState({});
 	const [selectedAccount, setSelectedAccount] = useState<{
 		id: string;
@@ -68,8 +82,6 @@ const Form: React.FC<{
 
 	const decodedTitle = getSafeDecodedURIComponent(title);
 	const decodedType = getSafeDecodedURIComponent(type);
-
-	const LDPEnabled = useLDPEnabled({groupId});
 
 	const rangeSelectorsFromQuery = useQueryRangeSelectors();
 
@@ -174,6 +186,13 @@ const Form: React.FC<{
 								destructured={false}
 								exact
 								path={Routes.ASSETS_FORMS_KNOWN_INDIVIDUALS}
+							/>
+
+							<BundleRouter
+								data={Accounts}
+								destructured={false}
+								exact
+								path={Routes.ASSETS_FORMS_ACCOUNTS}
 							/>
 
 							<RouteNotFound />

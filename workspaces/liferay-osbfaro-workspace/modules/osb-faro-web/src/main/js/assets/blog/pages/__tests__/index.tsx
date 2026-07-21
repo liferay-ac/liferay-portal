@@ -114,4 +114,32 @@ describe('Blog', () => {
 
 		expect(screen.queryByTestId('filter-by-account')).toBeNull();
 	});
+
+	it('shows the accounts tab for LDP workspaces', () => {
+		(useLDPEnabled as jest.Mock).mockReturnValue(true);
+
+		render(
+			<Provider store={mockStore()}>
+				<MemoryRouter>
+					<Blog className="" router={router as any} />
+				</MemoryRouter>
+			</Provider>
+		);
+
+		expect(screen.queryByText('Accounts')).toBeTruthy();
+	});
+
+	it('hides the accounts tab for non-LDP workspaces', () => {
+		(useLDPEnabled as jest.Mock).mockReturnValue(false);
+
+		render(
+			<Provider store={mockStore()}>
+				<MemoryRouter>
+					<Blog className="" router={router as any} />
+				</MemoryRouter>
+			</Provider>
+		);
+
+		expect(screen.queryByText('Accounts')).toBeNull();
+	});
 });
