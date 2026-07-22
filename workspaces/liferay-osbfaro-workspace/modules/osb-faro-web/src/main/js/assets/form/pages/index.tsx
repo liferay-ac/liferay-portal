@@ -58,11 +58,6 @@ const Form: React.FC<{
 			label: Liferay.Language.get('overview'),
 			route: Routes.ASSETS_FORMS_OVERVIEW,
 		},
-		{
-			exact: true,
-			label: Liferay.Language.get('known-individuals'),
-			route: Routes.ASSETS_FORMS_KNOWN_INDIVIDUALS,
-		},
 		...(LDPEnabled
 			? [
 					{
@@ -72,6 +67,11 @@ const Form: React.FC<{
 					},
 				]
 			: []),
+		{
+			exact: true,
+			label: Liferay.Language.get('known-individuals'),
+			route: Routes.ASSETS_FORMS_KNOWN_INDIVIDUALS,
+		},
 	];
 
 	const [filters] = useState({});

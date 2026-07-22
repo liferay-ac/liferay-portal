@@ -58,11 +58,6 @@ const WebContent: React.FC<{
 			label: Liferay.Language.get('overview'),
 			route: Routes.ASSETS_WEB_CONTENT_OVERVIEW,
 		},
-		{
-			exact: true,
-			label: Liferay.Language.get('known-individuals'),
-			route: Routes.ASSETS_WEB_CONTENT_KNOWN_INDIVIDUALS,
-		},
 		...(LDPEnabled
 			? [
 					{
@@ -72,6 +67,11 @@ const WebContent: React.FC<{
 					},
 				]
 			: []),
+		{
+			exact: true,
+			label: Liferay.Language.get('known-individuals'),
+			route: Routes.ASSETS_WEB_CONTENT_KNOWN_INDIVIDUALS,
+		},
 	];
 
 	const [filters] = useState({});

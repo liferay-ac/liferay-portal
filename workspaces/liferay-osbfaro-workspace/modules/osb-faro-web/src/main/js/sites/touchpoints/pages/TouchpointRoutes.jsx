@@ -66,15 +66,15 @@ function TouchpointRoutes({className, router}) {
 			label: Liferay.Language.get('path'),
 			route: Routes.SITES_TOUCHPOINTS_PATH
 		},
-		{
-			exact: true,
-			label: Liferay.Language.get('known-individuals'),
-			route: Routes.SITES_TOUCHPOINTS_KNOWN_INDIVIDUALS
-		},
 		LDPEnabled && {
 			exact: true,
 			label: Liferay.Language.get('accounts'),
 			route: Routes.SITES_TOUCHPOINTS_ACCOUNTS
+		},
+		{
+			exact: true,
+			label: Liferay.Language.get('known-individuals'),
+			route: Routes.SITES_TOUCHPOINTS_KNOWN_INDIVIDUALS
 		}
 	].filter(Boolean);
 	const [pathRangeSelectors, setPathRangeSelectors] =
