@@ -35,6 +35,8 @@ public interface Rels {
 
 	public static final String ACCOUNT_LIFECYCLES = "account-lifecycles";
 
+	public static final String ACCOUNT_NAMES = "account-names";
+
 	public static final String ACCOUNTS = "accounts";
 
 	public static final String ACCOUNTS_DISTRIBUTION = "accounts-distribution";
@@ -66,8 +68,6 @@ public interface Rels {
 	public static final String API_USAGE_METRICS = "api-usage-metrics";
 
 	public static final String ASSET = "asset";
-
-	public static final String ASSET_ACCOUNTS = "asset-accounts";
 
 	public static final String ASSET_SUMMARIES = "asset-summaries";
 

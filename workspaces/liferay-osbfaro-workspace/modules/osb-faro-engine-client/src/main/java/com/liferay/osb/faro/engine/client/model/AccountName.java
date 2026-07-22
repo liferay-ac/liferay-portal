@@ -8,7 +8,7 @@ package com.liferay.osb.faro.engine.client.model;
 /**
  * @author Marcos Martins
  */
-public class AssetAccount {
+public class AccountName {
 
 	public String getId() {
 		return _id;

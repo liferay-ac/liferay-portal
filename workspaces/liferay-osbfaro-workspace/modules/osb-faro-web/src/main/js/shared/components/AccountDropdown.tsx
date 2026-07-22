@@ -35,7 +35,7 @@ const ALL_ACCOUNTS_ITEM: IAccountItem = {
 };
 
 interface IAccountDropdownProps {
-	assetType: string;
+	assetType?: string;
 	className?: string;
 	initialAccountId?: string | null;
 	initialAccountName?: string | null;
@@ -66,11 +66,14 @@ const AccountDropdown: React.FC<IAccountDropdownProps> = ({
 	const {data} = useRequest({
 		dataSourceFn: API.accounts.searchAccounts,
 		variables: {
-			assetId:
-				assetType === 'page'
+			assetId: assetType
+				? assetType === 'page'
 					? getSafeTouchpoint(touchpoint)
-					: getSafeDecodedURIComponent(assetId),
-			assetTitle: getSafeDecodedURIComponent(title),
+					: getSafeDecodedURIComponent(assetId)
+				: undefined,
+			assetTitle: assetType
+				? getSafeDecodedURIComponent(title)
+				: undefined,
 			assetType,
 			channelId,
 			groupId,

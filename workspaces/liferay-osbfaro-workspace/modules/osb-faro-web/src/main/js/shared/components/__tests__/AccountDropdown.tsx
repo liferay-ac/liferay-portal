@@ -41,6 +41,12 @@ const AssetWrapper = ({children}: {children: React.ReactNode}) => (
 	</MemoryRouter>
 );
 
+const SiteWrapper = ({children}: {children: React.ReactNode}) => (
+	<MemoryRouter initialEntries={['/workspace/123/456/sites']}>
+		<Route path="/workspace/:groupId/:channelId/sites">{children}</Route>
+	</MemoryRouter>
+);
+
 describe('AccountDropdown', () => {
 	afterEach(cleanup);
 
@@ -265,5 +271,37 @@ describe('AccountDropdown', () => {
 				})
 			)
 		);
+	});
+
+	it('should search accounts channel-wide when no assetType is given', async () => {
+		(API.accounts.searchAccounts as jest.Mock).mockReturnValue(
+			Promise.resolve({
+				items: [MOCK_ACCOUNT('100', 'Account 100')],
+				total: 1,
+			})
+		);
+
+		render(
+			<SiteWrapper>
+				<AccountDropdown onFilterChange={jest.fn()} />
+			</SiteWrapper>
+		);
+
+		await waitFor(() =>
+			expect(API.accounts.searchAccounts).toHaveBeenCalledWith(
+				expect.objectContaining({
+					assetId: undefined,
+					assetType: undefined,
+					channelId: '456',
+					groupId: '123',
+				})
+			)
+		);
+
+		fireEvent.click(screen.getByRole('combobox', {name: 'All Accounts'}));
+
+		expect(
+			await screen.findByRole('option', {name: 'Account 100'})
+		).toBeInTheDocument();
 	});
 });

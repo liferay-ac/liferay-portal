@@ -13,13 +13,13 @@ import com.liferay.osb.faro.engine.client.model.AccountLifecycleMetric;
 import com.liferay.osb.faro.engine.client.model.AccountLifecycleStageMetric;
 import com.liferay.osb.faro.engine.client.model.AccountLifecycleStatus;
 import com.liferay.osb.faro.engine.client.model.AccountMetric;
+import com.liferay.osb.faro.engine.client.model.AccountName;
 import com.liferay.osb.faro.engine.client.model.Activity;
 import com.liferay.osb.faro.engine.client.model.ActivityAggregation;
 import com.liferay.osb.faro.engine.client.model.ActivityAsset;
 import com.liferay.osb.faro.engine.client.model.ActivityGroup;
 import com.liferay.osb.faro.engine.client.model.ApiUsageMetric;
 import com.liferay.osb.faro.engine.client.model.Asset;
-import com.liferay.osb.faro.engine.client.model.AssetAccount;
 import com.liferay.osb.faro.engine.client.model.AssetSummary;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryCategory;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryMimeType;
@@ -231,6 +231,11 @@ public interface ContactsEngineClient {
 	public List<AccountMetric> getAccountMetrics(
 		FaroProject faroProject, Long channelId);
 
+	public Results<AccountName> getAccountNames(
+		FaroProject faroProject, String assetId, String assetTitle,
+		String assetType, Long channelId, String keywords, String rangeEnd,
+		Integer rangeKey, String rangeStart, int page, int pageSize);
+
 	public Results<Account> getAccounts(
 		FaroProject faroProject, String channelId, String filterString,
 		String query, int cur, int delta, String sortString);
@@ -277,11 +282,6 @@ public interface ContactsEngineClient {
 
 	public Asset getAsset(FaroProject faroProject, String id)
 		throws FaroEngineClientException;
-
-	public Results<AssetAccount> getAssetAccounts(
-		FaroProject faroProject, String assetId, String assetTitle,
-		String assetType, Long channelId, String keywords, String rangeEnd,
-		Integer rangeKey, String rangeStart, int page, int pageSize);
 
 	public Results<Asset> getAssets(
 		FaroProject faroProject, String dataSourceId, String query, int action,

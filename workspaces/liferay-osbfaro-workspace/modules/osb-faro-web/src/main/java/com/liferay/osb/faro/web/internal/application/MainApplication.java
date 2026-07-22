@@ -6,7 +6,6 @@
 package com.liferay.osb.faro.web.internal.application;
 
 import com.liferay.osb.faro.web.internal.constants.FaroConstants;
-import com.liferay.osb.faro.web.internal.controller.main.AssetAccountFaroController;
 import com.liferay.osb.faro.web.internal.controller.main.BlockedKeywordsFaroController;
 import com.liferay.osb.faro.web.internal.controller.main.ChannelFaroController;
 import com.liferay.osb.faro.web.internal.controller.main.DefinitionsFaroController;
@@ -48,7 +47,6 @@ public class MainApplication extends BaseApplication {
 	public Set<Object> getControllers() {
 		Set<Object> controllers = new HashSet<>();
 
-		controllers.add(_assetAccountFaroController);
 		controllers.add(_blockedKeywordsFaroController);
 		controllers.add(_channelFaroController);
 		controllers.add(_definitionsFaroController);
@@ -65,9 +63,6 @@ public class MainApplication extends BaseApplication {
 
 		return controllers;
 	}
-
-	@Reference
-	private AssetAccountFaroController _assetAccountFaroController;
 
 	@Reference
 	private BlockedKeywordsFaroController _blockedKeywordsFaroController;

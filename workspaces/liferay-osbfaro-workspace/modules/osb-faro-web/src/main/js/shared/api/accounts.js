@@ -125,6 +125,6 @@ export function searchAccounts({
 			pageSize,
 		},
 		method: 'GET',
-		path: `main/${groupId}/asset-accounts`,
+		path: `contacts/${groupId}/account/account-names`,
 	});
 }

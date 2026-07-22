@@ -85,6 +85,7 @@ export const AssetMetricQuery = (queryName: string) => (metricName: string) =>
 
 export const SitesTabsQuery = gql`
 	query SitesMetricTabsQuery(
+		$accountId: String
 		$channelId: String
 		$interval: String!
 		$rangeEnd: String
@@ -92,6 +93,7 @@ export const SitesTabsQuery = gql`
 		$rangeStart: String
 	) {
 		site(
+			accountId: $accountId
 			channelId: $channelId
 			interval: $interval
 			rangeEnd: $rangeEnd
@@ -118,6 +120,7 @@ export const SitesTabsQuery = gql`
 
 const SitesGenericMetricQuery = (metricName: string) => gql`
 	query SitesMetricQuery(
+		$accountId: String
 		$channelId: String
 		$interval: String!
 		$rangeEnd: String
@@ -125,6 +128,7 @@ const SitesGenericMetricQuery = (metricName: string) => gql`
 		$rangeStart: String
 	) {
 		site(
+			accountId: $accountId
 			channelId: $channelId
 			interval: $interval
 			rangeEnd: $rangeEnd
@@ -142,6 +146,7 @@ const SitesGenericMetricQuery = (metricName: string) => gql`
 
 const SitesCompositeMetricQuery = gql`
 	query SitesMetricQuery(
+		$accountId: String
 		$channelId: String
 		$interval: String!
 		$rangeEnd: String
@@ -149,6 +154,7 @@ const SitesCompositeMetricQuery = gql`
 		$rangeStart: String
 	) {
 		site(
+			accountId: $accountId
 			channelId: $channelId
 			interval: $interval
 			rangeEnd: $rangeEnd
