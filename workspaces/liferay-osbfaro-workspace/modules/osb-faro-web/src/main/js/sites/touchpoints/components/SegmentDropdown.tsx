@@ -1,4 +1,6 @@
 import * as API from 'shared/api';
+import classNames from 'classnames';
+import FilterPickerTrigger from 'shared/components/FilterPickerTrigger';
 import React, {useMemo, useState} from 'react';
 import {ClayTooltipProvider} from '@clayui/tooltip';
 import {
@@ -42,11 +44,13 @@ const ALL_SEGMENTS_ITEM: ISegmentItem = {
 };
 
 interface ISegmentDropdownProps {
+	className?: string;
 	onFilterChange: (item: Item | null) => void;
 	rangeSelectors: RangeSelectors;
 }
 
 const SegmentDropdown: React.FC<ISegmentDropdownProps> = ({
+	className,
 	onFilterChange,
 	rangeSelectors,
 }) => {
@@ -126,9 +130,10 @@ const SegmentDropdown: React.FC<ISegmentDropdownProps> = ({
 
 	return (
 		<ClayTooltipProvider>
-			<div className="segment-filter-dropdown">
+			<div className={classNames('segment-filter-dropdown', className)}>
 				<Picker
 					aria-label={Liferay.Language.get('all-segments')}
+					as={FilterPickerTrigger}
 					className="border-light form-control-sm"
 					items={displayItems}
 					onSelectionChange={(key) =>

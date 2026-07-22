@@ -153,6 +153,16 @@ function TouchpointRoutes({className, router}) {
 			{matchedRoute === Routes.SITES_TOUCHPOINTS_OVERVIEW && (
 				<BasePage.SubHeader>
 					{LDPEnabled && (
+						<AccountDropdown
+							assetType='page'
+							className='mr-2'
+							initialAccountId={accountIdFromURL}
+							initialAccountName={accountNameFromURL}
+							onFilterChange={handleAccountFilterChange}
+						/>
+					)}
+
+					{LDPEnabled && (
 						<ExperienceDropdown
 							groupId={groupId}
 							onChange={experienceId => {
@@ -160,15 +170,6 @@ function TouchpointRoutes({className, router}) {
 
 								setExperienceId(experienceId);
 							}}
-						/>
-					)}
-
-					{LDPEnabled && (
-						<AccountDropdown
-							assetType='page'
-							initialAccountId={accountIdFromURL}
-							initialAccountName={accountNameFromURL}
-							onFilterChange={handleAccountFilterChange}
 						/>
 					)}
 
@@ -234,6 +235,7 @@ function TouchpointRoutes({className, router}) {
 						{LDPEnabled && (
 							<AccountDropdown
 								assetType='page'
+								className='mr-2'
 								initialAccountId={accountIdFromURL}
 								initialAccountName={accountNameFromURL}
 								onFilterChange={handleAccountFilterChange}

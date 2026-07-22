@@ -15,6 +15,14 @@ exports[`SegmentDropdown should render with "All Segments" as the default value 
       tabindex="0"
       type="button"
     >
+      <svg
+        class="lexicon-icon lexicon-icon-filter inline-item inline-item-before"
+        role="presentation"
+      >
+        <use
+          href="#filter"
+        />
+      </svg>
       All Segments
     </button>
   </div>

@@ -1,4 +1,6 @@
 import * as API from 'shared/api';
+import classNames from 'classnames';
+import FilterPickerTrigger from './FilterPickerTrigger';
 import React, {useMemo, useState} from 'react';
 import {ClayTooltipProvider} from '@clayui/tooltip';
 import {
@@ -34,6 +36,7 @@ const ALL_ACCOUNTS_ITEM: IAccountItem = {
 
 interface IAccountDropdownProps {
 	assetType: string;
+	className?: string;
 	initialAccountId?: string | null;
 	initialAccountName?: string | null;
 	onFilterChange: (item: Item | null) => void;
@@ -41,6 +44,7 @@ interface IAccountDropdownProps {
 
 const AccountDropdown: React.FC<IAccountDropdownProps> = ({
 	assetType,
+	className,
 	initialAccountId,
 	initialAccountName,
 	onFilterChange,
@@ -118,9 +122,10 @@ const AccountDropdown: React.FC<IAccountDropdownProps> = ({
 
 	return (
 		<ClayTooltipProvider>
-			<div className="account-filter-dropdown">
+			<div className={classNames('account-filter-dropdown', className)}>
 				<Picker
 					aria-label={Liferay.Language.get('all-accounts')}
+					as={FilterPickerTrigger}
 					className="border-light form-control-sm"
 					items={displayItems}
 					onSelectionChange={(key) =>

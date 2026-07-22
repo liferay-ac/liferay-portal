@@ -15,6 +15,14 @@ exports[`AccountDropdown should render with "All Accounts" as the default value 
       tabindex="0"
       type="button"
     >
+      <svg
+        class="lexicon-icon lexicon-icon-filter inline-item inline-item-before"
+        role="presentation"
+      >
+        <use
+          href="#filter"
+        />
+      </svg>
       All Accounts
     </button>
   </div>
