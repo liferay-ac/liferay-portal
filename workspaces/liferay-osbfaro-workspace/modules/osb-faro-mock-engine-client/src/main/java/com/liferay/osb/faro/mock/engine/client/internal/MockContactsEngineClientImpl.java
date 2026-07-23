@@ -9,8 +9,10 @@ import com.liferay.osb.faro.engine.client.ContactsEngineClient;
 import com.liferay.osb.faro.engine.client.constants.FieldMappingConstants;
 import com.liferay.osb.faro.engine.client.constants.FilterConstants;
 import com.liferay.osb.faro.engine.client.model.ApiUsageMetric;
+import com.liferay.osb.faro.engine.client.model.DataSourceUsageMetric;
 import com.liferay.osb.faro.engine.client.model.Field;
 import com.liferay.osb.faro.engine.client.model.Individual;
+import com.liferay.osb.faro.engine.client.model.ProjectDataSourceCount;
 import com.liferay.osb.faro.engine.client.model.ProjectUsageMetric;
 import com.liferay.osb.faro.engine.client.model.Results;
 import com.liferay.osb.faro.engine.client.util.FilterBuilder;
@@ -87,6 +89,14 @@ public class MockContactsEngineClientImpl
 	}
 
 	@Override
+	public Results<DataSourceUsageMetric> getDataSourceUsageMetrics(
+		FaroProject faroProject, Date date) {
+
+		return contactsEngineClient.getDataSourceUsageMetrics(
+			faroProject, date);
+	}
+
+	@Override
 	public long getDXPUsersCount(FaroProject faroProject, String id) {
 		return contactsEngineClient.getDXPUsersCount(faroProject, id);
 	}
@@ -153,6 +163,13 @@ public class MockContactsEngineClientImpl
 	@Override
 	public Date getLastSeenDate(FaroProject faroProject) {
 		return contactsEngineClient.getLastSeenDate(faroProject);
+	}
+
+	@Override
+	public Results<ProjectDataSourceCount> getProjectDataSourceCounts(
+		FaroProject faroProject) {
+
+		return contactsEngineClient.getProjectDataSourceCounts(faroProject);
 	}
 
 	@Override

@@ -148,6 +148,9 @@ public interface Rels {
 	public static final String DATA_SOURCE_SALESFORCE_USERS_FIELDS =
 		"data-source-salesforce-users-fields";
 
+	public static final String DATA_SOURCE_USAGE_METRICS =
+		"data-source-usage-metrics";
+
 	public static final String DATA_SOURCES = "data-sources";
 
 	public static final String DEFINITIONS_INDIVIDUAL_ATTRIBUTES =
@@ -263,6 +266,9 @@ public interface Rels {
 		"preview-disabled-segments";
 
 	public static final String PROJECT_USAGE_METRICS = "project-usage-metrics";
+
+	public static final String PROJECTS_DATA_SOURCE_COUNTS =
+		"projects-data-source-counts";
 
 	public static final String PROJECTS_LAST_SEEN_DATE =
 		"projects-last-seen-date";
