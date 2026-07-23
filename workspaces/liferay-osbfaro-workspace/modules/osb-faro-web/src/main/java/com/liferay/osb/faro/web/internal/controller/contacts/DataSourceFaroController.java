@@ -1788,6 +1788,26 @@ public class DataSourceFaroController extends BaseFaroController {
 			id, groupId, getUserId(), fileName, file);
 	}
 
+	protected void checkSubscription(FaroProject faroProject, Provider provider)
+		throws Exception {
+
+		if ((provider == null) ||
+			!_ldpRequiredProviderTypes.contains(provider.getType())) {
+
+			return;
+		}
+
+		String subscriptionName = faroProject.getSubscriptionName();
+
+		if ((subscriptionName == null) ||
+			!subscriptionName.contains("Data Platform")) {
+
+			throw new FaroException(
+				"Data source type \"" + provider.getType() +
+					"\" requires the \"Liferay Data Platform\" plan");
+		}
+	}
+
 	protected DataSourceDisplay create(
 			long groupId, Credentials credentials, Provider provider,
 			String name, String url, Event event, String status)
@@ -1802,6 +1822,8 @@ public class DataSourceFaroController extends BaseFaroController {
 
 		FaroProject faroProject =
 			faroProjectLocalService.getFaroProjectByGroupId(groupId);
+
+		checkSubscription(faroProject, provider);
 
 		DataSource dataSource = contactsEngineClient.addDataSource(
 			faroProject, credentials, getUserId(), name, url, provider, event,
@@ -2093,6 +2115,14 @@ public class DataSourceFaroController extends BaseFaroController {
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		DataSourceFaroController.class);
+
+	private static final Set<String> _ldpRequiredProviderTypes =
+		SetUtil.fromArray(
+			new String[] {
+				DemandbaseProvider.TYPE, HubSpotProvider.TYPE,
+				MarketoProvider.TYPE, MarketoCampaignProvider.TYPE,
+				SalesforceProvider.TYPE
+			});
 
 	@Reference
 	private ClamAVScanner _clamAVScanner;
