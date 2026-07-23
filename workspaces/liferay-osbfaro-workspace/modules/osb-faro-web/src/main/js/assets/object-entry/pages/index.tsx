@@ -1,4 +1,5 @@
 import * as breadcrumbs from 'shared/util/breadcrumbs';
+import AccountDropdown from 'shared/components/AccountDropdown';
 import BasePage from 'shared/components/base-page';
 import BundleRouter from 'route-middleware/BundleRouter';
 import DownloadPDFReport from 'shared/components/download-report/DownloadPDFReport';
@@ -6,14 +7,15 @@ import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
 import React, {lazy, Suspense, useState} from 'react';
 import RouteNotFound from 'shared/components/RouteNotFound';
-import {getMatchedRoute, Routes} from 'shared/util/router';
+import {getMatchedRoute, Routes, setUriQueryValues} from 'shared/util/router';
 import {getSafeDecodedURIComponent} from 'shared/util/util';
 import {pickBy} from 'lodash';
 import {Router} from 'shared/types';
 import {sub} from 'shared/util/lang';
-import {Switch} from 'react-router-dom';
+import {Switch, useHistory} from 'react-router-dom';
 import {useChannelContext} from 'shared/context/channel';
 import {useDataSources} from 'shared/context/dataSources';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useQueryRangeSelectors} from 'shared/hooks/useQueryRangeSelectors';
 
 const Overview = lazy(
@@ -54,18 +56,47 @@ const ObjectEntry: React.FC<{
 			touchpoint,
 			type = '',
 		},
+		query: {accountId: accountIdFromURL, accountName: accountNameFromURL},
 	} = router;
 
 	const [filters] = useState({});
+	const [selectedAccount, setSelectedAccount] = useState<{
+		id: string;
+		name: string;
+	} | null>(
+		accountIdFromURL
+			? {
+					id: accountIdFromURL,
+					name: accountNameFromURL || accountIdFromURL,
+				}
+			: null
+	);
 
 	const dataSourceStates = useDataSources();
 
 	const decodedTitle = getSafeDecodedURIComponent(title);
 	const decodedType = getSafeDecodedURIComponent(type);
 
+	const LDPEnabled = useLDPEnabled({groupId});
+
 	const rangeSelectorsFromQuery = useQueryRangeSelectors();
 
 	const {selectedChannel} = useChannelContext();
+
+	const history = useHistory();
+
+	const handleAccountFilterChange = (
+		account: {id: string; name: string} | null
+	) => {
+		history.push(
+			setUriQueryValues({
+				accountId: account?.id ?? null,
+				accountName: account?.name ?? null,
+			})
+		);
+
+		setSelectedAccount(account);
+	};
 
 	return (
 		<BasePage
@@ -109,6 +140,15 @@ const ObjectEntry: React.FC<{
 			{getMatchedRoute(NAV_ITEMS) ===
 				Routes.ASSETS_OBJECT_ENTRY_OVERVIEW && (
 				<BasePage.SubHeader>
+					{LDPEnabled && (
+						<AccountDropdown
+							assetType="objectEntry"
+							initialAccountId={accountIdFromURL}
+							initialAccountName={accountNameFromURL}
+							onFilterChange={handleAccountFilterChange}
+						/>
+					)}
+
 					<div className="d-flex justify-content-end w-100">
 						<DownloadPDFReport
 							disabled={!!dataSourceStates.empty}
@@ -125,6 +165,7 @@ const ObjectEntry: React.FC<{
 
 			<BasePage.Context.Provider
 				value={{
+					accountId: selectedAccount?.id,
 					filters,
 					router,
 				}}
