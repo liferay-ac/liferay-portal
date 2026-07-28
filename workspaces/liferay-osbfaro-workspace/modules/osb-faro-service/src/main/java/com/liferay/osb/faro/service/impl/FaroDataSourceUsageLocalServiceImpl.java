@@ -39,8 +39,6 @@ public class FaroDataSourceUsageLocalServiceImpl
 			long faroProjectId, long knownIndividualsCount, Date usageDate)
 		throws PortalException {
 
-		long currentTimeMillis = System.currentTimeMillis();
-
 		FaroDataSourceUsage faroDataSourceUsage =
 			faroDataSourceUsagePersistence.create(
 				counterLocalService.increment());
@@ -49,8 +47,11 @@ public class FaroDataSourceUsageLocalServiceImpl
 
 		faroDataSourceUsage.setCompanyId(user.getCompanyId());
 		faroDataSourceUsage.setUserId(userId);
-		faroDataSourceUsage.setCreateTime(currentTimeMillis);
-		faroDataSourceUsage.setModifiedTime(currentTimeMillis);
+
+		long now = System.currentTimeMillis();
+
+		faroDataSourceUsage.setCreateTime(now);
+		faroDataSourceUsage.setModifiedTime(now);
 
 		faroDataSourceUsage.setBillableEventsCount(billableEventsCount);
 		faroDataSourceUsage.setDataSourceId(dataSourceId);
