@@ -35,8 +35,8 @@ public class FaroDataSourceUsageLocalServiceImpl
 	@Override
 	public FaroDataSourceUsage addFaroDataSourceUsage(
 			long userId, long billableEventsCount, long dataSourceId,
-			String dataSourceName, String dataSourceStatus,
-			long faroProjectId, long knownIndividualsCount, Date usageDate)
+			String dataSourceName, String dataSourceStatus, long faroProjectId,
+			long knownIndividualsCount, Date usageDate)
 		throws PortalException {
 
 		FaroDataSourceUsage faroDataSourceUsage =
@@ -46,7 +46,7 @@ public class FaroDataSourceUsageLocalServiceImpl
 		User user = _userLocalService.getUser(userId);
 
 		faroDataSourceUsage.setCompanyId(user.getCompanyId());
-		faroDataSourceUsage.setUserId(userId);
+		faroDataSourceUsage.setUserId(user.getUserId());
 
 		long now = System.currentTimeMillis();
 
@@ -67,8 +67,8 @@ public class FaroDataSourceUsageLocalServiceImpl
 	@Override
 	public FaroDataSourceUsage addOrUpdateFaroDataSourceUsage(
 			long userId, long billableEventsCount, long dataSourceId,
-			String dataSourceName, String dataSourceStatus,
-			long faroProjectId, long knownIndividualsCount, Date usageDate)
+			String dataSourceName, String dataSourceStatus, long faroProjectId,
+			long knownIndividualsCount, Date usageDate)
 		throws PortalException {
 
 		FaroDataSourceUsage faroDataSourceUsage = fetchFaroDataSourceUsage(
