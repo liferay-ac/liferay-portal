@@ -167,6 +167,18 @@ public class FaroServiceUpgradeStepRegistrator
 			UpgradeProcessFactory.runSQL(
 				"update OSBFaro_FaroProject set dataSourceConnected = " +
 					"[$TRUE$]"));
+
+		registry.register(
+			"21.0.0", "22.0.0",
+			UpgradeProcessFactory.runSQL(
+				StringBundler.concat(
+					"create table OSBFaro_FaroDataSourceUsage (mvccVersion ",
+					"LONG default 0 not null, faroDataSourceUsageId LONG not ",
+					"null primary key, companyId LONG, userId LONG, ",
+					"createTime LONG, modifiedTime LONG, billableEventsCount ",
+					"LONG, dataSourceId LONG, dataSourceName VARCHAR(75) ",
+					"null, dataSourceStatus VARCHAR(75) null, faroProjectId ",
+					"LONG, knownIndividualsCount LONG, usageTime LONG)")));
 	}
 
 }
