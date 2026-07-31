@@ -11,6 +11,7 @@ import Loading from 'shared/components/Loading';
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import OverviewSection from '../components/OverviewSection';
 import React, {useContext} from 'react';
+import SegmentDropdown from 'shared/components/SegmentDropdown';
 import URLConstants from 'shared/util/url-constants';
 import {
 	AccountMetricType,
@@ -28,6 +29,7 @@ import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
 import {useHistory, useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
+import {useSegmentFilter} from 'shared/hooks/useSegmentFilter';
 
 const LifecycleEmptyState = ({
 	authorized,
@@ -179,6 +181,8 @@ const LifecycleAccounts = () => {
 
 	const {channelId, groupId} = useParams();
 
+	const {segmentId, segmentName} = useSegmentFilter();
+
 	return (
 		<section>
 			<SectionHeader
@@ -195,6 +199,8 @@ const LifecycleAccounts = () => {
 				industryFilter={filters.industryFilter}
 				lifecycleStageFilter={filters.lifecycleStageFilter}
 				rangeKeyFilter={RangeKeyTimeRanges.Last30Days}
+				segmentFilter={segmentId}
+				segmentName={segmentName}
 				stageSelectionNonce={stageSelectionNonce}
 			/>
 		</section>
@@ -211,6 +217,8 @@ const BaseLifecycle = () => {
 
 	const {empty: noDataSources, loading: dataSourcesLoading} =
 		useDataSources();
+
+	const {segmentId, segmentName, setSegment} = useSegmentFilter();
 
 	const {data: lifecycles, loading: lifecyclesLoading} = useRequest({
 		dataSourceFn: API.lifecycle.fetchLifecycles,
@@ -379,11 +387,18 @@ const BaseLifecycle = () => {
 								/>
 
 								<FilterPicker
+									className="mr-3"
 									entityLabel={Liferay.Language.get(
 										'countries'
 									)}
 									fieldMappingFieldName="country"
 									filterKey="countryFilter"
+								/>
+
+								<SegmentDropdown
+									initialSegmentId={segmentId}
+									initialSegmentName={segmentName}
+									onFilterChange={setSegment}
 								/>
 							</div>
 						</div>
