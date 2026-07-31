@@ -32,6 +32,9 @@ interface IFetchCatalogFields {
 
 export const CATALOG_FIELDS_MAX_PAGE_SIZE = 200;
 
+export const getCatalogFieldLabel = ({displayName, name}: ICatalogField) =>
+	displayName || name;
+
 export function fetchCatalogFields({
 	groupId,
 	page = 1,
