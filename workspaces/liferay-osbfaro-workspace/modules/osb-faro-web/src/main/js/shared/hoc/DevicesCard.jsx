@@ -157,7 +157,8 @@ const withDevicesCard = (
 					filters,
 					interval,
 					rangeSelectors,
-					router
+					router,
+					segmentId
 				}) => (
 					<Card.Body>
 						<TabsWithDevices
@@ -178,6 +179,7 @@ const withDevicesCard = (
 							onChange={handleActiveTabChange}
 							rangeSelectors={rangeSelectors}
 							router={router}
+							segmentId={segmentId}
 						/>
 					</Card.Body>
 				)}
