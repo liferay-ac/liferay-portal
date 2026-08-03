@@ -12,7 +12,7 @@ import {RangeSelectors, SafeRangeSelectors} from 'shared/types';
 import {sub} from 'shared/util/lang';
 import {toRounded} from 'shared/util/numbers';
 import {Trend} from 'commerce/utils/types';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useLocale} from 'shared/hooks/useLocale';
 import {useParams} from 'react-router-dom';
 
 import {useQueryRangeSelectors} from 'shared/hooks/useQueryRangeSelectors';
@@ -85,7 +85,7 @@ function CommerceMetricCard<TGraphQlData>({
 			},
 		}
 	);
-	const currentUser = useCurrentUser();
+	const locale = useLocale();
 
 	const result = data ? mapper(data) : [];
 
@@ -110,11 +110,7 @@ function CommerceMetricCard<TGraphQlData>({
 							loading={loading}
 						>
 							<h1 className="commerce-card-currency font-size-lg-3x font-weight-semibold mb-2">
-								{formatCurrency(
-									currencyCode,
-									currentUser.languageId,
-									value
-								)}
+								{formatCurrency(currencyCode, locale, value)}
 							</h1>
 
 							<div className="d-flex align-items-center mb-2">
@@ -176,7 +172,7 @@ function formatCurrency(
 	locale: string,
 	value: string
 ): string {
-	return new Intl.NumberFormat(locale.replace('_', '-'), {
+	return new Intl.NumberFormat(locale, {
 		currency: currencyCode,
 		style: 'currency',
 	}).format(parseFloat(value));

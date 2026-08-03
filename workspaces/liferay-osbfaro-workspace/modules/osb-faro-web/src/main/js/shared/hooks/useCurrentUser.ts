@@ -36,6 +36,17 @@ export const useFetchCurrentUser = (initialGroupId: string = '0') => {
 };
 
 /**
+ * Reads the current user's languageId straight from state, without going
+ * through the useCurrentUser hook. Shared by getLocale (shared/util/locale)
+ * so both stay in sync with how the current user is found in the store.
+ */
+export const getCurrentUserLanguageId = (state: any): string | null => {
+	const currentUserId = state.getIn(['currentUser', 'data']);
+
+	return state.getIn(['users', currentUserId, 'data', 'languageId']);
+};
+
+/**
  * Get currentUser from redux store.
  */
 export const useCurrentUser = (): User => {
