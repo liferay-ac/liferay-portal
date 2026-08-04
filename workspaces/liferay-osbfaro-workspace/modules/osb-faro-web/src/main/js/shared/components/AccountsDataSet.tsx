@@ -25,6 +25,7 @@ interface IAccountsDataSetProps {
 	groupId: string;
 	industryFilter?: string;
 	lifecycleStageFilter?: LifecycleStages;
+	rangeKeyFilter?: RangeKeyTimeRanges;
 	stageSelectionNonce?: number;
 }
 
@@ -50,6 +51,7 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 	groupId,
 	industryFilter,
 	lifecycleStageFilter,
+	rangeKeyFilter,
 	stageSelectionNonce,
 }) => {
 	const {data: lifecycleStageFieldValues} = useRequest({
@@ -69,6 +71,10 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 		label: lifecycleStagesLabelMap[stageType].label,
 		value: id,
 	}));
+
+	const preloadedRangeSelector = rangeSelectors.find(
+		({value}) => value === rangeKeyFilter
+	);
 
 	const preloadedLifecycleStage = lifecycleStageFilter
 		? lifecycleStages.find(
@@ -129,8 +135,8 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 						label: Liferay.Language.get('active-individuals'),
 						name: 'rangeKey',
 						preloadedData: buildSelectionPreloadedData(
-							RangeKeyTimeRanges.Last30Days,
-							Liferay.Language.get('last-30-days')
+							rangeKeyFilter,
+							preloadedRangeSelector?.label
 						),
 						type: 'selection',
 					},

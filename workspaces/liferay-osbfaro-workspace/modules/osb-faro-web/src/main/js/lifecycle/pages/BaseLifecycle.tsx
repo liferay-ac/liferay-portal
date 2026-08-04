@@ -21,9 +21,9 @@ import {
 	LifecycleContextProvider,
 	useLifecycle,
 } from '../context/LifecycleContext';
+import {RangeKeyTimeRanges, Sizes} from 'shared/util/constants';
 import {Routes, toRoute} from 'shared/util/router';
 import {SectionHeader} from 'shared/components/SectionHeader';
-import {Sizes} from 'shared/util/constants';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
 import {useHistory, useParams} from 'react-router-dom';
@@ -194,6 +194,7 @@ const LifecycleAccounts = () => {
 				groupId={groupId!}
 				industryFilter={filters.industryFilter}
 				lifecycleStageFilter={filters.lifecycleStageFilter}
+				rangeKeyFilter={RangeKeyTimeRanges.Last30Days}
 				stageSelectionNonce={stageSelectionNonce}
 			/>
 		</section>
