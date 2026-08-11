@@ -4,9 +4,10 @@ import ClayForm from '@clayui/form';
 import ClayModal, {useModal} from '@clayui/modal';
 import React from 'react';
 import {addAlert} from 'shared/actions/alerts';
-import {Alert} from 'shared/types';
+import {Alert, RangeSelectors} from 'shared/types';
 import {CSVType, MAX_CSV_ENTRIES, useDownloadCSV} from './utils';
 import {DownloadReportButton} from './DownloadReportButton';
+import {getFDSFilterState} from 'shared/components/FrontendDataSet';
 import {sub} from 'shared/util/lang';
 import {toLocale} from 'shared/util/numbers';
 import {useDispatch} from 'react-redux';
@@ -15,6 +16,9 @@ import {useParams} from 'react-router-dom';
 interface IDownloadStaticCSVReport {
 	children?: any;
 	disabled: boolean;
+	fdsName?: string;
+	objectType?: string;
+	rangeSelectors?: RangeSelectors;
 	segmentId?: string;
 	type: CSVType;
 	typeLang: string;
@@ -23,12 +27,15 @@ interface IDownloadStaticCSVReport {
 export const DownloadStaticCSVReport: React.FC<IDownloadStaticCSVReport> = ({
 	children,
 	disabled,
+	fdsName,
+	objectType,
+	rangeSelectors,
 	segmentId,
 	type,
 	typeLang,
 }) => {
 	const dispatch = useDispatch();
-	const generateURL = useDownloadCSV({segmentId, type});
+	const generateURL = useDownloadCSV({objectType, segmentId, type});
 	const {observer, onOpenChange, open} = useModal();
 	const {channelId, groupId} = useParams();
 
@@ -54,7 +61,14 @@ export const DownloadStaticCSVReport: React.FC<IDownloadStaticCSVReport> = ({
 						onOpenChange(false);
 
 						try {
-							const url = generateURL();
+							const fdsFilterState = fdsName
+								? getFDSFilterState(fdsName)
+								: undefined;
+
+							const url = generateURL(rangeSelectors, {
+								filter: fdsFilterState?.filter,
+								query: fdsFilterState?.query,
+							});
 							const response = await API.csv.fetchCSV(url);
 
 							if (!response.ok) {
@@ -80,7 +94,10 @@ export const DownloadStaticCSVReport: React.FC<IDownloadStaticCSVReport> = ({
 
 							const count = await API.csv.fetchCount({
 								channelId: channelId!,
+								filter: fdsFilterState?.filter,
 								groupId: groupId!,
+								objectType,
+								query: fdsFilterState?.query,
 								segmentId,
 								type: CSVType.Individual,
 							});

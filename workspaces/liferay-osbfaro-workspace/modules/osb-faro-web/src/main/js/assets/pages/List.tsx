@@ -7,8 +7,14 @@ import ClaySticker from '@clayui/sticker';
 import FaroConstants, {RangeKeyTimeRanges} from 'shared/util/constants';
 import React, {useMemo, useState} from 'react';
 import URLConstants from 'shared/util/url-constants';
+import {CSVType} from 'shared/components/download-report/utils';
+import {DownloadStaticCSVReport} from 'shared/components/download-report/DownloadStaticCSVReport';
 import {DropdownRangeKey} from 'shared/components/dropdown-range-key/DropdownRangeKey';
-import {FrontendDataSet, pagination} from 'shared/components/FrontendDataSet';
+import {
+	EConfigInURLBehavior,
+	FrontendDataSet,
+	pagination,
+} from 'shared/components/FrontendDataSet';
 import {getMimeType} from 'assets/components/mime-type';
 import {InfoPanel} from 'assets/components/InfoPanel';
 import {pickBy} from 'lodash';
@@ -371,6 +377,16 @@ const List = () => {
 
 			<BasePage.SubHeader fluid>
 				<div className="d-flex justify-content-end w-100">
+					<div className="mr-1">
+						<DownloadStaticCSVReport
+							disabled={false}
+							fdsName="assetTable"
+							rangeSelectors={rangeSelectors}
+							type={CSVType.Asset}
+							typeLang={Liferay.Language.get('assets')}
+						/>
+					</div>
+
 					<DropdownRangeKey
 						legacy={false}
 						onRangeSelectorChange={(rangeSelectors) => {
@@ -399,6 +415,7 @@ const List = () => {
 				<Card minHeight={300}>
 					<FrontendDataSet
 						apiURL={`/o/faro/contacts/${groupId}/asset-summary?channelId=${channelId}&${rangeSelectorParams}`}
+						configInURLBehavior={EConfigInURLBehavior.REPLACE}
 						customDataRenderers={{
 							assetMetricRenderer: columns.assetMetricRenderer,
 							assetTitleRenderer: columns.assetTitleRenderer({

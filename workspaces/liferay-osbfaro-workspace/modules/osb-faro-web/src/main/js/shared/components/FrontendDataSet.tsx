@@ -7,6 +7,8 @@ import React, {useEffect, useState} from 'react';
 import {
 	FrontendDataSet as BaseFrontendDataSet,
 	EConfigInURLBehavior,
+	IBaseFilterState,
+	readConfigFromURL,
 } from '@liferay/frontend-data-set-web';
 import {formatUTCDate, getCustomDateFormat} from 'shared/util/date';
 import {Text} from '@clayui/core';
@@ -123,6 +125,33 @@ export const columns = {
 		);
 	},
 };
+
+/**
+ * Reads the current filters and search query the data set identified by
+ * `fdsName` is showing on screen, from the `configInURLBehavior`-serialized
+ * config the data set writes to the URL (requires the data set to be
+ * rendered with `configInURLBehavior` other than OFF). Meant for one-off
+ * reads (e.g. building an export URL on click), not for live subscriptions.
+ */
+export function getFDSFilterState(fdsName: string) {
+	const config = readConfigFromURL(fdsName) as {
+		filters?: Array<IBaseFilterState>;
+		q?: string;
+	} | null;
+
+	const filter = (config?.filters ?? [])
+		.filter(
+			(filterState: IBaseFilterState) =>
+				filterState.active && filterState.odataFilterString
+		)
+		.map(
+			(filterState: IBaseFilterState) =>
+				`(${filterState.odataFilterString})`
+		)
+		.join(' and ');
+
+	return {filter, query: config?.q ?? ''};
+}
 
 export function useSnapshots(fdsName: string, enabled = true) {
 	const fetchSnapshots = enabled && Liferay.FeatureFlags['LPS-164563'];
