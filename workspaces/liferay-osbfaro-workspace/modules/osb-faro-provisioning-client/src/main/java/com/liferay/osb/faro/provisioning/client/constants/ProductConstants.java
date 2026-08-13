@@ -50,7 +50,7 @@ public class ProductConstants {
 	public static final String DATA_PLATFORM_PRIVATE_BETA_PRODUCT_ENTRY_NAME =
 		"Liferay Data Platform (Private Beta)";
 
-	public static final String DATA_PLATFORM_PRODUCT_ENTRY_ID = "KOR-17691626";
+	public static final String DATA_PLATFORM_PRODUCT_ENTRY_ID = "KOR-36833571";
 
 	public static final String DATA_PLATFORM_PRODUCT_ENTRY_NAME =
 		"Liferay Data Platform";
