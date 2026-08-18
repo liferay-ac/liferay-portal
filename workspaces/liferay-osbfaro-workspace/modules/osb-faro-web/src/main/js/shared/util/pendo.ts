@@ -1,8 +1,15 @@
 import {FaroEnv} from './constants';
+import {getTrackingConsent, TrackingConsentValues} from './tracking-consent';
 import {Project, User} from './records';
 
 export class Pendo {
 	initialize({currentUser, project}: {currentUser: User; project: Project}) {
+		this.injectAgent();
+
+		if (typeof pendo === 'undefined') {
+			return;
+		}
+
 		const data = {
 			account: {
 				...(project.corpProjectUuid && {
@@ -26,8 +33,42 @@ export class Pendo {
 		return pendo.initialize(data);
 	}
 
+	/**
+	 * Appends the agent loader on demand. On the page load where the user
+	 * accepts tracking, external-scripts.js already skipped the loader (no
+	 * consent existed when the page was rendered), so it must be injected
+	 * here for tracking to start without a reload.
+	 */
+	private injectAgent() {
+		if (typeof pendo !== 'undefined' || FARO_ENV !== FaroEnv.Production) {
+			return;
+		}
+
+		const script = document.createElement('script');
+
+		script.innerHTML = this.script;
+
+		const nonce = (Liferay as unknown as {CSP?: {nonce?: string}}).CSP
+			?.nonce;
+
+		if (nonce) {
+			script.setAttribute('nonce', nonce);
+		}
+
+		document.body.appendChild(script);
+	}
+
 	get script() {
 		if (FARO_ENV === FaroEnv.Production) {
+
+			// Before the user accepts tracking the page must not request
+			// anything from pendo.io, not even the agent script: an empty
+			// entry is filtered out by external-scripts.js.
+
+			if (getTrackingConsent() !== TrackingConsentValues.Accepted) {
+				return '';
+			}
+
 			return `(function(apiKey){
 			(function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
 				v=['initialize','identify','updateOptions','pageLoad','track'];for(w=0,x=v.length;w<x;++w)(function(m){
