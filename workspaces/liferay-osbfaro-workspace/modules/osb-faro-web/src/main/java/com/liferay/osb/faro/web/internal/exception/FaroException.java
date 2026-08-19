@@ -11,6 +11,9 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * @author Matthew Kong
  */
@@ -24,13 +27,25 @@ public class FaroException extends WebApplicationException {
 	}
 
 	public FaroException(String message, Response.StatusType statusType) {
-		super(getResponse(message, statusType));
+		this(message, statusType, Collections.emptyMap());
+	}
+
+	public FaroException(
+		String message, Response.StatusType statusType,
+		Map<String, Object> headers) {
+
+		super(getResponse(message, statusType, headers));
 	}
 
 	protected static Response getResponse(
-		String message, Response.StatusType statusType) {
+		String message, Response.StatusType statusType,
+		Map<String, Object> headers) {
 
 		Response.ResponseBuilder responseBuilder = Response.status(statusType);
+
+		for (Map.Entry<String, Object> entry : headers.entrySet()) {
+			responseBuilder.header(entry.getKey(), entry.getValue());
+		}
 
 		ErrorResponse errorResponse = new ErrorResponse();
 
