@@ -1,0 +1,46 @@
+concurrency:
+    cancel-in-progress: true
+    group: test-liferay-osbfaro-workspace-${{github.ref_name}}
+defaults:
+    run:
+        shell: bash
+        working-directory: workspaces/liferay-osbfaro-workspace
+jobs:
+    test-liferay-osbfaro-workspace:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+            -   name: Set up Node
+                uses: actions/setup-node@v4
+                with:
+                    cache: yarn
+                    cache-dependency-path: workspaces/liferay-osbfaro-workspace/yarn.lock
+                    node-version: "22"
+            -   name: Install dependencies
+                run: yarn install --frozen-lockfile
+            -   name: Run unit tests
+                run: yarn workspace osb-faro-web test
+            -   if: ${{!cancelled() && hashFiles('workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/TEST-frontend-js.xml') != ''}}
+                name: Publish test report
+                uses: dorny/test-reporter@v2
+                with:
+                    name: osb-faro-web unit tests
+                    path: workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/TEST-frontend-js.xml
+                    reporter: java-junit
+            -   if: ${{!cancelled() && hashFiles('workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/TEST-frontend-js.xml') != ''}}
+                name: Upload test results
+                uses: actions/upload-artifact@v4
+                with:
+                    name: osb-faro-web-test-results
+                    path: workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/TEST-frontend-js.xml
+on:
+    pull_request:
+        paths:
+            -   .github/workflows/ci-test-liferay-osbfaro-workspace.yaml
+            -   workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/**
+            -   workspaces/liferay-osbfaro-workspace/package.json
+            -   workspaces/liferay-osbfaro-workspace/yarn.lock
+permissions:
+    checks: write
+    contents: read
