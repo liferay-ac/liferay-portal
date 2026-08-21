@@ -28,6 +28,7 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -85,6 +86,8 @@ public abstract class BasePortalInstanceResourceTestCase {
 	public static void setUpClass() throws Exception {
 		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -323,6 +326,25 @@ public abstract class BasePortalInstanceResourceTestCase {
 	}
 
 	protected PortalInstance testPostPortalInstance_addPortalInstance(
+			PortalInstance portalInstance)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostPortalInstanceCopy() throws Exception {
+		PortalInstance randomPortalInstance = randomPortalInstance();
+
+		PortalInstance postPortalInstance =
+			testPostPortalInstanceCopy_addPortalInstance(randomPortalInstance);
+
+		assertEquals(randomPortalInstance, postPortalInstance);
+		assertValid(postPortalInstance);
+	}
+
+	protected PortalInstance testPostPortalInstanceCopy_addPortalInstance(
 			PortalInstance portalInstance)
 		throws Exception {
 
@@ -616,10 +638,8 @@ public abstract class BasePortalInstanceResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"sourcePartitionName", additionalAssertFieldName)) {
-
-				if (portalInstanceExport.getSourcePartitionName() == null) {
+			if (Objects.equals("sourceCompanyId", additionalAssertFieldName)) {
+				if (portalInstanceExport.getSourceCompanyId() == null) {
 					valid = false;
 				}
 
@@ -845,12 +865,10 @@ public abstract class BasePortalInstanceResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"sourcePartitionName", additionalAssertFieldName)) {
-
+			if (Objects.equals("sourceCompanyId", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
-						portalInstanceExport1.getSourcePartitionName(),
-						portalInstanceExport2.getSourcePartitionName())) {
+						portalInstanceExport1.getSourceCompanyId(),
+						portalInstanceExport2.getSourceCompanyId())) {
 
 					return false;
 				}
@@ -1215,7 +1233,7 @@ public abstract class BasePortalInstanceResourceTestCase {
 		return new PortalInstanceExport() {
 			{
 				exportedPartitionName = RandomTestUtil.randomString();
-				sourcePartitionName = RandomTestUtil.randomString();
+				sourceCompanyId = RandomTestUtil.randomLong();
 			}
 		};
 	}
@@ -1431,4 +1449,4 @@ public abstract class BasePortalInstanceResourceTestCase {
 			PortalInstanceResource _portalInstanceResource;
 
 }
-// LIFERAY-REST-BUILDER-HASH:483813011
+// LIFERAY-REST-BUILDER-HASH:890027372

@@ -5,10 +5,11 @@
 
 package com.liferay.headless.cms.internal.resource.v1_0;
 
-import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.depot.service.DepotEntryService;
 import com.liferay.headless.cms.dto.v1_0.AssetStatistics;
+import com.liferay.headless.cms.internal.links.BrokenLinkAssetSearcher;
+import com.liferay.headless.cms.internal.util.CMSGroupUtil;
 import com.liferay.headless.cms.resource.v1_0.AssetStatisticsResource;
 import com.liferay.object.constants.ObjectFolderConstants;
 import com.liferay.object.model.ObjectDefinition;
@@ -23,11 +24,12 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import com.liferay.portal.vulcan.util.GroupUtil;
+import com.liferay.portal.search.searcher.SearchRequestBuilderFactory;
+import com.liferay.portal.search.searcher.Searcher;
 import com.liferay.site.cms.site.initializer.constants.CMSWorkflowConstants;
 
 import java.util.Date;
-import java.util.List;
+import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -47,13 +49,12 @@ public class AssetStatisticsResourceImpl
 	public AssetStatistics getAssetStatistics(Long assetLibraryId)
 		throws Exception {
 
-		if (!FeatureFlagManagerUtil.isEnabled(
-				contextCompany.getCompanyId(), "LPD-17564")) {
-
-			throw new UnsupportedOperationException();
-		}
-
-		Long[] groupIds = _getGroupIds(assetLibraryId);
+		Long[] groupIds = CMSGroupUtil.getSelectedSpaceGroupIds(
+			assetLibraryId, contextCompany.getCompanyId(),
+			_depotEntryLocalService, groupLocalService,
+			CMSGroupUtil.getSpaceGroupIds(
+				contextCompany.getCompanyId(), _depotEntryService,
+				contextUser.getUserId()));
 
 		if (ArrayUtil.isEmpty(groupIds)) {
 			return _toAssetStatistics();
@@ -82,6 +83,8 @@ public class AssetStatisticsResourceImpl
 						groupIds, objectDefinitionIds,
 						ObjectEntryTable.INSTANCE.status.eq(
 							WorkflowConstants.STATUS_APPROVED)));
+				setBrokenLinksCount(
+					() -> _getBrokenLinksCount(groupIds, objectDefinitionIds));
 				setExpiredCount(
 					() -> _getCount(
 						groupIds, objectDefinitionIds,
@@ -145,6 +148,42 @@ public class AssetStatisticsResourceImpl
 		};
 	}
 
+	private long _getBrokenLinksCount(
+		Long[] groupIds, Long[] objectDefinitionIds) {
+
+		if (!FeatureFlagManagerUtil.isEnabled(
+				contextCompany.getCompanyId(), "LPD-82226")) {
+
+			return 0;
+		}
+
+		try {
+			BrokenLinkAssetSearcher brokenLinkAssetSearcher =
+				new BrokenLinkAssetSearcher(
+					_objectEntryLocalService, _searcher,
+					_searchRequestBuilderFactory);
+
+			Map<String, Long> expiredAssetObjectEntryIds =
+				brokenLinkAssetSearcher.getExpiredAssetObjectEntryIds(
+					contextCompany.getCompanyId(), objectDefinitionIds);
+
+			if (expiredAssetObjectEntryIds.isEmpty()) {
+				return 0;
+			}
+
+			return brokenLinkAssetSearcher.getCount(
+				contextCompany.getCompanyId(), groupIds,
+				expiredAssetObjectEntryIds.keySet());
+		}
+		catch (Exception exception) {
+			if (_log.isWarnEnabled()) {
+				_log.warn("Unable to get the broken links count", exception);
+			}
+
+			return 0;
+		}
+	}
+
 	private long _getCount(
 		Long[] groupIds, Long[] objectDefinitionIds, Predicate predicate) {
 
@@ -162,31 +201,11 @@ public class AssetStatisticsResourceImpl
 		}
 	}
 
-	private Long[] _getGroupIds(Long assetLibraryId) {
-		List<Long> depotEntryGroupIds =
-			_depotEntryService.getDepotEntryGroupIds(
-				contextCompany.getCompanyId(), contextUser.getUserId(),
-				DepotConstants.TYPE_SPACE);
-
-		if (assetLibraryId == null) {
-			return depotEntryGroupIds.toArray(new Long[0]);
-		}
-
-		Long groupId = GroupUtil.getDepotGroupId(
-			String.valueOf(assetLibraryId), contextCompany.getCompanyId(),
-			_depotEntryLocalService, groupLocalService);
-
-		if ((groupId == null) || !depotEntryGroupIds.contains(groupId)) {
-			return new Long[0];
-		}
-
-		return new Long[] {groupId};
-	}
-
 	private AssetStatistics _toAssetStatistics() {
 		return new AssetStatistics() {
 			{
 				setApprovedCount(() -> 0L);
+				setBrokenLinksCount(() -> 0L);
 				setExpiredCount(() -> 0L);
 				setExpiringSoonCount(() -> 0L);
 				setInDraftCount(() -> 0L);
@@ -217,5 +236,11 @@ public class AssetStatisticsResourceImpl
 
 	@Reference
 	private ObjectEntryLocalService _objectEntryLocalService;
+
+	@Reference
+	private Searcher _searcher;
+
+	@Reference
+	private SearchRequestBuilderFactory _searchRequestBuilderFactory;
 
 }

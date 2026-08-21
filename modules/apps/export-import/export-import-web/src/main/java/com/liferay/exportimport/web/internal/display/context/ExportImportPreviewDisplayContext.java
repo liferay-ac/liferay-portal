@@ -8,6 +8,7 @@ package com.liferay.exportimport.web.internal.display.context;
 import com.liferay.exportimport.rest.dto.v1_0.ExportPreview;
 import com.liferay.exportimport.rest.resource.v1_0.ExportPreviewResource;
 import com.liferay.exportimport.vulcan.batch.engine.ExportImportVulcanBatchEngineTaskItemDelegate.Scope;
+import com.liferay.exportimport.web.internal.util.ScopeUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
@@ -25,7 +26,6 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.staging.StagingGroupHelper;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -44,7 +44,7 @@ public class ExportImportPreviewDisplayContext {
 		ExportPreviewResource.Factory exportPreviewResourceFactory, Group group,
 		long groupId, HttpServletRequest httpServletRequest,
 		LiferayPortletResponse liferayPortletResponse, long liveGroupId,
-		boolean privateLayout, StagingGroupHelper stagingGroupHelper) {
+		boolean privateLayout) {
 
 		_backMVCRenderCommandName = backMVCRenderCommandName;
 		_exportPreviewResourceFactory = exportPreviewResourceFactory;
@@ -54,19 +54,17 @@ public class ExportImportPreviewDisplayContext {
 		_liferayPortletResponse = liferayPortletResponse;
 		_liveGroupId = liveGroupId;
 		_privateLayout = privateLayout;
-		_stagingGroupHelper = stagingGroupHelper;
 	}
 
 	public ExportImportPreviewDisplayContext(
 		String backMVCRenderCommandName, Group group, long groupId,
 		HttpServletRequest httpServletRequest,
 		LiferayPortletResponse liferayPortletResponse, long liveGroupId,
-		boolean privateLayout, StagingGroupHelper stagingGroupHelper) {
+		boolean privateLayout) {
 
 		this(
 			backMVCRenderCommandName, null, group, groupId, httpServletRequest,
-			liferayPortletResponse, liveGroupId, privateLayout,
-			stagingGroupHelper);
+			liferayPortletResponse, liveGroupId, privateLayout);
 	}
 
 	public String getBackURL() {
@@ -173,7 +171,7 @@ public class ExportImportPreviewDisplayContext {
 			return Scope.PORTLET;
 		}
 
-		if (_stagingGroupHelper.isCompanyGroup(_group)) {
+		if (ScopeUtil.isInstanceScoped(_group)) {
 			return Scope.COMPANY;
 		}
 
@@ -185,7 +183,7 @@ public class ExportImportPreviewDisplayContext {
 	}
 
 	public boolean isCommentsAndRatingsEnabled() {
-		if (!_stagingGroupHelper.isCompanyGroup(_group) ||
+		if (!ScopeUtil.isInstanceScoped(_group) ||
 			FeatureFlagManagerUtil.isEnabled(
 				_group.getCompanyId(), "LPD-43996")) {
 
@@ -208,7 +206,7 @@ public class ExportImportPreviewDisplayContext {
 
 	private String _encode(String value) {
 		if (Validator.isBlank(value)) {
-			return "";
+			return StringPool.BLANK;
 		}
 
 		return URLEncoder.encode(value, StandardCharsets.UTF_8);
@@ -236,34 +234,23 @@ public class ExportImportPreviewDisplayContext {
 					themeDisplay.getUser()
 				).build();
 
-			if (_stagingGroupHelper.isCompanyGroup(_group)) {
-				return exportPreviewResource.getExportPreview(null, null);
-			}
-
-			String externalReferenceCode = _group.getExternalReferenceCode();
-
+			long plid = ParamUtil.getLong(_httpServletRequest, "plid");
 			String portletId = _getPortletId();
 
-			if (!Validator.isBlank(portletId)) {
-				long plid = ParamUtil.getLong(_httpServletRequest, "plid");
-
-				if (_group.isDepot()) {
-					return exportPreviewResource.
-						getAssetLibraryPortletExportPreview(
-							externalReferenceCode, portletId, null, plid, null);
-				}
-
-				return exportPreviewResource.getSitePortletExportPreview(
-					externalReferenceCode, portletId, null, plid, null);
+			if (ScopeUtil.isInstanceScoped(_group)) {
+				return exportPreviewResource.getExportPreview(
+					null, null, plid, portletId, null);
 			}
 
 			if (_group.isDepot()) {
 				return exportPreviewResource.getAssetLibraryExportPreview(
-					externalReferenceCode, null, null);
+					_group.getExternalReferenceCode(), null, null, plid,
+					portletId, null);
 			}
 
 			return exportPreviewResource.getSiteExportPreview(
-				externalReferenceCode, null, null);
+				_group.getExternalReferenceCode(), null, null, plid, portletId,
+				null);
 		}
 		catch (Exception exception) {
 			_log.error("Unable to get export preview", exception);
@@ -279,27 +266,14 @@ public class ExportImportPreviewDisplayContext {
 	private String _getResourceAPIURL(String endpoint) {
 		String portletId = _getPortletId();
 
-		if (!Validator.isBlank(portletId)) {
-			return StringBundler.concat(
-				_BASE_PATH, _getScopePath(), "/portlets/", _encode(portletId),
-				endpoint, "?plid=",
-				ParamUtil.getLong(_httpServletRequest, "plid"));
+		if (Validator.isBlank(portletId)) {
+			return ScopeUtil.getAPIURL(_group, endpoint);
 		}
 
-		return _BASE_PATH + _getScopePath() + endpoint;
-	}
-
-	private String _getScopePath() {
-		if (_stagingGroupHelper.isCompanyGroup(_group)) {
-			return StringPool.BLANK;
-		}
-
-		if (_group.isDepot()) {
-			return "/asset-libraries/" +
-				_encode(_group.getExternalReferenceCode());
-		}
-
-		return "/sites/" + _encode(_group.getExternalReferenceCode());
+		return StringBundler.concat(
+			ScopeUtil.getAPIURL(_group, endpoint), "?plid=",
+			ParamUtil.getLong(_httpServletRequest, "plid"), "&portletId=",
+			_encode(portletId));
 	}
 
 	private String _getTitle(String key) {
@@ -316,8 +290,6 @@ public class ExportImportPreviewDisplayContext {
 			PortalUtil.getPortletTitle(
 				portletId, PortalUtil.getLocale(_httpServletRequest)));
 	}
-
-	private static final String _BASE_PATH = "/o/export-import/v1.0";
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		ExportImportPreviewDisplayContext.class);
@@ -336,6 +308,5 @@ public class ExportImportPreviewDisplayContext {
 	private final LiferayPortletResponse _liferayPortletResponse;
 	private final long _liveGroupId;
 	private final boolean _privateLayout;
-	private final StagingGroupHelper _stagingGroupHelper;
 
 }

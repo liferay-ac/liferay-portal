@@ -11,6 +11,7 @@ import {ClayRadio, ClayRadioGroup, ClayToggle} from '@clayui/form';
 import {createOrderIOMap, NAME} from 'shared/util/pagination';
 import {DataSourceStatuses, Sizes} from 'shared/util/constants';
 import {fetchChannelDatasources} from 'shared/api/data-source';
+import {getChannelsAutoSelectFilter} from 'shared/util/data-sources';
 import {Link, useParams} from 'react-router-dom';
 import {modalTypes} from 'shared/actions/modals';
 import {Routes, toRoute} from 'shared/util/router';
@@ -130,7 +131,7 @@ const AssignedPropertiesTable = ({
 			<div className="p-4">
 				<Text as="p" color="secondary" size={4}>
 					{Liferay.Language.get(
-						'properties-allow-you-to-aggregate-data-on-your-users-and-dxp-sites-and-channels.-the-data-source-data-will-be-available-in-any-property-they-are-assigned-to'
+						'properties-let-you-consolidate-data-from-individuals,-accounts,-campaigns,-and-sites-in-one-place.-an-individuals-data-is-available-in-every-property-they-are-assigned-to'
 					)}
 				</Text>
 
@@ -284,7 +285,7 @@ const AssignedPropertiesTable = ({
 								symbol: 'ac_satellite',
 							}}
 							title={Liferay.Language.get(
-								'there-are-no-properties-found'
+								'no-properties-were-found'
 							)}
 						/>
 					}
@@ -305,6 +306,10 @@ const AssignedPropertiesTable = ({
 									disabled={!dataSourceActive}
 									onClick={() =>
 										open(modalTypes.SELECT_CHANNELS_MODAL, {
+											autoSelectFilter:
+												getChannelsAutoSelectFilter(
+													dataSource
+												),
 											groupId,
 											initialItems:
 												channelsConfigurationRef.current?.channels?.map(

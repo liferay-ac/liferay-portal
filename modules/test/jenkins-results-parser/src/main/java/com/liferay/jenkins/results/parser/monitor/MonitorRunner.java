@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MonitorRunner {
 
 	public MonitorRunner() {
-		this(60 * 1000);
+		this(MonitorConfig.SECONDS_TIMEOUT_DEFAULT * 1000);
 	}
 
 	public MonitorRunner(long defaultTimeoutMillis) {
@@ -122,7 +122,7 @@ public class MonitorRunner {
 	private MonitorResult _newUnknownMonitorResult(String message) {
 		return new MonitorResult(
 			message, null, MonitorResult.Status.UNKNOWN,
-			System.currentTimeMillis());
+			JenkinsResultsParserUtil.getCurrentTimeMillis());
 	}
 
 	private MonitorResult _resolveMonitorResult(

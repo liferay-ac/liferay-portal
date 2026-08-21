@@ -6,6 +6,7 @@
 package com.liferay.segments.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.exportimport.kernel.lar.ExportImportThreadLocal;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
@@ -30,6 +31,7 @@ import com.liferay.portal.kernel.util.LinkedHashMapBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
+import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.segments.constants.SegmentsEntryConstants;
@@ -95,6 +97,68 @@ public class SegmentsEntryLocalServiceTest {
 		_testAddSegmentsEntryWithoutName();
 		_testAddSegmentsEntryWithExistingKey();
 		_testAddSegmentsEntryWithExistingKeyInAncestorGroup();
+	}
+
+	@FeatureFlag(enable = false, value = "LPD-78863")
+	@Test
+	public void testAddSegmentsEntryActiveWithFeatureFlagDisabled()
+		throws Exception {
+
+		SegmentsEntry segmentsEntry = SegmentsTestUtil.addSegmentsEntry(
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(),
+			CriteriaSerializer.serialize(new Criteria()),
+			SegmentsEntryConstants.SOURCE_DEFAULT,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		Assert.assertFalse(segmentsEntry.isActive());
+
+		segmentsEntry = _segmentsEntryLocalService.updateSegmentsEntry(
+			segmentsEntry.getExternalReferenceCode(),
+			segmentsEntry.getSegmentsEntryId(),
+			segmentsEntry.getSegmentsEntryKey(), segmentsEntry.getNameMap(),
+			segmentsEntry.getDescriptionMap(), true,
+			segmentsEntry.getCriteria(),
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		Assert.assertFalse(segmentsEntry.isActive());
+	}
+
+	@FeatureFlag(enable = false, value = "LPD-78863")
+	@Test
+	public void testAddSegmentsEntryActiveWithFeatureFlagDisabledAsahFaroBackendSource()
+		throws Exception {
+
+		SegmentsEntry segmentsEntry = SegmentsTestUtil.addSegmentsEntry(
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(),
+			CriteriaSerializer.serialize(new Criteria()),
+			SegmentsEntryConstants.SOURCE_ASAH_FARO_BACKEND,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		Assert.assertTrue(segmentsEntry.isActive());
+	}
+
+	@FeatureFlag(enable = false, value = "LPD-78863")
+	@Test
+	public void testAddSegmentsEntryActiveWithFeatureFlagDisabledWithinImport()
+		throws Exception {
+
+		ExportImportThreadLocal.setPortletImportInProcess(true);
+
+		try {
+			SegmentsEntry segmentsEntry = SegmentsTestUtil.addSegmentsEntry(
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				RandomTestUtil.randomString(),
+				CriteriaSerializer.serialize(new Criteria()),
+				SegmentsEntryConstants.SOURCE_DEFAULT,
+				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+			Assert.assertTrue(segmentsEntry.isActive());
+		}
+		finally {
+			ExportImportThreadLocal.setPortletImportInProcess(false);
+		}
 	}
 
 	@Test
@@ -515,11 +579,11 @@ public class SegmentsEntryLocalServiceTest {
 	private void _testAddSegmentsEntryWithoutSource() throws Exception {
 		SegmentsEntry segmentsEntry =
 			_segmentsEntryLocalService.addSegmentsEntry(
-				RandomTestUtil.randomString(),
+				null, RandomTestUtil.randomString(),
 				RandomTestUtil.randomLocaleStringMap(),
 				RandomTestUtil.randomLocaleStringMap(),
 				RandomTestUtil.randomBoolean(),
-				CriteriaSerializer.serialize(new Criteria()),
+				CriteriaSerializer.serialize(new Criteria()), null,
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
 		Assert.assertEquals(
@@ -664,8 +728,8 @@ public class SegmentsEntryLocalServiceTest {
 
 		SegmentsEntry updatedSegmentsEntry =
 			_segmentsEntryLocalService.updateSegmentsEntry(
-				segmentsEntry.getSegmentsEntryId(), segmentsEntryKey, nameMap,
-				descriptionMap, false, criteria,
+				null, segmentsEntry.getSegmentsEntryId(), segmentsEntryKey,
+				nameMap, descriptionMap, false, criteria,
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
 		Assert.assertEquals(
@@ -695,7 +759,7 @@ public class SegmentsEntryLocalServiceTest {
 		_addSegmentsExperiment(segmentsEntry);
 
 		_segmentsEntryLocalService.updateSegmentsEntry(
-			segmentsEntry.getSegmentsEntryId(),
+			null, segmentsEntry.getSegmentsEntryId(),
 			segmentsEntry.getSegmentsEntryKey(), segmentsEntry.getNameMap(),
 			segmentsEntry.getDescriptionMap(), segmentsEntry.isActive(),
 			segmentsEntry.getCriteria(),
@@ -718,7 +782,7 @@ public class SegmentsEntryLocalServiceTest {
 		AssertUtils.assertFailure(
 			LockedSegmentsEntryException.class, null,
 			() -> _segmentsEntryLocalService.updateSegmentsEntry(
-				segmentsEntry.getSegmentsEntryId(),
+				null, segmentsEntry.getSegmentsEntryId(),
 				segmentsEntry.getSegmentsEntryKey(), segmentsEntry.getNameMap(),
 				segmentsEntry.getDescriptionMap(), segmentsEntry.isActive(),
 				segmentsEntry.getCriteria(),
@@ -737,7 +801,7 @@ public class SegmentsEntryLocalServiceTest {
 
 		SegmentsEntry updatedSegmentsEntry =
 			_segmentsEntryLocalService.updateSegmentsEntry(
-				segmentsEntry.getSegmentsEntryId(),
+				null, segmentsEntry.getSegmentsEntryId(),
 				segmentsEntry.getSegmentsEntryKey(), segmentsEntry.getNameMap(),
 				segmentsEntry.getDescriptionMap(), segmentsEntry.isActive(),
 				segmentsEntry.getCriteria(),
@@ -761,7 +825,7 @@ public class SegmentsEntryLocalServiceTest {
 		AssertUtils.assertFailure(
 			SegmentsEntryKeyException.class, null,
 			() -> _segmentsEntryLocalService.updateSegmentsEntry(
-				segmentsEntry.getSegmentsEntryId(), segmentsEntryKey,
+				null, segmentsEntry.getSegmentsEntryId(), segmentsEntryKey,
 				segmentsEntry.getNameMap(), segmentsEntry.getDescriptionMap(),
 				segmentsEntry.isActive(), segmentsEntry.getCriteria(),
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId())));
@@ -783,7 +847,7 @@ public class SegmentsEntryLocalServiceTest {
 
 		SegmentsEntry updatedSegmentsEntry =
 			_segmentsEntryLocalService.updateSegmentsEntry(
-				segmentsEntry.getSegmentsEntryId(),
+				null, segmentsEntry.getSegmentsEntryId(),
 				segmentsEntry.getSegmentsEntryKey(), segmentsEntry.getNameMap(),
 				segmentsEntry.getDescriptionMap(), false,
 				CriteriaSerializer.serialize(new Criteria()),
@@ -809,7 +873,7 @@ public class SegmentsEntryLocalServiceTest {
 
 		SegmentsEntry updatedSegmentsEntry =
 			_segmentsEntryLocalService.updateSegmentsEntry(
-				segmentsEntry.getSegmentsEntryId(),
+				null, segmentsEntry.getSegmentsEntryId(),
 				segmentsEntry.getSegmentsEntryKey(), segmentsEntry.getNameMap(),
 				segmentsEntry.getDescriptionMap(), false,
 				CriteriaSerializer.serialize(criteria),

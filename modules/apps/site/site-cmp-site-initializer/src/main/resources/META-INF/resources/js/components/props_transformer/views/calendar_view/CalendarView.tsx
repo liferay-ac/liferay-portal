@@ -18,7 +18,7 @@ import classNames from 'classnames';
 import {dateUtils, sub} from 'frontend-js-web';
 import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 
-import {getProjectById, patchTaskById} from '../../../../utils/api';
+import {patchTaskById} from '../../../../utils/api';
 import {
 	DEFAULT_TASK_STATE_KEY,
 	TASK_DRAGGING_CLASS_NAME,
@@ -28,13 +28,12 @@ import {
 	displayDueDateSuccessToast,
 	displayErrorToast,
 } from '../../../../utils/toastUtil';
-import {ITask, ITaskObjectEntry} from '../../../../utils/types';
+import {ITask, ITaskItemsActionsTask} from '../../../../utils/types';
 import CreateTaskModal from '../../../modal/CreateTaskModal';
 import {UPDATE_TASKS_QUICK_FILTER_VISIBILITY} from '../../../task/TasksQuickFilters';
 import CalendarMoreLinkPopover from './components/CalendarMoreLinkPopover';
 import CalendarTaskCard from './components/CalendarTaskCard';
 import UnscheduledTasksPanel from './components/UnscheduledTasksPanel';
-import getProjectDateMarker, {ProjectDates} from './utils/getProjectDateMarker';
 
 import './CalendarView.scss';
 
@@ -42,28 +41,34 @@ import type {FirstDayOfWeekLocale} from 'frontend-js-web';
 
 const ADD_TASK_BUTTON_CLASS_NAME = 'lfr__calendar-view-add-task-button';
 
+const MIN_DAY_COLUMN_WIDTH = 100;
+
+const calendarNavigationStates = new Map<string, {date: Date; view: string}>();
+
 interface CalendarViewProps {
+	cmpProjectObjectDefinitionId: number;
+	cmpProjectObjectEntryId?: string;
 	hasAddTaskPermission: boolean;
 	items: ITask[];
 	itemsActions: IItemsActions[];
-	projectId?: string;
-	projectObjectDefinitionId: number;
 }
 
 interface MoreLinkPopover {
 	alignElement: HTMLElement;
 	date: Date;
-	tasks: ITaskObjectEntry[];
+	taskIds: string[];
 }
 
 export default function CalendarView({
+	cmpProjectObjectDefinitionId,
+	cmpProjectObjectEntryId,
 	hasAddTaskPermission,
 	items,
 	itemsActions,
-	projectId,
-	projectObjectDefinitionId,
 }: CalendarViewProps) {
-	const {loadData, onItemsChange} = useContext(FrontendDataSetContext);
+	const {id, loadData, onItemsChange} = useContext(FrontendDataSetContext);
+
+	const calendarNavigationState = calendarNavigationStates.get(id ?? '');
 
 	const calendarRef = useRef<FullCalendar>(null);
 	const calendarViewRef = useRef<HTMLDivElement>(null);
@@ -74,14 +79,16 @@ export default function CalendarView({
 		{label: Liferay.Language.get('month'), view: 'dayGridMonth'},
 	];
 
-	const [currentView, setCurrentView] = useState('dayGridMonth');
+	const [currentView, setCurrentView] = useState(
+		calendarNavigationState?.view ?? 'dayGridMonth'
+	);
 	const [datePickerExpanded, setDatePickerExpanded] = useState(false);
 	const [datePickerValue, setDatePickerValue] = useState('');
 	const [fdsContainerElement, setFDSContainerElement] =
 		useState<HTMLElement | null>(null);
 	const [moreLinkPopover, setMoreLinkPopover] =
 		useState<MoreLinkPopover | null>(null);
-	const [projectDates, setProjectDates] = useState<ProjectDates | null>(null);
+	const [narrowDayColumns, setNarrowDayColumns] = useState(false);
 	const [title, setTitle] = useState('');
 	const [unscheduledTasksPanelOpen, setUnscheduledTasksPanelOpen] =
 		useState(false);
@@ -162,21 +169,6 @@ export default function CalendarView({
 		};
 	}, []);
 
-	useEffect(() => {
-		if (!projectId) {
-			return;
-		}
-
-		getProjectById(projectId).then(({data}) => {
-			if (data) {
-				setProjectDates({
-					dueDate: data.dueDate?.slice(0, 10),
-					startDate: data.dateCreated.slice(0, 10),
-				});
-			}
-		});
-	}, [projectId]);
-
 	// Properly resize the calendar width when the unscheduled tasks panel is
 	// opened or closed. FullCalendar caches its layout and only recomputes on a
 	// window resize, so its width can go stale. Watch the container instead and
@@ -192,6 +184,15 @@ export default function CalendarView({
 		const resizeObserver = new ResizeObserver(() => {
 			requestAnimationFrame(() => {
 				calendarRef.current?.getApi().updateSize();
+
+				const dayColumn = element.querySelector('.fc-daygrid-day');
+
+				if (dayColumn) {
+					setNarrowDayColumns(
+						dayColumn.getBoundingClientRect().width <
+							MIN_DAY_COLUMN_WIDTH
+					);
+				}
 			});
 		});
 
@@ -206,11 +207,11 @@ export default function CalendarView({
 			contentComponent: ({closeModal}: {closeModal: () => void}) => (
 				<CreateTaskModal
 					closeModal={closeModal}
+					cmpProjectObjectDefinitionId={cmpProjectObjectDefinitionId}
+					cmpProjectObjectEntryId={cmpProjectObjectEntryId}
 					dueDate={dueDate}
 					loadData={loadData}
 					onItemsChange={onItemsChange}
-					projectId={projectId}
-					projectObjectDefinitionId={projectObjectDefinitionId}
 					state={DEFAULT_TASK_STATE_KEY}
 				/>
 			),
@@ -233,13 +234,22 @@ export default function CalendarView({
 			items: [{...item, embedded: {...task, dueDate}}],
 		});
 
-		const {error} = await patchTaskById({
+		const {error, status} = await patchTaskById({
 			body: {dueDate},
 			taskId: String(task.id),
 		});
 
 		if (error) {
-			displayErrorToast();
+			if (status === 'FORBIDDEN') {
+				displayErrorToast(
+					Liferay.Language.get(
+						'you-do-not-have-permission-to-update-this-task'
+					)
+				);
+			}
+			else {
+				displayErrorToast();
+			}
 
 			onItemsChange({itemKey: 'embedded.id', items: [item]});
 
@@ -247,6 +257,28 @@ export default function CalendarView({
 		}
 
 		displayDueDateSuccessToast(task.title);
+	};
+
+	const handleTaskChanged = ({actions, embedded}: ITaskItemsActionsTask) => {
+		const changedItem = items.find(
+			(item) => item.embedded?.id === embedded.id
+		);
+
+		if (!changedItem) {
+			loadData();
+
+			return;
+		}
+
+		onItemsChange({
+			itemKey: 'embedded.id',
+			items: [
+				{
+					...changedItem,
+					embedded: {...embedded, ...(actions && {actions})},
+				},
+			],
+		});
 	};
 
 	const currentYear = new Date().getFullYear();
@@ -287,9 +319,11 @@ export default function CalendarView({
 
 							{sub(
 								unscheduledTasks.length === 1
-									? Liferay.Language.get('x-unscheduled-task')
+									? Liferay.Language.get(
+											'x-task-with-no-due-date'
+										)
 									: Liferay.Language.get(
-											'x-unscheduled-tasks'
+											'x-tasks-with-no-due-date'
 										),
 								[unscheduledTasks.length]
 							)}
@@ -411,8 +445,10 @@ export default function CalendarView({
 					<ClayButton.Group>
 						{calendarViews.map(({label, view}) => (
 							<ClayButton
-								aria-label={label}
 								aria-pressed={currentView === view}
+								className={classNames({
+									active: currentView === view,
+								})}
 								displayType="secondary"
 								key={view}
 								onClick={() =>
@@ -420,9 +456,7 @@ export default function CalendarView({
 										?.getApi()
 										.changeView(view)
 								}
-								outline={currentView !== view}
 								size="sm"
-								title={label}
 							>
 								{label}
 							</ClayButton>
@@ -433,70 +467,42 @@ export default function CalendarView({
 
 			<FullCalendar
 				datesSet={({view}) => {
+					calendarNavigationStates.set(id ?? '', {
+						date: view.calendar.getDate(),
+						view: view.type,
+					});
+
 					setCurrentView(view.type);
 					setTitle(view.title);
 				}}
-				dayCellContent={(arg) => {
-					const dateMarker =
-						currentView === 'dayGridWeek'
-							? getProjectDateMarker(
-									dateUtils.format(arg.date, 'yyyy-MM-dd'),
-									projectDates
-								)
-							: null;
+				dayCellContent={(arg) => (
+					<>
+						<span className="lfr__calendar-view-day-number">
+							{arg.dayNumberText || String(arg.date.getDate())}
+						</span>
 
-					return (
-						<>
-							<span className="lfr__calendar-view-day-number">
-								{arg.dayNumberText ||
-									String(arg.date.getDate())}
-							</span>
-
-							{hasAddTaskPermission && (
-								<ClayButtonWithIcon
-									aria-label={Liferay.Language.get(
-										'add-task'
-									)}
-									borderless
-									className={ADD_TASK_BUTTON_CLASS_NAME}
-									displayType="secondary"
-									onClick={() =>
-										openCreateTaskModal(
-											dateUtils.format(
-												arg.date,
-												'yyyy-MM-dd'
-											)
-										)
-									}
-									rounded
-									size="xs"
-									symbol="plus"
-									title={Liferay.Language.get('add-task')}
-								/>
-							)}
-
-							{dateMarker && (
-								<span
-									className={classNames(
-										'lfr__calendar-view-date-marker',
-										`lfr__calendar-view-date-marker-${dateMarker}`
-									)}
-								>
-									<ClayIcon symbol="flag-full" />
-
-									{dateMarker === 'startDate'
-										? Liferay.Language.get(
-												'project-start-date'
-											)
-										: Liferay.Language.get(
-												'project-due-date'
-											)}
-								</span>
-							)}
-						</>
-					);
+						{hasAddTaskPermission && (
+							<ClayButtonWithIcon
+								aria-label={Liferay.Language.get('add-task')}
+								borderless
+								className={ADD_TASK_BUTTON_CLASS_NAME}
+								displayType="secondary"
+								onClick={() =>
+									openCreateTaskModal(
+										dateUtils.format(arg.date, 'yyyy-MM-dd')
+									)
+								}
+								rounded
+								size="xs"
+								symbol="plus"
+								title={Liferay.Language.get('add-task')}
+							/>
+						)}
+					</>
+				)}
+				dayHeaderFormat={{
+					weekday: narrowDayColumns ? 'short' : 'long',
 				}}
-				dayHeaderFormat={{weekday: 'long'}}
 				dayMaxEvents
 				drop={async (arg) => {
 
@@ -511,25 +517,49 @@ export default function CalendarView({
 							String(item.embedded?.id) === droppedTaskId
 					);
 
-					if (droppedItem) {
-						await rescheduleTask(droppedItem, droppedDate);
+					if (!droppedItem) {
+						return;
 					}
+
+					if (!droppedItem.embedded?.actions?.update) {
+						displayErrorToast(
+							Liferay.Language.get(
+								'you-do-not-have-permission-to-update-this-task'
+							)
+						);
+
+						return;
+					}
+
+					await rescheduleTask(droppedItem, droppedDate);
 				}}
 				droppable
+				eventAllow={(_dateSpan, draggedEvent) =>
+					!!draggedEvent?.extendedProps.task?.actions?.update
+				}
 				eventContent={(arg) => (
 					<CalendarTaskCard
 						expanded={currentView !== 'dayGridMonth'}
 						itemsActions={itemsActions}
 						loadData={loadData}
+						onTaskChanged={handleTaskChanged}
 						task={arg.event.extendedProps.task}
 					/>
 				)}
 				eventDragStart={() =>
 					document.body.classList.add(TASK_DRAGGING_CLASS_NAME)
 				}
-				eventDragStop={() =>
-					document.body.classList.remove(TASK_DRAGGING_CLASS_NAME)
-				}
+				eventDragStop={(arg) => {
+					document.body.classList.remove(TASK_DRAGGING_CLASS_NAME);
+
+					if (!arg.event.extendedProps.task?.actions?.update) {
+						displayErrorToast(
+							Liferay.Language.get(
+								'you-do-not-have-permission-to-update-this-task'
+							)
+						);
+					}
+				}}
 				eventDrop={async (arg) => {
 
 					// Task in calendar dropped into another date.
@@ -551,9 +581,14 @@ export default function CalendarView({
 				}}
 				eventStartEditable={currentView !== 'dayGridDay'}
 				events={events}
+				firstDay={dateUtils.getFirstDayOfWeek(
+					locale as FirstDayOfWeekLocale
+				)}
 				fixedWeekCount={false}
 				headerToolbar={false}
-				initialView="dayGridMonth"
+				initialDate={calendarNavigationState?.date}
+				initialView={currentView}
+				locale={locale}
 				moreLinkClassNames={[
 					'btn',
 					'btn-outline-secondary',
@@ -563,8 +598,8 @@ export default function CalendarView({
 					setMoreLinkPopover({
 						alignElement: arg.jsEvent.currentTarget as HTMLElement,
 						date: arg.date,
-						tasks: arg.allSegs.map(
-							(seg) => seg.event.extendedProps.task
+						taskIds: arg.allSegs.map((seg) =>
+							String(seg.event.extendedProps.task.id)
 						),
 					});
 
@@ -589,6 +624,11 @@ export default function CalendarView({
 				moreLinkHint={Liferay.Language.get('view-all-tasks')}
 				plugins={[dayGridPlugin, interactionPlugin]}
 				ref={calendarRef}
+				views={{
+					dayGridWeek: {
+						dayMaxEvents: narrowDayColumns ? 0 : true,
+					},
+				}}
 				{...(hasAddTaskPermission && {
 					dateClick: (arg: DateClickArg) => {
 						const target = arg.jsEvent.target as HTMLElement;
@@ -610,9 +650,13 @@ export default function CalendarView({
 				<CalendarMoreLinkPopover
 					alignElement={moreLinkPopover.alignElement}
 					itemsActions={itemsActions}
-					loadData={loadData}
 					onClose={() => setMoreLinkPopover(null)}
-					tasks={moreLinkPopover.tasks}
+					tasks={items
+						.map((item) => item.embedded)
+						.filter(Boolean)
+						.filter((task) =>
+							moreLinkPopover.taskIds.includes(String(task.id))
+						)}
 				/>
 			)}
 
@@ -620,6 +664,7 @@ export default function CalendarView({
 				<UnscheduledTasksPanel
 					containerRef={fdsContainerRef}
 					onOpenChange={setUnscheduledTasksPanelOpen}
+					onTaskChanged={handleTaskChanged}
 					open={unscheduledTasksPanelOpen}
 					tasks={unscheduledTasks}
 				/>

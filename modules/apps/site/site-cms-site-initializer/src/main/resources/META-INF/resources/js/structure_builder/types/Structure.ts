@@ -8,7 +8,7 @@ import {Workflow} from '../../common/types/Workflow';
 import {Field} from '../utils/field';
 import {Uuid} from './Uuid';
 
-type Status = 'new' | 'draft' | 'published' | 'publishing' | 'saving';
+type Status = 'new' | 'draft' | 'published';
 
 type Spaces = 'all' | string[];
 
@@ -70,6 +70,7 @@ export type Structure = {
 	name: string;
 	path: string;
 	settings?: StructureSettings;
+	slug: string;
 	spaces: Spaces;
 	status: Status;
 	system: boolean;

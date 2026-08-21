@@ -3,14 +3,17 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+export {default as AddMembersInput} from './common/components/AddMembersInput';
 export {default as Breadcrumb} from './common/components/Breadcrumb';
 export {default as EnterpriseProductMenuBanner} from './common/components/EnterpriseProductMenuBanner';
 export {default as SpaceSelector} from './common/components/SpaceSelector';
 export {default as SpaceSticker} from './common/components/SpaceSticker';
 export {default as Toolbar} from './common/components/Toolbar';
+export {default as VerticalNavLayout} from './common/components/VerticalNavLayout';
 export {default as FieldPicker} from './common/components/forms/FieldPicker';
 export {default as FieldText} from './common/components/forms/FieldText';
 export {default as FieldWrapper} from './common/components/forms/FieldWrapper';
+export {default as RequiredMark} from './common/components/forms/RequiredMark';
 export {required, validate} from './common/components/forms/validations';
 export {default as ApiHelper, RequestResult} from './common/services/ApiHelper';
 export {IAssetObjectEntry} from './common/types/AssetType';
@@ -20,6 +23,7 @@ export {
 } from './common/types/BulkActionTask';
 export {ObjectField, StateFlowValue} from './common/types/ObjectDefinition';
 export {type Space} from './common/types/Space';
+export {getScopeExternalReferenceCode} from './common/utils/getScopeExternalReferenceCode';
 export {
 	displayCreateSuccessToast,
 	displayCreateTaskErrorToast,
@@ -64,6 +68,7 @@ export {default as TransitionWorkflowStateModalContent} from './main_view/home/m
 export {default as UpdateDueDateModalContent} from './main_view/home/modal/UpdateDueDateModalContent';
 export {default as AssetTypeInfoPanelContent} from './main_view/info_panel/AssetTypeInfoPanelContent';
 export {default as AssetTags} from './main_view/info_panel/components/AssetTags';
+export {default as AllRelatedAssetsFDSPropsTransformer} from './main_view/props_transformer/AllRelatedAssetsFDSPropsTransformer';
 export {default as AllSpacesFDSPropsTransformer} from './main_view/props_transformer/AllSpacesFDSPropsTransformer';
 export {
 	default as AssetsFDSPropsTransformer,
@@ -73,8 +78,11 @@ export {default as AssetsFilesDropFDSPropsTransformer} from './main_view/props_t
 export {default as BulkActionTaskReportFDSPropsTransformer} from './main_view/props_transformer/BulkActionTaskReportFDSPropsTransformer';
 export {default as CategoryFDSPropsTransformer} from './main_view/props_transformer/CategoryFDSPropsTransformer';
 export {default as CategoryUsagesFDSPropsTransformer} from './main_view/props_transformer/CategoryUsagesFDSPropsTransformer';
+export {default as ExpiredAssetsFDSPropsTransformer} from './main_view/props_transformer/ExpiredAssetsFDSPropsTransformer';
 export {default as HomeRecentAssetsFDSPropsTransformer} from './main_view/props_transformer/HomeRecentAssetsFDSPropsTransformer';
 export {default as MembersFDSPropsTransformer} from './main_view/props_transformer/MembersFDSPropsTransformer';
+export {default as OverdueReviewsFDSPropsTransformer} from './main_view/props_transformer/OverdueReviewsFDSPropsTransformer';
+export {default as PendingWorkflowsFDSPropsTransformer} from './main_view/props_transformer/PendingWorkflowsFDSPropsTransformer';
 export {default as RecycleBinFDSPropsTransformer} from './main_view/props_transformer/RecycleBinFDSPropsTransformer';
 export {default as RelatedAssetsFDSPropsTransformer} from './main_view/props_transformer/RelatedAssetsFDSPropsTransformer';
 export {default as SharedWithMeFDSPropsTransformer} from './main_view/props_transformer/SharedWithMeFDSPropsTransformer';
@@ -89,8 +97,11 @@ export {default as deleteAssetEntriesBulkAction} from './main_view/props_transfo
 export {default as deleteItemAction} from './main_view/props_transformer/actions/deleteItemAction';
 export {default as manageMembersAction} from './main_view/props_transformer/actions/manageMembersAction';
 export {triggerAssetBulkAction} from './main_view/props_transformer/actions/triggerAssetBulkAction';
+export {default as AuthorRenderer} from './main_view/props_transformer/cell_renderers/AuthorRenderer';
 export {default as SimpleActionLinkRenderer} from './main_view/props_transformer/cell_renderers/SimpleActionLinkRenderer';
+export {default as SpaceRendererWithCache} from './main_view/props_transformer/cell_renderers/SpaceRendererWithCache';
 export {default as addOnClickToCreationMenuItems} from './main_view/props_transformer/utils/addOnClickToCreationMenuItems';
+export {default as transformFDSBulkActions} from './main_view/props_transformer/utils/transformFDSBulkActions';
 export {default as AllQuickFilters} from './main_view/quick_filters/AllQuickFilters';
 export {default as RecycleBinToolbar} from './main_view/recycle_bin/RecycleBinToolbar';
 export {default as AddSpaceMembers} from './main_view/spaces/AddSpaceMembers';

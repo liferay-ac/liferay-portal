@@ -19,6 +19,7 @@ import selectStructureLabel from '../selectors/selectStructureLabel';
 import selectStructureLocalizedLabel from '../selectors/selectStructureLocalizedLabel';
 import selectStructureName from '../selectors/selectStructureName';
 import selectStructureSettings from '../selectors/selectStructureSettings';
+import selectStructureSlug from '../selectors/selectStructureSlug';
 import selectStructureSpaces from '../selectors/selectStructureSpaces';
 import selectStructureStatus from '../selectors/selectStructureStatus';
 import selectStructureUuid from '../selectors/selectStructureUuid';
@@ -44,6 +45,7 @@ export default async function handleSaveStructure({
 
 	const children = selectStructureChildren(state);
 	const erc = selectStructureERC(state);
+	const slug = selectStructureSlug(state);
 	const history = selectHistory(state);
 	const id = selectStructureId(state);
 	const label = selectStructureLabel(state);
@@ -56,12 +58,10 @@ export default async function handleSaveStructure({
 	const workflows = selectStructureWorkflows(state);
 	const uuid = selectStructureUuid(state);
 
-	const previousStatus = state.structure.status;
-
 	const onError = (error: StructureServiceError) =>
-		dispatch(buildStructureErrorAction({error, previousStatus, uuid}));
+		dispatch(buildStructureErrorAction({error, uuid}));
 
-	dispatch({status: 'saving', type: 'set-structure-status'});
+	dispatch({operation: 'saving', type: 'start-operation'});
 
 	if (status === 'new') {
 		const {data, error} = await StructureService.createStructure({
@@ -71,10 +71,13 @@ export default async function handleSaveStructure({
 			name,
 			publishedChildren,
 			settings,
+			slug,
 			spaces,
 			status: 'draft',
 			workflows,
 		});
+
+		dispatch({type: 'end-operation'});
 
 		if (error) {
 			onError(error);
@@ -95,10 +98,13 @@ export default async function handleSaveStructure({
 			name,
 			publishedChildren,
 			settings,
+			slug,
 			spaces,
 			status: 'draft',
 			workflows,
 		});
+
+		dispatch({type: 'end-operation'});
 
 		if (error) {
 			onError(error);
@@ -106,7 +112,7 @@ export default async function handleSaveStructure({
 			return;
 		}
 		else {
-			dispatch({status: 'draft', type: 'set-structure-status'});
+			dispatch({type: 'save-structure'});
 			dispatch({type: 'clear-errors'});
 		}
 	}
@@ -114,7 +120,7 @@ export default async function handleSaveStructure({
 	openToast({
 		message: Liferay.Util.sub(
 			Liferay.Language.get('x-was-saved-successfully'),
-			localizedLabel
+			Liferay.Util.escapeHTML(localizedLabel)
 		),
 		type: 'success',
 	});

@@ -11,6 +11,7 @@ import com.liferay.asset.kernel.service.AssetEntryLocalService;
 import com.liferay.depot.service.DepotEntryGroupRelLocalService;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.document.library.kernel.service.DLFileEntryLocalService;
+import com.liferay.document.library.text.DLFileEntryTextProvider;
 import com.liferay.frontend.taglib.servlet.taglib.ScreenNavigationCategory;
 import com.liferay.frontend.taglib.servlet.taglib.ScreenNavigationEntry;
 import com.liferay.notification.handler.NotificationHandler;
@@ -45,6 +46,7 @@ import com.liferay.object.internal.uad.exporter.ObjectEntryUADExporter;
 import com.liferay.object.internal.workflow.ObjectEntryWorkflowHandler;
 import com.liferay.object.model.ObjectAction;
 import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.model.ObjectDefinitionSetting;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.model.ObjectLayout;
@@ -136,6 +138,7 @@ public class ObjectDefinitionDeployerImpl implements ObjectDefinitionDeployer {
 		DepotEntryGroupRelLocalService depotEntryGroupRelLocalService,
 		DepotEntryLocalService depotEntryLocalService,
 		DLFileEntryLocalService dlFileEntryLocalService,
+		DLFileEntryTextProvider dlFileEntryTextProvider,
 		GroupLocalService groupLocalService,
 		KaleoDefinitionLocalService kaleoDefinitionLocalService,
 		ListTypeLocalService listTypeLocalService,
@@ -174,6 +177,7 @@ public class ObjectDefinitionDeployerImpl implements ObjectDefinitionDeployer {
 		_depotEntryGroupRelLocalService = depotEntryGroupRelLocalService;
 		_depotEntryLocalService = depotEntryLocalService;
 		_dlFileEntryLocalService = dlFileEntryLocalService;
+		_dlFileEntryTextProvider = dlFileEntryTextProvider;
 		_groupLocalService = groupLocalService;
 		_kaleoDefinitionLocalService = kaleoDefinitionLocalService;
 		_listTypeLocalService = listTypeLocalService;
@@ -220,12 +224,28 @@ public class ObjectDefinitionDeployerImpl implements ObjectDefinitionDeployer {
 		Map<String, List<ServiceRegistration<?>>> serviceRegistrationsMap =
 			new ConcurrentHashMap<>();
 
+		Map<Long, List<ObjectRelationship>> objectRelationshipsMap =
+			_objectRelationshipLocalService.getObjectRelationshipsMap(
+				companyId);
+
+		// A root object definition IDs setting only holds a value while an edge
+		// object relationship exists, so skip the setting table read and pass
+		// an empty map when the company has no edge
+
+		Map<Long, ObjectDefinitionSetting> objectDefinitionSettingsMap =
+			Collections.emptyMap();
+
+		if (_hasEdgeObjectRelationship(objectRelationshipsMap)) {
+			objectDefinitionSettingsMap =
+				_objectDefinitionSettingLocalService.
+					getObjectDefinitionSettingsMap(
+						companyId,
+						ObjectDefinitionSettingConstants.
+							NAME_ROOT_OBJECT_DEFINITION_IDS);
+		}
+
 		ObjectDefinitionTreeUtil.populateRootObjectDefinitionIds(
-			objectDefinitions,
-			_objectDefinitionSettingLocalService.getObjectDefinitionSettingsMap(
-				companyId,
-				ObjectDefinitionSettingConstants.
-					NAME_ROOT_OBJECT_DEFINITION_IDS));
+			objectDefinitions, objectDefinitionSettingsMap);
 
 		Map<Long, List<ObjectAction>> objectActionsMap =
 			_objectActionLocalService.getObjectActionsMap(
@@ -234,9 +254,6 @@ public class ObjectDefinitionDeployerImpl implements ObjectDefinitionDeployer {
 			_objectFieldLocalService.getObjectFieldsMap(companyId);
 		Map<Long, List<ObjectLayout>> objectLayoutsMap =
 			_objectLayoutLocalService.getObjectLayoutsMap(companyId);
-		Map<Long, List<ObjectRelationship>> objectRelationshipsMap =
-			_objectRelationshipLocalService.getObjectRelationshipsMap(
-				companyId);
 
 		for (ObjectDefinition objectDefinition : objectDefinitions) {
 			long objectDefinitionId = objectDefinition.getObjectDefinitionId();
@@ -330,7 +347,7 @@ public class ObjectDefinitionDeployerImpl implements ObjectDefinitionDeployer {
 					ModelDocumentContributor.class,
 					new ObjectEntryModelDocumentContributor(
 						_accountEntryOrganizationRelLocalService,
-						_dlFileEntryLocalService,
+						_dlFileEntryLocalService, _dlFileEntryTextProvider,
 						_objectEntryFolderLocalService,
 						_objectFieldBusinessTypeRegistry,
 						_textEmbeddingDocumentContributor),
@@ -578,6 +595,22 @@ public class ObjectDefinitionDeployerImpl implements ObjectDefinitionDeployer {
 			objectRelationship.getObjectRelationshipId());
 	}
 
+	private boolean _hasEdgeObjectRelationship(
+		Map<Long, List<ObjectRelationship>> objectRelationshipsMap) {
+
+		for (List<ObjectRelationship> objectRelationships :
+				objectRelationshipsMap.values()) {
+
+			for (ObjectRelationship objectRelationship : objectRelationships) {
+				if (objectRelationship.isEdge()) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	private void _registerObjectRelationshipsRelatedInfoCollectionProviders(
 		ObjectDefinition objectDefinition,
 		Map<Long, List<ObjectRelationship>> objectRelationshipsMap) {
@@ -664,6 +697,7 @@ public class ObjectDefinitionDeployerImpl implements ObjectDefinitionDeployer {
 		_depotEntryGroupRelLocalService;
 	private final DepotEntryLocalService _depotEntryLocalService;
 	private final DLFileEntryLocalService _dlFileEntryLocalService;
+	private final DLFileEntryTextProvider _dlFileEntryTextProvider;
 	private final GroupLocalService _groupLocalService;
 	private final KaleoDefinitionLocalService _kaleoDefinitionLocalService;
 	private final ListTypeLocalService _listTypeLocalService;

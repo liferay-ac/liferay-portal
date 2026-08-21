@@ -64,6 +64,7 @@ const InterestsCard: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 			sortable: false,
 		}),
 		compositionListColumns.getRelativeMetricBar({
+			abbreviateCount: true,
 			label: Liferay.Language.get('total-individuals'),
 			maxCount,
 			totalCount,
@@ -114,7 +115,7 @@ const InterestsCard: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 						</>
 					}
 					showIcon={false}
-					title={Liferay.Language.get('there-are-no-interests-found')}
+					title={Liferay.Language.get('no-interests-were-found')}
 				/>
 
 				<StatesRenderer.Error>

@@ -933,28 +933,7 @@ public class ProjectFaroController extends BaseFaroController {
 				timeZoneId)
 		throws Exception {
 
-		if ((friendlyURL == null) || Validator.isBlank(friendlyURL.trim())) {
-			Group group = _groupLocalService.getGroup(groupId);
-
-			group.setFriendlyURL(null);
-
-			_groupLocalService.updateGroup(group);
-		}
-		else {
-			_validateFriendlyURL(friendlyURL);
-
-			try {
-				_groupLocalService.updateFriendlyURL(groupId, friendlyURL);
-			}
-			catch (GroupFriendlyURLException groupFriendlyURLException) {
-				_log.error(groupFriendlyURLException);
-
-				throw new FaroValidationException(
-					"friendlyURL",
-					_getFriendlyURLErrorMessage(
-						groupFriendlyURLException.getType()));
-			}
-		}
+		_updateFriendlyURL(friendlyURL, groupId);
 
 		FaroProject faroProject =
 			faroProjectLocalService.getFaroProjectByGroupId(groupId);
@@ -1073,11 +1052,11 @@ public class ProjectFaroController extends BaseFaroController {
 				if (trial) {
 					osbOfferingEntry.setProductEntryId(
 						ProductConstants.
-							DATA_PLATFORM_PRIVATE_BETA_PRODUCT_ENTRY_ID);
+							PRODUCT_ENTRY_ID_DATA_PLATFORM_PRIVATE_BETA);
 				}
 				else {
 					osbOfferingEntry.setProductEntryId(
-						ProductConstants.ENTERPRISE_PRODUCT_ENTRY_ID);
+						ProductConstants.PRODUCT_ENTRY_ID_ENTERPRISE);
 				}
 
 				osbOfferingEntry.setQuantity(1);
@@ -1098,7 +1077,7 @@ public class ProjectFaroController extends BaseFaroController {
 
 					osbOfferingEntry.setProductEntryId(
 						ProductConstants.
-							DATA_PLATFORM_PRIVATE_BETA_PRODUCT_ENTRY_ID);
+							PRODUCT_ENTRY_ID_DATA_PLATFORM_PRIVATE_BETA);
 					osbOfferingEntry.setQuantity(1);
 					osbOfferingEntry.setStartDate(
 						new Date(faroProject.getCreateTime()));
@@ -1735,18 +1714,52 @@ public class ProjectFaroController extends BaseFaroController {
 
 		if (StringUtil.equals(
 				faroSubscriptionDisplay.getName(),
-				ProductConstants.BASIC_PRODUCT_ENTRY_NAME) ||
+				ProductConstants.PRODUCT_ENTRY_NAME_BASIC) ||
 			StringUtil.equals(
 				faroSubscriptionDisplay.getName(),
-				ProductConstants.BUSINESS_PRODUCT_ENTRY_NAME) ||
+				ProductConstants.PRODUCT_ENTRY_NAME_BUSINESS) ||
 			StringUtil.equals(
 				faroSubscriptionDisplay.getName(),
-				ProductConstants.ENTERPRISE_PRODUCT_ENTRY_NAME)) {
+				ProductConstants.PRODUCT_ENTRY_NAME_ENTERPRISE)) {
 
 			return true;
 		}
 
 		return false;
+	}
+
+	private void _updateFriendlyURL(String friendlyURL, long groupId)
+		throws Exception {
+
+		if ((friendlyURL == null) || Validator.isBlank(friendlyURL.trim())) {
+			Group group = _groupLocalService.getGroup(groupId);
+
+			group.setFriendlyURL(null);
+
+			_groupLocalService.updateGroup(group);
+
+			return;
+		}
+
+		_validateFriendlyURL(friendlyURL);
+
+		Group group = _groupLocalService.getGroup(groupId);
+
+		if (StringUtil.equals(group.getFriendlyURL(), friendlyURL)) {
+			return;
+		}
+
+		try {
+			_groupLocalService.updateFriendlyURL(groupId, friendlyURL);
+		}
+		catch (GroupFriendlyURLException groupFriendlyURLException) {
+			_log.error(groupFriendlyURLException);
+
+			throw new FaroValidationException(
+				"friendlyURL",
+				_getFriendlyURLErrorMessage(
+					groupFriendlyURLException.getType()));
+		}
 	}
 
 	private void _validateCorpProjectUuid(String corpProjectUuid)

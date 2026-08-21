@@ -9,9 +9,11 @@ import com.liferay.object.admin.rest.dto.v1_0.ObjectDefinition;
 import com.liferay.object.admin.rest.dto.v1_0.ObjectRelationship;
 import com.liferay.object.admin.rest.resource.v1_0.ObjectDefinitionResource;
 import com.liferay.object.admin.rest.resource.v1_0.ObjectRelationshipResource;
+import com.liferay.object.constants.ObjectRelationshipConstants;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectDefinitionService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
+import com.liferay.object.service.ObjectRelationshipService;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -127,24 +129,13 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 				serviceBuilderObjectRelationship :
 					_objectRelationshipLocalService.
 						getObjectRelationshipsByObjectDefinitionId2(
-							objectDefinitionId, true)) {
+							objectDefinitionId, false)) {
 
-			if (serviceBuilderObjectRelationship.isReverse()) {
+			if (serviceBuilderObjectRelationship.isReverse() ||
+				!serviceBuilderObjectRelationship.compareType(
+					ObjectRelationshipConstants.TYPE_ONE_TO_MANY)) {
+
 				continue;
-			}
-
-			if (serviceBuilderObjectRelationship.isEdge()) {
-				serviceBuilderObjectRelationship =
-					_objectRelationshipLocalService.updateObjectRelationship(
-						serviceBuilderObjectRelationship.
-							getExternalReferenceCode(),
-						serviceBuilderObjectRelationship.
-							getObjectRelationshipId(),
-						serviceBuilderObjectRelationship.
-							getParameterObjectFieldId(),
-						serviceBuilderObjectRelationship.getDeletionType(),
-						false, serviceBuilderObjectRelationship.getLabelMap(),
-						null);
 			}
 
 			_objectRelationshipLocalService.deleteObjectRelationship(
@@ -311,6 +302,9 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 	private ObjectRelationshipResource.Factory
 		_objectRelationshipResourceFactory;
 
+	@Reference
+	private ObjectRelationshipService _objectRelationshipService;
+
 	private class UpdateStructureCallable implements Callable<Void> {
 
 		@Override
@@ -344,25 +338,22 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 									objectDefinition.getObjectDefinitionId());
 
 					if (serviceBuilderObjectRelationship.isEdge()) {
-						serviceBuilderObjectRelationship =
-							_objectRelationshipLocalService.
-								updateObjectRelationship(
-									serviceBuilderObjectRelationship.
-										getExternalReferenceCode(),
-									serviceBuilderObjectRelationship.
-										getObjectRelationshipId(),
-									serviceBuilderObjectRelationship.
-										getParameterObjectFieldId(),
-									serviceBuilderObjectRelationship.
-										getDeletionType(),
-									false,
-									serviceBuilderObjectRelationship.
-										getLabelMap(),
-									null);
+						_objectRelationshipService.updateObjectRelationship(
+							serviceBuilderObjectRelationship.
+								getExternalReferenceCode(),
+							serviceBuilderObjectRelationship.
+								getObjectRelationshipId(),
+							serviceBuilderObjectRelationship.
+								getParameterObjectFieldId(),
+							serviceBuilderObjectRelationship.getDeletionType(),
+							false,
+							serviceBuilderObjectRelationship.getLabelMap(),
+							null);
 					}
 
-					_objectRelationshipLocalService.deleteObjectRelationship(
-						serviceBuilderObjectRelationship);
+					_objectRelationshipService.deleteObjectRelationship(
+						serviceBuilderObjectRelationship.
+							getObjectRelationshipId());
 				}
 			}
 

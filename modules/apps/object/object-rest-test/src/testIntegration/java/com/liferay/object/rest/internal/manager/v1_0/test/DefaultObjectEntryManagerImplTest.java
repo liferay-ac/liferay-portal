@@ -143,9 +143,9 @@ import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.NoSuchRoleException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
+import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.model.Group;
@@ -207,6 +207,7 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.TempFileEntryUtil;
+import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
@@ -220,6 +221,7 @@ import com.liferay.portal.search.searcher.Searcher;
 import com.liferay.portal.security.script.management.test.rule.ScriptManagementConfigurationTestRule;
 import com.liferay.portal.service.PersistedModelLocalServiceRegistryUtil;
 import com.liferay.portal.test.log.LogCapture;
+import com.liferay.portal.test.log.LogEntry;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.FeatureFlags;
@@ -233,10 +235,10 @@ import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.fields.NestedFieldsContext;
 import com.liferay.portal.vulcan.fields.NestedFieldsContextThreadLocal;
 import com.liferay.portal.vulcan.pagination.Page;
+import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.permission.Permission;
 import com.liferay.portal.vulcan.scope.Scope;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
-import com.liferay.site.cms.site.initializer.test.util.CMSTestUtil;
 import com.liferay.subscription.service.SubscriptionLocalService;
 
 import jakarta.ws.rs.core.MultivaluedHashMap;
@@ -1892,13 +1894,10 @@ public class DefaultObjectEntryManagerImplTest
 				ObjectDefinitionConstants.SCOPE_SITE));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	@TestInfo("LPD-75616")
 	public void testAddObjectEntryWithDefaultObjectEntryFolder()
 		throws Exception {
-
-		CMSTestUtil.getOrAddGroup(DefaultObjectEntryManagerImplTest.class);
 
 		_depotEntry = _addDepotEntry(DepotConstants.TYPE_SPACE);
 
@@ -2668,7 +2667,6 @@ public class DefaultObjectEntryManagerImplTest
 				ObjectDefinitionConstants.SCOPE_COMPANY));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testAddObjectEntryWithLocalizedAttachmentObjectField()
 		throws Exception {
@@ -2739,23 +2737,45 @@ public class DefaultObjectEntryManagerImplTest
 	public void testAddObjectEntryWithLocalizedRichTextObjectField()
 		throws Exception {
 
-		ObjectEntry objectEntry = _defaultObjectEntryManager.addObjectEntry(
-			_simpleDTOConverterContext, _objectDefinition2,
-			new ObjectEntry() {
-				{
-					properties = HashMapBuilder.<String, Object>put(
-						"localizedRichTextObjectFieldName_i18n",
-						HashMapBuilder.<String, Object>put(
-							"en_US",
-							"en_US <script>console.log('XSS');</script>"
-						).put(
-							"pt_BR",
-							"pt_BR <script>console.log('XSS');</script>"
-						).build()
-					).build();
-				}
-			},
-			null);
+		ObjectEntry objectEntry = null;
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.portal.security.antisamy.internal." +
+					"AntiSamySanitizerImpl",
+				LoggerTestUtil.WARN)) {
+
+			objectEntry = _defaultObjectEntryManager.addObjectEntry(
+				_simpleDTOConverterContext, _objectDefinition2,
+				new ObjectEntry() {
+					{
+						properties = HashMapBuilder.<String, Object>put(
+							"localizedRichTextObjectFieldName_i18n",
+							HashMapBuilder.<String, Object>put(
+								"en_US",
+								"en_US <script>console.log('XSS');</script>"
+							).put(
+								"pt_BR",
+								"pt_BR <script>console.log('XSS');</script>"
+							).build()
+						).build();
+					}
+				},
+				null);
+
+			List<LogEntry> logEntries = logCapture.getLogEntries();
+
+			Assert.assertEquals(logEntries.toString(), 2, logEntries.size());
+
+			for (LogEntry logEntry : logEntries) {
+				Assert.assertEquals(
+					LoggerTestUtil.WARN, logEntry.getPriority());
+				Assert.assertEquals(
+					"The script tag is not allowed for security reasons. " +
+						"This tag should not affect the display of the input. ",
+					logEntry.getMessage());
+				Assert.assertNull(logEntry.getThrowable());
+			}
+		}
 
 		Assert.assertEquals(
 			"en_US",
@@ -3121,7 +3141,6 @@ public class DefaultObjectEntryManagerImplTest
 		}
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testAddObjectEntryWithPortletImportInProcess()
 		throws Exception {
@@ -3254,6 +3273,62 @@ public class DefaultObjectEntryManagerImplTest
 	}
 
 	@Test
+	public void testAddObjectEntryWithRequiredRelationshipObjectField()
+		throws Exception {
+
+		ObjectField objectField = _objectFieldLocalService.fetchObjectField(
+			_objectDefinition2.getObjectDefinitionId(),
+			_objectRelationshipFieldName);
+
+		_objectFieldLocalService.updateRequired(
+			objectField.getObjectFieldId(), true);
+
+		AssertUtils.assertFailure(
+			ObjectEntryValuesException.Required.class,
+			"No value was provided for required object field \"" +
+				_objectRelationshipFieldName + "\"",
+			() -> _addObjectEntry(
+				_objectDefinition2,
+				HashMapBuilder.<String, Object>put(
+					_objectRelationshipFieldName, 0
+				).build()));
+		AssertUtils.assertFailure(
+			ObjectEntryValuesException.Required.class,
+			"No value was provided for required object field \"" +
+				_objectRelationshipFieldName + "\"",
+			() -> _addObjectEntry(
+				_objectDefinition2,
+				HashMapBuilder.<String, Object>put(
+					_objectRelationshipFieldName, 0L
+				).build()));
+		AssertUtils.assertFailure(
+			ObjectEntryValuesException.Required.class,
+			"No value was provided for required object field \"" +
+				_objectRelationshipFieldName + "\"",
+			() -> _addObjectEntry(_objectDefinition2, new HashMap<>()));
+
+		ObjectEntry objectEntry1 = _addObjectEntry(
+			_objectDefinition1,
+			HashMapBuilder.<String, Object>put(
+				"textObjectFieldName", RandomTestUtil.randomString()
+			).build());
+
+		ObjectEntry objectEntry2 = _addObjectEntry(
+			_objectDefinition2,
+			HashMapBuilder.<String, Object>put(
+				_objectRelationshipFieldName, objectEntry1.getId()
+			).build());
+
+		Assert.assertEquals(
+			GetterUtil.getLong(objectEntry1.getId()),
+			GetterUtil.getLong(
+				objectEntry2.getProperties(
+				).get(
+					_objectRelationshipFieldName
+				)));
+	}
+
+	@Test
 	public void testAddObjectEntryWithRichTextObjectField() throws Exception {
 		ObjectDefinition objectDefinition = _addObjectDefinition(
 			Collections.singletonList(
@@ -3301,7 +3376,6 @@ public class DefaultObjectEntryManagerImplTest
 		objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testAddObjectEntryWithScheduleDates() throws Exception {
 
@@ -3533,10 +3607,28 @@ public class DefaultObjectEntryManagerImplTest
 					).build()),
 				false);
 
+		Class<?> clazz = getClass();
+
+		UnicodeProperties parametersUnicodeProperties =
+			UnicodePropertiesBuilder.create(
+				true
+			).put(
+				"script",
+				StringUtil.read(
+					clazz,
+					StringBundler.concat(
+						"dependencies/", clazz.getSimpleName(),
+						StringPool.PERIOD, testName.getMethodName(), ".groovy"))
+			).build();
+
 		_addObjectAction(
-			objectDefinition, ObjectActionTriggerConstants.KEY_ON_AFTER_ADD);
+			objectDefinition, ObjectActionExecutorConstants.KEY_GROOVY,
+			ObjectActionTriggerConstants.KEY_ON_AFTER_ADD,
+			parametersUnicodeProperties);
 		_addObjectAction(
-			objectDefinition, ObjectActionTriggerConstants.KEY_ON_AFTER_UPDATE);
+			objectDefinition, ObjectActionExecutorConstants.KEY_GROOVY,
+			ObjectActionTriggerConstants.KEY_ON_AFTER_UPDATE,
+			parametersUnicodeProperties);
 
 		int randomInt1 = RandomTestUtil.randomInt();
 
@@ -3702,12 +3794,9 @@ public class DefaultObjectEntryManagerImplTest
 					objectRelationship, _group.getGroupKey()));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testAddRelatedObjectEntryWithoutObjectEntryFolder()
 		throws Exception {
-
-		CMSTestUtil.getOrAddGroup(DefaultObjectEntryManagerImplTest.class);
 
 		DepotEntry depotEntry = _addDepotEntry(DepotConstants.TYPE_SPACE);
 
@@ -3813,7 +3902,6 @@ public class DefaultObjectEntryManagerImplTest
 			parentObjectDefinition);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testCopyObjectEntry() throws Exception {
 		DepotEntry depotEntry = _addDepotEntry();
@@ -3858,7 +3946,6 @@ public class DefaultObjectEntryManagerImplTest
 			depotEntry.getGroupId(), objectEntryFolder1);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testCopyObjectEntryByVersion() throws Exception {
 
@@ -4182,7 +4269,6 @@ public class DefaultObjectEntryManagerImplTest
 			objectDefinition2.getObjectDefinitionId());
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testDeleteObjectEntryByVersion() throws Exception {
 
@@ -4731,7 +4817,6 @@ public class DefaultObjectEntryManagerImplTest
 					_group.getGroupKey()));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testExpireObjectEntry() throws Exception {
 		_enableObjectEntryVersioning();
@@ -4769,7 +4854,6 @@ public class DefaultObjectEntryManagerImplTest
 			WorkflowConstants.STATUS_EXPIRED, objectEntryVersion.getStatus());
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testExpireObjectEntryByVersion() throws Exception {
 
@@ -4914,7 +4998,6 @@ public class DefaultObjectEntryManagerImplTest
 					_objectDefinition4, _group.getGroupKey(), 1));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testGetApprovedObjectEntries() throws Exception {
 		_assertApprovedObjectEntries();
@@ -5013,7 +5096,6 @@ public class DefaultObjectEntryManagerImplTest
 				objectEntry4.getId(), _objectDefinition1));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testGetApprovedObjectEntriesWithNestedFields()
 		throws Exception {
@@ -5146,7 +5228,6 @@ public class DefaultObjectEntryManagerImplTest
 			originalNestedFieldsContext);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testGetApprovedObjectEntry() throws Exception {
 		ObjectEntry objectEntry1 = _addObjectEntry(
@@ -6525,14 +6606,20 @@ public class DefaultObjectEntryManagerImplTest
 
 		Page<ObjectEntry> page = _getPage(
 			Collections.singletonMap("textObjectFieldName", StringPool.BLANK),
-			_objectDefinition1);
+			_objectDefinition1, null);
 
-		assertFacets(
-			page.getFacets(),
-			List.of(
-				new Facet(
-					"textObjectFieldName",
-					List.of(new Facet.FacetValue(2, textObjectFieldValue)))));
+		List<Facet> expectedFacets = List.of(
+			new Facet(
+				"textObjectFieldName",
+				List.of(new Facet.FacetValue(2, textObjectFieldValue))));
+
+		assertFacets(page.getFacets(), expectedFacets);
+
+		page = _getPage(
+			Collections.singletonMap("textObjectFieldName", StringPool.BLANK),
+			_objectDefinition1, Pagination.of(2, 1));
+
+		assertFacets(page.getFacets(), expectedFacets);
 
 		PermissionThreadLocal.setPermissionChecker(
 			PermissionCheckerFactoryUtil.create(adminUser));
@@ -6561,18 +6648,25 @@ public class DefaultObjectEntryManagerImplTest
 		page = _getPage(
 			Collections.singletonMap(
 				_objectRelationshipFieldName, StringPool.BLANK),
-			_objectDefinition2);
+			_objectDefinition2, null);
 
-		assertFacets(
-			page.getFacets(),
-			List.of(
-				new Facet(
-					_objectRelationshipFieldName,
-					List.of(
-						new Facet.FacetValue(
-							1, String.valueOf(parentObjectEntry1.getId())),
-						new Facet.FacetValue(
-							2, String.valueOf(parentObjectEntry2.getId()))))));
+		expectedFacets = List.of(
+			new Facet(
+				_objectRelationshipFieldName,
+				List.of(
+					new Facet.FacetValue(
+						1, String.valueOf(parentObjectEntry1.getId())),
+					new Facet.FacetValue(
+						2, String.valueOf(parentObjectEntry2.getId())))));
+
+		assertFacets(page.getFacets(), expectedFacets);
+
+		page = _getPage(
+			Collections.singletonMap(
+				_objectRelationshipFieldName, StringPool.BLANK),
+			_objectDefinition2, Pagination.of(2, 1));
+
+		assertFacets(page.getFacets(), expectedFacets);
 
 		_defaultObjectEntryManager.updateObjectEntry(
 			_simpleDTOConverterContext, _objectDefinition2,
@@ -6588,7 +6682,7 @@ public class DefaultObjectEntryManagerImplTest
 		page = _getPage(
 			Collections.singletonMap(
 				_objectRelationshipFieldName, StringPool.BLANK),
-			_objectDefinition2);
+			_objectDefinition2, null);
 
 		assertFacets(
 			page.getFacets(),
@@ -6607,7 +6701,7 @@ public class DefaultObjectEntryManagerImplTest
 		page = _getPage(
 			Collections.singletonMap(
 				_objectRelationshipFieldName, StringPool.BLANK),
-			_objectDefinition2);
+			_objectDefinition2, null);
 
 		assertFacets(
 			page.getFacets(),
@@ -6851,7 +6945,6 @@ public class DefaultObjectEntryManagerImplTest
 			});
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testGetObjectEntryByVersion() throws Exception {
 
@@ -6902,7 +6995,6 @@ public class DefaultObjectEntryManagerImplTest
 				_objectDefinition4, _group.getGroupKey(), 2));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testGetObjectEntryByVersionWithAssigneeObjectField()
 		throws Exception {
@@ -7310,25 +7402,18 @@ public class DefaultObjectEntryManagerImplTest
 				},
 				_companyObjectEntryA.getId(), _companyObjectRelationshipA_AA);
 
-		Page<ObjectEntry> page =
-			_defaultObjectEntryManager.getRelatedObjectEntries(
-				new Aggregation() {
-					{
-						setAggregationTerms(
-							Collections.singletonMap(
-								"textObjectFieldName", StringPool.BLANK));
-					}
-				},
-				_createDTOConverterContext(),
-				_companyObjectEntryA.getExternalReferenceCode(), null,
-				_companyObjectRelationshipA_AA, null, null, null, null);
+		List<Facet> expectedFacets = List.of(
+			new Facet(
+				"textObjectFieldName",
+				List.of(new Facet.FacetValue(2, textObjectFieldValue))));
 
-		assertFacets(
-			page.getFacets(),
-			List.of(
-				new Facet(
-					"textObjectFieldName",
-					List.of(new Facet.FacetValue(2, textObjectFieldValue)))));
+		Page<ObjectEntry> page = _getRelatedObjectEntriesPage(null);
+
+		assertFacets(page.getFacets(), expectedFacets);
+
+		page = _getRelatedObjectEntriesPage(Pagination.of(2, 1));
+
+		assertFacets(page.getFacets(), expectedFacets);
 
 		_objectEntryLocalService.deleteObjectEntry(objectEntryAA1.getId());
 		_objectEntryLocalService.deleteObjectEntry(objectEntryAA2.getId());
@@ -7458,13 +7543,12 @@ public class DefaultObjectEntryManagerImplTest
 					objectEntry1.getExternalReferenceCode(), null));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testGetVersionedObjectEntries() throws Exception {
 
 		// Company scope
 
-		_enableObjectEntryVersioning();
+		_objectDefinition1 = _enableObjectEntryVersioning();
 
 		ObjectEntry objectEntry1 = _addObjectEntry(
 			_objectDefinition1,
@@ -7525,6 +7609,159 @@ public class DefaultObjectEntryManagerImplTest
 					objectEntry1.getExternalReferenceCode(), _objectDefinition1,
 					null, 1)));
 
+		// Friendly URL path with customization disabled
+
+		_objectDefinition1.setEnableFriendlyURLCustomization(false);
+
+		ObjectField textObjectField = objectFieldLocalService.fetchObjectField(
+			_objectDefinition1.getObjectDefinitionId(), "textObjectFieldName");
+
+		_objectDefinition1.setTitleObjectFieldId(
+			textObjectField.getObjectFieldId());
+
+		_objectDefinition1 =
+			objectDefinitionLocalService.updateObjectDefinition(
+				_objectDefinition1);
+
+		ObjectEntry objectEntry3 = _defaultObjectEntryManager.addObjectEntry(
+			_simpleDTOConverterContext, _objectDefinition1,
+			new ObjectEntry() {
+				{
+					properties = HashMapBuilder.<String, Object>put(
+						"textObjectFieldName", "Version One"
+					).build();
+
+					setExternalReferenceCode(RandomTestUtil.randomString());
+				}
+			},
+			ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		Assert.assertEquals("version-one", objectEntry3.getFriendlyUrlPath());
+
+		objectEntry3 = _updateObjectEntryVersion(
+			_objectDefinition1, objectEntry3, "textObjectFieldName",
+			"Version Two", 2);
+
+		Assert.assertEquals("version-two", objectEntry3.getFriendlyUrlPath());
+
+		ObjectEntry version1ObjectEntry =
+			_defaultObjectEntryManager.getObjectEntryByVersion(
+				dtoConverterContext, objectEntry3.getExternalReferenceCode(),
+				_objectDefinition1, null, 1);
+
+		Assert.assertEquals(
+			"version-one", version1ObjectEntry.getFriendlyUrlPath());
+
+		Map<String, String> version1FriendlyUrlPathI18n =
+			version1ObjectEntry.getFriendlyUrlPath_i18n();
+
+		Assert.assertEquals(
+			"version-one",
+			version1FriendlyUrlPathI18n.get(
+				LocaleUtil.toLanguageId(LocaleUtil.getDefault())));
+
+		ObjectEntry version2ObjectEntry =
+			_defaultObjectEntryManager.getObjectEntryByVersion(
+				dtoConverterContext, objectEntry3.getExternalReferenceCode(),
+				_objectDefinition1, null, 2);
+
+		Assert.assertEquals(
+			"version-two", version2ObjectEntry.getFriendlyUrlPath());
+
+		Map<String, String> version2FriendlyUrlPathI18n =
+			version2ObjectEntry.getFriendlyUrlPath_i18n();
+
+		Assert.assertEquals(
+			"version-two",
+			version2FriendlyUrlPathI18n.get(
+				LocaleUtil.toLanguageId(LocaleUtil.getDefault())));
+
+		// Friendly URL path with customization enabled
+
+		_objectDefinition1.setEnableFriendlyURLCustomization(true);
+
+		_objectDefinition1 =
+			objectDefinitionLocalService.updateObjectDefinition(
+				_objectDefinition1);
+
+		objectEntry3 = _defaultObjectEntryManager.updateObjectEntry(
+			TestPropsValues.getCompanyId(),
+			_createDTOConverterContext(adminUser),
+			objectEntry3.getExternalReferenceCode(), _objectDefinition1,
+			new ObjectEntry() {
+				{
+					systemProperties = new SystemProperties() {
+						{
+							version = new Version() {
+								{
+									number = 3;
+								}
+							};
+						}
+					};
+
+					setFriendlyUrlPath("Version Three");
+				}
+			},
+			objectEntry3.getScopeKey());
+
+		Assert.assertEquals("version-three", objectEntry3.getFriendlyUrlPath());
+
+		objectEntry3 = _defaultObjectEntryManager.updateObjectEntry(
+			TestPropsValues.getCompanyId(),
+			_createDTOConverterContext(adminUser),
+			objectEntry3.getExternalReferenceCode(), _objectDefinition1,
+			new ObjectEntry() {
+				{
+					systemProperties = new SystemProperties() {
+						{
+							version = new Version() {
+								{
+									number = 4;
+								}
+							};
+						}
+					};
+
+					setFriendlyUrlPath("Version Four");
+				}
+			},
+			objectEntry3.getScopeKey());
+
+		Assert.assertEquals("version-four", objectEntry3.getFriendlyUrlPath());
+
+		ObjectEntry version3ObjectEntry =
+			_defaultObjectEntryManager.getObjectEntryByVersion(
+				dtoConverterContext, objectEntry3.getExternalReferenceCode(),
+				_objectDefinition1, null, 3);
+
+		Assert.assertEquals(
+			"version-three", version3ObjectEntry.getFriendlyUrlPath());
+
+		Map<String, String> version3FriendlyUrlPathI18n =
+			version3ObjectEntry.getFriendlyUrlPath_i18n();
+
+		Assert.assertEquals(
+			"version-three",
+			version3FriendlyUrlPathI18n.get(
+				LocaleUtil.toLanguageId(LocaleUtil.getDefault())));
+
+		ObjectEntry version4ObjectEntry =
+			_defaultObjectEntryManager.getObjectEntryByVersion(
+				dtoConverterContext, objectEntry3.getExternalReferenceCode(),
+				_objectDefinition1, null, 4);
+
+		Assert.assertEquals(
+			"version-four", version4ObjectEntry.getFriendlyUrlPath());
+
+		Map<String, String> version4FriendlyUrlPathI18n =
+			version4ObjectEntry.getFriendlyUrlPath_i18n();
+
+		Assert.assertEquals(
+			"version-four",
+			version4FriendlyUrlPathI18n.get(
+				LocaleUtil.toLanguageId(LocaleUtil.getDefault())));
+
 		// Site scope
 
 		objectEntry1 = _addObjectEntry(
@@ -7584,7 +7821,6 @@ public class DefaultObjectEntryManagerImplTest
 					_group.getGroupKey(), 1)));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testGetVersionedObjectEntriesWithCopyAction() throws Exception {
 
@@ -7730,7 +7966,6 @@ public class DefaultObjectEntryManagerImplTest
 		PrincipalThreadLocal.setName(_originalName);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	@TestInfo("LPD-89977")
 	public void testMoveObjectEntry() throws Exception {
@@ -7786,7 +8021,6 @@ public class DefaultObjectEntryManagerImplTest
 		_testMoveObjectEntryWithDifferentUser(depotEntry.getGroupId());
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testMoveObjectEntryToTrash() throws Exception {
 		ObjectEntry objectEntry = _addObjectEntry(
@@ -8313,6 +8547,120 @@ public class DefaultObjectEntryManagerImplTest
 	}
 
 	@Test
+	public void testPartialUpdateObjectEntryWithNestedObjectEntryObjectAction()
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Arrays.asList(
+					new TextObjectFieldBuilder(
+					).labelMap(
+						LocalizedMapUtil.getLocalizedMap(
+							RandomTestUtil.randomString())
+					).name(
+						"textObjectField"
+					).build(),
+					new TextObjectFieldBuilder(
+					).labelMap(
+						LocalizedMapUtil.getLocalizedMap(
+							RandomTestUtil.randomString())
+					).name(
+						"untouchedTextObjectField"
+					).build()),
+				false);
+
+		String predefinedValue = RandomTestUtil.randomString();
+
+		_addObjectAction(
+			objectDefinition,
+			ObjectActionExecutorConstants.KEY_UPDATE_OBJECT_ENTRY,
+			ObjectActionTriggerConstants.KEY_ON_AFTER_UPDATE,
+			UnicodePropertiesBuilder.create(
+				true
+			).put(
+				"objectDefinitionId",
+				String.valueOf(objectDefinition.getObjectDefinitionId())
+			).put(
+				"predefinedValues",
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"inputAsValue", true
+					).put(
+						"name", "textObjectField"
+					).put(
+						"value", predefinedValue
+					)
+				).toString()
+			).build());
+
+		ObjectRelationship objectRelationship =
+			ObjectRelationshipTestUtil.addObjectRelationship(
+				ObjectRelationshipConstants.DELETION_TYPE_CASCADE,
+				_objectDefinition1, objectDefinition,
+				TestPropsValues.getUserId(),
+				ObjectRelationshipConstants.TYPE_MANY_TO_MANY);
+
+		String untouchedValue = RandomTestUtil.randomString();
+
+		ObjectEntry relatedObjectEntry =
+			_defaultObjectEntryManager.addObjectEntry(
+				_simpleDTOConverterContext, objectDefinition,
+				new ObjectEntry() {
+					{
+						properties = HashMapBuilder.<String, Object>put(
+							"textObjectField", RandomTestUtil.randomString()
+						).put(
+							"untouchedTextObjectField", untouchedValue
+						).build();
+					}
+				},
+				ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		ObjectEntry objectEntry = _defaultObjectEntryManager.addObjectEntry(
+			_simpleDTOConverterContext, _objectDefinition1,
+			new ObjectEntry() {
+				{
+					properties = HashMapBuilder.<String, Object>put(
+						"textObjectFieldName", RandomTestUtil.randomString()
+					).build();
+				}
+			},
+			ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		_defaultObjectEntryManager.partialUpdateObjectEntry(
+			_simpleDTOConverterContext, _objectDefinition1, objectEntry.getId(),
+			new ObjectEntry() {
+				{
+					properties = HashMapBuilder.<String, Object>put(
+						objectRelationship.getName(),
+						Collections.singletonList(
+							HashMapBuilder.<String, Object>put(
+								"externalReferenceCode",
+								relatedObjectEntry.getExternalReferenceCode()
+							).build())
+					).build();
+				}
+			});
+
+		ObjectEntry updatedRelatedObjectEntry =
+			_defaultObjectEntryManager.getObjectEntry(
+				_simpleDTOConverterContext, objectDefinition,
+				relatedObjectEntry.getId());
+
+		Assert.assertEquals(
+			predefinedValue,
+			MapUtil.getString(
+				updatedRelatedObjectEntry.getProperties(), "textObjectField"));
+		Assert.assertEquals(
+			untouchedValue,
+			MapUtil.getString(
+				updatedRelatedObjectEntry.getProperties(),
+				"untouchedTextObjectField"));
+
+		objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
+	}
+
+	@Test
 	public void testPartialUpdateObjectEntryWithPortletImportInProcess()
 		throws Exception {
 
@@ -8367,7 +8715,76 @@ public class DefaultObjectEntryManagerImplTest
 			"Edited", objectEntry.getPropertyValue("textObjectFieldName"));
 	}
 
-	@FeatureFlag("LPD-17564")
+	@Test
+	public void testPartialUpdateObjectEntryWithRequiredObjectField()
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Arrays.asList(
+					new TextObjectFieldBuilder(
+					).labelMap(
+						LocalizedMapUtil.getLocalizedMap(
+							RandomTestUtil.randomString())
+					).name(
+						"requiredTextObjectField"
+					).required(
+						true
+					).build(),
+					new TextObjectFieldBuilder(
+					).labelMap(
+						LocalizedMapUtil.getLocalizedMap(
+							RandomTestUtil.randomString())
+					).name(
+						"textObjectField"
+					).build()),
+				false);
+
+		String requiredTextObjectFieldValue = RandomTestUtil.randomString();
+
+		ObjectEntry objectEntry = _defaultObjectEntryManager.addObjectEntry(
+			_simpleDTOConverterContext, objectDefinition,
+			new ObjectEntry() {
+				{
+					displayDate = RandomTestUtil.nextDate();
+					properties = HashMapBuilder.<String, Object>put(
+						"requiredTextObjectField", requiredTextObjectFieldValue
+					).put(
+						"textObjectField", RandomTestUtil.randomString()
+					).build();
+				}
+			},
+			ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		String textObjectFieldValue = RandomTestUtil.randomString();
+
+		ObjectEntry updatedObjectEntry =
+			_defaultObjectEntryManager.partialUpdateObjectEntry(
+				_simpleDTOConverterContext, objectDefinition,
+				objectEntry.getId(),
+				new ObjectEntry() {
+					{
+						properties = HashMapBuilder.<String, Object>put(
+							"textObjectField", textObjectFieldValue
+						).build();
+					}
+				});
+
+		Assert.assertNotNull(objectEntry.getDisplayDate());
+		Assert.assertEquals(
+			objectEntry.getDisplayDate(), updatedObjectEntry.getDisplayDate());
+		Assert.assertEquals(
+			requiredTextObjectFieldValue,
+			MapUtil.getString(
+				updatedObjectEntry.getProperties(), "requiredTextObjectField"));
+		Assert.assertEquals(
+			textObjectFieldValue,
+			MapUtil.getString(
+				updatedObjectEntry.getProperties(), "textObjectField"));
+
+		objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
+	}
+
 	@Test
 	public void testRestoreObjectEntryByVersion() throws Exception {
 
@@ -8449,7 +8866,6 @@ public class DefaultObjectEntryManagerImplTest
 					_objectDefinition4, _group.getGroupKey(), 1));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testRestoreObjectEntryFromTrash() throws Exception {
 		_enableObjectEntryVersioning();
@@ -8535,7 +8951,6 @@ public class DefaultObjectEntryManagerImplTest
 		_assertObjectEntriesSize1(_objectDefinition3, "Delta", 1);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testSubscribeObjectEntry() throws Exception {
 		ObjectDefinition objectDefinition = _addObjectDefinition(
@@ -8685,7 +9100,6 @@ public class DefaultObjectEntryManagerImplTest
 				objectDefinition.getClassName(), objectEntry2.getId()));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testSubscribeObjectEntryWithHierarchy() throws Exception {
 		ObjectDefinition objectDefinitionA = _addObjectDefinition(
@@ -8775,15 +9189,31 @@ public class DefaultObjectEntryManagerImplTest
 
 		Map<String, Map<String, String>> objectEntryActions =
 			HashMapBuilder.<String, Map<String, String>>put(
+				"copy", Collections.emptyMap()
+			).put(
+				"copy-replace", Collections.emptyMap()
+			).put(
 				"delete", Collections.emptyMap()
+			).put(
+				"duplicate", Collections.emptyMap()
 			).put(
 				"expire", Collections.emptyMap()
 			).put(
 				"get", Collections.emptyMap()
 			).put(
+				"get-by-scope", Collections.emptyMap()
+			).put(
+				"move", Collections.emptyMap()
+			).put(
+				"move-replace", Collections.emptyMap()
+			).put(
 				"permissions", Collections.emptyMap()
 			).put(
 				"replace", Collections.emptyMap()
+			).put(
+				"restore", Collections.emptyMap()
+			).put(
+				"share", Collections.emptyMap()
 			).put(
 				"update", Collections.emptyMap()
 			).put(
@@ -9771,7 +10201,6 @@ public class DefaultObjectEntryManagerImplTest
 		PrincipalThreadLocal.setName(_originalName);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	@TestInfo("LPD-89977")
 	public void testUpdateObjectEntryWithDifferentUser() throws Exception {
@@ -9878,7 +10307,6 @@ public class DefaultObjectEntryManagerImplTest
 					objectEntry));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testUpdateObjectEntryWithScheduleDates() throws Exception {
 		ObjectDefinition objectDefinition = _addObjectDefinition(
@@ -10122,18 +10550,13 @@ public class DefaultObjectEntryManagerImplTest
 				url, "objectEntryExternalReferenceCode",
 				actualObjectEntry.getExternalReferenceCode());
 
-			if (FeatureFlagManagerUtil.isEnabled(
-					_objectDefinition2.getCompanyId(), "LPD-17564")) {
+			ObjectField objectField = _objectFieldLocalService.fetchObjectField(
+				_objectDefinition2.getObjectDefinitionId(),
+				"attachmentObjectFieldName");
 
-				ObjectField objectField =
-					_objectFieldLocalService.fetchObjectField(
-						_objectDefinition2.getObjectDefinitionId(),
-						"attachmentObjectFieldName");
-
-				url = HttpComponentsUtil.addParameter(
-					url, "objectFieldExternalReferenceCode",
-					objectField.getExternalReferenceCode());
-			}
+			url = HttpComponentsUtil.addParameter(
+				url, "objectFieldExternalReferenceCode",
+				objectField.getExternalReferenceCode());
 
 			Assert.assertEquals(url, link.getHref());
 		}
@@ -10447,10 +10870,10 @@ public class DefaultObjectEntryManagerImplTest
 	}
 
 	private void _addObjectAction(
-			ObjectDefinition objectDefinition, String objectActionTriggerKey)
+			ObjectDefinition objectDefinition, String objectActionExecutorKey,
+			String objectActionTriggerKey,
+			UnicodeProperties parametersUnicodeProperties)
 		throws Exception {
-
-		Class<?> clazz = getClass();
 
 		_objectActionLocalService.addObjectAction(
 			RandomTestUtil.randomString(), TestPropsValues.getUserId(),
@@ -10458,19 +10881,8 @@ public class DefaultObjectEntryManagerImplTest
 			RandomTestUtil.randomString(),
 			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
-			RandomTestUtil.randomString(),
-			ObjectActionExecutorConstants.KEY_GROOVY, objectActionTriggerKey,
-			UnicodePropertiesBuilder.create(
-				true
-			).put(
-				"script",
-				StringUtil.read(
-					clazz,
-					StringBundler.concat(
-						"dependencies/", clazz.getSimpleName(),
-						StringPool.PERIOD, testName.getMethodName(), ".groovy"))
-			).build(),
-			false);
+			RandomTestUtil.randomString(), objectActionExecutorKey,
+			objectActionTriggerKey, parametersUnicodeProperties, false);
 	}
 
 	private ObjectDefinition _addObjectDefinition(
@@ -11343,7 +11755,7 @@ public class DefaultObjectEntryManagerImplTest
 
 	private Page<ObjectEntry> _getPage(
 			Map<String, String> aggregationTerms,
-			ObjectDefinition objectDefinition)
+			ObjectDefinition objectDefinition, Pagination pagination)
 		throws Exception {
 
 		return _defaultObjectEntryManager.getObjectEntries(
@@ -11356,7 +11768,24 @@ public class DefaultObjectEntryManagerImplTest
 			new DefaultDTOConverterContext(
 				false, Collections.emptyMap(), dtoConverterRegistry, null,
 				LocaleUtil.getDefault(), null, _user),
-			StringPool.BLANK, null, null, null);
+			StringPool.BLANK, pagination, null, null);
+	}
+
+	private Page<ObjectEntry> _getRelatedObjectEntriesPage(
+			Pagination pagination)
+		throws Exception {
+
+		return _defaultObjectEntryManager.getRelatedObjectEntries(
+			new Aggregation() {
+				{
+					setAggregationTerms(
+						Collections.singletonMap(
+							"textObjectFieldName", StringPool.BLANK));
+				}
+			},
+			_createDTOConverterContext(),
+			_companyObjectEntryA.getExternalReferenceCode(), null,
+			_companyObjectRelationshipA_AA, pagination, null, null, null);
 	}
 
 	private Timestamp _getTimestamp(String dateString) throws Exception {

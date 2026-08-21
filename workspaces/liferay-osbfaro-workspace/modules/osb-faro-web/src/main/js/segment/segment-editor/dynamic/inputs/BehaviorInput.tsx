@@ -16,7 +16,7 @@ import {
 	FunctionalOperators,
 	RelationalOperators,
 } from '../utils/constants';
-import {SegmentTypes} from 'shared/util/constants';
+import {SegmentCategories, SegmentTypes} from 'shared/util/constants';
 import {
 	AttributeConjunctionChangeParams,
 	Criterion,
@@ -62,6 +62,7 @@ interface IBehaviorInputProps extends ISegmentEditorCustomInputBase {
 	channelId: string;
 	close: Modal.close;
 	open: Modal.open;
+	segmentCategory: SegmentCategories;
 	segmentType: SegmentTypes;
 	touched: Touched;
 	valid: Valid;
@@ -187,6 +188,12 @@ export class BehaviorInput extends React.Component<
 
 		const previousEventId = this.getEventId();
 
+		// An empty applicationId means the user is in Asset Type mode without a
+		// type chosen yet: the criterion carries no asset filter and stays invalid
+		// until a type (or Page) is selected.
+
+		const hasAssetType = !!applicationId;
+
 		const activityKeys = selections.map(({activityKey}) => activityKey);
 
 		if (selections.length) {
@@ -196,28 +203,16 @@ export class BehaviorInput extends React.Component<
 			});
 		}
 
-		// Specific assets -> match them by activityKey (a flat item, or an "or"
-		// group for N). No specific asset -> match every asset of the selected
-		// type via applicationId + eventId ("triggered Download on Documents").
+		// No type chosen -> no asset filter. No specific asset -> match every
+		// asset of the selected type via applicationId + eventId ("triggered
+		// Download on Documents"). Specific assets -> match them by activityKey (a
+		// flat item, or an "or" group for N).
 
-		const assetItems = activityKeys.length
-			? [
-					activityKeys.length > 1
-						? {
-								conjunctionName: Conjunctions.Or,
-								items: activityKeys.map((activityKey) => ({
-									operatorName: RelationalOperators.EQ,
-									propertyName: ACTIVITY_KEY,
-									value: activityKey,
-								})),
-							}
-						: {
-								operatorName: RelationalOperators.EQ,
-								propertyName: ACTIVITY_KEY,
-								value: activityKeys[0],
-							},
-				]
-			: [
+		let assetItems: any[] = [];
+
+		if (hasAssetType) {
+			if (!activityKeys.length) {
+				assetItems = [
 					{
 						operatorName: RelationalOperators.EQ,
 						propertyName: 'applicationId',
@@ -229,6 +224,29 @@ export class BehaviorInput extends React.Component<
 						value: eventId,
 					},
 				];
+			}
+			else if (activityKeys.length === 1) {
+				assetItems = [
+					{
+						operatorName: RelationalOperators.EQ,
+						propertyName: ACTIVITY_KEY,
+						value: activityKeys[0],
+					},
+				];
+			}
+			else {
+				assetItems = [
+					{
+						conjunctionName: Conjunctions.Or,
+						items: activityKeys.map((activityKey) => ({
+							operatorName: RelationalOperators.EQ,
+							propertyName: ACTIVITY_KEY,
+							value: activityKey,
+						})),
+					},
+				];
+			}
+		}
 
 		const items = value.getIn(['criterionGroup', 'items']) as List<any>;
 
@@ -243,7 +261,7 @@ export class BehaviorInput extends React.Component<
 
 		onChange({
 			touched: {...touched, asset: true},
-			valid: {...valid, asset: true},
+			valid: {...valid, asset: hasAssetType},
 			value: value.setIn(
 				['criterionGroup', 'items'],
 				List([
@@ -413,6 +431,7 @@ export class BehaviorInput extends React.Component<
 			groupId = '',
 			operatorRenderer: OperatorDropdown,
 			property,
+			segmentCategory,
 			segmentType,
 			touched,
 			valid,
@@ -429,6 +448,15 @@ export class BehaviorInput extends React.Component<
 			Map({propertyName: ATTRIBUTE_PROPERTY_PREFIX})
 		).toJS();
 
+		// Event attributes are read per event, so there is nothing to filter on
+		// until an asset type is chosen. Keep the button in place (disabled, like
+		// its "Add Assets" sibling) instead of swapping in a section that renders
+		// nothing.
+
+		const eventId = this.getEventId();
+
+		const isAccountSegment = segmentCategory === SegmentCategories.Account;
+
 		return (
 			<div className="criteria-statement">
 				<Form.Group autoFit className="page-asset-criteria">
@@ -438,9 +466,15 @@ export class BehaviorInput extends React.Component<
 
 					<OperatorDropdown />
 
-					<Form.GroupItem className="entity-name" label shrink>
-						{Liferay.Language.get('triggered').toLowerCase()}
-					</Form.GroupItem>
+					{isAccountSegment ? (
+						<Form.GroupItem className="entity-name" label shrink>
+							{Liferay.Language.get('individual-who-triggered')}
+						</Form.GroupItem>
+					) : (
+						<Form.GroupItem className="entity-name" label shrink>
+							{Liferay.Language.get('triggered').toLowerCase()}
+						</Form.GroupItem>
+					)}
 
 					<Form.GroupItem className="display-value" label shrink>
 						<b>{displayValue}</b>
@@ -478,10 +512,10 @@ export class BehaviorInput extends React.Component<
 					</Form.Group>
 				)}
 
-				{this.state.showAttributeFilter ? (
+				{this.state.showAttributeFilter && eventId ? (
 					<AttributeFilterSection
 						conjunctionCriterion={attributeConjunctionCriterion}
-						eventId={this.getEventId()}
+						eventId={eventId}
 						onChange={this.handleAttributeConjunctionChange}
 						onClear={this.handleClearAttributeFilter}
 						touched={touched}
@@ -491,6 +525,7 @@ export class BehaviorInput extends React.Component<
 					<Form.Group autoFit>
 						<ClayButton
 							className="button-root"
+							disabled={!eventId}
 							displayType="secondary"
 							onClick={this.handleShowAttributeFilterClick}
 						>

@@ -96,6 +96,7 @@ describe('buildState', () => {
 			name: 'myStructure',
 			path: '',
 			settings: {},
+			slug: '',
 			spaces: [],
 			status: 'draft',
 			system: false,
@@ -111,10 +112,13 @@ describe('buildState', () => {
 				deletedGroupERCs: [],
 				deletedRelationships: [],
 				modifiedNames: new Set(),
+				modifiedSlugs: new Set(),
 			},
 			invalids: new Map(),
+			operation: null,
 			publishedChildren: new Set(),
 			renamingItemUuid: null,
+			savedChildren: new Set(),
 			selection: [],
 			structure,
 			unsavedChanges: false,
@@ -137,6 +141,7 @@ describe('buildState', () => {
 
 		const nextState = {
 			...initialState,
+			savedChildren: new Set(children.keys()),
 			structure: {
 				...structure,
 				children,
@@ -155,6 +160,7 @@ describe('buildState', () => {
 			name: 'myStructure',
 			path: '',
 			settings: {},
+			slug: '',
 			spaces: [],
 			status: 'published',
 			system: false,
@@ -170,10 +176,13 @@ describe('buildState', () => {
 				deletedGroupERCs: [],
 				deletedRelationships: [],
 				modifiedNames: new Set(),
+				modifiedSlugs: new Set(),
 			},
 			invalids: new Map(),
+			operation: null,
 			publishedChildren: new Set(),
 			renamingItemUuid: null,
+			savedChildren: new Set(),
 			selection: [],
 			structure,
 			unsavedChanges: false,
@@ -199,11 +208,13 @@ describe('buildState', () => {
 
 		const {children, uuid} = result!.structure;
 
+		const savedChildren = new Set(children.keys());
 		const publishedChildren = new Set(children.keys());
 
 		const nextState = {
 			...initialState,
 			publishedChildren,
+			savedChildren,
 			structure: {
 				...structure,
 				children,
@@ -222,6 +233,7 @@ describe('buildState', () => {
 			name: 'myStructure',
 			path: '',
 			settings: {},
+			slug: '',
 			spaces: ['space-1-erc', 'space-2-erc'],
 			status: 'published',
 			system: false,
@@ -240,10 +252,13 @@ describe('buildState', () => {
 				deletedGroupERCs: [],
 				deletedRelationships: [],
 				modifiedNames: new Set(),
+				modifiedSlugs: new Set(),
 			},
 			invalids: new Map(),
+			operation: null,
 			publishedChildren: new Set(),
 			renamingItemUuid: null,
+			savedChildren: new Set(),
 			selection: [],
 			structure,
 			unsavedChanges: false,
@@ -270,11 +285,13 @@ describe('buildState', () => {
 
 		const {children, uuid} = result!.structure;
 
+		const savedChildren = new Set(children.keys());
 		const publishedChildren = new Set(children.keys());
 
 		const nextState = {
 			...initialState,
 			publishedChildren,
+			savedChildren,
 			structure: {
 				...structure,
 				children,

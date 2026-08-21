@@ -33,7 +33,6 @@ export const ACTIVITIES = 'activities';
 export const ANALYTICS = 'analytics';
 export const ANY = 'Any';
 export const ASSETS = 'assets';
-export const COMMERCE = 'commerce';
 export const CONTACTS = 'contacts';
 export const CSV = 'csv';
 export const GROWTH = 'growth';
@@ -50,6 +49,7 @@ export const USERS = 'users';
 /* Filter Key Constants */
 
 export const PERIOD = 'rangeKey';
+export const SEGMENT_CATEGORY = 'segmentCategory';
 export const SEGMENT_STATE = 'state';
 export const SEGMENT_TYPE = 'segmentType';
 export const INDIVIDUAL_COUNT = 'individualCount';
@@ -86,12 +86,14 @@ export const Routes = buildRoutes({
 									ASSETS_BLOGS: {
 										path: '/blogs',
 										routes: {
+											ASSETS_BLOGS_ACCOUNTS:
+												'/:assetId/accounts/:touchpoint/:title?/:type?',
 											ASSETS_BLOGS_KNOWN_INDIVIDUALS:
 												'/:assetId/known-individuals/:touchpoint/:title?/:type?',
 											ASSETS_BLOGS_OVERVIEW:
 												'/:assetId/page/:touchpoint/:title?/:type?',
 											ASSETS_BLOGS_ROUTES:
-												'/:assetId/:tabId(page|known-individuals)/:touchpoint/:title?/:type?',
+												'/:assetId/:tabId(accounts|page|known-individuals)/:touchpoint/:title?/:type?',
 										},
 									},
 									ASSETS_CUSTOM: {
@@ -104,50 +106,57 @@ export const Routes = buildRoutes({
 									ASSETS_DOCUMENTS_AND_MEDIA: {
 										path: '/documents-and-media',
 										routes: {
+											ASSETS_DOCUMENTS_AND_MEDIA_ACCOUNTS:
+												'/:assetId/accounts/:touchpoint/:title?/:type?',
 											ASSETS_DOCUMENTS_AND_MEDIA_KNOWN_INDIVIDUALS:
 												'/:assetId/known-individuals/:touchpoint/:title?/:type?',
 											ASSETS_DOCUMENTS_AND_MEDIA_OVERVIEW:
 												'/:assetId/page/:touchpoint/:title?/:type?',
 											ASSETS_DOCUMENTS_AND_MEDIA_ROUTES:
-												'/:assetId/:tabId(page|known-individuals)/:touchpoint/:title?/:type?',
+												'/:assetId/:tabId(accounts|page|known-individuals)/:touchpoint/:title?/:type?',
 										},
 									},
 									ASSETS_FORMS: {
 										path: '/forms',
 										routes: {
+											ASSETS_FORMS_ACCOUNTS:
+												'/:assetId/accounts/:touchpoint/:title?/:type?',
 											ASSETS_FORMS_KNOWN_INDIVIDUALS:
 												'/:assetId/known-individuals/:touchpoint/:title?/:type?',
 											ASSETS_FORMS_OVERVIEW:
 												'/:assetId/page/:touchpoint/:title?/:type?',
 											ASSETS_FORMS_ROUTES:
-												'/:assetId/:tabId(page|known-individuals)/:touchpoint/:title?/:type?',
+												'/:assetId/:tabId(accounts|page|known-individuals)/:touchpoint/:title?/:type?',
 										},
 									},
 									ASSETS_OBJECT_ENTRY: {
 										path: '/object-entry',
 										routes: {
+											ASSETS_OBJECT_ENTRY_ACCOUNTS:
+												'/:assetId/accounts/:touchpoint/:title?/:type?',
 											ASSETS_OBJECT_ENTRY_KNOWN_INDIVIDUALS:
 												'/:assetId/known-individuals/:touchpoint/:title?/:type?',
 											ASSETS_OBJECT_ENTRY_OVERVIEW:
 												'/:assetId/page/:touchpoint/:title?/:type?',
 											ASSETS_OBJECT_ENTRY_ROUTES:
-												'/:assetId/:tabId(page|known-individuals)/:touchpoint/:title?/:type?',
+												'/:assetId/:tabId(accounts|page|known-individuals)/:touchpoint/:title?/:type?',
 										},
 									},
 									ASSETS_WEB_CONTENT: {
 										path: '/web-content',
 										routes: {
+											ASSETS_WEB_CONTENT_ACCOUNTS:
+												'/:assetId/accounts/:touchpoint/:title?/:type?',
 											ASSETS_WEB_CONTENT_KNOWN_INDIVIDUALS:
 												'/:assetId/known-individuals/:touchpoint/:title?/:type?',
 											ASSETS_WEB_CONTENT_OVERVIEW:
 												'/:assetId/page/:touchpoint/:title?/:type?',
 											ASSETS_WEB_CONTENT_ROUTES:
-												'/:assetId/:tabId(page|known-individuals)/:touchpoint/:title?/:type?',
+												'/:assetId/:tabId(accounts|page|known-individuals)/:touchpoint/:title?/:type?',
 										},
 									},
 								},
 							},
-							COMMERCE: `/${COMMERCE}`,
 							CONTACTS: {
 								path: `/${CONTACTS}`,
 								routes: {
@@ -161,6 +170,8 @@ export const Routes = buildRoutes({
 											CONTACTS_ACCOUNT_INTEREST_DETAILS: `/interests/:interestId/:tabId(${INDIVIDUALS}|${PAGES})?`,
 											CONTACTS_ACCOUNT_INTERESTS:
 												'/interests',
+											CONTACTS_ACCOUNT_OVERVIEW:
+												'/overview',
 											CONTACTS_ACCOUNT_PROFILE:
 												'/profile',
 											CONTACTS_ACCOUNT_SEGMENTS: `/${SEGMENTS}`,
@@ -239,7 +250,10 @@ export const Routes = buildRoutes({
 							},
 							LIFECYCLE: {
 								path: '/lifecycle',
-								routes: {},
+								routes: {
+									LIFECYCLE_CREATE: '/new',
+									LIFECYCLE_EDIT: '/:lifecycleId/edit',
+								},
 							},
 							SITES: {
 								path: '/sites',
@@ -258,6 +272,8 @@ export const Routes = buildRoutes({
 									SITES_TOUCHPOINTS: {
 										path: '/pages',
 										routes: {
+											SITES_TOUCHPOINTS_ACCOUNTS:
+												'/accounts/:touchpoint/:title?',
 											SITES_TOUCHPOINTS_KNOWN_INDIVIDUALS:
 												'/known-individuals/:touchpoint/:title?',
 											SITES_TOUCHPOINTS_OVERVIEW:

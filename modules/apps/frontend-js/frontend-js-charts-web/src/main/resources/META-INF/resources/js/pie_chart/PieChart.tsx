@@ -39,13 +39,26 @@ export interface PieChartProps {
 	legend?: 'list' | 'none' | 'table';
 
 	/**
+	 * Where the `list` legend sits: `end` (default) beside the pie, `bottom`
+	 * below it, full width. No effect on the `table` legend.
+	 */
+	legendPosition?: 'bottom' | 'end';
+
+	/**
 	 * Draw the 1px border around each legend color swatch (list and table).
 	 * Default `true`. Set `false` for borderless swatches.
 	 */
 	legendSwatchBorder?: boolean;
 
+	/** Draw the divider lines under the `table` legend header and rows. Default `true`. */
+	legendTableDividers?: boolean;
+
 	/** What the `legend="list"` rows show next to each label. Default `percent`. */
 	legendValue?: PieChartLegendValue;
+
+	/** Show the total/active-datum label in the ring center. Default `true`. */
+	showCenterLabel?: boolean;
+
 	size?: 'lg' | 'md' | 'sm' | 'xs' | number;
 	thickness?: 'lg' | 'md';
 	title: string;
@@ -77,8 +90,11 @@ export default function PieChart({
 	description,
 	innerRadius: innerRadiusRatio,
 	legend = 'list',
+	legendPosition = 'end',
 	legendSwatchBorder = true,
+	legendTableDividers = true,
 	legendValue = 'percent',
+	showCenterLabel = true,
 	size = 'md',
 	thickness = 'md',
 	title,
@@ -146,6 +162,25 @@ export default function PieChart({
 
 	const summaryDescribedBy = legend === 'table' ? undefined : summaryId;
 
+	const legendBottom = legend === 'list' && legendPosition === 'bottom';
+
+	const legendElement = (
+		<PieChartLegend
+			activeIndex={activeIndex}
+			colors={colors}
+			data={data}
+			legend={legend}
+			legendTableDividers={legendTableDividers}
+			legendValue={legendValue}
+			onFocus={focusSlice}
+			onHover={setHoverIndex}
+			onHoverEnd={() => setHoverIndex(null)}
+			position={legendPosition}
+			titleId={titleId}
+			total={total}
+		/>
+	);
+
 	return (
 		<figure
 			aria-describedby={summaryDescribedBy}
@@ -194,24 +229,16 @@ export default function PieChart({
 						onSliceBlur={() => setFocusIndex(null)}
 						pathFactory={pathFactory}
 						pixelSize={pixelSize}
+						showCenterLabel={showCenterLabel}
 						sliceRefFactory={sliceRefFactory}
 						total={total}
 					/>
 				</div>
 
-				<PieChartLegend
-					activeIndex={activeIndex}
-					colors={colors}
-					data={data}
-					legend={legend}
-					legendValue={legendValue}
-					onFocus={focusSlice}
-					onHover={setHoverIndex}
-					onHoverEnd={() => setHoverIndex(null)}
-					titleId={titleId}
-					total={total}
-				/>
+				{legendBottom ? null : legendElement}
 			</div>
+
+			{legendBottom ? legendElement : null}
 		</figure>
 	);
 }

@@ -22,7 +22,7 @@ function hasValueInAnyLanguage(
 
 interface Props {
 	audiences: Array<{label: string; value: string}>;
-	editableElementOptions: EditableElementOption[];
+	editableElementOptions: EditableElementOption[] | null;
 	elementVariations: ElementVariation[];
 	onDeleteElementVariation: (elementVariation: ElementVariation) => void;
 	onEditElementVariation: (key: string) => void;
@@ -52,7 +52,7 @@ export default function ElementVariationsList({
 		{} as Record<string, ElementVariation[]>
 	);
 
-	if (!editableElementOptions.length) {
+	if (!editableElementOptions) {
 		return <ClayLoadingIndicator className="mt-3" />;
 	}
 
@@ -101,7 +101,7 @@ export default function ElementVariationsList({
 														elementVariation.html
 													) ? (
 														<ClayLabel
-															className="label-inverse-content-1"
+															className="label-inverse-content-6"
 															displayType="unstyled"
 															inverse
 														>
@@ -139,7 +139,7 @@ export default function ElementVariationsList({
 													{elementVariation.active ? null : (
 														<ClayLabel displayType="danger">
 															{Liferay.Language.get(
-																'inactive'
+																'disabled'
 															)}
 														</ClayLabel>
 													)}

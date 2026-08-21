@@ -1,5 +1,5 @@
 import React from 'react';
-import {formatDateToTimeZone} from 'shared/util/date';
+import {formatDateToTimeZone, getCustomDateFormat} from 'shared/util/date';
 import {
 	getMetricName,
 	mergedVariants,
@@ -13,7 +13,7 @@ import {SummaryBaseCard} from './SummaryBaseCard';
 import {SummaryParagraph} from './SummaryParagraph';
 import {SummarySection} from './SummarySection';
 import {SummaryTitle} from './SummaryTitle';
-import {toRounded} from 'shared/util/numbers';
+import {formatPercent} from 'shared/util/numbers';
 
 export const SummaryCompletedCard: React.FC<{
 	experiment: IExperiment & {
@@ -56,7 +56,7 @@ export const SummaryCompletedCard: React.FC<{
 							{sub(Liferay.Language.get('started-x'), [
 								formatDateToTimeZone(
 									startedDate,
-									'll',
+									getCustomDateFormat(),
 									timeZoneId
 								),
 							])}
@@ -67,7 +67,7 @@ export const SummaryCompletedCard: React.FC<{
 								{sub(Liferay.Language.get('ended-x'), [
 									formatDateToTimeZone(
 										finishedDate,
-										'll',
+										getCustomDateFormat(),
 										timeZoneId
 									),
 								])}
@@ -107,10 +107,10 @@ export const SummaryCompletedCard: React.FC<{
 							title={Liferay.Language.get('test-completion')}
 						>
 							<SummarySection.Heading
-								value={`${toRounded(completion)}%`}
+								value={formatPercent(completion)}
 							/>
 							<SummarySection.ProgressBar
-								value={parseInt(toRounded(completion))}
+								value={Math.floor(completion)}
 							/>
 						</SummarySection>
 
@@ -145,10 +145,9 @@ export const SummaryCompletedCard: React.FC<{
 							{publishedVariant?.improvement !== undefined &&
 								publishedVariant.improvement > 0 && (
 									<SummarySection.Variant
-										lift={`${toRounded(
-											publishedVariant.improvement,
-											2
-										)}%`}
+										lift={formatPercent(
+											publishedVariant.improvement
+										)}
 										status="up"
 									/>
 								)}

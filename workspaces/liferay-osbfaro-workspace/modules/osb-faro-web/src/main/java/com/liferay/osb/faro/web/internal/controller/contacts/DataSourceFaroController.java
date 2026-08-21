@@ -51,6 +51,7 @@ import com.liferay.osb.faro.web.internal.controller.FaroController;
 import com.liferay.osb.faro.web.internal.exception.FaroException;
 import com.liferay.osb.faro.web.internal.exception.FaroValidationException;
 import com.liferay.osb.faro.web.internal.helper.ContactsCSVHelper;
+import com.liferay.osb.faro.web.internal.model.display.FaroFDSResultsDisplay;
 import com.liferay.osb.faro.web.internal.model.display.FaroResultsDisplay;
 import com.liferay.osb.faro.web.internal.model.display.contacts.ChannelDataSourceDisplay;
 import com.liferay.osb.faro.web.internal.model.display.contacts.DXPGroupDisplay;
@@ -169,8 +170,8 @@ public class DataSourceFaroController extends BaseFaroController {
 				faroProject,
 				OAuthUtil.getOAuth20Credentials(
 					"CLIENT_CREDENTIALS", portalURL, "",
-					"https://analytics.liferay.com/oauth/receive",
-					oAuthClientId, oAuthClientSecret, "LIFERAY"),
+					FaroPropsValues.FARO_URL + "/oauth/receive", oAuthClientId,
+					oAuthClientSecret, "LIFERAY"),
 				getUserId(), dataSourceName, portalURL, new LiferayProvider(),
 				null, DataSource.Status.ACTIVE.toString());
 
@@ -181,8 +182,8 @@ public class DataSourceFaroController extends BaseFaroController {
 				faroProject, dataSourceId,
 				OAuthUtil.getOAuth20Credentials(
 					"CLIENT_CREDENTIALS", portalURL, "",
-					"https://analytics.liferay.com/oauth/receive",
-					oAuthClientId, oAuthClientSecret, "LIFERAY"),
+					FaroPropsValues.FARO_URL + "/oauth/receive", oAuthClientId,
+					oAuthClientSecret, "LIFERAY"),
 				null, null, new LiferayProvider(),
 				DataSource.Status.ACTIVE.toString(), portalURL, getUserId());
 
@@ -312,6 +313,9 @@ public class DataSourceFaroController extends BaseFaroController {
 			@PathParam("groupId") long groupId,
 			@DefaultValue(StringPool.BLANK) @FormParam("channelsConfiguration")
 				FaroParam<ChannelsConfiguration> channelsConfigurationFaroParam,
+			@DefaultValue(StringPool.BLANK) @FormParam("contactsConfiguration")
+				FaroParam<MarketoCampaignProvider.ContactsConfiguration>
+					contactsConfigurationFaroParam,
 			@FormParam("credentials") Credentials credentials,
 			@FormParam("name") String name,
 			@DefaultValue("ACTIVE") @FormParam("status") String status,
@@ -323,6 +327,8 @@ public class DataSourceFaroController extends BaseFaroController {
 
 		marketoCampaignProvider.setChannelsConfiguration(
 			channelsConfigurationFaroParam.getValue());
+		marketoCampaignProvider.setContactsConfiguration(
+			contactsConfigurationFaroParam.getValue());
 
 		return create(
 			groupId, credentials, marketoCampaignProvider, name, url, null,
@@ -463,10 +469,11 @@ public class DataSourceFaroController extends BaseFaroController {
 	@Path("/field-catalog")
 	@POST
 	@RolesAllowed(RoleConstants.SITE_ADMINISTRATOR)
-	public Map<String, List<DataSourceFieldCatalogEntry>> discoverFieldCatalog(
-			@PathParam("groupId") long groupId,
-			@FormParam("credentials") Credentials credentials,
-			@FormParam("url") String url)
+	public Map<String, List<DataSourceFieldCatalogEntry>>
+			discoverDataSourceFieldCatalogEntries(
+				@PathParam("groupId") long groupId,
+				@FormParam("credentials") Credentials credentials,
+				@FormParam("url") String url)
 		throws Exception {
 
 		DataSource dataSource = new DataSource();
@@ -479,7 +486,7 @@ public class DataSourceFaroController extends BaseFaroController {
 		dataSource.setProvider(new SalesforceProvider());
 		dataSource.setUrl(url);
 
-		return contactsEngineClient.discoverDataSourceFieldCatalog(
+		return contactsEngineClient.discoverDataSourceFieldCatalogEntries(
 			faroProjectLocalService.getFaroProjectByGroupId(groupId),
 			dataSource);
 	}
@@ -501,7 +508,7 @@ public class DataSourceFaroController extends BaseFaroController {
 
 	@GET
 	@Path("/{id}/channel-data-sources")
-	@RolesAllowed(RoleConstants.SITE_ADMINISTRATOR)
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
 	public FaroResultsDisplay getChannelDataSourceFaroResultsDisplay(
 			@PathParam("groupId") long groupId, @PathParam("id") String id,
 			@QueryParam("enabled") Boolean enabled,
@@ -538,6 +545,44 @@ public class DataSourceFaroController extends BaseFaroController {
 			groupId,
 			contactsEngineClient.getDataSource(
 				faroProjectLocalService.getFaroProjectByGroupId(groupId), id));
+	}
+
+	@GET
+	@Path("/{id}/field-catalog")
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public Map<String, List<DataSourceFieldCatalogEntry>>
+			getDataSourceFieldCatalogEntries(
+				@PathParam("groupId") long groupId, @PathParam("id") String id,
+				@QueryParam("refresh") boolean refresh)
+		throws Exception {
+
+		return contactsEngineClient.getDataSourceFieldCatalogEntries(
+			faroProjectLocalService.getFaroProjectByGroupId(groupId), id,
+			refresh);
+	}
+
+	@GET
+	@Path("/{id}/field-catalog/{entityType}")
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public FaroFDSResultsDisplay<DataSourceFieldCatalogEntry>
+			getDataSourceFieldCatalogEntriesFaroFDSResultsDisplay(
+				@PathParam("groupId") long groupId, @PathParam("id") String id,
+				@PathParam("entityType") String entityType,
+				@QueryParam("filter") String filterString,
+				@QueryParam("page") int page,
+				@QueryParam("pageSize") int pageSize,
+				@QueryParam("search") String search,
+				@DefaultValue(StringPool.BLANK) @QueryParam("sort") String
+					sortString)
+		throws Exception {
+
+		Results<DataSourceFieldCatalogEntry> results =
+			contactsEngineClient.getDataSourceFieldCatalogEntries(
+				faroProjectLocalService.getFaroProjectByGroupId(groupId),
+				entityType, filterString, id, search, page, pageSize,
+				sortString);
+
+		return new FaroFDSResultsDisplay<>(results, page, pageSize);
 	}
 
 	@Path("/data_source_id")
@@ -874,7 +919,8 @@ public class DataSourceFaroController extends BaseFaroController {
 				Results<IndividualSegment> individualSegmentResults =
 					contactsEngineClient.getIndividualSegments(
 						faroProject, null, id, null, null, null, null, null,
-						IndividualSegment.Status.ACTIVE.name(), 1, 0, null);
+						null, IndividualSegment.Status.ACTIVE.name(), 1, 0,
+						null);
 
 				return individualSegmentResults.getTotal();
 			}
@@ -916,19 +962,6 @@ public class DataSourceFaroController extends BaseFaroController {
 	@Override
 	public int[] getEntityTypes() {
 		return _ENTITY_TYPES.clone();
-	}
-
-	@GET
-	@Path("/{id}/field-catalog")
-	@RolesAllowed(RoleConstants.SITE_MEMBER)
-	public Map<String, List<DataSourceFieldCatalogEntry>> getFieldCatalog(
-			@PathParam("groupId") long groupId, @PathParam("id") String id,
-			@QueryParam("refresh") boolean refresh)
-		throws Exception {
-
-		return contactsEngineClient.getDataSourceFieldCatalog(
-			faroProjectLocalService.getFaroProjectByGroupId(groupId), id,
-			refresh);
 	}
 
 	@GET
@@ -1349,6 +1382,9 @@ public class DataSourceFaroController extends BaseFaroController {
 			@PathParam("groupId") long groupId, @PathParam("id") String id,
 			@DefaultValue(StringPool.BLANK) @FormParam("channelsConfiguration")
 				FaroParam<ChannelsConfiguration> channelsConfigurationFaroParam,
+			@DefaultValue(StringPool.BLANK) @FormParam("contactsConfiguration")
+				FaroParam<MarketoCampaignProvider.ContactsConfiguration>
+					contactsConfigurationFaroParam,
 			@FormParam("credentials") Credentials credentials,
 			@FormParam("name") String name, @FormParam("status") String status,
 			@FormParam("url") String url)
@@ -1358,16 +1394,27 @@ public class DataSourceFaroController extends BaseFaroController {
 
 		ChannelsConfiguration channelsConfiguration =
 			channelsConfigurationFaroParam.getValue();
+		MarketoCampaignProvider.ContactsConfiguration contactsConfiguration =
+			contactsConfigurationFaroParam.getValue();
 
-		if (channelsConfiguration != null) {
+		if ((channelsConfiguration != null) ||
+			(contactsConfiguration != null)) {
+
 			DataSource dataSource = contactsEngineClient.getDataSource(
 				faroProjectLocalService.getFaroProjectByGroupId(groupId), id);
 
 			marketoCampaignProvider =
 				(MarketoCampaignProvider)dataSource.getProvider();
 
-			marketoCampaignProvider.setChannelsConfiguration(
-				channelsConfiguration);
+			if (channelsConfiguration != null) {
+				marketoCampaignProvider.setChannelsConfiguration(
+					channelsConfiguration);
+			}
+
+			if (contactsConfiguration != null) {
+				marketoCampaignProvider.setContactsConfiguration(
+					contactsConfiguration);
+			}
 		}
 
 		return update(
@@ -1697,6 +1744,9 @@ public class DataSourceFaroController extends BaseFaroController {
 			@PathParam("groupId") long groupId, @PathParam("id") String id,
 			@DefaultValue(StringPool.BLANK) @FormParam("channelsConfiguration")
 				FaroParam<ChannelsConfiguration> channelsConfigurationFaroParam,
+			@DefaultValue(StringPool.BLANK) @FormParam("contactsConfiguration")
+				FaroParam<MarketoCampaignProvider.ContactsConfiguration>
+					contactsConfigurationFaroParam,
 			@FormParam("credentials") Credentials credentials,
 			@FormParam("name") String name, @FormParam("status") String status,
 			@FormParam("url") String url)
@@ -1707,6 +1757,8 @@ public class DataSourceFaroController extends BaseFaroController {
 
 		marketoCampaignProvider.setChannelsConfiguration(
 			channelsConfigurationFaroParam.getValue());
+		marketoCampaignProvider.setContactsConfiguration(
+			contactsConfigurationFaroParam.getValue());
 
 		return update(
 			groupId, id, credentials, null, null, 0, name, false,
@@ -1802,6 +1854,8 @@ public class DataSourceFaroController extends BaseFaroController {
 
 		FaroProject faroProject =
 			faroProjectLocalService.getFaroProjectByGroupId(groupId);
+
+		_checkSubscription(faroProject, provider);
 
 		DataSource dataSource = contactsEngineClient.addDataSource(
 			faroProject, credentials, getUserId(), name, url, provider, event,
@@ -2089,10 +2143,38 @@ public class DataSourceFaroController extends BaseFaroController {
 		}
 	}
 
+	private void _checkSubscription(FaroProject faroProject, Provider provider)
+		throws Exception {
+
+		if ((provider == null) ||
+			!_ldpRequiredProviderTypes.contains(provider.getType())) {
+
+			return;
+		}
+
+		String subscriptionName = faroProject.getSubscriptionName();
+
+		if ((subscriptionName == null) ||
+			!subscriptionName.contains("Data Platform")) {
+
+			throw new FaroException(
+				"Data source type \"" + provider.getType() +
+					"\" requires the \"Liferay Data Platform\" plan");
+		}
+	}
+
 	private static final int[] _ENTITY_TYPES = {FaroConstants.TYPE_DATA_SOURCE};
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		DataSourceFaroController.class);
+
+	private static final Set<String> _ldpRequiredProviderTypes =
+		SetUtil.fromArray(
+			new String[] {
+				DemandbaseProvider.TYPE, HubSpotProvider.TYPE,
+				MarketoProvider.TYPE, MarketoCampaignProvider.TYPE,
+				SalesforceProvider.TYPE
+			});
 
 	@Reference
 	private ClamAVScanner _clamAVScanner;

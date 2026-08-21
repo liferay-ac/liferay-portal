@@ -316,7 +316,6 @@ export function mockChannels() {
 		disableSearch: false,
 		items: [
 			{
-				commerceChannelsCount: 5,
 				createTime: 1695241914644,
 				groupsCount: 6,
 				id: '643280225365059871',
@@ -421,6 +420,36 @@ export function mockLiferayDataSource(seed = 1, data = {}) {
 		status: DataSourceStatuses.Active,
 		type: EntityTypes.DataSource,
 		url: `https://www.faro-${seed}.io`,
+		...data,
+	};
+}
+
+export function mockMarketoCampaignDataSource(seed = 1, data = {}) {
+	return {
+		createDate: getTimestamp(-2),
+		credentials: {
+			oAuthClientId: `oAuthMockClientId-${seed}`,
+			oAuthClientSecret: `oAuthMockClientSecret-${seed}`,
+			type: CredentialTypes.OAuth2,
+		},
+		disabled: false,
+		event: null,
+		fileName: null,
+		id: String(seed),
+		name: `Marketo Campaign ${seed}`,
+		properties: {},
+		provider: {
+			channelsConfiguration: null,
+			contactsConfiguration: {
+				enableAllLeads: false,
+			},
+			type: DataSourceTypes.MarketoCampaign,
+		},
+		providerType: DataSourceTypes.MarketoCampaign,
+		state: DataSourceStates.CredentialsValid,
+		status: DataSourceStatuses.Active,
+		type: EntityTypes.DataSource,
+		url: 'https://123-ABC-456.mktorest.com',
 		...data,
 	};
 }

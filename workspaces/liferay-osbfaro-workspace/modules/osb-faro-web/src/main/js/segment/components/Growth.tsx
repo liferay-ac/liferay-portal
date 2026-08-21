@@ -38,7 +38,7 @@ import {
 import {CHART_COLOR_NAMES} from 'shared/util/charts';
 import {createDateKeysIMap} from 'shared/util/intervals';
 import {DATE_CHANGED, NAME} from 'shared/util/pagination';
-import {formatUTCDateFromUnix} from 'shared/util/date';
+import {formatUTCDateFromUnix, getCustomDateFormat} from 'shared/util/date';
 import {formatXAxisDate, getIntervals} from 'shared/util/charts';
 import {get, isNil} from 'lodash';
 import {getNetChange} from 'shared/util/change';
@@ -48,6 +48,7 @@ import {OrderedMap} from 'immutable';
 import {OrderParams} from 'shared/util/records';
 import {IndividualTypes} from 'segment/segment-editor/dynamic/utils/constants';
 import {sub} from 'shared/util/lang';
+import {toLocale} from 'shared/util/numbers';
 import {useStatefulPagination} from 'shared/hooks/useStatefulPagination';
 
 const {
@@ -193,7 +194,12 @@ export const SegmentGrowthChart: React.FC<ISegmentGrowthChartProps> = ({
 							{
 								label: sub(
 									Liferay.Language.get('as-of-x'),
-									[formatUTCDateFromUnix(modifiedDate, 'll')],
+									[
+										formatUTCDateFromUnix(
+											modifiedDate,
+											getCustomDateFormat()
+										),
+									],
 									false
 								) as string,
 								weight: Weights.Semibold,
@@ -208,7 +214,7 @@ export const SegmentGrowthChart: React.FC<ISegmentGrowthChartProps> = ({
 											),
 											[
 												<b className="mr-1" key="VALUE">
-													{value.toLocaleString()}
+													{toLocale(value)}
 												</b>,
 											],
 											false
@@ -231,7 +237,9 @@ export const SegmentGrowthChart: React.FC<ISegmentGrowthChartProps> = ({
 																className="mr-1"
 																key="VALUE"
 															>
-																{anonymousCount.toLocaleString()}
+																{toLocale(
+																	anonymousCount
+																)}
 															</b>,
 														],
 														false
@@ -250,7 +258,7 @@ export const SegmentGrowthChart: React.FC<ISegmentGrowthChartProps> = ({
 											),
 											[
 												<b className="mr-1" key="VALUE">
-													{knownCount.toLocaleString()}
+													{toLocale(knownCount)}
 												</b>,
 											],
 											false
@@ -330,7 +338,7 @@ export const SegmentGrowthChart: React.FC<ISegmentGrowthChartProps> = ({
 			return;
 		}
 
-		onSelectedPointChange(data?.activeTooltipIndex);
+		onSelectedPointChange?.(data?.activeTooltipIndex);
 	};
 
 	return (
@@ -436,7 +444,7 @@ export const SegmentGrowthChart: React.FC<ISegmentGrowthChartProps> = ({
 							<span className="legend-text-color">
 								{`${value}:`}
 
-								<b className="ml-1">{count}</b>
+								<b className="ml-1">{toLocale(count)}</b>
 							</span>
 						)}
 						iconSize={8}
@@ -588,7 +596,7 @@ export const SegmentGrowthChart: React.FC<ISegmentGrowthChartProps> = ({
 
 export const SelectedPointInfo: React.FC = () => (
 	<div className="selected-point-info">
-		<div className="h4">{Liferay.Language.get('known-members')}</div>
+		<div className="h4">{Liferay.Language.get('members')}</div>
 	</div>
 );
 
@@ -743,7 +751,7 @@ const SegmentGrowthWithList: React.FC<ISegmentGrowthWithList> = ({
 									}
 									spacer
 									title={Liferay.Language.get(
-										'there-are-no-members-found-on-the-selected-time-period'
+										'no-members-were-found-on-the-selected-time-period'
 									)}
 								/>
 							);

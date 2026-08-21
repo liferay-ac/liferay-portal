@@ -60,9 +60,27 @@ export type MetricItem = {
 	valueKey: string;
 };
 
+export type ConnectionInfo = {
+	admin: boolean;
+	connectedToAnalyticsCloud: boolean;
+	connectedToSpace: boolean;
+	siteSyncedToAnalyticsCloud: boolean;
+};
+
 export type PerformanceMetric = {
 	metricType: MetricType;
 	metrics: MetricItem[];
+};
+
+export type Histogram = {
+	metricName: string;
+	metrics: Array<MetricItem & {previousValueKey: string}>;
+	total: number;
+	totalValue: number;
+};
+
+export type HistogramMetric = {
+	histograms: Histogram[];
 };
 
 export type AssetConsumptionItem = {
@@ -78,19 +96,22 @@ export type AssetConsumption = {
 };
 
 export type TopAssetItem = {
+	className: string;
 	downloads: number;
+	embedded?: unknown;
 	engagement: number;
+	externalReferenceCode: string;
 	impressions: number;
-	mimeType: string;
 	title: string;
 	trend: Trend;
+	type: string;
 	views: number;
 };
 
 export type TopAssets = {
+	items: TopAssetItem[];
 	lastPage: number;
 	page: number;
 	pageSize: number;
-	performanceTopAssetItems: TopAssetItem[];
 	totalCount: number;
 };

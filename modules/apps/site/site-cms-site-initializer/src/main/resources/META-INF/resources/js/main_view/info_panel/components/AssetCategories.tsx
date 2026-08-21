@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {ClayButtonWithIcon} from '@clayui/button';
 import ClayForm from '@clayui/form';
 import Label from '@clayui/label';
 import ClayPanel from '@clayui/panel';
+import {AIAssistantTriggerButton} from '@liferay/ai-hub-cell-js-components-web';
 import {ItemSelector} from '@liferay/frontend-js-item-selector-web';
 import React, {useCallback, useId, useMemo, useState} from 'react';
 
@@ -16,6 +16,7 @@ import {
 	IGroupedTaxonomies,
 	ITaxonomyCategoryFacade,
 } from '../../../common/types/AssetType';
+import {AI_ASSISTANT_TOOLBAR_TRIGGER_ID} from '../../../common/utils/constants';
 import {CategorizationInputSize} from './AssetCategorization';
 import {
 	AUTO_CATEGORIZE_AGENT,
@@ -39,6 +40,7 @@ const AssetCategories = ({
 	cmsGroupId,
 	collapsable = true,
 	errorMessage,
+	getContent,
 	hasUpdatePermission,
 	inputSize,
 	objectEntry,
@@ -51,6 +53,9 @@ const AssetCategories = ({
 	cmsGroupId: number | string;
 	collapsable?: boolean;
 	errorMessage?: string;
+	getContent?: (
+		objectDefinitionExternalReferenceCode?: string
+	) => Promise<string>;
 	hasUpdatePermission?: boolean;
 	inputSize?: CategorizationInputSize;
 	objectEntry: IAssetObjectEntry | EntryCategorizationDTO;
@@ -222,20 +227,31 @@ const AssetCategories = ({
 		[groupedTaxonomies.taxonomyVocabularies, isVisibleVocabulary]
 	);
 
-	const handleGenerateCategories = useCallback(() => {
+	const handleGenerateCategories = useCallback(async () => {
 		const {
 			scopeId,
-			systemProperties: {objectDefinitionBrief: {classNameId = -1} = {}},
+			systemProperties: {
+				objectDefinitionBrief: {
+					classNameId = -1,
+					externalReferenceCode,
+				} = {},
+			},
 		} = objectEntry;
 
 		Liferay.fire(CATEGORIZE_EVENT, {
 			agent: AUTO_CATEGORIZE_AGENT,
 			classNameId,
 			cmsGroupId,
-			content: (objectEntry as IAssetObjectEntry).contentRawText ?? '',
+			content:
+				(await getContent?.(externalReferenceCode)) ||
+				(objectEntry as IAssetObjectEntry).contentRawText ||
+				'',
+			currentCategoryIds: (objectEntry.taxonomyCategoryBriefs ?? []).map(
+				(brief) => brief.taxonomyCategoryId
+			),
 			scopeId,
 		});
-	}, [cmsGroupId, objectEntry]);
+	}, [cmsGroupId, getContent, objectEntry]);
 
 	return (
 		<ClayPanel
@@ -323,17 +339,16 @@ const AssetCategories = ({
 					{!vocabularyId &&
 					Liferay.FeatureFlags?.['LPD-62272'] &&
 					hasUpdatePermission ? (
-						<ClayButtonWithIcon
-							aria-label={Liferay.Language.get(
-								'add-categories-with-ai'
-							)}
+						<AIAssistantTriggerButton
+							anchorId={AI_ASSISTANT_TOOLBAR_TRIGGER_ID}
 							className="ml-2"
-							displayType="unstyled"
-							onClick={handleGenerateCategories}
-							symbol="stars"
-							title={Liferay.Language.get(
+							hideLabel
+							instructionDefinitionScope="cms"
+							label={Liferay.Language.get(
 								'add-categories-with-ai'
 							)}
+							onOpen={handleGenerateCategories}
+							presentation="dropdown"
 						/>
 					) : null}
 				</div>

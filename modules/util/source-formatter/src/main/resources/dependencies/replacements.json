@@ -3548,6 +3548,14 @@
 		"issueKey": "LPD-31312"
 	},
 	{
+		"from": "regex:aui:container",
+		"issueKey": "LPD-31352",
+		"to": "clay:container",
+		"validExtensions": [
+			"jsp"
+		]
+	},
+	{
 		"classNames": [
 			"CustomFacetPortletPreferences"
 		],
@@ -3768,6 +3776,19 @@
 			{
 				"from": "regex:alter\\(\\s*?(?<tableClass>\\w*),\\s*?new\\s*?AlterTableAddColumn\\(\\s*?(?<columnName>\\w*?)\\s*?\\+[^+]*?\\+\\s*?(?<columnType>\\w*)\\)\\);",
 				"to": "alterTableAddColumn((String)${tableClass}.getField(\"TABLE_NAME\").get(null), ${columnName}, ${columnType});"
+			}
+		]
+	},
+	{
+		"classNames": [
+			"UpgradeProcess"
+		],
+		"classStructurePattern": true,
+		"issueKey": "LPD-35263",
+		"methodsToFormat": [
+			{
+				"from": "regex:alter\\(\\s*?(?<tableClass>\\w*),\\s*?new\\s*?AlterColumnType\\(\\s*?(?<columnName>\\w*?)[\\s,]*?(?<newColumnType>\\w*)\\)\\);",
+				"to": "alterColumnType((String)${tableClass}.getField(\\\"TABLE_NAME\\\").get(null), ${columnName}, ${newColumnType});"
 			}
 		]
 	},
@@ -4561,6 +4582,22 @@
 		"from": "addTemplate(long paramName, long paramName, long paramName, long paramName, Map<Locale, String> paramName, Map<Locale, String> paramName, String paramName, String paramName, String paramName, String paramName, ServiceContext paramName)",
 		"issueKey": "LPD-46890",
 		"to": "addTemplate(null, param#0#, param#1#, param#2#, param#3#, param#4#, param#5#, param#6#, param#7#, param#8#, param#9#, param#10#)"
+	},
+	{
+		"classNames": [
+			"PortletSharedSearchResponse"
+		],
+		"from": "getKeywordsOptional",
+		"issueKey": "LPD-47005",
+		"to": "getKeywords"
+	},
+	{
+		"classNames": [
+			"PortletSharedSearchResponse"
+		],
+		"from": "getSpellCheckSuggestionOptional",
+		"issueKey": "LPD-47005",
+		"to": "getSpellCheckSuggestion"
 	},
 	{
 		"classNames": [
@@ -5978,6 +6015,19 @@
 	},
 	{
 		"classNames": [
+			"CommerceOrderItemLocalServiceWrapper"
+		],
+		"classStructurePattern": true,
+		"issueKey": "LPD-84225",
+		"methodsToFormat": [
+			{
+				"from": "CommerceOrderItem fetchCommerceOrderItemByBookedQuantityId",
+				"to": "CommerceOrderItem\n\t\tfetchCommerceOrderItemByCommerceInventoryBookedQuantityId"
+			}
+		]
+	},
+	{
+		"classNames": [
 			"PhoneLocalService",
 			"PhoneLocalServiceUtil",
 			"PhoneService",
@@ -5998,6 +6048,15 @@
 			"java",
 			"jsp"
 		]
+	},
+	{
+		"from": "SitesUtil.updateLayoutSetPrototypesLinks",
+		"issueKey": "LPD-85995",
+		"newImports": [
+			"com.liferay.sites.kernel.util.Sites"
+		],
+		"newReference": "Sites _sites",
+		"to": "_sites.updateLayoutSetPrototypesLinks"
 	},
 	{
 		"from": "regex:MultiVMPoolUtil\\s*.\\s*getPortalCache\\(\\s*(?<prefixMethodName>[\\s\\S]*?)\\)",

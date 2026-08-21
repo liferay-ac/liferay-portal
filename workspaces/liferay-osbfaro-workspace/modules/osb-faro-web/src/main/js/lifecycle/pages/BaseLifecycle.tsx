@@ -1,15 +1,17 @@
 import * as API from 'shared/api';
 import * as breadcrumbs from 'shared/util/breadcrumbs';
-import AccountsDataSet from 'shared/components/AccountsDataSet';
+import AccountsDataSet from 'shared/components/accounts-data-set/AccountsDataSet';
 import BasePage from 'shared/components/base-page';
 import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
-import GlobalFilters from '../components/GlobalFilters';
+import {ClayButtonWithIcon} from '@clayui/button';
+import FilterPicker from '../components/FilterPicker';
 import LifecycleChart from 'lifecycle/components/LifecycleChart';
 import Loading from 'shared/components/Loading';
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import OverviewSection from '../components/OverviewSection';
 import React, {useContext} from 'react';
+import SegmentDropdown from 'shared/components/SegmentDropdown';
 import URLConstants from 'shared/util/url-constants';
 import {
 	AccountMetricType,
@@ -20,13 +22,14 @@ import {
 	LifecycleContextProvider,
 	useLifecycle,
 } from '../context/LifecycleContext';
+import {RangeKeyTimeRanges, Sizes} from 'shared/util/constants';
 import {Routes, toRoute} from 'shared/util/router';
 import {SectionHeader} from 'shared/components/SectionHeader';
-import {Sizes} from 'shared/util/constants';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
-import {useParams} from 'react-router-dom';
+import {useHistory, useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
+import {useSegmentFilter} from 'shared/hooks/useSegmentFilter';
 
 const LifecycleEmptyState = ({
 	authorized,
@@ -80,6 +83,53 @@ const LifecycleEmptyState = ({
 	</NoResultsDisplay>
 );
 
+const ConfigureLifecycleEmptyState = ({
+	channelId,
+	groupId,
+}: {
+	channelId: string;
+	groupId: string;
+}) => (
+	<NoResultsDisplay
+		description={Liferay.Language.get(
+			'complete-the-configuration-to-start-seeing-insights'
+		)}
+		displayCard
+		icon={{
+			border: false,
+			size: Sizes.XXXLarge,
+			symbol: 'ac_lifecycle_empty',
+		}}
+		spacer
+		title={Liferay.Language.get('configure-a-new-lifecycle')}
+	>
+		<ClayLink
+			button
+			className="button-root mt-1"
+			displayType="primary"
+			href={toRoute(Routes.LIFECYCLE_CREATE, {channelId, groupId})}
+		>
+			{Liferay.Language.get('new-lifecycle')}
+		</ClayLink>
+	</NoResultsDisplay>
+);
+
+const ProcessingLifecycleEmptyState = () => (
+	<NoResultsDisplay
+		description={Liferay.Language.get(
+			'your-configuration-is-complete.-metrics-will-appear-in-the-dashboard-once-processing-is-complete'
+		)}
+		displayCard
+		icon={{
+			border: false,
+			size: Sizes.XXXLarge,
+			symbol: 'ac_no_sites',
+		}}
+		spacer
+		title={Liferay.Language.get('your-dashboard-is-almost-ready')}
+	/>
+);
+
 const LifecycleOverview = () => {
 	const {filters, lifecycleId} = useLifecycle();
 
@@ -103,6 +153,8 @@ const LifecycleStagesSection = () => {
 
 	const {groupId} = useParams();
 
+	const {segmentId} = useSegmentFilter();
+
 	const {
 		data: stagesData,
 		error: stagesError,
@@ -114,6 +166,7 @@ const LifecycleStagesSection = () => {
 			groupId,
 			industry: filters.industryFilter,
 			lifecycleId,
+			segmentId,
 		},
 	});
 
@@ -131,6 +184,8 @@ const LifecycleAccounts = () => {
 
 	const {channelId, groupId} = useParams();
 
+	const {segmentId, segmentName} = useSegmentFilter();
+
 	return (
 		<section>
 			<SectionHeader
@@ -146,6 +201,9 @@ const LifecycleAccounts = () => {
 				groupId={groupId!}
 				industryFilter={filters.industryFilter}
 				lifecycleStageFilter={filters.lifecycleStageFilter}
+				rangeKeyFilter={RangeKeyTimeRanges.Last30Days}
+				segmentFilter={segmentId}
+				segmentName={segmentName}
 				stageSelectionNonce={stageSelectionNonce}
 			/>
 		</section>
@@ -156,17 +214,27 @@ const BaseLifecycle = () => {
 	const currentUser = useCurrentUser();
 	const {selectedChannel} = useContext(ChannelContext);
 
+	const history = useHistory();
+
 	const {channelId, groupId} = useParams();
 
 	const {empty: noDataSources, loading: dataSourcesLoading} =
 		useDataSources();
+
+	const {segmentId, segmentName, setSegment} = useSegmentFilter();
 
 	const {data: lifecycles, loading: lifecyclesLoading} = useRequest({
 		dataSourceFn: API.lifecycle.fetchLifecycles,
 		variables: {groupId: groupId!},
 	});
 
-	const lifecycleId = lifecycles?.[0]?.id;
+	const lifecycle = lifecycles?.[0];
+
+	const lifecycleId = lifecycle?.id;
+
+	const hasLifecycles = !!lifecycles?.length;
+
+	const processing = hasLifecycles && lifecycle?.processedDate == null;
 
 	const {data: accountMetrics, loading: accountMetricsLoading} = useRequest({
 		dataSourceFn: API.accounts.fetchMetrics,
@@ -183,12 +251,15 @@ const BaseLifecycle = () => {
 
 	const loading = dataSourcesLoading || lifecyclesLoading;
 
+	const title = lifecycle?.name || Liferay.Language.get('lifecycles');
+
 	const hasContent =
 		!loading &&
 		!noDataSources &&
+		hasLifecycles &&
+		!processing &&
 		!accountMetricsLoading &&
-		!!totalAccounts &&
-		!!lifecycleId;
+		!!totalAccounts;
 
 	const renderBody = () => {
 		if (loading) {
@@ -214,11 +285,24 @@ const BaseLifecycle = () => {
 			);
 		}
 
+		if (!hasLifecycles) {
+			return (
+				<ConfigureLifecycleEmptyState
+					channelId={channelId!}
+					groupId={groupId!}
+				/>
+			);
+		}
+
+		if (processing) {
+			return <ProcessingLifecycleEmptyState />;
+		}
+
 		if (accountMetricsLoading) {
 			return <Loading />;
 		}
 
-		if (!totalAccounts || !lifecycleId) {
+		if (!totalAccounts) {
 			return (
 				<LifecycleEmptyState
 					authorized={authorized}
@@ -249,8 +333,8 @@ const BaseLifecycle = () => {
 	};
 
 	return (
-		<LifecycleContextProvider lifecycleId={lifecycleId}>
-			<BasePage documentTitle={Liferay.Language.get('lifecycles')}>
+		<LifecycleContextProvider lifecycleId={lifecycleId ?? ''}>
+			<BasePage documentTitle={title}>
 				<BasePage.Header
 					breadcrumbs={[
 						breadcrumbs.getHome({
@@ -264,14 +348,62 @@ const BaseLifecycle = () => {
 					<BasePage.Row>
 						<BasePage.Header.TitleSection
 							className="mb-3"
-							title={Liferay.Language.get('lifecycles')}
+							title={title}
 						/>
+
+						{hasLifecycles && authorized && (
+							<ClayButtonWithIcon
+								aria-label={Liferay.Language.get(
+									'lifecycle-configuration'
+								)}
+								borderless
+								data-tooltip-align="top"
+								displayType="secondary"
+								onClick={() =>
+									history.push(
+										toRoute(Routes.LIFECYCLE_EDIT, {
+											channelId,
+											groupId,
+											lifecycleId,
+										})
+									)
+								}
+								symbol="cog"
+								title={Liferay.Language.get(
+									'lifecycle-configuration'
+								)}
+							/>
+						)}
 					</BasePage.Row>
 				</BasePage.Header>
 				{hasContent && (
 					<BasePage.SubHeader>
 						<div className="d-flex justify-content-between w-100">
-							<GlobalFilters />
+							<div className="d-flex">
+								<FilterPicker
+									className="mr-3"
+									entityLabel={Liferay.Language.get(
+										'industries'
+									)}
+									fieldMappingFieldName="industry"
+									filterKey="industryFilter"
+								/>
+
+								<FilterPicker
+									className="mr-3"
+									entityLabel={Liferay.Language.get(
+										'countries'
+									)}
+									fieldMappingFieldName="country"
+									filterKey="countryFilter"
+								/>
+
+								<SegmentDropdown
+									initialSegmentId={segmentId}
+									initialSegmentName={segmentName}
+									onFilterChange={setSegment}
+								/>
+							</div>
 						</div>
 					</BasePage.SubHeader>
 				)}

@@ -32,6 +32,7 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
@@ -93,6 +94,8 @@ public abstract class BaseImportPreviewResourceTestCase {
 	public static void setUpClass() throws Exception {
 		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -240,31 +243,6 @@ public abstract class BaseImportPreviewResourceTestCase {
 	}
 
 	@Test
-	public void testPostAssetLibraryPortletImportPreview() throws Exception {
-		ImportPreview randomImportPreview = randomImportPreview();
-
-		Map<String, File> multipartFiles = getMultipartFiles();
-
-		ImportPreview postImportPreview =
-			testPostAssetLibraryPortletImportPreview_addImportPreview(
-				randomImportPreview, multipartFiles);
-
-		assertEquals(randomImportPreview, postImportPreview);
-		assertValid(postImportPreview);
-
-		assertValid(postImportPreview, multipartFiles);
-	}
-
-	protected ImportPreview
-			testPostAssetLibraryPortletImportPreview_addImportPreview(
-				ImportPreview importPreview, Map<String, File> multipartFiles)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testPostImportPreview() throws Exception {
 		ImportPreview randomImportPreview = randomImportPreview();
 
@@ -305,30 +283,6 @@ public abstract class BaseImportPreviewResourceTestCase {
 	}
 
 	protected ImportPreview testPostSiteImportPreview_addImportPreview(
-			ImportPreview importPreview, Map<String, File> multipartFiles)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testPostSitePortletImportPreview() throws Exception {
-		ImportPreview randomImportPreview = randomImportPreview();
-
-		Map<String, File> multipartFiles = getMultipartFiles();
-
-		ImportPreview postImportPreview =
-			testPostSitePortletImportPreview_addImportPreview(
-				randomImportPreview, multipartFiles);
-
-		assertEquals(randomImportPreview, postImportPreview);
-		assertValid(postImportPreview);
-
-		assertValid(postImportPreview, multipartFiles);
-	}
-
-	protected ImportPreview testPostSitePortletImportPreview_addImportPreview(
 			ImportPreview importPreview, Map<String, File> multipartFiles)
 		throws Exception {
 
@@ -1221,4 +1175,4 @@ public abstract class BaseImportPreviewResourceTestCase {
 		_importPreviewResource;
 
 }
-// LIFERAY-REST-BUILDER-HASH:1602532009
+// LIFERAY-REST-BUILDER-HASH:1362300636

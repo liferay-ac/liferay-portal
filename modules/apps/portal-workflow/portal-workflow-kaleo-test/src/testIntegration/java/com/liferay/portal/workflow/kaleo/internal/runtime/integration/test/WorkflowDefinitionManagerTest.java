@@ -15,6 +15,7 @@ import com.liferay.portal.kernel.test.rule.DataGuard;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.FileUtil;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.workflow.DefaultWorkflowNodeSetting;
@@ -23,6 +24,7 @@ import com.liferay.portal.kernel.workflow.WorkflowDefinition;
 import com.liferay.portal.kernel.workflow.WorkflowException;
 import com.liferay.portal.kernel.workflow.WorkflowNode;
 import com.liferay.portal.kernel.workflow.WorkflowNodeSetting;
+import com.liferay.portal.kernel.workflow.WorkflowTransition;
 import com.liferay.portal.security.script.management.test.util.ScriptManagementConfigurationTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
@@ -38,6 +40,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -438,22 +441,30 @@ public class WorkflowDefinitionManagerTest extends BaseWorkflowManagerTestCase {
 
 	@Test
 	public void testDeployWorkflowDefinitionWithServiceNode() throws Exception {
-		AssertUtils.assertFailure(
-			KaleoDefinitionValidationException.
-				MustNotSetMultipleOutgoingTransitions.class,
-			"The convert node cannot have multiple outgoing transitions",
-			() -> {
-				InputStream inputStream = getResourceInputStream(
-					"service-node-multiple-transitions-workflow-" +
-						"definition.json");
+		List<String> targetNodeNames = new ArrayList<>();
 
-				_workflowDefinitionManager.deployWorkflowDefinition(
-					FileUtil.getBytes(inputStream),
-					TestPropsValues.getCompanyId(),
-					RandomTestUtil.randomString(),
-					"Service Node Multiple Transitions Workflow Definition",
-					RandomTestUtil.randomString(), TestPropsValues.getUserId());
-			});
+		InputStream inputStream = getResourceInputStream(
+			"service-node-multiple-transitions-workflow-definition.json");
+
+		WorkflowDefinition workflowDefinition =
+			_workflowDefinitionManager.deployWorkflowDefinition(
+				FileUtil.getBytes(inputStream), TestPropsValues.getCompanyId(),
+				RandomTestUtil.randomString(),
+				"Service Node Multiple Transitions Workflow Definition",
+				RandomTestUtil.randomString(), TestPropsValues.getUserId());
+
+		for (WorkflowTransition workflowTransition :
+				workflowDefinition.getWorkflowTransitions()) {
+
+			if (Objects.equals(
+					workflowTransition.getSourceNodeName(), "convert")) {
+
+				targetNodeNames.add(workflowTransition.getTargetNodeName());
+			}
+		}
+
+		Assert.assertEquals(
+			List.of("end", "other"), ListUtil.sort(targetNodeNames));
 
 		byte[] bytes = FileUtil.getBytes(
 			getResourceInputStream("service-node-workflow-definition.json"));
@@ -467,6 +478,37 @@ public class WorkflowDefinitionManagerTest extends BaseWorkflowManagerTestCase {
 
 		_assertServiceNodeWorkflowDefinition(
 			content.getBytes(), "com.example.Converter#scope#convert");
+	}
+
+	@Test
+	public void testDeployWorkflowDefinitionWithSystem() throws Exception {
+		byte[] bytes = FileUtil.getBytes(
+			getResourceInputStream("single-approver-workflow-definition.xml"));
+
+		String name = StringUtil.randomId();
+
+		WorkflowDefinition workflowDefinition =
+			_workflowDefinitionManager.deployWorkflowDefinition(
+				bytes, TestPropsValues.getCompanyId(), null, 0, name,
+				WorkflowDefinitionConstants.SCOPE_ALL, true,
+				StringUtil.randomId(), TestPropsValues.getUserId());
+
+		Assert.assertTrue(workflowDefinition.isSystem());
+
+		workflowDefinition =
+			_workflowDefinitionManager.deployWorkflowDefinition(
+				bytes, TestPropsValues.getCompanyId(), null, 0, name,
+				WorkflowDefinitionConstants.SCOPE_ALL, false,
+				StringUtil.randomId(), TestPropsValues.getUserId());
+
+		Assert.assertFalse(workflowDefinition.isSystem());
+
+		workflowDefinition =
+			_workflowDefinitionManager.deployWorkflowDefinition(
+				bytes, TestPropsValues.getCompanyId(), null, name,
+				StringUtil.randomId(), TestPropsValues.getUserId());
+
+		Assert.assertFalse(workflowDefinition.isSystem());
 	}
 
 	@Test

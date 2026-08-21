@@ -10,6 +10,7 @@ import {getBrowserName} from './attributes/browser_name';
 import {getBrowserVersion} from './attributes/browser_version';
 import {getCookies} from './attributes/cookies';
 import {getCustom} from './attributes/custom';
+import {getDeviceType} from './attributes/device_type';
 import {getHostname} from './attributes/hostname';
 import {getLanguage} from './attributes/language';
 import {getLocalDate} from './attributes/local_date';
@@ -17,7 +18,7 @@ import {getLocalHour} from './attributes/local_hour';
 import {getPathname} from './attributes/pathname';
 import {getReferrer} from './attributes/referrer';
 import {getRequestParameters} from './attributes/request_parameters';
-import {getSegments} from './attributes/segments';
+import {getSegment} from './attributes/segment';
 import {getTimezone} from './attributes/timezone';
 import {getUrl} from './attributes/url';
 import {getUserAgent} from './attributes/user_agent';
@@ -39,8 +40,6 @@ import type {
 	Operator,
 	Rule,
 } from '../index';
-
-declare const Analytics: any;
 
 type AttributeValue = Set<string> | boolean | number | string;
 
@@ -80,30 +79,6 @@ export class Detection {
 		return matches;
 	}
 
-	private async _getAcSegments() {
-		if (this._acSegments === undefined) {
-			if (typeof Analytics === 'undefined') {
-				throw new Error(
-					`Unable to get Analytics Cloud segments because 'Analytics' global object is missing`
-				);
-			}
-
-			const set: Set<string> = new Set();
-
-			for (const segment of await Analytics.segment.getBatchSegmentExternalReferenceCodes()) {
-				set.add(segment);
-			}
-
-			for (const segment of await Analytics.segment.getRealTimeSegmentExternalReferenceCodes()) {
-				set.add(segment);
-			}
-
-			this._acSegments = set;
-		}
-
-		return this._acSegments;
-	}
-
 	private async _getAttribute(attr: Attribute): Promise<AttributeValue> {
 		if (attr === 'browser_name') {
 			return getBrowserName(this._uaParser);
@@ -116,6 +91,9 @@ export class Detection {
 		}
 		else if (attr.startsWith('custom:')) {
 			return getCustom(attr.slice(7));
+		}
+		else if (attr === 'device_type') {
+			return getDeviceType(this._uaParser);
 		}
 		else if (attr === 'hostname') {
 			return getHostname();
@@ -138,8 +116,8 @@ export class Detection {
 		else if (attr === 'request_parameters') {
 			return getRequestParameters();
 		}
-		else if (attr === 'segments') {
-			return getSegments(await this._getAcSegments());
+		else if (attr === 'segment') {
+			return getSegment();
 		}
 		else if (attr === 'timezone') {
 			return getTimezone();

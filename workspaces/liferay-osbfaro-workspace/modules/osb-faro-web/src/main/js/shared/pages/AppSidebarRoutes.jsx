@@ -7,7 +7,6 @@ import {ChannelContext} from 'shared/context/channel';
 import {connect} from 'react-redux';
 import {DEVELOPER_MODE} from 'shared/util/constants';
 import {DownloadReportProvider} from 'shared/components/download-report/DownloadReportContext';
-import {ENABLE_COMMERCE} from 'shared/util/feature-flags';
 import {Routes} from 'shared/util/router';
 import {Switch, withRouter} from 'react-router-dom';
 import {
@@ -107,6 +106,18 @@ const LifecycleDashboard = lazy(() =>
 	)
 );
 
+const LifecycleCreate = lazy(() =>
+	import(
+		/* webpackChunkName: "LifecycleCreate" */ '../../lifecycle/pages/CreateLifecycle'
+	)
+);
+
+const LifecycleEdit = lazy(() =>
+	import(
+		/* webpackChunkName: "LifecycleEdit" */ '../../lifecycle/pages/EditLifecycle'
+	)
+);
+
 /* Sites */
 
 const SitesDashboard = lazy(() =>
@@ -165,12 +176,6 @@ const WebContent = lazy(() =>
 
 const ObjectEntry = lazy(() =>
 	import(/* webpackChunkName: "ObjectEntry" */ 'assets/object-entry/pages')
-);
-
-/* Commmerce */
-
-const CommerceDashboard = lazy(() =>
-	import(/* webpackChunkName: "CommerceDashboard" */ 'commerce/pages')
 );
 
 const ROUTES = [
@@ -275,11 +280,6 @@ const ROUTES = [
 		data: SitesDashboard,
 		destructured: false,
 		path: Routes.CHANNEL
-	},
-	ENABLE_COMMERCE && {
-		data: CommerceDashboard,
-		destructured: false,
-		path: Routes.COMMERCE
 	}
 ].filter(Boolean);
 
@@ -355,6 +355,24 @@ export default class AppSidebarRoutes extends React.PureComponent {
 									data={AccountProfileRoutes}
 									exact={false}
 									path={Routes.CONTACTS_ACCOUNT}
+								/>
+							)}
+
+							{LDPEnabled && (
+								<BundleRouter
+									data={LifecycleCreate}
+									destructured={false}
+									exact
+									path={Routes.LIFECYCLE_CREATE}
+								/>
+							)}
+
+							{LDPEnabled && (
+								<BundleRouter
+									data={LifecycleEdit}
+									destructured={false}
+									exact
+									path={Routes.LIFECYCLE_EDIT}
 								/>
 							)}
 

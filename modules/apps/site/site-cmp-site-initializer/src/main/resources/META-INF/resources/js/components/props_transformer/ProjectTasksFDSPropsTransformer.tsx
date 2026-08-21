@@ -23,6 +23,7 @@ import {
 	installCMPTabPersistence,
 	registerTabFDS,
 } from '../../utils/cmpTabPersistence';
+import {getFormattedLabel} from '../../utils/getFormattedText';
 import {openCMPModal} from '../../utils/openCMPModal';
 import {ProjectTaskItemData, TaskAction} from '../../utils/types';
 import StateLabel from '../StateLabel';
@@ -30,6 +31,7 @@ import BulkEditAssigneeModalContent from '../modal/BulkEditAssigneeModalContent'
 import BulkEditDueDateModalContent from '../modal/BulkEditDueDateModalContent';
 import BulkEditStateModalContent from '../modal/BulkEditStateModalContent';
 import EditAssigneeModalContent from '../modal/EditAssigneeModalContent';
+import UpdateDueDateModalContent from '../modal/UpdateDueDateModalContent';
 import ACTIONS from './actions/creationMenuActions';
 import {cmpTasksFDSAtom} from './atoms';
 import AssigneeRenderer from './cell_renderers/AssigneeRenderer';
@@ -67,10 +69,11 @@ export default function ProjectTasksFDSPropsTransformer({
 		component: (props: any) =>
 			CalendarView({
 				...props,
+				cmpProjectObjectDefinitionId:
+					additionalProps.cmpProjectObjectDefinitionId,
+				cmpProjectObjectEntryId:
+					additionalProps.cmpProjectObjectEntryId,
 				hasAddTaskPermission: additionalProps.hasAddTaskPermission,
-				projectId: additionalProps.projectId,
-				projectObjectDefinitionId:
-					additionalProps.projectObjectDefinitionId,
 			}),
 		default: false,
 		initialPaginationDelta: FDS_PAGINATION_DELTA_ALL,
@@ -93,10 +96,11 @@ export default function ProjectTasksFDSPropsTransformer({
 		component: (props: any) =>
 			KanbanView({
 				...props,
+				cmpProjectObjectDefinitionId:
+					additionalProps.cmpProjectObjectDefinitionId,
+				cmpProjectObjectEntryId:
+					additionalProps.cmpProjectObjectEntryId,
 				hasAddTaskPermission: additionalProps.hasAddTaskPermission,
-				projectId: additionalProps.projectId,
-				projectObjectDefinitionId:
-					additionalProps.projectObjectDefinitionId,
 			}),
 		default: false,
 		initialPaginationDelta: FDS_PAGINATION_DELTA_ALL,
@@ -189,7 +193,7 @@ export default function ProjectTasksFDSPropsTransformer({
 				await deleteItemAction(
 					sub(
 						Liferay.Language.get('delete-task-confirmation-body'),
-						itemData.embedded.title
+						getFormattedLabel(itemData.embedded.title)
 					),
 					itemData,
 					loadData
@@ -205,10 +209,29 @@ export default function ProjectTasksFDSPropsTransformer({
 					}) => (
 						<EditAssigneeModalContent
 							closeModal={closeModal}
+							cmpTaskObjectEntryId={String(itemData.embedded.id)}
+							cmpTaskObjectEntryTitle={itemData.embedded.title}
 							loadData={loadData}
-							taskId={String(itemData.embedded.id)}
-							taskTitle={itemData.embedded.title}
 							value={itemData.embedded.assignTo}
+						/>
+					),
+					size: 'md',
+				});
+			}
+			else if (action?.data?.id === 'update-due-date') {
+				await openCMPModal({
+					center: true,
+					contentComponent: ({
+						closeModal,
+					}: {
+						closeModal: () => void;
+					}) => (
+						<UpdateDueDateModalContent
+							closeModal={closeModal}
+							cmpTaskObjectEntryId={String(itemData.embedded.id)}
+							cmpTaskObjectEntryTitle={itemData.embedded.title}
+							dueDate={itemData.embedded.dueDate}
+							loadData={loadData}
 						/>
 					),
 					size: 'md',
@@ -319,10 +342,6 @@ export default function ProjectTasksFDSPropsTransformer({
 				});
 			}
 		},
-		views: [
-			...nonDefaultViews,
-			kanbanView,
-			...(Liferay.FeatureFlags['LPD-69885'] ? [calendarView] : []),
-		],
+		views: [...nonDefaultViews, kanbanView, calendarView],
 	};
 }

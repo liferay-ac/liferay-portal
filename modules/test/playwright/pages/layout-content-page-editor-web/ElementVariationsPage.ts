@@ -3,13 +3,16 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Locator, Page} from '@playwright/test';
+import {FrameLocator, Locator, Page} from '@playwright/test';
 
 import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
+import {hoverAndExpectToBeVisible} from '../../utils/hoverAndExpectToBeVisible';
 
 export class ElementVariationsPage {
 	readonly audienceInput: Locator;
 	readonly audiencesPriorityModal: Locator;
+	readonly cancelButton: Locator;
+	readonly experiencePicker: Locator;
 	readonly hideToggle: Locator;
 	readonly htmlInput: Locator;
 	readonly javaScriptInput: Locator;
@@ -18,6 +21,7 @@ export class ElementVariationsPage {
 	readonly newVariationButton: Locator;
 	readonly page: Page;
 	readonly pageElementPicker: Locator;
+	readonly preview: FrameLocator;
 	readonly saveButton: Locator;
 	readonly sidebar: Locator;
 
@@ -26,18 +30,30 @@ export class ElementVariationsPage {
 		this.audiencesPriorityModal = page.locator(
 			'.element-variations__audiences-priority-modal'
 		);
+		this.sidebar = page.locator('.element-variations__sidebar');
+		this.cancelButton = page.getByRole('button', {
+			exact: true,
+			name: 'Cancel',
+		});
+		this.experiencePicker = this.sidebar.getByLabel('Experience');
 		this.hideToggle = page.getByText('Hide Page Element');
 		this.htmlInput = page.getByLabel('HTML', {exact: true});
 		this.javaScriptInput = page.getByLabel('JavaScript', {exact: true});
 		this.languageSelector = page.getByLabel('Select a language');
 		this.nameInput = page.getByLabel('Name');
-		this.newVariationButton = page.getByRole('button', {
-			name: 'New Variation',
-		});
+		this.newVariationButton = page
+			.getByRole('button', {
+				name: 'New Variation',
+			})
+			.or(
+				page.getByRole('button', {
+					name: 'New',
+				})
+			);
 		this.page = page;
 		this.pageElementPicker = page.getByLabel('Page Element');
+		this.preview = page.frameLocator('iframe[title="Element Variations"]');
 		this.saveButton = page.getByRole('button', {exact: true, name: 'Save'});
-		this.sidebar = page.locator('.element-variations__sidebar');
 	}
 
 	async createElementVariation({
@@ -65,18 +81,9 @@ export class ElementVariationsPage {
 
 		await this.nameInput.fill(name);
 
-		await clickAndExpectToBeVisible({
-			autoClick: true,
-			target: this.page.getByRole('option', {name: pageElementLabel}),
-			trigger: this.pageElementPicker,
-		});
+		await this.selectPageElement(pageElementLabel);
 
-		await this.audienceInput.fill(audienceName);
-
-		await this.page
-			.locator('.dropdown-menu')
-			.getByText(audienceName)
-			.click();
+		await this.selectAudience(audienceName);
 
 		if (hide) {
 			await this.hideToggle.click();
@@ -105,6 +112,94 @@ export class ElementVariationsPage {
 		await this.saveButton.click();
 
 		await this.sidebar.getByText(name).waitFor();
+	}
+
+	async startElementVariationDraft() {
+		await this.newVariationButton.click();
+
+		await this.nameInput.waitFor();
+	}
+
+	async deleteElementVariation(name: string) {
+		await this.openVariationActions(name);
+
+		await this.page
+			.locator('.dropdown-menu')
+			.getByText('Delete', {exact: true})
+			.click();
+
+		await this.getVariationListItem(name).waitFor({state: 'hidden'});
+	}
+
+	async editElementVariation({
+		hide,
+		html,
+		javaScript,
+		name,
+		newName,
+	}: {
+		hide?: boolean;
+		html?: string;
+		javaScript?: string;
+		name: string;
+		newName?: string;
+	}) {
+		await this.openVariationActions(name);
+
+		await this.page
+			.locator('.dropdown-menu')
+			.getByText('Edit', {exact: true})
+			.click();
+
+		if (newName) {
+			await this.nameInput.fill(newName);
+		}
+
+		if (hide) {
+			await this.hideToggle.click();
+		}
+
+		if (html) {
+			await this.htmlInput.fill(html);
+		}
+
+		if (javaScript) {
+			await this.javaScriptInput.fill(javaScript);
+		}
+
+		await this.saveButton.click();
+
+		await this.sidebar.getByText(newName ?? name).waitFor();
+	}
+
+	async cancelElementVariationDraft() {
+		await this.page.keyboard.press('Escape');
+
+		await this.cancelButton.click();
+
+		await this.experiencePicker.waitFor();
+	}
+
+	getPageElementOption(label: string): Locator {
+		return this.page.getByRole('option', {exact: true, name: label});
+	}
+
+	getVariationListItem(name: string): Locator {
+		return this.sidebar.getByRole('listitem').filter({hasText: name});
+	}
+
+	async openPageElementPicker() {
+		await this.pageElementPicker.click();
+	}
+
+	async openVariationActions(name: string) {
+		const item = this.getVariationListItem(name);
+
+		await hoverAndExpectToBeVisible({
+			autoClick: true,
+			target: item.getByRole('button', {name: 'Actions'}),
+			trigger: item,
+		});
 	}
 
 	async prioritizeAudience(audienceName: string) {
@@ -153,11 +248,55 @@ export class ElementVariationsPage {
 		await this.audiencesPriorityModal.waitFor({state: 'hidden'});
 	}
 
+	async setVariationActive(name: string, active: boolean) {
+		await this.openVariationActions(name);
+
+		const responsePromise = this.page.waitForResponse((response) =>
+			response
+				.url()
+				.includes(
+					'update_layout_page_template_structure_rel_element_variation'
+				)
+		);
+
+		await this.page
+			.locator('.dropdown-menu')
+			.getByText(active ? 'Enable' : 'Disable', {exact: true})
+			.click();
+
+		await responsePromise;
+	}
+
+	async selectAudience(audienceName: string) {
+		await this.audienceInput.fill(audienceName);
+
+		await this.page
+			.locator('.dropdown-menu')
+			.getByText(audienceName)
+			.click();
+	}
+
+	async selectExperience(label: string) {
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: this.page.getByRole('option', {exact: true, name: label}),
+			trigger: this.experiencePicker,
+		});
+	}
+
 	async selectLanguage(languageId: string) {
 		await this.languageSelector.click();
 
 		await this.page
 			.getByRole('option', {name: `${languageId} Language`})
 			.click();
+	}
+
+	async selectPageElement(pageElementLabel: string) {
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: this.page.getByRole('option', {name: pageElementLabel}),
+			trigger: this.pageElementPicker,
+		});
 	}
 }

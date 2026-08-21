@@ -6,10 +6,13 @@ export interface AccountUserSessionEvent {
 	assetTitle: string;
 	canonicalUrl: string;
 	createDate: string;
+	eventDate: string;
+	eventId: string;
 	name: string;
 	pageDescription: string;
 	pageKeywords: string;
 	pageTitle: string;
+	properties: Array<{name: string; value: string}>;
 	referrer: string;
 	url: string;
 }
@@ -22,17 +25,19 @@ export interface AccountUserSession {
 	devicePixelRatio: number;
 	deviceType: string;
 	events: AccountUserSessionEvent[];
+	individualId: string | null;
 	languageId: string;
 	screenHeight: number;
 	screenWidth: number;
 	timezoneOffset: string;
 	userAgent: string;
+	userId: string | null;
 	userName: string | null;
 }
 
 export interface AccountUserSessionData {
 	eventsByUserSessions: {
-		totalEventsMetric: {value: number} | null;
+		totalSessionsMetric: {value: number} | null;
 		userSessions: AccountUserSession[];
 	};
 }
@@ -76,7 +81,7 @@ export default gql`
 			rangeStart: $rangeStart
 			size: $size
 		) {
-			totalEventsMetric {
+			totalSessionsMetric {
 				value
 			}
 			userSessions {
@@ -92,18 +97,26 @@ export default gql`
 						assetTitle
 						canonicalUrl
 						createDate
+						eventDate
+						eventId
 						name
 						pageDescription
 						pageKeywords
 						pageTitle
+						properties {
+							name
+							value
+						}
 						referrer
 						url
 					}
+					individualId
 					languageId
 					screenHeight
 					screenWidth
 					timezoneOffset
 					userAgent
+					userId
 					userName
 				}
 			}

@@ -806,6 +806,10 @@ public class PropsValues {
 	public static final String EDITOR_WYSIWYG_DEFAULT = PropsUtil.get(
 		PropsKeys.EDITOR_WYSIWYG_DEFAULT);
 
+	public static final boolean ENTERPRISE_PRODUCT_AI_HUB_ENABLED =
+		GetterUtil.getBoolean(
+			PropsUtil.get(PropsKeys.ENTERPRISE_PRODUCT_AI_HUB_ENABLED));
+
 	public static final boolean ENTERPRISE_PRODUCT_NOTIFICATION_ENABLED =
 		GetterUtil.getBoolean(
 			PropsUtil.get(PropsKeys.ENTERPRISE_PRODUCT_NOTIFICATION_ENABLED));
@@ -2367,11 +2371,6 @@ public class PropsValues {
 	public static final int UPGRADE_CONCURRENT_FETCH_SIZE =
 		GetterUtil.getInteger(
 			PropsUtil.get(PropsKeys.UPGRADE_CONCURRENT_FETCH_SIZE));
-
-	public static final int UPGRADE_CONCURRENT_PROCESS_FUTURE_LIST_MAX_SIZE =
-		GetterUtil.getInteger(
-			PropsUtil.get(
-				PropsKeys.UPGRADE_CONCURRENT_PROCESS_FUTURE_LIST_MAX_SIZE));
 
 	public static final boolean UPGRADE_DATABASE_DL_STORAGE_CHECK_DISABLED =
 		GetterUtil.getBoolean(

@@ -712,6 +712,20 @@ describe('odata', () => {
 			testConversionToAndFrom(testQuery);
 		});
 
+		it('should be able to translate a query string with a lifecycle stage to map and back to string', () => {
+			const testQuery =
+				"(accounts.filter(filter='(lifecycleStatus eq ''1002'')'))";
+
+			testConversionToAndFrom(testQuery);
+		});
+
+		it('should be able to translate a query string without a lifecycle stage to map and back to string', () => {
+			const testQuery =
+				"((not accounts.filter(filter='(lifecycleStatus eq ''1002'')')))";
+
+			testConversionToAndFrom(testQuery);
+		});
+
 		it('should be able to translate a query string with "not accounts.filter" to map and back to string', () => {
 			const testQuery =
 				"((not accounts.filter(filter='(activityKey eq ''Page#pageViewed#348853654381438580'')')))";
@@ -791,6 +805,13 @@ describe('odata', () => {
 		it('should be able to translate a query string with a nested "between" to a map and back to a string', () => {
 			const testQuery =
 				"(accounts.filterByCount(filter='(activityKey eq ''Page#pageViewed#348853654381438580'' and between(date,''2020-1-4'',''2020-1-6''))',operator='lt',value=2))";
+
+			testConversionToAndFrom(testQuery);
+		});
+
+		it('should be able to translate a query string with a "between" day filter to a map and back to a string', () => {
+			const testQuery =
+				"(activities.filterByCount(filter='(applicationId eq ''WebContent'' and eventId eq ''webContentViewed'' and between(day,''2020-2-2'',''2020-2-3''))',operator='ge',value=1))";
 
 			testConversionToAndFrom(testQuery);
 		});
@@ -1179,6 +1200,14 @@ describe('odata', () => {
 			testConversionToAndFrom(
 				buildTagQuery(
 					"tags/id eq 'tag-id' and tags/name eq 'My Tag' and activityKey eq 'WebContent' and day gt '2023-01-01'"
+				)
+			);
+		});
+
+		it('should round-trip a tag filter with a "between" day filter', () => {
+			testConversionToAndFrom(
+				buildTagQuery(
+					"tags/id eq 'tag-id' and tags/name eq 'My Tag' and activityKey eq 'WebContent' and between(day,'2020-2-2','2020-2-3')"
 				)
 			);
 		});

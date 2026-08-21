@@ -5,12 +5,11 @@
 
 package com.liferay.commerce.order.web.internal.portlet.action.test;
 
-import com.liferay.account.configuration.AccountEntryValidatorConfiguration;
 import com.liferay.account.constants.AccountConstants;
 import com.liferay.account.constants.AccountEntryValidatorConstants;
 import com.liferay.account.model.AccountEntry;
 import com.liferay.account.validator.AccountEntryValidator;
-import com.liferay.account.validator.AccountEntryValidatorResult;
+import com.liferay.account.validator.vies.configuration.VIESAccountEntryValidatorConfiguration;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.commerce.account.test.util.CommerceAccountTestUtil;
 import com.liferay.commerce.currency.model.CommerceCurrency;
@@ -18,19 +17,20 @@ import com.liferay.commerce.currency.test.util.CommerceCurrencyTestUtil;
 import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.product.constants.CommerceChannelConstants;
 import com.liferay.commerce.product.service.CommerceChannelLocalServiceUtil;
+import com.liferay.commerce.test.util.AccountEntryValidatorResultTestUtil;
 import com.liferay.commerce.test.util.CommerceTestUtil;
+import com.liferay.commerce.test.util.validator.TestAccountEntryValidator;
 import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.rest.filter.factory.FilterFactory;
-import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.petra.sql.dsl.expression.Predicate;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.User;
-import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.CompanyLocalService;
@@ -89,6 +89,15 @@ public class AddCommerceOrderAccountValidationMVCActionCommandTest {
 	@Before
 	public void setUp() throws Exception {
 		_group = GroupTestUtil.addGroup();
+
+		_companyConfigurationTemporarySwapper =
+			new CompanyConfigurationTemporarySwapper(
+				_group.getCompanyId(),
+				VIESAccountEntryValidatorConfiguration.class.getName(),
+				HashMapDictionaryBuilder.<String, Object>put(
+					"enabled", "false"
+				).build());
+
 		_user = UserTestUtil.addUser();
 
 		ServiceContext serviceContext =
@@ -114,15 +123,18 @@ public class AddCommerceOrderAccountValidationMVCActionCommandTest {
 			commerceCurrency.getCommerceCurrencyId());
 
 		_objectDefinition =
-			_objectDefinitionLocalService.
-				fetchObjectDefinitionByExternalReferenceCode(
-					"L_ACCOUNT_VALIDATOR_RESULT", _accountEntry.getCompanyId());
+			AccountEntryValidatorResultTestUtil.getOrAddObjectDefinition(
+				AddCommerceOrderAccountValidationMVCActionCommandTest.class);
 	}
 
 	@After
-	public void tearDown() {
+	public void tearDown() throws Exception {
 		if (_serviceRegistration != null) {
 			_serviceRegistration.unregister();
+		}
+
+		if (_companyConfigurationTemporarySwapper != null) {
+			_companyConfigurationTemporarySwapper.close();
 		}
 	}
 
@@ -268,6 +280,8 @@ public class AddCommerceOrderAccountValidationMVCActionCommandTest {
 
 	private AccountEntry _accountEntry;
 	private CommerceOrder _commerceOrder;
+	private CompanyConfigurationTemporarySwapper
+		_companyConfigurationTemporarySwapper;
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
@@ -286,66 +300,9 @@ public class AddCommerceOrderAccountValidationMVCActionCommandTest {
 	private ObjectDefinition _objectDefinition;
 
 	@Inject
-	private ObjectDefinitionLocalService _objectDefinitionLocalService;
-
-	@Inject
 	private ObjectEntryLocalService _objectEntryLocalService;
 
 	private ServiceRegistration<AccountEntryValidator> _serviceRegistration;
 	private User _user;
-
-	private static class TestAccountEntryValidator
-		implements AccountEntryValidator {
-
-		@Override
-		public AccountEntryValidatorConfiguration
-				getAccountEntryValidatorConfiguration(long companyId)
-			throws ConfigurationException {
-
-			return new AccountEntryValidatorConfiguration() {
-
-				@Override
-				public int checkInterval() {
-					return 0;
-				}
-
-				@Override
-				public boolean enabled() {
-					return true;
-				}
-
-			};
-		}
-
-		@Override
-		public String getClassPK(
-			AccountEntry accountEntry, JSONObject jsonObject) {
-
-			_jsonObject = jsonObject;
-
-			return _key;
-		}
-
-		public JSONObject getJSONObject() {
-			return _jsonObject;
-		}
-
-		@Override
-		public AccountEntryValidatorResult validate(
-			AccountEntry accountEntry, JSONObject jsonObject) {
-
-			_jsonObject = jsonObject;
-
-			AccountEntryValidatorResult.Builder
-				accountEntryValidatorResultBuilder =
-					AccountEntryValidatorResult.builder(_key);
-
-			return accountEntryValidatorResultBuilder.build();
-		}
-
-		private JSONObject _jsonObject;
-		private final String _key = RandomTestUtil.randomString();
-
-	}
 
 }

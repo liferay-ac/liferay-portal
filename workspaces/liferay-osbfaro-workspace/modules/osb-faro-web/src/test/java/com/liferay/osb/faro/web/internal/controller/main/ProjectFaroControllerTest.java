@@ -9,6 +9,9 @@ import com.liferay.osb.faro.provisioning.client.constants.ProductConstants;
 import com.liferay.osb.faro.provisioning.client.internal.ProvisioningClientImpl;
 import com.liferay.osb.faro.provisioning.client.model.OSBAccountEntry;
 import com.liferay.osb.faro.provisioning.client.model.OSBOfferingEntry;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import java.util.List;
@@ -18,6 +21,8 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.mockito.Mockito;
 
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -52,7 +57,7 @@ public class ProjectFaroControllerTest {
 		OSBOfferingEntry osbOfferingEntry = offeringEntries.get(0);
 
 		Assert.assertEquals(
-			ProductConstants.ENTERPRISE_PRODUCT_ENTRY_ID,
+			ProductConstants.PRODUCT_ENTRY_ID_ENTERPRISE,
 			osbOfferingEntry.getProductEntryId());
 		Assert.assertEquals(1, osbOfferingEntry.getQuantity());
 		Assert.assertNotNull(osbOfferingEntry.getStartDate());
@@ -60,16 +65,128 @@ public class ProjectFaroControllerTest {
 
 	@Test
 	public void testCreateOSBAccountEntry2() throws Exception {
-		_assert("1-BusinessTest", ProductConstants.BUSINESS_PRODUCT_ENTRY_ID);
+		_assert("1-BusinessTest", ProductConstants.PRODUCT_ENTRY_ID_BUSINESS);
 		_assert(
 			"2-BusinessLXCTest",
-			ProductConstants.LXC_BUSINESS_PRODUCT_ENTRY_ID);
+			ProductConstants.PRODUCT_ENTRY_ID_LXC_BUSINESS);
 		_assert(
-			"3-EnterpriseTest", ProductConstants.ENTERPRISE_PRODUCT_ENTRY_ID);
+			"3-EnterpriseTest", ProductConstants.PRODUCT_ENTRY_ID_ENTERPRISE);
 		_assert(
 			"4-EnterpriseLXCTest",
-			ProductConstants.LXC_ENTERPRISE_PRODUCT_ENTRY_ID);
-		_assert("5-ProLXCTest", ProductConstants.LXC_PRO_PRODUCT_ENTRY_ID);
+			ProductConstants.PRODUCT_ENTRY_ID_LXC_ENTERPRISE);
+		_assert("5-ProLXCTest", ProductConstants.PRODUCT_ENTRY_ID_LXC_PRO);
+	}
+
+	@Test
+	public void testUpdateFriendlyURLWhenFriendlyURLIsBlank() throws Exception {
+		GroupLocalService groupLocalService = Mockito.mock(
+			GroupLocalService.class);
+
+		ReflectionTestUtils.setField(
+			_projectFaroController, "_groupLocalService", groupLocalService);
+
+		long groupId = RandomTestUtil.randomLong();
+
+		Group group = Mockito.mock(Group.class);
+
+		Mockito.when(
+			groupLocalService.getGroup(groupId)
+		).thenReturn(
+			group
+		);
+
+		ReflectionTestUtils.invokeMethod(
+			_projectFaroController, "_updateFriendlyURL", "", groupId);
+
+		Mockito.verify(
+			group
+		).setFriendlyURL(
+			null
+		);
+
+		Mockito.verify(
+			groupLocalService
+		).updateGroup(
+			group
+		);
+
+		Mockito.verify(
+			groupLocalService, Mockito.never()
+		).updateFriendlyURL(
+			Mockito.anyLong(), Mockito.anyString()
+		);
+	}
+
+	@Test
+	public void testUpdateFriendlyURLWhenFriendlyURLIsChanged()
+		throws Exception {
+
+		GroupLocalService groupLocalService = Mockito.mock(
+			GroupLocalService.class);
+
+		ReflectionTestUtils.setField(
+			_projectFaroController, "_groupLocalService", groupLocalService);
+
+		long groupId = RandomTestUtil.randomLong();
+
+		Group group = Mockito.mock(Group.class);
+
+		Mockito.when(
+			group.getFriendlyURL()
+		).thenReturn(
+			"/old-url"
+		);
+
+		Mockito.when(
+			groupLocalService.getGroup(groupId)
+		).thenReturn(
+			group
+		);
+
+		ReflectionTestUtils.invokeMethod(
+			_projectFaroController, "_updateFriendlyURL", "/new-url", groupId);
+
+		Mockito.verify(
+			groupLocalService
+		).updateFriendlyURL(
+			groupId, "/new-url"
+		);
+	}
+
+	@Test
+	public void testUpdateFriendlyURLWhenFriendlyURLIsUnchanged()
+		throws Exception {
+
+		GroupLocalService groupLocalService = Mockito.mock(
+			GroupLocalService.class);
+
+		ReflectionTestUtils.setField(
+			_projectFaroController, "_groupLocalService", groupLocalService);
+
+		long groupId = RandomTestUtil.randomLong();
+
+		Group group = Mockito.mock(Group.class);
+
+		Mockito.when(
+			group.getFriendlyURL()
+		).thenReturn(
+			"/same-url"
+		);
+
+		Mockito.when(
+			groupLocalService.getGroup(groupId)
+		).thenReturn(
+			group
+		);
+
+		ReflectionTestUtils.invokeMethod(
+			_projectFaroController, "_updateFriendlyURL", "/same-url", groupId);
+
+		Mockito.verify(
+			groupLocalService, Mockito.never()
+		).updateFriendlyURL(
+			Mockito.anyLong(), Mockito.anyString()
+		);
 	}
 
 	private void _assert(String corpProjectUuid, String productEntryId)

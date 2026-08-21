@@ -41,6 +41,7 @@ import com.liferay.commerce.product.service.CPInstanceUnitOfMeasureService;
 import com.liferay.commerce.product.service.CPOptionCategoryService;
 import com.liferay.commerce.product.service.CPOptionService;
 import com.liferay.commerce.product.service.CPSpecificationOptionService;
+import com.liferay.commerce.product.service.CPTaxCategoryLocalService;
 import com.liferay.commerce.product.service.CProductLocalService;
 import com.liferay.commerce.product.service.CommerceCatalogLocalService;
 import com.liferay.commerce.product.service.CommerceChannelRelService;
@@ -52,6 +53,7 @@ import com.liferay.commerce.product.type.virtual.service.CPDVirtualSettingFileEn
 import com.liferay.commerce.product.type.virtual.service.CPDefinitionVirtualSettingService;
 import com.liferay.commerce.service.CPDAvailabilityEstimateService;
 import com.liferay.commerce.service.CPDefinitionInventoryService;
+import com.liferay.commerce.service.CommerceAvailabilityEstimateService;
 import com.liferay.commerce.shop.by.diagram.constants.CSDiagramCPTypeConstants;
 import com.liferay.commerce.shop.by.diagram.service.CSDiagramEntryService;
 import com.liferay.commerce.shop.by.diagram.service.CSDiagramPinService;
@@ -104,6 +106,7 @@ import com.liferay.headless.commerce.core.util.DateConfig;
 import com.liferay.headless.commerce.core.util.ExpandoUtil;
 import com.liferay.headless.commerce.core.util.LanguageUtils;
 import com.liferay.headless.common.spi.odata.entity.EntityFieldsUtil;
+import com.liferay.journal.service.JournalArticleService;
 import com.liferay.petra.function.UnsafeFunction;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
@@ -116,6 +119,7 @@ import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.GroupService;
 import com.liferay.portal.kernel.service.RepositoryLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.settings.CompanyServiceSettingsLocator;
@@ -1063,8 +1067,9 @@ public class ProductResourceImpl extends BaseProductResourceImpl {
 					GetterUtil.getBoolean(
 						productConfiguration.getAllowBackOrder(),
 						masterCPConfigurationEntry.isBackOrders()),
-					GetterUtil.getLong(
-						productConfiguration.getAvailabilityEstimateId(),
+					ProductConfigurationUtil.getCommerceAvailabilityEstimateId(
+						_commerceAvailabilityEstimateService,
+						productConfiguration,
 						masterCPConfigurationEntry.
 							getCommerceAvailabilityEstimateId()),
 					GetterUtil.getString(
@@ -1129,6 +1134,7 @@ public class ProductResourceImpl extends BaseProductResourceImpl {
 				cpDefinition.getCPDefinitionId());
 
 			ProductConfigurationUtil.updateCPDAvailabilityEstimate(
+				_commerceAvailabilityEstimateService,
 				_cpdAvailabilityEstimateService, productConfiguration,
 				cpDefinition.getCPDefinitionId());
 		}
@@ -1166,8 +1172,9 @@ public class ProductResourceImpl extends BaseProductResourceImpl {
 		if (productTaxConfiguration != null) {
 			cpDefinition =
 				ProductTaxConfigurationUtil.updateCPDefinitionTaxCategoryInfo(
-					_cpDefinitionService, productTaxConfiguration,
-					cpDefinition);
+					contextCompany.getCompanyId(), cpDefinition,
+					_cpDefinitionService, _cpTaxCategoryLocalService,
+					productTaxConfiguration, contextUser.getUserId());
 		}
 
 		// Product specifications
@@ -1488,6 +1495,7 @@ public class ProductResourceImpl extends BaseProductResourceImpl {
 					cpDefinition, productVirtualSettings,
 					_cpDefinitionVirtualSettingService,
 					_cpdVirtualSettingFileEntryService, _dlAppService,
+					_groupService, _journalArticleService,
 					_repositoryLocalService, _uniqueFileNameProvider,
 					serviceContext);
 			}
@@ -1722,6 +1730,10 @@ public class ProductResourceImpl extends BaseProductResourceImpl {
 	private ClassNameLocalService _classNameLocalService;
 
 	@Reference
+	private CommerceAvailabilityEstimateService
+		_commerceAvailabilityEstimateService;
+
+	@Reference
 	private CommerceCatalogLocalService _commerceCatalogLocalService;
 
 	@Reference
@@ -1804,6 +1816,9 @@ public class ProductResourceImpl extends BaseProductResourceImpl {
 	private CPSpecificationOptionService _cpSpecificationOptionService;
 
 	@Reference
+	private CPTaxCategoryLocalService _cpTaxCategoryLocalService;
+
+	@Reference
 	private CPTypeRegistry _cpTypeRegistry;
 
 	@Reference
@@ -1838,6 +1853,12 @@ public class ProductResourceImpl extends BaseProductResourceImpl {
 
 	@Reference
 	private GroupLocalService _groupLocalService;
+
+	@Reference
+	private GroupService _groupService;
+
+	@Reference
+	private JournalArticleService _journalArticleService;
 
 	@Reference
 	private Portal _portal;

@@ -31,6 +31,12 @@ export type DataMaskPayload = {
 	replacementValue: string;
 };
 
+export type DataMaskTreeItem = {
+	children?: DataMaskTreeItem[];
+	id: string;
+	name: string;
+};
+
 export type DataMaskFormValues = {
 	description: string;
 	detectionRegex: string;
@@ -42,4 +48,89 @@ export type DataMaskFormValues = {
 export type ActionContext = {
 	itemData: DataMask;
 	loadData: () => void;
+};
+
+export type PromptStatusKey = 'active' | 'inactive';
+
+export type PromptStatusPicklistValue = {
+	key: PromptStatusKey;
+	name: string;
+};
+
+export type Profile = {
+	dateModified?: string;
+	description: string;
+	externalReferenceCode?: string;
+	friendlyUrlPath?: string;
+	id?: number;
+	name: string;
+	tools: string;
+};
+
+export type ProfileActionContext = {
+	itemData: Profile;
+	loadData: () => void;
+};
+
+export type ProfileDataMask = {
+	dataMaskExternalReferenceCode: string;
+	deleteReason?: string;
+	executionOrder?: number;
+	externalReferenceCode?: string;
+	id?: number;
+	mcpServerProfileExternalReferenceCode: string;
+};
+
+export type ProfileDataMaskRow = {
+	dataMaskExternalReferenceCode: string;
+	description: string;
+	executionOrder: number;
+	externalReferenceCode: string;
+	id: number;
+	name: string;
+	type: string;
+};
+
+export type ProfileFormValues = {
+	description: string;
+	name: string;
+	tools: string;
+};
+
+export type ProfilePayload = {
+	description: string;
+	name: string;
+	tools: string;
+};
+
+export type Prompt = {
+	dateModified?: string;
+	description: string;
+	externalReferenceCode?: string;
+	id?: number;
+	identifier: string;
+	name: string;
+	prompt: string;
+	promptStatus: PromptStatusPicklistValue;
+};
+
+export type PromptPayload = {
+	description: string;
+	identifier: string;
+	name: string;
+	prompt: string;
+	promptStatus: {key: PromptStatusKey};
+};
+
+export type PromptActionContext = {
+	itemData: Prompt;
+	loadData: () => void;
+};
+
+export type PromptFormValues = {
+	active: boolean;
+	description: string;
+	identifier: string;
+	name: string;
+	prompt: string;
 };

@@ -18,6 +18,7 @@ const buildAssetTabsBody = (metrics: Metric[]) =>
 
 export const AssetTabsQuery = (metrics: Metric[], name: string) => gql`
 	query ${tabsOperationName(name)}(
+		$accountId: String
 		$assetId: String!
 		$channelId: String
 		$devices: String
@@ -25,10 +26,12 @@ export const AssetTabsQuery = (metrics: Metric[], name: string) => gql`
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 		$title: String
 		$touchpoint: String
 	) {
 		${name}(
+			accountId: $accountId
 			assetId: $assetId
 			canonicalUrl: $touchpoint
 			channelId: $channelId
@@ -37,6 +40,7 @@ export const AssetTabsQuery = (metrics: Metric[], name: string) => gql`
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 			title: $title
 		) {
 			${buildAssetTabsBody(metrics)}
@@ -49,6 +53,7 @@ export const AssetTabsQuery = (metrics: Metric[], name: string) => gql`
 export const AssetMetricQuery = (queryName: string) => (metricName: string) =>
 	gql`
 	query ${metricOperationName(queryName)}(
+		$accountId: String
 		$assetId: String!
 		$channelId: String
 		$devices: String
@@ -56,10 +61,12 @@ export const AssetMetricQuery = (queryName: string) => (metricName: string) =>
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 		$title: String
 		$touchpoint: String
 	) {
 		${queryName}(
+			accountId: $accountId
 			assetId: $assetId
 			canonicalUrl: $touchpoint
 			channelId: $channelId
@@ -68,6 +75,7 @@ export const AssetMetricQuery = (queryName: string) => (metricName: string) =>
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 			title: $title
 		) {
 			${metricName} {
@@ -81,18 +89,22 @@ export const AssetMetricQuery = (queryName: string) => (metricName: string) =>
 
 export const SitesTabsQuery = gql`
 	query SitesMetricTabsQuery(
+		$accountId: String
 		$channelId: String
 		$interval: String!
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 	) {
 		site(
+			accountId: $accountId
 			channelId: $channelId
 			interval: $interval
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 		) {
 			bounceRateMetric {
 				...TabsFragment
@@ -114,18 +126,22 @@ export const SitesTabsQuery = gql`
 
 const SitesGenericMetricQuery = (metricName: string) => gql`
 	query SitesMetricQuery(
+		$accountId: String
 		$channelId: String
 		$interval: String!
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 	) {
 		site(
+			accountId: $accountId
 			channelId: $channelId
 			interval: $interval
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 		) {
 			${metricName} {
 				...HistogramFragment
@@ -138,18 +154,22 @@ const SitesGenericMetricQuery = (metricName: string) => gql`
 
 const SitesCompositeMetricQuery = gql`
 	query SitesMetricQuery(
+		$accountId: String
 		$channelId: String
 		$interval: String!
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 	) {
 		site(
+			accountId: $accountId
 			channelId: $channelId
 			interval: $interval
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 		) {
 			visitorsMetric {
 				...HistogramFragment
@@ -173,6 +193,7 @@ export const SitesMetricQuery = (metricName: string) =>
 
 export const PageMetricQuery = (metricName: string) => gql`
 	query PageMetricQuery(
+		$accountId: String
 		$channelId: String
 		$devices: String
 		$experienceId: String
@@ -180,10 +201,12 @@ export const PageMetricQuery = (metricName: string) => gql`
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 		$title: String
 		$touchpoint: String
 	) {
 		page(
+			accountId: $accountId
 			channelId: $channelId
 			canonicalUrl: $touchpoint
 			country: $location
@@ -192,6 +215,7 @@ export const PageMetricQuery = (metricName: string) => gql`
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 			title: $title
 		) {
 			${metricName} {
@@ -205,6 +229,7 @@ export const PageMetricQuery = (metricName: string) => gql`
 
 export const PageMetricTabsQuery = gql`
 	query PageMetricQuery(
+		$accountId: String
 		$channelId: String
 		$devices: String
 		$experienceId: String
@@ -212,10 +237,12 @@ export const PageMetricTabsQuery = gql`
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 		$title: String
 		$touchpoint: String
 	) {
 		page(
+			accountId: $accountId
 			channelId: $channelId
 			canonicalUrl: $touchpoint
 			country: $location
@@ -224,6 +251,7 @@ export const PageMetricTabsQuery = gql`
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 			title: $title
 		) {
 			visitorsMetric {

@@ -122,7 +122,7 @@ public class MockProvisioningClientImpl extends BaseMockProvisioningClientImpl {
 					new OSBOfferingEntry();
 
 				enterpriseOSBOfferingEntry.setProductEntryId(
-					ProductConstants.BUSINESS_PRODUCT_ENTRY_ID);
+					ProductConstants.PRODUCT_ENTRY_ID_BUSINESS);
 				enterpriseOSBOfferingEntry.setQuantity(1);
 				enterpriseOSBOfferingEntry.setStartDate(
 					new Date(1546329600000L));
@@ -149,8 +149,17 @@ public class MockProvisioningClientImpl extends BaseMockProvisioningClientImpl {
 				OSBOfferingEntry enterpriseOSBOfferingEntry =
 					new OSBOfferingEntry();
 
-				enterpriseOSBOfferingEntry.setProductEntryId(
-					ProductConstants.ENTERPRISE_PRODUCT_ENTRY_ID);
+				String productEntryId =
+					ProductConstants.PRODUCT_ENTRY_ID_ENTERPRISE;
+
+				if (FaroPropsValues.FARO_DEMO_DATA_PLATFORM_ENABLED) {
+					productEntryId =
+						ProductConstants.
+							PRODUCT_ENTRY_ID_DATA_PLATFORM_ENTERPRISE;
+				}
+
+				enterpriseOSBOfferingEntry.setProductEntryId(productEntryId);
+
 				enterpriseOSBOfferingEntry.setQuantity(1);
 				enterpriseOSBOfferingEntry.setStartDate(
 					new Date(1546329600000L));
@@ -163,7 +172,7 @@ public class MockProvisioningClientImpl extends BaseMockProvisioningClientImpl {
 					new OSBOfferingEntry();
 
 				enterpriseContactsOSBOfferingEntry.setProductEntryId(
-					ProductConstants.ENTERPRISE_CONTACTS_PRODUCT_ENTRY_ID);
+					ProductConstants.PRODUCT_ENTRY_ID_ENTERPRISE_CONTACTS);
 				enterpriseContactsOSBOfferingEntry.setQuantity(2);
 
 				osbOfferingEntries.add(enterpriseContactsOSBOfferingEntry);
@@ -172,7 +181,7 @@ public class MockProvisioningClientImpl extends BaseMockProvisioningClientImpl {
 					new OSBOfferingEntry();
 
 				enterpriseTrackedPagesOSBOfferingEntry.setProductEntryId(
-					ProductConstants.ENTERPRISE_TRACKED_PAGES_PRODUCT_ENTRY_ID);
+					ProductConstants.PRODUCT_ENTRY_ID_ENTERPRISE_TRACKED_PAGES);
 				enterpriseTrackedPagesOSBOfferingEntry.setQuantity(3);
 
 				osbOfferingEntries.add(enterpriseTrackedPagesOSBOfferingEntry);

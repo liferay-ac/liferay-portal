@@ -23,14 +23,15 @@ import {
 	useSetMovementSource,
 } from '../keyboard_movement/KeyboardMovementContext';
 import {AudiencesCriteria, Rule} from '../types';
+import {getConditionLabel} from '../util/getConditionLabel';
 import {DropZone, getDropPosition} from '../util/getDropPosition';
+import {getValueOptions} from '../util/getValueOptions';
 
 interface IProps {
 	audiencesCriteria?: AudiencesCriteria;
 	canGroup: boolean;
 	iconColor: string;
 	index: number;
-	movable: boolean;
 	navigationProps?: NavigationItemProps;
 	onAddRule: (audiencesCriteria: AudiencesCriteria, index?: number) => void;
 	onChange: (rule: Rule) => void;
@@ -47,7 +48,6 @@ export default function RuleRow({
 	canGroup,
 	iconColor,
 	index,
-	movable,
 	navigationProps,
 	onAddRule,
 	onChange,
@@ -66,15 +66,18 @@ export default function RuleRow({
 	const movementTarget = useMovementTarget();
 	const setMovementSource = useSetMovementSource();
 
-	const isMovementSource = movable && movementSource?.ruleId === rule.id;
+	const isMovementSource = movementSource?.ruleId === rule.id;
 
 	const isMovementTarget =
-		movable && Boolean(movementSource) && movementTarget.index === index;
+		Boolean(movementSource) && movementTarget.nodeId === rule.id;
 
-	const isMovementTargetBottomPosition =
+	const isMovementTargetBottom =
 		isMovementTarget && movementTarget.position === DROP_POSITIONS.bottom;
 
-	const isMovementTargetTopPosition =
+	const isMovementTargetGroup =
+		isMovementTarget && movementTarget.position === 'middle';
+
+	const isMovementTargetTop =
 		isMovementTarget && movementTarget.position === DROP_POSITIONS.top;
 
 	const [{isDragging}, dragRef, dragPreviewRef] = useDrag<
@@ -103,14 +106,14 @@ export default function RuleRow({
 				dropZone === DROP_POSITIONS.bottom ? index + 1 : index;
 
 			if ('audiencesCriteria' in item) {
-				if (dropZone === 'group') {
+				if (dropZone === 'middle') {
 					onGroup(item.audiencesCriteria);
 				}
 				else {
 					onAddRule(item.audiencesCriteria, insertIndex);
 				}
 			}
-			else if (dropZone === 'group') {
+			else if (dropZone === 'middle') {
 				onMoveGroup(item.id);
 			}
 			else {
@@ -139,26 +142,31 @@ export default function RuleRow({
 			<ErrorRuleRow
 				dropBottom={
 					(isOver && dropPosition === DROP_POSITIONS.bottom) ||
-					isMovementTargetBottomPosition
+					isMovementTargetBottom
 				}
 				dropTop={
 					(isOver && dropPosition === DROP_POSITIONS.top) ||
-					isMovementTargetTopPosition
+					isMovementTargetTop
 				}
 				navigationProps={navigationProps}
+				nodeId={rule.id}
 				onDelete={onDelete}
 				rowRef={setRowRef}
 			/>
 		);
 	}
 
-	const {inputType, label, options, type} = audiencesCriteria;
+	const {inputType, label, type} = audiencesCriteria;
 
 	const operators = getOperators(inputType, type);
 
+	const valueOptions = getValueOptions(audiencesCriteria);
+
+	const conditionLabel = getConditionLabel(rule, audiencesCriteria);
+
 	return (
 		<div
-			aria-label={label}
+			aria-label={conditionLabel}
 			className={classNames(
 				'align-items-center audience-builder-rule d-flex justify-content-between p-3',
 				`audience-builder-rule--${iconColor}`,
@@ -167,18 +175,20 @@ export default function RuleRow({
 						isDragging || isMovementSource,
 					'audience-builder-rule--drop-bottom':
 						(isOver && dropPosition === DROP_POSITIONS.bottom) ||
-						isMovementTargetBottomPosition,
+						isMovementTargetBottom,
 					'audience-builder-rule--drop-group':
-						isOver && dropPosition === 'group',
+						(isOver && dropPosition === 'middle') ||
+						isMovementTargetGroup,
 					'audience-builder-rule--drop-top':
 						(isOver && dropPosition === DROP_POSITIONS.top) ||
-						isMovementTargetTopPosition,
+						isMovementTargetTop,
 				}
 			)}
+			data-keyboard-movement-id={rule.id}
 			onFocus={navigationProps?.onFocus}
 			onKeyDown={navigationProps?.onKeyDown}
 			ref={setRowRef}
-			role="menuitem"
+			role="listitem"
 			tabIndex={navigationProps?.tabIndex ?? 0}
 		>
 			<div className="align-items-center c-gap-3 d-flex">
@@ -188,10 +198,10 @@ export default function RuleRow({
 					className="audience-builder-grip text-secondary"
 					displayType="secondary"
 					onClick={(event) => {
-						if (movable && event.detail === 0) {
+						if (event.detail === 0) {
 							setMovementSource({
 								icon: audiencesCriteria.icon,
-								name: label,
+								name: conditionLabel,
 								ruleId: rule.id,
 							});
 						}
@@ -220,6 +230,7 @@ export default function RuleRow({
 						onChange({...rule, operator: key as string})
 					}
 					selectedKey={rule.operator}
+					tabIndex={navigationProps?.tabIndex ?? 0}
 				>
 					{(item) => <Option key={item.value}>{item.label}</Option>}
 				</Picker>
@@ -227,7 +238,8 @@ export default function RuleRow({
 				<RuleValueField
 					inputType={inputType}
 					onChange={(value) => onChange({...rule, value})}
-					options={options}
+					options={valueOptions}
+					tabIndex={navigationProps?.tabIndex ?? 0}
 					type={type}
 					value={rule.value}
 				/>
@@ -241,6 +253,7 @@ export default function RuleRow({
 					onClick={onDuplicate}
 					size="sm"
 					symbol="copy"
+					tabIndex={navigationProps?.tabIndex ?? 0}
 					title={Liferay.Language.get('duplicate')}
 				/>
 
@@ -251,6 +264,7 @@ export default function RuleRow({
 					onClick={onDelete}
 					size="sm"
 					symbol="times-circle"
+					tabIndex={navigationProps?.tabIndex ?? 0}
 					title={Liferay.Language.get('delete')}
 				/>
 			</div>
@@ -262,6 +276,7 @@ interface RuleValueFieldProps {
 	inputType: AudiencesCriteria['inputType'];
 	onChange: (value: string) => void;
 	options: AudiencesCriteria['options'];
+	tabIndex: number;
 	type: AudiencesCriteria['type'];
 	value: string;
 }
@@ -270,6 +285,7 @@ function RuleValueField({
 	inputType,
 	onChange,
 	options,
+	tabIndex,
 	type,
 	value,
 }: RuleValueFieldProps) {
@@ -281,6 +297,7 @@ function RuleValueField({
 				items={options}
 				onSelectionChange={(key) => onChange(key as string)}
 				selectedKey={value}
+				tabIndex={tabIndex}
 			>
 				{(item) => <Option key={item.value}>{item.label}</Option>}
 			</Picker>
@@ -293,6 +310,7 @@ function RuleValueField({
 			className="form-control-sm text-3"
 			onChange={(event) => onChange(event.target.value)}
 			placeholder={inputType === 'date' ? 'YYYY-MM-DD' : undefined}
+			tabIndex={tabIndex}
 			type={type === 'number' ? 'number' : 'text'}
 			value={value}
 		/>
@@ -303,6 +321,7 @@ interface ErrorRuleRowProps {
 	dropBottom: boolean;
 	dropTop: boolean;
 	navigationProps?: NavigationItemProps;
+	nodeId: string;
 	onDelete: () => void;
 	rowRef: (node: HTMLDivElement | null) => void;
 }
@@ -311,6 +330,7 @@ function ErrorRuleRow({
 	dropBottom,
 	dropTop,
 	navigationProps,
+	nodeId,
 	onDelete,
 	rowRef,
 }: ErrorRuleRowProps) {
@@ -326,10 +346,11 @@ function ErrorRuleRow({
 					'audience-builder-rule--drop-top': dropTop,
 				}
 			)}
+			data-keyboard-movement-id={nodeId}
 			onFocus={navigationProps?.onFocus}
 			onKeyDown={navigationProps?.onKeyDown}
 			ref={rowRef}
-			role="menuitem"
+			role="listitem"
 			tabIndex={navigationProps?.tabIndex ?? 0}
 		>
 			<div className="align-items-center c-gap-3 d-flex">
@@ -349,6 +370,7 @@ function ErrorRuleRow({
 				onClick={onDelete}
 				size="sm"
 				symbol="times-circle"
+				tabIndex={navigationProps?.tabIndex ?? 0}
 				title={Liferay.Language.get('delete')}
 			/>
 		</div>

@@ -206,6 +206,8 @@ public class MCPServerServlet extends HttpServlet {
 			).tools(
 				true
 			).build()
+		).immediateExecution(
+			true
 		).prompts(
 			_getSyncPromptSpecifications(companyId)
 		).tools(
@@ -432,8 +434,13 @@ public class MCPServerServlet extends HttpServlet {
 			objectEntry -> {
 				Map<String, Serializable> values = objectEntry.getValues();
 
+				if (!Objects.equals(values.get("promptStatus"), "active")) {
+					return null;
+				}
+
 				return new McpStatelessServerFeatures.SyncPromptSpecification(
 					new McpSchema.Prompt(
+						(String)values.get("identifier"),
 						(String)values.get("name"),
 						(String)values.get("description"),
 						Collections.emptyList()),

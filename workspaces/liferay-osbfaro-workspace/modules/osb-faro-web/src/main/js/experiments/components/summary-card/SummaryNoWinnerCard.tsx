@@ -1,5 +1,5 @@
 import React from 'react';
-import {formatDateToTimeZone} from 'shared/util/date';
+import {formatDateToTimeZone, getCustomDateFormat} from 'shared/util/date';
 import {
 	getBestVariant,
 	getMetricName,
@@ -13,7 +13,7 @@ import {SummaryBaseCard} from './SummaryBaseCard';
 import {SummaryParagraph} from './SummaryParagraph';
 import {SummarySection} from './SummarySection';
 import {SummaryTitle} from './SummaryTitle';
-import {toRounded} from 'shared/util/numbers';
+import {formatPercent} from 'shared/util/numbers';
 
 export const SummaryNoWinnerCard: React.FC<{
 	experiment: IExperiment & {
@@ -50,7 +50,11 @@ export const SummaryNoWinnerCard: React.FC<{
 			<SummaryBaseCard.Header
 				Description={() =>
 					sub(Liferay.Language.get('started-x'), [
-						formatDateToTimeZone(startedDate, 'll', timeZoneId),
+						formatDateToTimeZone(
+							startedDate,
+							getCustomDateFormat(),
+							timeZoneId
+						),
 					]) as any
 				}
 				title={Liferay.Language.get('no-clear-winner')}
@@ -81,11 +85,11 @@ export const SummaryNoWinnerCard: React.FC<{
 							title={Liferay.Language.get('test-completion')}
 						>
 							<SummarySection.Heading
-								value={`${toRounded(completion)}%`}
+								value={formatPercent(completion)}
 							/>
 
 							<SummarySection.ProgressBar
-								value={parseInt(toRounded(completion))}
+								value={Math.floor(completion)}
 							/>
 						</SummarySection>
 
@@ -120,10 +124,9 @@ export const SummaryNoWinnerCard: React.FC<{
 								{bestVariant?.improvement !== undefined &&
 									bestVariant.improvement > 0 && (
 										<SummarySection.Variant
-											lift={`${toRounded(
-												bestVariant.improvement,
-												2
-											)}%`}
+											lift={formatPercent(
+												bestVariant.improvement
+											)}
 											status="up"
 										/>
 									)}

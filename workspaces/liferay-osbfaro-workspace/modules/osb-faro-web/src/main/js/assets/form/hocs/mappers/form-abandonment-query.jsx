@@ -122,10 +122,20 @@ const mapResultToProps = safeResultToProps(({form}) => {
  * @param {object} param1 context
  */
 const mapPropsToOptions = ({
+	accountId,
 	filters,
 	interval,
 	rangeSelectors,
-	router: {params}
-}) => getVariables({filters, interval, params, rangeSelectors});
+	router: {params},
+	segmentId
+}) =>
+	getVariables({
+		accountId,
+		filters,
+		interval,
+		params,
+		rangeSelectors,
+		segmentId
+	});
 
 export {mapPropsToOptions, mapResultToProps};

@@ -7,36 +7,32 @@ package com.liferay.jenkins.results.parser;
 
 import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil.BearerHTTPAuthorization;
 import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil.HTTPAuthorization;
+import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil.HttpRequestMethod;
 
 import java.io.File;
 import java.io.IOException;
 
 import java.nio.charset.StandardCharsets;
 
-import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+
+import java.text.SimpleDateFormat;
 
 import java.util.ArrayList;
-import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -46,6 +42,33 @@ import org.json.JSONObject;
  * @author Peter Yoo
  */
 public abstract class SecretsUtil {
+
+	public static void generateJenkinsAPITokenSecret(String key) {
+		Matcher matcher = _itemReferencePattern.matcher(key);
+
+		if (!matcher.matches()) {
+			throw new RuntimeException("Invalid item reference " + key);
+		}
+
+		String vaultName = matcher.group("vaultName");
+
+		Vault vault = Vault.getInstance(vaultName);
+
+		if (vault == null) {
+			throw new RuntimeException("Unable to find vault " + vaultName);
+		}
+
+		String itemTitle = matcher.group("itemTitle");
+
+		if (vault.getItem(itemTitle) != null) {
+			throw new RuntimeException(
+				JenkinsResultsParserUtil.combine(
+					"Item ", itemTitle, " already exists in vault ",
+					vaultName));
+		}
+
+		_createItem(_generateJenkinsAPITokenMap(), itemTitle, vault);
+	}
 
 	public static String getSecret(String key) {
 		Matcher matcher = _secretReferencePattern.matcher(key);
@@ -67,18 +90,12 @@ public abstract class SecretsUtil {
 		String vaultName, String itemTitle, String fieldLabel) {
 
 		String secretReference = _getSecretReference(
-			vaultName, itemTitle, fieldLabel);
+			fieldLabel, itemTitle, vaultName);
 
 		String secret = _connectSecrets.get(secretReference);
 
 		if (secret != null) {
 			return secret;
-		}
-
-		String cachedSecret = _getCachedSecret(secretReference);
-
-		if (cachedSecret != null) {
-			return cachedSecret;
 		}
 
 		_loadConnectSecrets();
@@ -102,758 +119,65 @@ public abstract class SecretsUtil {
 		return matcher.matches();
 	}
 
-	public static void writeCachedSecrets(File cachedSecretsFile)
-		throws IOException {
-
-		String encryptedCachedSecrets = _getEncryptedCachedSecrets();
-
-		if (encryptedCachedSecrets == null) {
-			return;
+	public static String replaceSecrets(String content) {
+		if (content == null) {
+			return content;
 		}
 
-		JenkinsResultsParserUtil.write(
-			cachedSecretsFile, encryptedCachedSecrets);
+		Matcher matcher = _inlineSecretReferencePattern.matcher(content);
 
-		System.out.println(
-			"Wrote encrypted 1Password cache to " + cachedSecretsFile);
-	}
+		StringBuffer sb = new StringBuffer();
 
-	public static void writeCachedSecrets(String cachedSecretsURL)
-		throws IOException {
+		while (matcher.find()) {
+			String secretReference = matcher.group();
 
-		if (cachedSecretsURL.startsWith("s3://")) {
-			String encryptedCachedSecrets = _getEncryptedCachedSecrets();
+			String secret = getSecret(
+				matcher.group("vaultName"), matcher.group("itemTitle"),
+				matcher.group("fieldLabel"));
 
-			if (encryptedCachedSecrets == null) {
-				return;
+			if (JenkinsResultsParserUtil.isNullOrEmpty(secret)) {
+				secret = secretReference;
 			}
 
-			CloudBucketUtil.uploadS3Object(
-				encryptedCachedSecrets, cachedSecretsURL);
-
-			System.out.println(
-				"Wrote encrypted 1Password cache to " + cachedSecretsURL);
-
-			return;
+			matcher.appendReplacement(sb, Matcher.quoteReplacement(secret));
 		}
 
-		if (JenkinsResultsParserUtil.isURL(cachedSecretsURL)) {
-			throw new IOException(
-				"Unable to write 1Password cache to " + cachedSecretsURL);
-		}
+		matcher.appendTail(sb);
 
-		String filePrefix = "file://";
-
-		if (cachedSecretsURL.startsWith(filePrefix)) {
-			cachedSecretsURL = cachedSecretsURL.substring(filePrefix.length());
-		}
-
-		writeCachedSecrets(new File(cachedSecretsURL));
+		return sb.toString();
 	}
 
-	private static byte[] _convertPEMToDER(String pem) {
-		pem = pem.replaceAll("-----BEGIN [^-]+-----", "");
-		pem = pem.replaceAll("-----END [^-]+-----", "");
+	protected static Item getItem(String itemReference) {
+		Matcher matcher = _itemReferencePattern.matcher(
+			itemReference.replaceAll("/+$", ""));
 
-		pem = pem.replaceAll("\\s", "");
+		if (!matcher.matches()) {
+			throw new RuntimeException(
+				"Invalid item reference " + itemReference);
+		}
 
-		Base64.Decoder decoder = Base64.getDecoder();
+		String vaultName = matcher.group("vaultName");
 
-		return decoder.decode(pem);
+		Vault vault = Vault.getInstance(vaultName);
+
+		if (vault == null) {
+			throw new RuntimeException("Unable to find vault " + vaultName);
+		}
+
+		return vault.getItem(matcher.group("itemTitle"));
 	}
 
-	private static String _decrypt(String content, PrivateKey privateKey)
-		throws GeneralSecurityException {
-
-		JSONObject envelopeJSONObject;
-
-		try {
-			envelopeJSONObject = new JSONObject(content);
-		}
-		catch (JSONException jsonException) {
-			return null;
-		}
-
-		if (!envelopeJSONObject.has("cipherText") ||
-			!envelopeJSONObject.has("encryptedKey") ||
-			!envelopeJSONObject.has("iv")) {
-
-			return null;
-		}
-
-		Base64.Decoder decoder = Base64.getDecoder();
-
-		Cipher rsaCipher = Cipher.getInstance(
-			"RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-
-		rsaCipher.init(Cipher.DECRYPT_MODE, privateKey);
-
-		SecretKey secretKey = new SecretKeySpec(
-			rsaCipher.doFinal(
-				decoder.decode(envelopeJSONObject.getString("encryptedKey"))),
-			"AES");
-
-		byte[] iv = decoder.decode(envelopeJSONObject.getString("iv"));
-
-		Cipher aesCipher = Cipher.getInstance("AES/GCM/NoPadding");
-
-		aesCipher.init(
-			Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, iv));
-
-		byte[] plainText = aesCipher.doFinal(
-			decoder.decode(envelopeJSONObject.getString("cipherText")));
-
-		return new String(plainText, StandardCharsets.UTF_8);
-	}
-
-	private static String _encrypt(String plainText, PublicKey publicKey)
-		throws GeneralSecurityException {
-
-		KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-
-		keyGenerator.init(256);
-
-		SecretKey secretKey = keyGenerator.generateKey();
-
-		byte[] iv = new byte[12];
-
-		SecureRandom secureRandom = new SecureRandom();
-
-		secureRandom.nextBytes(iv);
-
-		Cipher aesCipher = Cipher.getInstance("AES/GCM/NoPadding");
-
-		aesCipher.init(
-			Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, iv));
-
-		byte[] cipherText = aesCipher.doFinal(
-			plainText.getBytes(StandardCharsets.UTF_8));
-
-		Cipher rsaCipher = Cipher.getInstance(
-			"RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-
-		rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-
-		byte[] encryptedKey = rsaCipher.doFinal(secretKey.getEncoded());
-
-		Base64.Encoder encoder = Base64.getEncoder();
-
-		JSONObject envelopeJSONObject = new JSONObject();
-
-		envelopeJSONObject.put(
-			"cipher", _CACHE_CIPHER
-		).put(
-			"cipherText", encoder.encodeToString(cipherText)
-		).put(
-			"encryptedKey", encoder.encodeToString(encryptedKey)
-		).put(
-			"iv", encoder.encodeToString(iv)
-		);
-
-		return envelopeJSONObject.toString();
-	}
-
-	private static synchronized String _getAccessToken() {
-		if (_accessToken != null) {
-			return _accessToken;
-		}
-
-		String accessToken;
-
-		try {
-			String accessTokenKey = JenkinsResultsParserUtil.getBuildProperty(
-				"one.password.access.token.key");
-
-			if (!JenkinsResultsParserUtil.isNullOrEmpty(accessTokenKey)) {
-				accessToken = _getSSMParameterValue(accessTokenKey);
-			}
-			else {
-				accessToken = "";
-			}
-		}
-		catch (IOException | TimeoutException exception) {
-			accessToken = "";
-		}
-
-		if (!JenkinsResultsParserUtil.isNullOrEmpty(accessToken)) {
-			JenkinsResultsParserUtil.addRedactToken(accessToken);
-		}
-
-		_accessToken = accessToken;
-
-		return _accessToken;
-	}
-
-	private static synchronized String _getCachedSecret(String key) {
-		if (!_cachedSecretsLoaded) {
-			_loadCachedSecrets();
-		}
-
-		if (_cachedSecrets == null) {
-			return null;
-		}
-
-		return _cachedSecrets.get(key);
-	}
-
-	private static synchronized String _getCachedSecretsContent()
-		throws IOException {
-
-		if (_cachedSecretsContent != null) {
-			return _cachedSecretsContent;
-		}
-
-		String cachedSecretsURL = _getCachedSecretsURL();
-
-		if (JenkinsResultsParserUtil.isNullOrEmpty(cachedSecretsURL)) {
-			_cachedSecretsContent = "";
-
-			return _cachedSecretsContent;
-		}
-
-		if (cachedSecretsURL.startsWith("s3://")) {
-			_cachedSecretsContent = CloudBucketUtil.readS3Object(
-				cachedSecretsURL);
-
-			return _cachedSecretsContent;
-		}
-
-		if (JenkinsResultsParserUtil.isURL(cachedSecretsURL)) {
-			_cachedSecretsContent = JenkinsResultsParserUtil.toString(
-				cachedSecretsURL, false);
-
-			return _cachedSecretsContent;
-		}
-
-		String filePrefix = "file://";
-
-		if (!cachedSecretsURL.startsWith(filePrefix)) {
-			_cachedSecretsContent = "";
-
-			return _cachedSecretsContent;
-		}
-
-		File file = new File(cachedSecretsURL.substring(filePrefix.length()));
-
-		if (!file.exists()) {
-			_cachedSecretsContent = "";
-
-			return _cachedSecretsContent;
-		}
-
-		_cachedSecretsContent = JenkinsResultsParserUtil.read(file);
-
-		return _cachedSecretsContent;
-	}
-
-	private static synchronized PrivateKey _getCachedSecretsPrivateKey() {
-		if (_cachedSecretsPrivateKeyInitialized) {
-			return _cachedSecretsPrivateKey;
-		}
-
-		_cachedSecretsPrivateKeyInitialized = true;
-
-		String cachedSecretsPrivateKeyPEM = _getCachedSecretsPrivateKeyPEM();
-
-		if (JenkinsResultsParserUtil.isNullOrEmpty(
-				cachedSecretsPrivateKeyPEM)) {
-
-			return null;
-		}
-
-		try {
-			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-
-			_cachedSecretsPrivateKey = keyFactory.generatePrivate(
-				new PKCS8EncodedKeySpec(
-					_convertPEMToDER(cachedSecretsPrivateKeyPEM)));
-		}
-		catch (GeneralSecurityException generalSecurityException) {
-			System.out.println(
-				"Unable to parse cache private key " +
-					generalSecurityException.getMessage());
-
-			_cachedSecretsPrivateKey = null;
-		}
-
-		return _cachedSecretsPrivateKey;
-	}
-
-	private static synchronized String _getCachedSecretsPrivateKeyPEM() {
-		if (_cachedSecretsPrivateKeyPEM != null) {
-			return _cachedSecretsPrivateKeyPEM;
-		}
-
-		String cachedSecretsPrivateKeyPEM;
-
-		try {
-			String cachedSecretsPrivateKeyPEMKey =
-				JenkinsResultsParserUtil.getBuildProperty(
-					"one.password.cached.secrets.private.key.pem.key");
-
-			if (!JenkinsResultsParserUtil.isNullOrEmpty(
-					cachedSecretsPrivateKeyPEMKey)) {
-
-				cachedSecretsPrivateKeyPEM = _getSSMParameterValue(
-					cachedSecretsPrivateKeyPEMKey);
-			}
-			else {
-				cachedSecretsPrivateKeyPEM = "";
-			}
-		}
-		catch (IOException | TimeoutException exception) {
-			cachedSecretsPrivateKeyPEM = "";
-		}
-
-		if (!JenkinsResultsParserUtil.isNullOrEmpty(
-				cachedSecretsPrivateKeyPEM)) {
-
-			JenkinsResultsParserUtil.addRedactToken(cachedSecretsPrivateKeyPEM);
-		}
-
-		_cachedSecretsPrivateKeyPEM = cachedSecretsPrivateKeyPEM;
-
-		return _cachedSecretsPrivateKeyPEM;
-	}
-
-	private static synchronized PublicKey _getCachedSecretsPublicKey() {
-		if (_cachedSecretsPublicKeyInitialized) {
-			return _cachedSecretsPublicKey;
-		}
-
-		_cachedSecretsPublicKeyInitialized = true;
-
-		String cachedSecretsPublicKeyPEM = _getCachedSecretsPublicKeyPEM();
-
-		if (JenkinsResultsParserUtil.isNullOrEmpty(cachedSecretsPublicKeyPEM)) {
-			return null;
-		}
-
-		try {
-			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-
-			_cachedSecretsPublicKey = keyFactory.generatePublic(
-				new X509EncodedKeySpec(
-					_convertPEMToDER(cachedSecretsPublicKeyPEM)));
-		}
-		catch (GeneralSecurityException generalSecurityException) {
-			System.out.println(
-				"Unable to parse cache public key " +
-					generalSecurityException.getMessage());
-
-			_cachedSecretsPublicKey = null;
-		}
-
-		return _cachedSecretsPublicKey;
-	}
-
-	private static synchronized String _getCachedSecretsPublicKeyPEM() {
-		if (_cachedSecretsPublicKeyPEM != null) {
-			return _cachedSecretsPublicKeyPEM;
-		}
-
-		String cachedSecretsPublicKeyPEM;
-
-		try {
-			String cachedSecretsPublicKeyPEMKey =
-				JenkinsResultsParserUtil.getBuildProperty(
-					"one.password.cached.secrets.public.key.pem.key");
-
-			if (!JenkinsResultsParserUtil.isNullOrEmpty(
-					cachedSecretsPublicKeyPEMKey)) {
-
-				cachedSecretsPublicKeyPEM = _getSSMParameterValue(
-					cachedSecretsPublicKeyPEMKey);
-			}
-			else {
-				cachedSecretsPublicKeyPEM = "";
-			}
-		}
-		catch (IOException | TimeoutException exception) {
-			cachedSecretsPublicKeyPEM = "";
-		}
-
-		if (!JenkinsResultsParserUtil.isNullOrEmpty(
-				cachedSecretsPublicKeyPEM)) {
-
-			JenkinsResultsParserUtil.addRedactToken(cachedSecretsPublicKeyPEM);
-		}
-
-		_cachedSecretsPublicKeyPEM = cachedSecretsPublicKeyPEM;
-
-		return _cachedSecretsPublicKeyPEM;
-	}
-
-	private static synchronized String _getCachedSecretsURL() {
-		if (_cachedSecretsURL != null) {
-			return _cachedSecretsURL;
-		}
-
-		String cachedSecretsURL;
-
-		try {
-			cachedSecretsURL = JenkinsResultsParserUtil.getBuildProperty(
-				"one.password.cached.secrets.url");
-
-			if (JenkinsResultsParserUtil.isNullOrEmpty(cachedSecretsURL)) {
-				cachedSecretsURL = "";
-			}
-		}
-		catch (IOException ioException) {
-			cachedSecretsURL = "";
-		}
-
-		_cachedSecretsURL = cachedSecretsURL;
-
-		return _cachedSecretsURL;
-	}
-
-	private static synchronized String _getConnectURL() {
-		if (_connectURL != null) {
-			return _connectURL;
-		}
-
-		String connectURL;
-
-		try {
-			String connectURLKey = JenkinsResultsParserUtil.getBuildProperty(
-				"one.password.connect.url.key");
-
-			if (!JenkinsResultsParserUtil.isNullOrEmpty(connectURLKey)) {
-				connectURL = _getSSMParameterValue(connectURLKey);
-			}
-			else {
-				connectURL = "";
-			}
-		}
-		catch (IOException | TimeoutException exception) {
-			connectURL = "";
-		}
-
-		if (JenkinsResultsParserUtil.isURL(connectURL)) {
-			_connectURL = connectURL;
-
-			return _connectURL;
-		}
-
-		try {
-			connectURL = JenkinsResultsParserUtil.getBuildProperty(
-				"one.password.connect.url");
-
-			if (!JenkinsResultsParserUtil.isURL(connectURL)) {
-				connectURL = "";
-			}
-		}
-		catch (IOException ioException) {
-			connectURL = "";
-		}
-
-		_connectURL = connectURL;
-
-		return _connectURL;
-	}
-
-	private static String _getEncryptedCachedSecrets() throws IOException {
-		if (!_isSecretsConfigured()) {
-			System.out.println(
-				"Secrets are not configured, unable to write 1Password cache");
-
-			return null;
-		}
-
-		PublicKey cachedSecretsPublicKey = _getCachedSecretsPublicKey();
-
-		if (cachedSecretsPublicKey == null) {
-			System.out.println(
-				"Unable to write encrypted 1Password cache, cached secrets " +
-					"public key is not configured");
-
-			return null;
-		}
-
-		_loadConnectSecrets();
-
-		JSONObject jsonObject = new JSONObject(_connectSecrets);
-
-		String encryptedCachedSecrets = null;
-
-		try {
-			encryptedCachedSecrets = _encrypt(
-				jsonObject.toString(), cachedSecretsPublicKey);
-		}
-		catch (GeneralSecurityException generalSecurityException) {
-			throw new IOException(
-				"Unable to encrypt 1Password cache", generalSecurityException);
-		}
-
-		System.out.println(
-			"Encrypted " + jsonObject.length() + " 1Password secrets");
-
-		return encryptedCachedSecrets;
-	}
-
-	private static synchronized HTTPAuthorization _getHTTPAuthorization() {
-		if (_httpAuthorization != null) {
-			return _httpAuthorization;
-		}
-
-		String accessToken = _getAccessToken();
-
-		if (JenkinsResultsParserUtil.isNullOrEmpty(accessToken)) {
-			return null;
-		}
-
-		_httpAuthorization = new BearerHTTPAuthorization(accessToken);
-
-		return _httpAuthorization;
-	}
-
-	private static String _getSecretReference(
-		String vaultName, String itemTitle, String fieldLabel) {
-
-		return JenkinsResultsParserUtil.combine(
-			"op://", vaultName, "/", itemTitle, "/", fieldLabel);
-	}
-
-	private static String _getSSMParameterValue(String parameterName)
-		throws IOException, TimeoutException {
-
-		Process process = JenkinsResultsParserUtil.executeBashCommands(
-			new File("."), true, false, 60000,
-			JenkinsResultsParserUtil.combine(
-				"aws ssm get-parameter --name \"", parameterName,
-				"\" --with-decryption | jq -r .Parameter.Value"));
-
-		String value = JenkinsResultsParserUtil.readInputStream(
-			process.getInputStream());
-
-		value = value.replace("Finished executing Bash commands.", "");
-
-		return value.trim();
-	}
-
-	private static boolean _isSecretsConfigured() {
-		if (JenkinsResultsParserUtil.isNullOrEmpty(_getAccessToken()) ||
-			JenkinsResultsParserUtil.isNullOrEmpty(_getConnectURL())) {
-
-			return false;
-		}
-
-		return true;
-	}
-
-	private static synchronized void _loadCachedSecrets() {
-		_cachedSecretsLoaded = true;
-
-		try {
-			String cachedSecretsContent = _getCachedSecretsContent();
-
-			if (JenkinsResultsParserUtil.isNullOrEmpty(cachedSecretsContent)) {
-				return;
-			}
-
-			PrivateKey cachedSecretsPrivateKey = _getCachedSecretsPrivateKey();
-
-			if (cachedSecretsPrivateKey == null) {
-				return;
-			}
-
-			cachedSecretsContent = _decrypt(
-				cachedSecretsContent, cachedSecretsPrivateKey);
-
-			if (JenkinsResultsParserUtil.isNullOrEmpty(cachedSecretsContent)) {
-				return;
-			}
-
-			JSONObject jsonObject = new JSONObject(cachedSecretsContent);
-
-			_cachedSecrets = new HashMap<>();
-
-			for (String key : jsonObject.keySet()) {
-				String value = jsonObject.getString(key);
-
-				if (JenkinsResultsParserUtil.isNullOrEmpty(value)) {
-					continue;
+	protected static class Item {
+
+		public void addItemField(ItemField itemField) {
+			synchronized (_vault) {
+				if (_itemFields == null) {
+					_itemFields = new ArrayList<>();
 				}
 
-				_cachedSecrets.put(key, value);
-
-				JenkinsResultsParserUtil.addRedactToken(value);
+				_itemFields.add(itemField);
 			}
-
-			System.out.println(
-				JenkinsResultsParserUtil.combine(
-					"Loaded ", String.valueOf(_cachedSecrets.size()),
-					" cached secrets from ", _getCachedSecretsURL()));
 		}
-		catch (Exception exception) {
-			exception.printStackTrace();
-
-			_cachedSecrets = null;
-		}
-	}
-
-	private static synchronized void _loadConnectSecrets() {
-		if (_connectSecretsLoaded) {
-			return;
-		}
-
-		if (!_isSecretsConfigured()) {
-			_connectSecretsLoaded = true;
-
-			return;
-		}
-
-		try {
-			for (Vault vault : Vault.getInstances()) {
-				String vaultName = vault.getName();
-
-				for (Item item : vault.getItems()) {
-					String itemId = item.getId();
-					String itemTitle = item.getTitle();
-
-					for (ItemField itemField : item.getItemFields()) {
-						String itemFieldValue = itemField.getValue();
-
-						if (JenkinsResultsParserUtil.isNullOrEmpty(
-								itemFieldValue)) {
-
-							continue;
-						}
-
-						String itemFieldId = itemField.getId();
-						String itemFieldLabel = itemField.getLabel();
-
-						_connectSecrets.put(
-							_getSecretReference(vaultName, itemId, itemFieldId),
-							itemFieldValue);
-						_connectSecrets.put(
-							_getSecretReference(
-								vaultName, itemId, itemFieldLabel),
-							itemFieldValue);
-						_connectSecrets.put(
-							_getSecretReference(
-								vaultName, itemTitle, itemFieldId),
-							itemFieldValue);
-						_connectSecrets.put(
-							_getSecretReference(
-								vaultName, itemTitle, itemFieldLabel),
-							itemFieldValue);
-					}
-
-					for (ItemFile itemFile : item.getItemFiles()) {
-						String itemFileValue = itemFile.getValue();
-
-						if (JenkinsResultsParserUtil.isNullOrEmpty(
-								itemFileValue)) {
-
-							continue;
-						}
-
-						String itemFileName = itemFile.getName();
-
-						_connectSecrets.put(
-							_getSecretReference(
-								vaultName, itemId, itemFileName),
-							itemFileValue);
-						_connectSecrets.put(
-							_getSecretReference(
-								vaultName, itemTitle, itemFileName),
-							itemFileValue);
-					}
-				}
-			}
-
-			System.out.println(
-				JenkinsResultsParserUtil.combine(
-					"Loaded ", String.valueOf(_connectSecrets.size()),
-					" connect secrets from ", _getConnectURL()));
-
-			_connectSecretsLoaded = true;
-		}
-		catch (Exception exception) {
-			exception.printStackTrace();
-
-			_connectSecrets.clear();
-		}
-	}
-
-	private static JSONArray _toJSONArray(String path) {
-		if (!_isSecretsConfigured()) {
-			return new JSONArray();
-		}
-
-		try {
-			return JenkinsResultsParserUtil.toJSONArray(
-				_getConnectURL() + path, null, _getHTTPAuthorization());
-		}
-		catch (IOException ioException) {
-			System.out.println(ioException.getMessage());
-
-			ioException.printStackTrace();
-
-			return new JSONArray();
-		}
-	}
-
-	private static JSONObject _toJSONObject(String path) {
-		if (!_isSecretsConfigured()) {
-			return new JSONObject();
-		}
-
-		try {
-			return JenkinsResultsParserUtil.toJSONObject(
-				_getConnectURL() + path, null, _getHTTPAuthorization());
-		}
-		catch (IOException ioException) {
-			System.out.println(ioException.getMessage());
-
-			ioException.printStackTrace();
-
-			return null;
-		}
-	}
-
-	private static String _toString(String path) {
-		if (!_isSecretsConfigured()) {
-			return "";
-		}
-
-		try {
-			return JenkinsResultsParserUtil.toString(
-				_getConnectURL() + path, null, _getHTTPAuthorization());
-		}
-		catch (IOException ioException) {
-			System.out.println(ioException.getMessage());
-
-			ioException.printStackTrace();
-
-			return "";
-		}
-	}
-
-	private static final String _CACHE_CIPHER = "RSA-OAEP+AES-GCM";
-
-	private static String _accessToken;
-	private static Map<String, String> _cachedSecrets;
-	private static String _cachedSecretsContent;
-	private static boolean _cachedSecretsLoaded;
-	private static PrivateKey _cachedSecretsPrivateKey;
-	private static boolean _cachedSecretsPrivateKeyInitialized;
-	private static String _cachedSecretsPrivateKeyPEM;
-	private static PublicKey _cachedSecretsPublicKey;
-	private static boolean _cachedSecretsPublicKeyInitialized;
-	private static String _cachedSecretsPublicKeyPEM;
-	private static String _cachedSecretsURL;
-	private static final Map<String, String> _connectSecrets =
-		new ConcurrentHashMap<>();
-	private static boolean _connectSecretsLoaded;
-	private static String _connectURL;
-	private static BearerHTTPAuthorization _httpAuthorization;
-	private static final Pattern _secretReferencePattern = Pattern.compile(
-		"op://(?<vaultName>[^/]*)/(?<itemTitle>[^/]*)/(?<fieldLabel>.*)");
-
-	private static class Item {
 
 		public String getId() {
 			return _id;
@@ -1050,9 +374,19 @@ public abstract class SecretsUtil {
 		private final String _title;
 		private final Vault _vault;
 
+		private static enum Category {
+
+			API_CREDENTIAL, BANK_ACCOUNT, CREDIT_CARD, CUSTOM, DATABASE,
+			DOCUMENT, DRIVER_LICENSE, EMAIL_ACCOUNT, IDENTITY, LOGIN,
+			MEDICAL_RECORD, MEMBERSHIP, OUTDOOR_LICENSE, PASSPORT, PASSWORD,
+			REWARD_PROGRAM, SECURE_NOTE, SERVER, SOCIAL_SECURITY_NUMBER,
+			SOFTWARE_LICENSE, SSH_KEY, WIRELESS_ROUTER
+
+		}
+
 	}
 
-	private static class ItemField {
+	protected static class ItemField {
 
 		public String getId() {
 			return _id;
@@ -1080,9 +414,16 @@ public abstract class SecretsUtil {
 		private final String _label;
 		private final String _value;
 
+		private static enum Type {
+
+			ADDRESS, CONCEALED, CREDIT_CARD_NUMBER, CREDIT_CARD_TYPE, DATE,
+			EMAIL, GENDER, MENU, MONTH_YEAR, OTP, PHONE, REFERENCE, STRING, URL
+
+		}
+
 	}
 
-	private static class ItemFile {
+	protected static class ItemFile {
 
 		public ItemFile(String contentPath, String name) {
 			_contentPath = contentPath;
@@ -1117,6 +458,445 @@ public abstract class SecretsUtil {
 
 	}
 
+	private static void _createItem(
+		Map<String, String> itemFieldsMap, String itemTitle, Vault vault) {
+
+		JSONArray fieldsJSONArray = new JSONArray();
+
+		for (Map.Entry<String, String> itemFieldEntry :
+				itemFieldsMap.entrySet()) {
+
+			fieldsJSONArray.put(
+				_getItemFieldJSONObject(
+					itemFieldEntry.getKey(), itemFieldEntry.getValue()));
+		}
+
+		JSONObject itemJSONObject = _toJSONObject(
+			JenkinsResultsParserUtil.combine(
+				"/v1/vaults/", vault.getId(), "/items"),
+			HttpRequestMethod.POST,
+			String.valueOf(
+				new JSONObject(
+				).put(
+					"category", Item.Category.SECURE_NOTE
+				).put(
+					"fields", fieldsJSONArray
+				).put(
+					"title", itemTitle
+				).put(
+					"vault",
+					new JSONObject(
+					).put(
+						"id", vault.getId()
+					)
+				)));
+
+		if ((itemJSONObject == null) || !itemJSONObject.has("id")) {
+			throw new RuntimeException(
+				JenkinsResultsParserUtil.combine(
+					"Unable to create item ", itemTitle, " in vault ",
+					vault.getSecretReference()));
+		}
+
+		Item item = new Item(itemJSONObject.getString("id"), itemTitle, vault);
+
+		vault.addItem(item);
+
+		JSONArray itemFieldsJSONArray = itemJSONObject.optJSONArray(
+			"fields", new JSONArray());
+
+		for (int i = 0; i < itemFieldsJSONArray.length(); i++) {
+			JSONObject itemFieldJSONObject = itemFieldsJSONArray.getJSONObject(
+				i);
+
+			item.addItemField(
+				new ItemField(
+					itemFieldJSONObject.getString("id"),
+					itemFieldJSONObject.getString("label"),
+					itemFieldJSONObject.getString("value")));
+		}
+	}
+
+	private static Map<String, String> _generateJenkinsAPITokenMap() {
+		byte[] randomBytes = new byte[16];
+
+		SecureRandom secureRandom = new SecureRandom();
+
+		secureRandom.nextBytes(randomBytes);
+
+		MessageDigest messageDigest = null;
+
+		try {
+			messageDigest = MessageDigest.getInstance(_API_TOKEN_ALGORITHM);
+		}
+		catch (NoSuchAlgorithmException noSuchAlgorithmException) {
+			throw new RuntimeException(
+				"Unable to generate API token hash", noSuchAlgorithmException);
+		}
+
+		Map<String, String> apiTokenMap = new LinkedHashMap<>();
+
+		SimpleDateFormat simpleDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd HH:mm:ss.SSS z");
+
+		simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+		apiTokenMap.put("creationDate", simpleDateFormat.format(new Date()));
+
+		String secretValue = _toHexString(randomBytes);
+
+		apiTokenMap.put(
+			"hash",
+			_toHexString(
+				messageDigest.digest(
+					secretValue.getBytes(StandardCharsets.US_ASCII))));
+		apiTokenMap.put("plainValue", _API_TOKEN_VERSION + secretValue);
+
+		UUID uuid = UUID.randomUUID();
+
+		apiTokenMap.put("uuid", uuid.toString());
+
+		apiTokenMap.put("version", _API_TOKEN_VERSION);
+
+		return apiTokenMap;
+	}
+
+	private static synchronized String _getAccessToken() {
+		if (_accessToken != null) {
+			return _accessToken;
+		}
+
+		String accessToken;
+
+		try {
+			String accessTokenKey = JenkinsResultsParserUtil.getBuildProperty(
+				"one.password.access.token.key");
+
+			if (!JenkinsResultsParserUtil.isNullOrEmpty(accessTokenKey)) {
+				accessToken = _getSSMParameterValue(accessTokenKey);
+			}
+			else {
+				accessToken = "";
+			}
+		}
+		catch (IOException | TimeoutException exception) {
+			accessToken = "";
+		}
+
+		if (!JenkinsResultsParserUtil.isNullOrEmpty(accessToken)) {
+			JenkinsResultsParserUtil.addRedactToken(accessToken);
+		}
+
+		_accessToken = accessToken;
+
+		return _accessToken;
+	}
+
+	private static synchronized String _getConnectURL() {
+		if (_connectURL != null) {
+			return _connectURL;
+		}
+
+		String connectURL;
+
+		try {
+			String connectURLKey = JenkinsResultsParserUtil.getBuildProperty(
+				"one.password.connect.url.key");
+
+			if (!JenkinsResultsParserUtil.isNullOrEmpty(connectURLKey)) {
+				connectURL = _getSSMParameterValue(connectURLKey);
+			}
+			else {
+				connectURL = "";
+			}
+		}
+		catch (IOException | TimeoutException exception) {
+			connectURL = "";
+		}
+
+		if (JenkinsResultsParserUtil.isURL(connectURL)) {
+			_connectURL = connectURL;
+
+			return _connectURL;
+		}
+
+		try {
+			connectURL = JenkinsResultsParserUtil.getBuildProperty(
+				"one.password.connect.url");
+
+			if (!JenkinsResultsParserUtil.isURL(connectURL)) {
+				connectURL = "";
+			}
+		}
+		catch (IOException ioException) {
+			connectURL = "";
+		}
+
+		_connectURL = connectURL;
+
+		return _connectURL;
+	}
+
+	private static synchronized HTTPAuthorization _getHTTPAuthorization() {
+		if (_httpAuthorization != null) {
+			return _httpAuthorization;
+		}
+
+		String accessToken = _getAccessToken();
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(accessToken)) {
+			return null;
+		}
+
+		_httpAuthorization = new BearerHTTPAuthorization(accessToken);
+
+		return _httpAuthorization;
+	}
+
+	private static JSONObject _getItemFieldJSONObject(
+		String fieldLabel, String fieldValue) {
+
+		return new JSONObject(
+		).put(
+			"label", fieldLabel
+		).put(
+			"type", ItemField.Type.CONCEALED
+		).put(
+			"value", fieldValue
+		);
+	}
+
+	private static String _getSecretReference(
+		String fieldLabel, String itemTitle, String vaultName) {
+
+		return JenkinsResultsParserUtil.combine(
+			"op://", vaultName, "/", itemTitle, "/", fieldLabel);
+	}
+
+	private static String _getSSMParameterValue(String parameterName)
+		throws IOException, TimeoutException {
+
+		Process process = JenkinsResultsParserUtil.executeBashCommands(
+			new File("."), true, false, 60000,
+			JenkinsResultsParserUtil.combine(
+				"aws ssm get-parameter --name \"", parameterName,
+				"\" --with-decryption | jq -r .Parameter.Value"));
+
+		String value = JenkinsResultsParserUtil.readInputStream(
+			process.getInputStream());
+
+		value = value.replace("Finished executing Bash commands.", "");
+
+		return value.trim();
+	}
+
+	private static boolean _isSecretsConfigured() {
+		if (JenkinsResultsParserUtil.isNullOrEmpty(_getAccessToken()) ||
+			JenkinsResultsParserUtil.isNullOrEmpty(_getConnectURL())) {
+
+			return false;
+		}
+
+		return true;
+	}
+
+	private static synchronized void _loadConnectSecrets() {
+		if (_connectSecretsLoaded) {
+			return;
+		}
+
+		if (!_isSecretsConfigured()) {
+			_connectSecretsLoaded = true;
+
+			return;
+		}
+
+		try {
+			for (Vault vault : Vault.getInstances()) {
+				for (Item item : vault.getItems()) {
+					for (ItemField itemField : item.getItemFields()) {
+						_loadItemField(item, itemField, vault);
+					}
+
+					for (ItemFile itemFile : item.getItemFiles()) {
+						_loadItemFile(item, itemFile, vault);
+					}
+				}
+			}
+
+			System.out.println(
+				JenkinsResultsParserUtil.combine(
+					"Loaded ", String.valueOf(_connectSecrets.size()),
+					" connect secrets from ", _getConnectURL()));
+
+			_connectSecretsLoaded = true;
+		}
+		catch (Exception exception) {
+			exception.printStackTrace();
+
+			_connectSecrets.clear();
+		}
+	}
+
+	private static void _loadItemField(
+		Item item, ItemField itemField, Vault vault) {
+
+		String itemFieldValue = itemField.getValue();
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(itemFieldValue)) {
+			return;
+		}
+
+		String itemFieldId = itemField.getId();
+		String itemId = item.getId();
+		String itemTitle = item.getTitle();
+		String vaultName = vault.getName();
+
+		if (!JenkinsResultsParserUtil.isNullOrEmpty(itemFieldId)) {
+			_connectSecrets.put(
+				_getSecretReference(itemFieldId, itemId, vaultName),
+				itemFieldValue);
+			_connectSecrets.put(
+				_getSecretReference(itemFieldId, itemTitle, vaultName),
+				itemFieldValue);
+		}
+
+		String itemFieldLabel = itemField.getLabel();
+
+		if (!JenkinsResultsParserUtil.isNullOrEmpty(itemFieldLabel)) {
+			_connectSecrets.put(
+				_getSecretReference(itemFieldLabel, itemId, vaultName),
+				itemFieldValue);
+			_connectSecrets.put(
+				_getSecretReference(itemFieldLabel, itemTitle, vaultName),
+				itemFieldValue);
+		}
+	}
+
+	private static void _loadItemFile(
+		Item item, ItemFile itemFile, Vault vault) {
+
+		String itemFieldValue = itemFile.getValue();
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(itemFieldValue)) {
+			return;
+		}
+
+		String itemFileName = itemFile.getName();
+		String itemId = item.getId();
+		String itemTitle = item.getTitle();
+		String vaultName = vault.getName();
+
+		_connectSecrets.put(
+			_getSecretReference(itemFileName, itemId, vaultName),
+			itemFieldValue);
+		_connectSecrets.put(
+			_getSecretReference(itemFileName, itemTitle, vaultName),
+			itemFieldValue);
+	}
+
+	private static String _toHexString(byte[] bytes) {
+		StringBuilder sb = new StringBuilder();
+
+		for (byte b : bytes) {
+			sb.append(String.format("%02x", b & 0xff));
+		}
+
+		return sb.toString();
+	}
+
+	private static JSONArray _toJSONArray(String path) {
+		if (!_isSecretsConfigured()) {
+			return new JSONArray();
+		}
+
+		try {
+			return JenkinsResultsParserUtil.toJSONArray(
+				_getConnectURL() + path, null, _getHTTPAuthorization());
+		}
+		catch (IOException ioException) {
+			System.out.println(ioException.getMessage());
+
+			ioException.printStackTrace();
+
+			return new JSONArray();
+		}
+	}
+
+	private static JSONObject _toJSONObject(String path) {
+		if (!_isSecretsConfigured()) {
+			return new JSONObject();
+		}
+
+		try {
+			return JenkinsResultsParserUtil.toJSONObject(
+				_getConnectURL() + path, null, _getHTTPAuthorization());
+		}
+		catch (IOException ioException) {
+			System.out.println(ioException.getMessage());
+
+			ioException.printStackTrace();
+
+			return null;
+		}
+	}
+
+	private static JSONObject _toJSONObject(
+		String path, HttpRequestMethod httpRequestMethod, String postContent) {
+
+		if (!_isSecretsConfigured()) {
+			throw new RuntimeException("Secrets are not configured");
+		}
+
+		try {
+			return JenkinsResultsParserUtil.toJSONObject(
+				_getConnectURL() + path, false, 0, httpRequestMethod,
+				postContent, 0, 1000 * 60 * 5, _getHTTPAuthorization());
+		}
+		catch (IOException ioException) {
+			throw new RuntimeException(
+				"Unable to send " + httpRequestMethod + " to " + path,
+				ioException);
+		}
+	}
+
+	private static String _toString(String path) {
+		if (!_isSecretsConfigured()) {
+			return "";
+		}
+
+		try {
+			return JenkinsResultsParserUtil.toString(
+				_getConnectURL() + path, null, _getHTTPAuthorization());
+		}
+		catch (IOException ioException) {
+			System.out.println(ioException.getMessage());
+
+			ioException.printStackTrace();
+
+			return "";
+		}
+	}
+
+	private static final String _API_TOKEN_ALGORITHM = "SHA-256";
+
+	private static final String _API_TOKEN_VERSION = "11";
+
+	private static String _accessToken;
+	private static final Map<String, String> _connectSecrets =
+		new ConcurrentHashMap<>();
+	private static boolean _connectSecretsLoaded;
+	private static String _connectURL;
+	private static HTTPAuthorization _httpAuthorization;
+	private static final Pattern _inlineSecretReferencePattern =
+		Pattern.compile(
+			"op://(?<vaultName>[^/<\\n]*)/(?<itemTitle>[^/<\\n]*)/" +
+				"(?<fieldLabel>[^<\\n]*[^<\\s])");
+	private static final Pattern _itemReferencePattern = Pattern.compile(
+		"op://(?<vaultName>[^/]*)/(?<itemTitle>[^/]*)");
+	private static final Pattern _secretReferencePattern = Pattern.compile(
+		"op://(?<vaultName>[^/]*)/(?<itemTitle>[^/]*)/(?<fieldLabel>.*)");
+
 	private static class Vault {
 
 		public static Vault getInstance(String name) {
@@ -1137,6 +917,16 @@ public abstract class SecretsUtil {
 			}
 
 			return vaults;
+		}
+
+		public void addItem(Item item) {
+			synchronized (_vaultsMap) {
+				if (_items == null) {
+					return;
+				}
+
+				_items.add(item);
+			}
 		}
 
 		public String getId() {
@@ -1173,6 +963,10 @@ public abstract class SecretsUtil {
 
 		public String getName() {
 			return _name;
+		}
+
+		public String getSecretReference() {
+			return "op://" + getName();
 		}
 
 		public void loadAllItems() {

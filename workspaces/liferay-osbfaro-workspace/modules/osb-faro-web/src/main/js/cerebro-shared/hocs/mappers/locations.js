@@ -37,11 +37,21 @@ const getLocationsMapper = (getMetric) => {
 	 * @param {object} param1 context
 	 */
 	const mapPropsToOptions = ({
+		accountId,
 		filters,
 		interval,
 		rangeSelectors,
 		router: {params},
-	}) => getVariables({filters, interval, params, rangeSelectors});
+		segmentId,
+	}) =>
+		getVariables({
+			accountId,
+			filters,
+			interval,
+			params,
+			rangeSelectors,
+			segmentId,
+		});
 
 	return {
 		options: mapPropsToOptions,
@@ -73,18 +83,22 @@ const getLocationsMapperCountries = (getMetric) => {
 	 * @param {object} param1 context
 	 */
 	const mapPropsToOptions = ({
+		accountId,
 		experienceId,
 		filters,
 		interval,
 		rangeSelectors,
 		router: {params},
+		segmentId,
 	}) => {
 		const {variables} = getVariables({
+			accountId,
 			experienceId,
 			filters,
 			interval,
 			params,
 			rangeSelectors,
+			segmentId,
 		});
 
 		return {

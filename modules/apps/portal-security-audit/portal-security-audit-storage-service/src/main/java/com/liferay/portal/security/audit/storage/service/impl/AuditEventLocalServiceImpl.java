@@ -158,7 +158,7 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 		if (ArrayUtil.isNotEmpty(accountEntryIds)) {
 			junction.add(accountEntryIdProperty.in(accountEntryIds));
 		}
-		else {
+		else if (andSearch) {
 			junction.add(accountEntryIdProperty.eq(0L));
 		}
 
@@ -224,7 +224,7 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 		if (Validator.isNotNull(contextName)) {
 			junction.add(contextNameProperty.eq(contextName));
 		}
-		else {
+		else if (andSearch) {
 			junction.add(contextNameProperty.isNull());
 		}
 
@@ -280,7 +280,7 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 		auditEvent.setCompanyId(auditMessage.getCompanyId());
 		auditEvent.setUserId(auditMessage.getUserId());
 		auditEvent.setUserName(auditMessage.getUserName());
-		auditEvent.setCreateDate(auditMessage.getTimestamp());
+		auditEvent.setCreateDate(auditMessage.getTimestampDate());
 		auditEvent.setAccountEntryId(auditMessage.getAccountEntryId());
 		auditEvent.setAdditionalInfo(
 			String.valueOf(auditMessage.getAdditionalInfo()));

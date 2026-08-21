@@ -29,6 +29,7 @@ import selectStructureLocalizedLabel from '../selectors/selectStructureLocalized
 import selectStructureName from '../selectors/selectStructureName';
 import selectStructurePath from '../selectors/selectStructurePath';
 import selectStructureSettings from '../selectors/selectStructureSettings';
+import selectStructureSlug from '../selectors/selectStructureSlug';
 import selectStructureSpaces from '../selectors/selectStructureSpaces';
 import selectStructureStatus from '../selectors/selectStructureStatus';
 import selectStructureUuid from '../selectors/selectStructureUuid';
@@ -123,6 +124,7 @@ export default async function handlePublishStructure({
 
 	const children = selectStructureChildren(state);
 	const erc = selectStructureERC(state);
+	const slug = selectStructureSlug(state);
 	const id = selectStructureId(state);
 	const label = selectStructureLabel(state);
 	const localizedLabel = selectStructureLocalizedLabel(state);
@@ -217,7 +219,7 @@ export default async function handlePublishStructure({
 			openToast({
 				message: Liferay.Util.sub(
 					Liferay.Language.get('x-was-published-successfully'),
-					localizedLabel
+					Liferay.Util.escapeHTML(localizedLabel)
 				),
 				type: 'success',
 			});
@@ -230,7 +232,7 @@ export default async function handlePublishStructure({
 				Liferay.Language.get(
 					'x-was-published-successfully.-remember-to-review-the-customized-editor-if-needed'
 				),
-				localizedLabel
+				Liferay.Util.escapeHTML(localizedLabel)
 			),
 			toastProps: {
 				actions: (
@@ -263,12 +265,10 @@ export default async function handlePublishStructure({
 		});
 	};
 
-	const previousStatus = state.structure.status;
-
 	const onError = (error: StructureServiceError) =>
-		dispatch(buildStructureErrorAction({error, previousStatus, uuid}));
+		dispatch(buildStructureErrorAction({error, uuid}));
 
-	dispatch({status: 'publishing', type: 'set-structure-status'});
+	dispatch({operation: 'publishing', type: 'start-operation'});
 
 	if (status === 'new') {
 		const {data, error} = await StructureService.createStructure({
@@ -278,10 +278,13 @@ export default async function handlePublishStructure({
 			name,
 			publishedChildren,
 			settings,
+			slug,
 			spaces,
 			status: 'published',
 			workflows,
 		});
+
+		dispatch({type: 'end-operation'});
 
 		if (error) {
 			onError(error);
@@ -304,10 +307,13 @@ export default async function handlePublishStructure({
 			name,
 			publishedChildren,
 			settings,
+			slug,
 			spaces,
 			status: 'published',
 			workflows,
 		});
+
+		dispatch({type: 'end-operation'});
 
 		if (error) {
 			onError(error);

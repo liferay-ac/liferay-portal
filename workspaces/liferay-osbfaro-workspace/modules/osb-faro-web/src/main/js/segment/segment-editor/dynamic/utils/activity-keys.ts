@@ -10,26 +10,41 @@ const EVENT_ID_MAP: {
 	Blog: {
 		click: 'blogClicked',
 		comment: 'commentPosted',
+		download: 'blogDownloaded',
 		impression: 'blogImpressionMade',
+		submit: 'blogSubmitted',
 		view: 'blogViewed',
 	},
 	Document: {
+		click: 'documentClicked',
+		comment: 'commentPosted',
 		download: 'documentDownloaded',
 		impression: 'documentImpressionMade',
+		submit: 'documentSubmitted',
 		view: 'documentPreviewed',
 	},
 	Form: {
+		click: 'formClicked',
+		comment: 'commentPosted',
+		download: 'formDownloaded',
+		impression: 'formImpressionMade',
 		submit: 'formSubmitted',
 		view: 'formViewed',
 	},
 	ObjectEntry: {
+		click: 'objectEntryClicked',
+		comment: 'commentPosted',
 		download: 'objectEntryDownloaded',
 		impression: 'objectEntryImpressionMade',
+		submit: 'objectEntrySubmitted',
 		view: 'objectEntryViewed',
 	},
 	WebContent: {
 		click: 'webContentClicked',
+		comment: 'commentPosted',
+		download: 'webContentDownloaded',
 		impression: 'webContentImpressionMade',
+		submit: 'webContentSubmitted',
 		view: 'webContentViewed',
 	},
 };
@@ -44,22 +59,6 @@ export const getEventId = (
 ): string =>
 	(action && EVENT_ID_MAP[applicationId]?.[action]) ||
 	(applicationId === 'Page' ? 'pageViewed' : '');
-
-/**
- * The applicationIds that support an action, derived from EVENT_ID_MAP — the
- * asset types whose analytics events include that action (e.g. click ->
- * [Blog, WebContent], download -> [Document, ObjectEntry]). Used to offer only
- * the compatible asset types per event. An unknown action yields every
- * applicationId so nothing is filtered out.
- */
-export const getSupportedApplicationIds = (
-	action: string | undefined
-): string[] =>
-	action
-		? Object.keys(EVENT_ID_MAP).filter(
-				(applicationId) => EVENT_ID_MAP[applicationId][action]
-			)
-		: Object.keys(EVENT_ID_MAP);
 
 /**
  * Inverse of EVENT_ID_MAP (plus pageViewed): maps a stored, application-specific

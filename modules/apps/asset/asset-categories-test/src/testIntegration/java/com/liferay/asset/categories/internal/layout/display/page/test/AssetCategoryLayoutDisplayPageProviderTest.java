@@ -32,7 +32,6 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
@@ -61,16 +60,18 @@ public class AssetCategoryLayoutDisplayPageProviderTest {
 		_group = GroupTestUtil.addGroup();
 	}
 
-	@FeatureFlag("LPD-70396")
 	@Test
 	public void testGetLayoutDisplayPageObjectProvider() throws Exception {
 		_testGetLayoutDisplayPageObjectProviderERCInfoItemIdentifier();
 		_testGetLayoutDisplayPageObjectProviderNestedAssetCategory();
 	}
 
-	@FeatureFlag("LPD-70396")
 	@Test
 	public void testGetURLTitle() throws Exception {
+		_testGetURLTitleWithEncodedAssetVocabularyName(
+			"vocabulary name", "vocabulary%20name");
+		_testGetURLTitleWithEncodedAssetVocabularyName(
+			"vocabulario ñ", "vocabulario%20%C3%B1");
 		_testGetURLTitleWithMaximumLengthExceeded();
 		_testGetURLTitleWithMaximumLengthNotExceeded();
 	}
@@ -208,6 +209,41 @@ public class AssetCategoryLayoutDisplayPageProviderTest {
 		Assert.assertEquals(
 			assetCategory4,
 			layoutDisplayPageObjectProvider2.getDisplayObject());
+	}
+
+	private void _testGetURLTitleWithEncodedAssetVocabularyName(
+			String assetVocabularyName, String encodedAssetVocabularyName)
+		throws Exception {
+
+		AssetVocabulary assetVocabulary = AssetTestUtil.addVocabulary(
+			_group.getGroupId(), assetVocabularyName);
+
+		String assetCategoryURLTitle = StringUtil.toLowerCase(
+			StringUtil.randomString());
+
+		AssetCategory assetCategory = _addAssetCategory(
+			assetVocabulary.getVocabularyId(),
+			AssetCategoryConstants.DEFAULT_PARENT_CATEGORY_ID,
+			assetCategoryURLTitle);
+
+		LayoutDisplayPageObjectProvider<?> layoutDisplayPageObjectProvider1 =
+			_getLayoutDisplayPageObjectProvider(assetCategory);
+
+		String urlTitle = layoutDisplayPageObjectProvider1.getURLTitle(
+			LocaleUtil.getDefault());
+
+		Assert.assertEquals(
+			StringBundler.concat(
+				encodedAssetVocabularyName, StringPool.SLASH,
+				assetCategoryURLTitle),
+			urlTitle);
+
+		LayoutDisplayPageObjectProvider<?> layoutDisplayPageObjectProvider2 =
+			_layoutDisplayPageProvider.getLayoutDisplayPageObjectProvider(
+				_group.getGroupId(), urlTitle);
+
+		Assert.assertEquals(
+			assetCategory, layoutDisplayPageObjectProvider2.getDisplayObject());
 	}
 
 	private void _testGetURLTitleWithMaximumLengthExceeded() throws Exception {

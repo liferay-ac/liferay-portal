@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Locator, Page} from '@playwright/test';
+import {Locator, Page, expect} from '@playwright/test';
 
 import {ViewObjectDefinitionsPage} from '../ViewObjectDefinitionsPage';
 
@@ -107,6 +107,15 @@ export class EditObjectDetailsPage {
 		await this.page.waitForLoadState('networkidle');
 	}
 
+	async waitForDetailsFormLoaded() {
+
+		// The form is interactive before its mount fetch lands, and the fetch
+		// merges the persisted definition over anything already typed. The
+		// toolbar buttons unlock only once that fetch is done, so wait there.
+
+		await expect(this.saveButton).toBeEnabled();
+	}
+
 	async saveObjectDefinition() {
 		await this.saveButton.click();
 	}
@@ -148,6 +157,8 @@ export class EditObjectDetailsPage {
 	async selectScope(optionName: string) {
 		await this.scopeCombobox.click();
 
-		await this.page.getByRole('option', {name: optionName}).click();
+		await this.page
+			.getByRole('option', {name: optionName})
+			.dispatchEvent('click');
 	}
 }

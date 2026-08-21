@@ -48,11 +48,17 @@ The procedure runs in two passes over the validations, in the order below. The o
 
 1. [Service Builder](validations/service-builder.md)
 
+1. [Go Generate](validations/go-generate.md)
+
 1. [Source Format](validations/source-format.md)
+
+1. [Go Source Format](validations/go-source-format.md)
 
 1. [Module Registration](validations/module-registration.md)
 
 1. [Portlet Title](validations/portlet-title.md)
+
+1. [Transaction Usage](validations/transaction-usage.md)
 
 1. [Full Portal Build](validations/full-portal-build.md)
 
@@ -99,7 +105,7 @@ When the total exceeds 20 minutes, surface the breakdown and ask the developer w
 
 ### Pass 2: Execute
 
-For each matched validation, spawn one subagent. **Pass it only the `## Command` and `## Autocommit` sections of the validation file, not the full file.** Record PASS or FAIL. Do not halt on FAIL — continue so the developer sees the full picture.
+For each matched validation, spawn one subagent. **Pass it only the `## Command` and `## Autocommit` sections of the validation file, not the full file.** Record PASS or FAIL. Do not halt on FAIL — continue so the developer sees the full picture. When a command directs the subagent to return a failure note on FAIL, capture that note alongside the FAIL result.
 
 When the validation's **Command** is a build (gradle, ant, npm, jest), bound the output:
 
@@ -130,3 +136,5 @@ The block is the overall state and tested SHA, followed by a table with one row 
 ```
 
 The overall state is `PASS` only when every row is `PASS`; any `FAIL` row makes it `FAIL`.
+
+When a failed validation returned a failure note, append it below the table, separated by a blank line. The note is part of the Results Summary, so it travels verbatim into the PR description through the `pr` skill and into any comment the `pr-check-publish` skill posts.

@@ -2,9 +2,10 @@ import moment from 'moment';
 import React from 'react';
 import {Colors} from 'shared/util/charts';
 import {CurrentUsage} from './CurrentUsage';
-import {CUSTOM_DATE_FORMAT, formatDateToTimeZone} from 'shared/util/date';
+import {formatDateToTimeZone, getCustomDateFormat} from 'shared/util/date';
 import {STATUS_DISPLAY_MAP} from 'shared/util/subscriptions';
 import {sub} from 'shared/util/lang';
+import {toLocale} from 'shared/util/numbers';
 import {UsageMetric} from './UsageMetric';
 import {useTimeZone} from 'shared/hooks/useTimeZone';
 
@@ -27,7 +28,7 @@ export const PageViewsSession = ({currentPlan}: IPageViewsSessionProps) => {
 					[
 						formatDateToTimeZone(
 							moment(currentPlan.startDate),
-							CUSTOM_DATE_FORMAT,
+							getCustomDateFormat(),
 							timeZoneId
 						),
 					]
@@ -50,11 +51,11 @@ export const PageViewsSession = ({currentPlan}: IPageViewsSessionProps) => {
 				}}
 				legendText={sub(
 					Liferay.Language.get('x-page-views-are-available'),
-					[(available > 0 ? available : 0).toLocaleString()]
+					[toLocale(available > 0 ? available : 0)]
 				)}
 				limit={limit}
-				percentageText={(percentage: number | string) =>
-					Number(percentage) === 1
+				percentageText={(percentage: number) =>
+					percentage === 1
 						? Liferay.Language.get('1-page-view-was-used')
 						: Liferay.Language.get('x-page-views-were-used')
 				}

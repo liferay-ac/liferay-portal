@@ -22,9 +22,6 @@ const test = mergeTests(
 	categorizationPagesTest,
 	cmsPagesTest,
 	dataApiHelpersTest,
-	featureFlagsTest({
-		'LPD-17564': {enabled: true},
-	}),
 	loginTest()
 );
 
@@ -48,10 +45,7 @@ const projectVocabularyTest = mergeTests(
 	categorizationPagesTest,
 	cmsPagesTest,
 	dataApiHelpersTest,
-	featureFlagsTest({
-		'LPD-17564': {enabled: true},
-		'LPD-86291': {enabled: true},
-	}),
+	featureFlagsTest({'LPD-58677': {enabled: true}}),
 	loginTest()
 );
 
@@ -59,10 +53,6 @@ const systemVocabularyTest = mergeTests(
 	categorizationPagesTest,
 	cmsPagesTest,
 	dataApiHelpersTest,
-	featureFlagsTest({
-		'LPD-17564': {enabled: true},
-		'LPD-86291': {enabled: true},
-	}),
 	loginTest()
 );
 
@@ -796,15 +786,85 @@ projectVocabularyTest.describe('Project selection tests', () => {
 	});
 
 	projectVocabularyTest(
+		'Does not list a ghost project in the project selector',
+		{tag: '@LPD-97935'},
+		async ({apiHelpers, editVocabularyPage, page}) => {
+			const approvedProjectTitle = getRandomString();
+			const ghostProjectName = getRandomString();
+
+			await apiHelpers.headlessAssetLibrary.createAssetLibrary({
+				name: ghostProjectName,
+				settings: {},
+				type: 'Project',
+			});
+
+			const projectEntry = await apiHelpers.objectEntry.postObjectEntry(
+				{title: approvedProjectTitle},
+				'cmp/projects'
+			);
+
+			apiHelpers.data.push({
+				applicationName: 'cmp/projects',
+				id: projectEntry.id,
+				type: 'objectEntry',
+			});
+
+			await editVocabularyPage.goto();
+
+			await editVocabularyPage.openProjectSelector();
+
+			await expect(
+				page.getByRole('option', {name: approvedProjectTitle})
+			).toHaveCount(1);
+
+			await expect(
+				page.getByRole('option', {name: ghostProjectName})
+			).toHaveCount(0);
+		}
+	);
+
+	projectVocabularyTest(
+		'Validate a project must be selected to publish',
+		{tag: '@LPD-96114'},
+		async ({editVocabularyPage}) => {
+			editVocabularyPage.goto();
+
+			const name = `Vocabulary${getRandomInt()}`;
+
+			await editVocabularyPage.changeGeneralInfo({
+				description: getRandomString(),
+				name,
+			});
+
+			await expect(editVocabularyPage.saveButton).not.toBeDisabled();
+
+			// Unselecting every project blocks publishing
+
+			await editVocabularyPage.projectCheckbox.click();
+
+			await expect(editVocabularyPage.saveButton).toBeDisabled();
+
+			await editVocabularyPage.projectCheckbox.click();
+
+			await expect(editVocabularyPage.saveButton).not.toBeDisabled();
+		}
+	);
+
+	projectVocabularyTest(
 		'Validate change projects when saving',
 		{tag: '@LPD-96114'},
 		async ({apiHelpers, editVocabularyPage, page, vocabulariesPage}) => {
 			const projectName = getRandomString();
 
-			await apiHelpers.headlessAssetLibrary.createAssetLibrary({
-				name: projectName,
-				settings: {},
-				type: 'Project',
+			const projectEntry = await apiHelpers.objectEntry.postObjectEntry(
+				{title: projectName},
+				'cmp/projects'
+			);
+
+			apiHelpers.data.push({
+				applicationName: 'cmp/projects',
+				id: projectEntry.id,
+				type: 'objectEntry',
 			});
 
 			const name = `Vocabulary${getRandomInt()}`;
@@ -849,38 +909,14 @@ projectVocabularyTest.describe('Project selection tests', () => {
 			});
 		}
 	);
-
-	projectVocabularyTest(
-		'Validate a project must be selected to publish',
-		{tag: '@LPD-96114'},
-		async ({editVocabularyPage}) => {
-			editVocabularyPage.goto();
-
-			const name = `Vocabulary${getRandomInt()}`;
-
-			await editVocabularyPage.changeGeneralInfo({
-				description: getRandomString(),
-				name,
-			});
-
-			await expect(editVocabularyPage.saveButton).not.toBeDisabled();
-
-			// Unselecting every project blocks publishing
-
-			await editVocabularyPage.projectCheckbox.click();
-
-			await expect(editVocabularyPage.saveButton).toBeDisabled();
-
-			await editVocabularyPage.projectCheckbox.click();
-
-			await expect(editVocabularyPage.saveButton).not.toBeDisabled();
-		}
-	);
 });
 
 systemVocabularyTest.describe('System vocabulary tests', () => {
-	let systemVocabularyId: number | undefined;
 	let systemVocabularyName: string;
+
+	// A system vocabulary cannot be deleted once created, so it is left behind
+	// on the site. Each test creates a uniquely named vocabulary and searches
+	// for it, so the leftover data does not interfere with the assertions.
 
 	systemVocabularyTest.beforeEach(
 		'Create a system vocabulary via API',
@@ -891,47 +927,30 @@ systemVocabularyTest.describe('System vocabulary tests', () => {
 				.getSiteByFriendlyUrlPath('cms')
 				.then((response) => response.id);
 
-			systemVocabularyId = await apiHelpers.headlessAdminTaxonomy
-				.postSiteTaxonomyVocabulary({
-					assetLibraries: [{id: -1}],
-					assetTypes: [
-						{
-							required: true,
-							subtype: 'AllAssetSubtypes',
-							type: 'AllAssetTypes',
-						},
-					],
-					name: systemVocabularyName,
-					siteId,
-					system: true,
-					visibilityType: 'PUBLIC',
-				})
-				.then((response) => response.id);
+			await apiHelpers.headlessAdminTaxonomy.postSiteTaxonomyVocabulary({
+				assetLibraries: [{id: -1}],
+				assetTypes: [
+					{
+						required: false,
+						subtype: 'AllAssetSubtypes',
+						type: 'AllAssetTypes',
+					},
+				],
+				name: systemVocabularyName,
+				siteId,
+				system: true,
+				visibilityType: 'PUBLIC',
+			});
 		}
 	);
-
-	systemVocabularyTest.afterEach(async ({apiHelpers}) => {
-		if (systemVocabularyId === undefined) {
-			return;
-		}
-
-		// A system vocabulary cannot be deleted while LPD-86291 is enabled, so
-		// disable it before cleaning up.
-
-		await apiHelpers.featureFlag.updateFeatureFlag('LPD-86291', false);
-
-		await apiHelpers.headlessAdminTaxonomy.deleteTaxonomyVocabulary(
-			systemVocabularyId
-		);
-
-		systemVocabularyId = undefined;
-	});
 
 	systemVocabularyTest(
 		'Hide the delete action for a system vocabulary',
 		{tag: '@LPD-93225'},
 		async ({vocabulariesPage}) => {
 			await vocabulariesPage.goto();
+
+			await vocabulariesPage.search(systemVocabularyName);
 
 			// The delete action is not offered for a system vocabulary
 
@@ -947,6 +966,8 @@ systemVocabularyTest.describe('System vocabulary tests', () => {
 		{tag: '@LPD-93225'},
 		async ({editVocabularyPage, page, vocabulariesPage}) => {
 			await vocabulariesPage.goto();
+
+			await vocabulariesPage.search(systemVocabularyName);
 
 			// Open the system vocabulary edit page
 
@@ -983,6 +1004,8 @@ systemVocabularyTest.describe('System vocabulary tests', () => {
 		{tag: '@LPD-93225'},
 		async ({categoriesPage, editCategoryPage, page, vocabulariesPage}) => {
 			await vocabulariesPage.goto();
+
+			await vocabulariesPage.search(systemVocabularyName);
 
 			// Categories can still be added to a system vocabulary
 

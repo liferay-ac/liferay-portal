@@ -79,20 +79,6 @@ async function archiveRoom(roomId: number): Promise<IRoomObjectEntry> {
 	throw new Error(error);
 }
 
-async function checkSitePages(
-	siteExternalReferenceCode: string
-): Promise<{items: Array<any>}> {
-	const url = `/o/headless-admin-site/v1.0/sites/${siteExternalReferenceCode}/site-pages`;
-
-	const {data, error} = await ApiHelper.get<{items: Array<any>}>(url);
-
-	if (data) {
-		return data || {items: []};
-	}
-
-	throw new Error(error);
-}
-
 async function deleteRoomInvitedMember(
 	roomId: number,
 	invitedMemberId: number
@@ -260,6 +246,34 @@ async function updateRoom(
 	throw new Error(error);
 }
 
+async function updateRoomSettings(
+	roomId: number,
+	{
+		externalReferenceCode,
+		friendlyURL,
+		name,
+	}: {
+		externalReferenceCode: string;
+		friendlyURL: string;
+		name: string;
+	}
+): Promise<IRoomObjectEntry> {
+	const {data, error} = await ApiHelper.patch<IRoomObjectEntry>(
+		{
+			externalReferenceCode,
+			friendlyURL,
+			name,
+		},
+		`${BASE_PATH}/${roomId}`
+	);
+
+	if (data) {
+		return data;
+	}
+
+	throw new Error(error);
+}
+
 async function updateRoomInvitedMember(
 	roomId: number,
 	invitedMemberId: number,
@@ -298,7 +312,6 @@ export default {
 	addRoom,
 	addRoomUserAccount,
 	archiveRoom,
-	checkSitePages,
 	deleteRoomInvitedMember,
 	deleteRoomUserAccount,
 	duplicateRoom,
@@ -311,5 +324,6 @@ export default {
 	restoreRoom,
 	updateRoom,
 	updateRoomInvitedMember,
+	updateRoomSettings,
 	updateRoomUserAccount,
 };

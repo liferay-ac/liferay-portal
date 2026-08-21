@@ -7,6 +7,7 @@ import {
 	AudiencesCriteria,
 	CriteriaNode,
 	Group,
+	Rule,
 	SerializedGroup,
 } from '../../../src/main/resources/META-INF/resources/js/types';
 import {addGroup} from '../../../src/main/resources/META-INF/resources/js/util/tree/addGroup';
@@ -17,9 +18,10 @@ import {createRule} from '../../../src/main/resources/META-INF/resources/js/util
 import {deleteEmptyGroups} from '../../../src/main/resources/META-INF/resources/js/util/tree/deleteEmptyGroups';
 import {deleteRule} from '../../../src/main/resources/META-INF/resources/js/util/tree/deleteRule';
 import {duplicateRule} from '../../../src/main/resources/META-INF/resources/js/util/tree/duplicateRule';
+import {flattenRules} from '../../../src/main/resources/META-INF/resources/js/util/tree/flattenRules';
 import {isGroup} from '../../../src/main/resources/META-INF/resources/js/util/tree/isGroup';
-import {moveGroup} from '../../../src/main/resources/META-INF/resources/js/util/tree/moveGroup';
 import {moveRule} from '../../../src/main/resources/META-INF/resources/js/util/tree/moveRule';
+import {moveRuleIntoNewGroup} from '../../../src/main/resources/META-INF/resources/js/util/tree/moveRuleIntoNewGroup';
 import {parseRootGroup} from '../../../src/main/resources/META-INF/resources/js/util/tree/parseRootGroup';
 import {reorderGroup} from '../../../src/main/resources/META-INF/resources/js/util/tree/reorderGroup';
 import {serializeGroup} from '../../../src/main/resources/META-INF/resources/js/util/tree/serializeGroup';
@@ -63,6 +65,24 @@ const COUNTRY: AudiencesCriteria = {
 	type: 'string',
 };
 
+const LOCAL_HOUR: AudiencesCriteria = {
+	icon: 'time',
+	inputType: 'select',
+	key: 'local_hour',
+	label: 'Local Hour',
+	options: [{label: '14:00', value: '14'}],
+	type: 'number',
+};
+
+const USER_AUTHENTICATION: AudiencesCriteria = {
+	icon: 'check',
+	inputType: 'boolean',
+	key: 'user_authentication',
+	label: 'User Authentication',
+	options: [],
+	type: 'boolean',
+};
+
 const NESTED_TREE: SerializedGroup = {
 	conjunction: 'OR',
 	rules: [
@@ -86,6 +106,64 @@ describe('tree', () => {
 			expect(serializeGroup(parseRootGroup(NESTED_TREE))).toEqual(
 				NESTED_TREE
 			);
+		});
+
+		it('serializes boolean and numeric values by criteria type', () => {
+			const audiencesCriteriasByKey = {
+				local_hour: LOCAL_HOUR,
+				user_authentication: USER_AUTHENTICATION,
+			};
+
+			const root = parseRootGroup({
+				conjunction: 'AND',
+				rules: [
+					{
+						attribute: 'user_authentication',
+						operator: 'eq',
+						value: 'true',
+					},
+					{attribute: 'local_hour', operator: 'gt', value: '14'},
+				],
+			});
+
+			expect(serializeGroup(root, audiencesCriteriasByKey).rules).toEqual(
+				[
+					{
+						attribute: 'user_authentication',
+						operator: 'eq',
+						value: true,
+					},
+					{attribute: 'local_hour', operator: 'gt', value: 14},
+				]
+			);
+		});
+
+		it('keeps a non-numeric number value as a string', () => {
+			const root = parseRootGroup({
+				conjunction: 'AND',
+				rules: [{attribute: 'local_hour', operator: 'gt', value: 'x'}],
+			});
+
+			expect(
+				serializeGroup(root, {local_hour: LOCAL_HOUR}).rules
+			).toEqual([{attribute: 'local_hour', operator: 'gt', value: 'x'}]);
+		});
+
+		it('parses stored boolean and numeric values into strings', () => {
+			const root = parseRootGroup({
+				conjunction: 'AND',
+				rules: [
+					{
+						attribute: 'user_authentication',
+						operator: 'eq',
+						value: false,
+					},
+					{attribute: 'local_hour', operator: 'gt', value: 14},
+				],
+			});
+
+			expect((root.items[0] as Rule).value).toBe('false');
+			expect((root.items[1] as Rule).value).toBe('14');
 		});
 
 		it('assigns ids and preserves nested groups on parse', () => {
@@ -133,6 +211,14 @@ describe('tree', () => {
 	});
 
 	describe('mutations', () => {
+		it('creates a boolean rule with a default true value', () => {
+			expect(createRule(USER_AUTHENTICATION)).toMatchObject({
+				attribute: 'user_authentication',
+				operator: 'eq',
+				value: 'true',
+			});
+		});
+
 		it('adds a rule to the root and to a nested group', () => {
 			let root = parseRootGroup(NESTED_TREE);
 
@@ -356,14 +442,18 @@ describe('tree', () => {
 		});
 	});
 
-	describe('moveGroup', () => {
+	describe('moveRuleIntoNewGroup', () => {
 		it('groups the target rule and the moved rule together', () => {
 			const ageRule = createRule(AGE);
 			const countryRule = createRule(COUNTRY);
 			const keepRule = createRule(AGE);
 			const root = createGroup('AND', [ageRule, countryRule, keepRule]);
 
-			const grouped = moveGroup(root, ageRule.id, countryRule.id);
+			const grouped = moveRuleIntoNewGroup(
+				root,
+				ageRule.id,
+				countryRule.id
+			);
 
 			expect(grouped.items).toHaveLength(2);
 
@@ -382,7 +472,11 @@ describe('tree', () => {
 			const countryRule = createRule(COUNTRY);
 			const root = createGroup('OR', [ageRule, countryRule]);
 
-			const result = moveGroup(root, ageRule.id, countryRule.id);
+			const result = moveRuleIntoNewGroup(
+				root,
+				ageRule.id,
+				countryRule.id
+			);
 
 			expect(result.conjunction).toBe('OR');
 			expect(result.items).toHaveLength(2);
@@ -396,7 +490,9 @@ describe('tree', () => {
 			const ageRule = createRule(AGE);
 			const root = createGroup('AND', [ageRule]);
 
-			expect(moveGroup(root, ageRule.id, ageRule.id)).toBe(root);
+			expect(moveRuleIntoNewGroup(root, ageRule.id, ageRule.id)).toBe(
+				root
+			);
 		});
 	});
 
@@ -415,6 +511,24 @@ describe('tree', () => {
 			expect(group.conjunction).toBe('AND');
 			expect(group.items).toHaveLength(0);
 			expect(group.id).toEqual(expect.stringMatching(/^group-/));
+		});
+	});
+
+	describe('flattenRules', () => {
+		it('lists rules in depth-first render order', () => {
+			const ageRule = createRule(AGE);
+			const countryRule = createRule(COUNTRY);
+			const nestedRule = createRule(AGE);
+			const root = createGroup('AND', [
+				ageRule,
+				createGroup('OR', [countryRule, nestedRule]),
+			]);
+
+			expect(flattenRules(root).map((rule) => rule.id)).toEqual([
+				ageRule.id,
+				countryRule.id,
+				nestedRule.id,
+			]);
 		});
 	});
 });

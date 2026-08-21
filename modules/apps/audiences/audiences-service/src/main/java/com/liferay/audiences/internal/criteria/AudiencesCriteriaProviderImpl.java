@@ -31,8 +31,11 @@ import com.liferay.segments.service.SegmentsEntryLocalService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -53,7 +56,7 @@ public class AudiencesCriteriaProviderImpl
 		audiencesCriteriaTypes.add(
 			_getBrowserAttributesAudiencesCriteriaType(locale));
 		audiencesCriteriaTypes.add(
-			_getGeneralAttributesAudiencesCriteriaType(locale));
+			_getGeneralAttributesAudiencesCriteriaType(companyId, locale));
 
 		AudiencesCriteriaType customAudiencesCriteriaType =
 			_getCustomAudiencesCriteriaType(companyId, locale);
@@ -65,10 +68,51 @@ public class AudiencesCriteriaProviderImpl
 		return audiencesCriteriaTypes;
 	}
 
+	@Override
+	public Set<String> getCustomAudiencesCriteriaKeys(long companyId) {
+		Set<String> customAudiencesCriteriaKeys = new HashSet<>();
+
+		customAudiencesCriteriaKeys.add(_LANGUAGE_AUDIENCES_CRITERIA_KEY);
+		customAudiencesCriteriaKeys.add(_SIGNED_IN_AUDIENCES_CRITERIA_KEY);
+
+		try {
+			for (CET cet : _getAudiencesCustomAttributesCETs(companyId)) {
+				AudiencesCustomAttributesCET audiencesCustomAttributesCET =
+					(AudiencesCustomAttributesCET)cet;
+
+				for (String symbol :
+						StringUtil.split(
+							audiencesCustomAttributesCET.getSymbols(),
+							CharPool.NEW_LINE)) {
+
+					customAudiencesCriteriaKeys.add(
+						_getCustomAudiencesCriteriaKey(
+							audiencesCustomAttributesCET.getURL(), symbol));
+				}
+			}
+		}
+		catch (PortalException portalException) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(portalException);
+			}
+		}
+
+		return customAudiencesCriteriaKeys;
+	}
+
+	private List<CET> _getAudiencesCustomAttributesCETs(long companyId)
+		throws PortalException {
+
+		return _cetManager.getCETs(
+			companyId, null,
+			ClientExtensionEntryConstants.TYPE_AUDIENCES_CUSTOM_ATTRIBUTES,
+			Pagination.of(QueryUtil.ALL_POS, QueryUtil.ALL_POS), null);
+	}
+
 	private AudiencesCriteriaType _getBrowserAttributesAudiencesCriteriaType(
 		Locale locale) {
 
-		return new AudiencesCriteriaType(
+		List<AudiencesCriteria> audiencesCriterias = new ArrayList<>(
 			Arrays.asList(
 				AudiencesCriteriaBuilder.setIcon(
 					"text"
@@ -111,17 +155,6 @@ public class AudiencesCriteriaProviderImpl
 					AudiencesCriteriaKeys.DEVICE_TYPE
 				).setLabel(
 					_language.get(locale, "device-type")
-				).setType(
-					AudiencesCriteria.Type.STRING
-				).build(),
-				AudiencesCriteriaBuilder.setIcon(
-					"text"
-				).setInputType(
-					AudiencesCriteria.InputType.TEXT
-				).setKey(
-					AudiencesCriteriaKeys.GEOLOCATION
-				).setLabel(
-					_language.get(locale, "geolocation")
 				).setType(
 					AudiencesCriteria.Type.STRING
 				).build(),
@@ -205,43 +238,52 @@ public class AudiencesCriteriaProviderImpl
 					_language.get(locale, "request-parameters")
 				).setType(
 					AudiencesCriteria.Type.SET
-				).build(),
-				AudiencesCriteriaBuilder.setIcon(
-					"text"
-				).setInputType(
-					AudiencesCriteria.InputType.TEXT
-				).setKey(
-					AudiencesCriteriaKeys.TIMEZONE
-				).setLabel(
-					_language.get(locale, "time-zone")
-				).setType(
-					AudiencesCriteria.Type.STRING
-				).build(),
-				AudiencesCriteriaBuilder.setIcon(
-					"text"
-				).setInputType(
-					AudiencesCriteria.InputType.TEXT
-				).setKey(
-					AudiencesCriteriaKeys.URL
-				).setLabel(
-					_language.get(locale, "url")
-				).setType(
-					AudiencesCriteria.Type.STRING
-				).build(),
-				AudiencesCriteriaBuilder.setIcon(
-					"text"
-				).setInputType(
-					AudiencesCriteria.InputType.TEXT
-				).setKey(
-					AudiencesCriteriaKeys.USER_AGENT
-				).setLabel(
-					_language.get(locale, "user-agent")
-				).setType(
-					AudiencesCriteria.Type.STRING
-				).build()),
-			AudiencesCriteriaTypeKeys.BROWSER_ATTRIBUTES,
+				).build()));
+
+		Collections.addAll(
+			audiencesCriterias,
+			AudiencesCriteriaBuilder.setIcon(
+				"text"
+			).setInputType(
+				AudiencesCriteria.InputType.TEXT
+			).setKey(
+				AudiencesCriteriaKeys.TIMEZONE
+			).setLabel(
+				_language.get(locale, "time-zone")
+			).setType(
+				AudiencesCriteria.Type.STRING
+			).build(),
+			AudiencesCriteriaBuilder.setIcon(
+				"text"
+			).setInputType(
+				AudiencesCriteria.InputType.TEXT
+			).setKey(
+				AudiencesCriteriaKeys.URL
+			).setLabel(
+				_language.get(locale, "url")
+			).setType(
+				AudiencesCriteria.Type.STRING
+			).build(),
+			AudiencesCriteriaBuilder.setIcon(
+				"text"
+			).setInputType(
+				AudiencesCriteria.InputType.TEXT
+			).setKey(
+				AudiencesCriteriaKeys.USER_AGENT
+			).setLabel(
+				_language.get(locale, "user-agent")
+			).setType(
+				AudiencesCriteria.Type.STRING
+			).build());
+
+		return new AudiencesCriteriaType(
+			audiencesCriterias, AudiencesCriteriaTypeKeys.BROWSER_ATTRIBUTES,
 			_language.get(
 				locale, AudiencesCriteriaTypeKeys.BROWSER_ATTRIBUTES));
+	}
+
+	private String _getCustomAudiencesCriteriaKey(String url, String symbol) {
+		return StringBundler.concat("custom:", url, StringPool.POUND, symbol);
 	}
 
 	private AudiencesCriteriaType _getCustomAudiencesCriteriaType(
@@ -250,39 +292,7 @@ public class AudiencesCriteriaProviderImpl
 		try {
 			List<AudiencesCriteria> audiencesCriterias = new ArrayList<>();
 
-			List<AudiencesCriteria.Option> segmentsOptions =
-				TransformUtil.transform(
-					_segmentsEntryLocalService.getSegmentsEntriesBySource(
-						companyId,
-						SegmentsEntryConstants.SOURCE_ASAH_FARO_BACKEND,
-						QueryUtil.ALL_POS, QueryUtil.ALL_POS, null),
-					segmentsEntry -> new AudiencesCriteria.Option(
-						segmentsEntry.getName(locale),
-						segmentsEntry.getExternalReferenceCode()));
-
-			if (!segmentsOptions.isEmpty()) {
-				audiencesCriterias.add(
-					AudiencesCriteriaBuilder.setIcon(
-						"users"
-					).setInputType(
-						AudiencesCriteria.InputType.SELECT
-					).setKey(
-						AudiencesCriteriaKeys.SEGMENTS
-					).setLabel(
-						_language.get(locale, "segments")
-					).setOptions(
-						segmentsOptions
-					).setType(
-						AudiencesCriteria.Type.STRING
-					).build());
-			}
-
-			List<CET> cets = _cetManager.getCETs(
-				companyId, null,
-				ClientExtensionEntryConstants.TYPE_AUDIENCES_CUSTOM_ATTRIBUTES,
-				Pagination.of(QueryUtil.ALL_POS, QueryUtil.ALL_POS), null);
-
-			for (CET cet : cets) {
+			for (CET cet : _getAudiencesCustomAttributesCETs(companyId)) {
 				AudiencesCustomAttributesCET audiencesCustomAttributesCET =
 					(AudiencesCustomAttributesCET)cet;
 
@@ -304,10 +314,9 @@ public class AudiencesCriteriaProviderImpl
 						).setInputType(
 							_getInputType(type)
 						).setKey(
-							StringBundler.concat(
-								"custom:",
+							_getCustomAudiencesCriteriaKey(
 								audiencesCustomAttributesCET.getURL(),
-								StringPool.POUND, symbols[i])
+								symbols[i])
 						).setLabel(
 							names[i]
 						).setType(
@@ -334,16 +343,16 @@ public class AudiencesCriteriaProviderImpl
 	}
 
 	private AudiencesCriteriaType _getGeneralAttributesAudiencesCriteriaType(
-		Locale locale) {
+		long companyId, Locale locale) {
 
-		return new AudiencesCriteriaType(
+		List<AudiencesCriteria> audiencesCriterias = new ArrayList<>(
 			Arrays.asList(
 				AudiencesCriteriaBuilder.setIcon(
 					"check"
 				).setInputType(
 					AudiencesCriteria.InputType.BOOLEAN
 				).setKey(
-					AudiencesCriteriaKeys.USER_AUTHENTICATION
+					_SIGNED_IN_AUDIENCES_CRITERIA_KEY
 				).setLabel(
 					_language.get(locale, "user-authentication")
 				).setType(
@@ -354,15 +363,43 @@ public class AudiencesCriteriaProviderImpl
 				).setInputType(
 					AudiencesCriteria.InputType.SELECT
 				).setKey(
-					AudiencesCriteriaKeys.USER_LANGUAGE
+					_LANGUAGE_AUDIENCES_CRITERIA_KEY
 				).setLabel(
 					_language.get(locale, "user-language")
 				).setOptions(
 					_getLanguageOptions(locale)
 				).setType(
 					AudiencesCriteria.Type.STRING
-				).build()),
-			AudiencesCriteriaTypeKeys.GENERAL,
+				).build()));
+
+		List<AudiencesCriteria.Option> segmentsOptions =
+			TransformUtil.transform(
+				_segmentsEntryLocalService.getSegmentsEntriesBySource(
+					companyId, SegmentsEntryConstants.SOURCE_ASAH_FARO_BACKEND,
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null),
+				segmentsEntry -> new AudiencesCriteria.Option(
+					segmentsEntry.getName(locale),
+					segmentsEntry.getExternalReferenceCode()));
+
+		if (!segmentsOptions.isEmpty()) {
+			audiencesCriterias.add(
+				AudiencesCriteriaBuilder.setIcon(
+					"users"
+				).setInputType(
+					AudiencesCriteria.InputType.SELECT
+				).setKey(
+					AudiencesCriteriaKeys.SEGMENT
+				).setLabel(
+					_language.get(locale, "segments")
+				).setOptions(
+					segmentsOptions
+				).setType(
+					AudiencesCriteria.Type.STRING
+				).build());
+		}
+
+		return new AudiencesCriteriaType(
+			audiencesCriterias, AudiencesCriteriaTypeKeys.GENERAL,
 			_language.get(locale, AudiencesCriteriaTypeKeys.GENERAL));
 	}
 
@@ -395,6 +432,15 @@ public class AudiencesCriteriaProviderImpl
 
 		return options;
 	}
+
+	private static final String _GENERAL_ATTRIBUTES_URL =
+		"/o/frontend-js-audiences-web/__liferay__/custom-attributes.js";
+
+	private static final String _LANGUAGE_AUDIENCES_CRITERIA_KEY =
+		"custom:" + _GENERAL_ATTRIBUTES_URL + "#language";
+
+	private static final String _SIGNED_IN_AUDIENCES_CRITERIA_KEY =
+		"custom:" + _GENERAL_ATTRIBUTES_URL + "#signed_in";
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		AudiencesCriteriaProviderImpl.class);

@@ -13,6 +13,7 @@ import {
 	CartesianGrid,
 	Cell,
 	ComposedChart,
+	Line,
 	ReferenceLine,
 	ResponsiveContainer,
 	Tooltip,
@@ -21,6 +22,10 @@ import {
 	YAxis,
 } from 'recharts';
 import {CHART_COLOR_NAMES} from 'shared/util/charts';
+import {
+	ChartView,
+	DEFAULT_CHART_VIEW,
+} from 'shared/components/ChartViewSelector';
 import {createDateKeysIMap} from 'shared/util/intervals';
 import {
 	formatXAxisDate,
@@ -30,11 +35,13 @@ import {
 } from 'shared/util/charts';
 import {get} from 'lodash';
 import {Interval, RangeSelectors} from 'shared/types';
+import {toLocale} from 'shared/util/numbers';
 
 const {stark: CHART_BLUE} = CHART_COLOR_NAMES;
 
 interface IChartProps<T> extends React.HTMLAttributes<HTMLElement> {
 	alwaysShowSelectedTooltip: boolean;
+	chartView?: ChartView;
 	hasSelectedPoint?: boolean;
 	height?: number;
 	hideGrid?: boolean;
@@ -60,6 +67,7 @@ const ActivitiesChart: React.FC<
 > = ({
 	LDPEnabled = false,
 	alwaysShowSelectedTooltip = false,
+	chartView = DEFAULT_CHART_VIEW,
 	hasSelectedPoint,
 	height = 340,
 	hideGrid = false,
@@ -105,11 +113,11 @@ const ActivitiesChart: React.FC<
 				: [
 						{
 							label: Liferay.Language.get('events'),
-							value: totalEvents.toLocaleString(),
+							value: toLocale(totalEvents),
 						},
 						{
 							label: Liferay.Language.get('sessions'),
-							value: totalSessions.toLocaleString(),
+							value: toLocale(totalSessions),
 						},
 					];
 
@@ -152,6 +160,7 @@ const ActivitiesChart: React.FC<
 	return (
 		<ResponsiveContainer height={height}>
 			<ComposedChart
+				accessibilityLayer
 				data={history}
 				onClick={(pointData) => {
 					if (alwaysShowSelectedTooltip && pointData) {
@@ -276,20 +285,36 @@ const ActivitiesChart: React.FC<
 					}
 				/>
 
-				<Bar
-					animationDuration={ANIMATION_DURATION.bar}
-					dataKey="totalEvents"
-					fill={CHART_BLUE}
-					onMouseEnter={(e, index) => setHoverIndex(index)}
-					onMouseLeave={() => setHoverIndex(-1)}
-				>
-					{history.map((entry, index) => (
-						<Cell
-							fill={getBarColor(index, hoverIndex, selectedPoint)}
-							key={`cell-${index}`}
-						/>
-					))}
-				</Bar>
+				{chartView === 'line' ? (
+					<Line
+						activeDot={{r: 5}}
+						animationDuration={ANIMATION_DURATION.line}
+						dataKey="totalEvents"
+						dot={false}
+						stroke={CHART_BLUE}
+						strokeWidth={2}
+						type="linear"
+					/>
+				) : (
+					<Bar
+						animationDuration={ANIMATION_DURATION.bar}
+						dataKey="totalEvents"
+						fill={CHART_BLUE}
+						onMouseEnter={(e, index) => setHoverIndex(index)}
+						onMouseLeave={() => setHoverIndex(-1)}
+					>
+						{history.map((entry, index) => (
+							<Cell
+								fill={getBarColor(
+									index,
+									hoverIndex,
+									selectedPoint
+								)}
+								key={`cell-${index}`}
+							/>
+						))}
+					</Bar>
+				)}
 			</ComposedChart>
 		</ResponsiveContainer>
 	);

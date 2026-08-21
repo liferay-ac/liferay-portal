@@ -2,8 +2,10 @@ import MetricBar, {Sizes} from 'shared/components/MetricBar';
 import React, {FC} from 'react';
 import TextTruncate from 'shared/components/TextTruncate';
 import {round} from 'lodash';
+import {toLocale, toThousands} from 'shared/util/numbers';
 
 interface IRelativeMetricBarProps extends React.HTMLAttributes<HTMLElement> {
+	abbreviateCount?: boolean;
 	data: {
 		count: number;
 		name: string;
@@ -16,6 +18,7 @@ interface IRelativeMetricBarProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 const RelativeMetricBar: FC<IRelativeMetricBarProps> = ({
+	abbreviateCount = false,
 	data: {count, name},
 	empty = false,
 	showName = false,
@@ -30,7 +33,11 @@ const RelativeMetricBar: FC<IRelativeMetricBarProps> = ({
 			<MetricBar percent={percent} size={Sizes.Lg}>
 				<TextTruncate className="title" title={displayName} />
 
-				{!empty && <span className="count">{count}</span>}
+				{!empty && (
+					<span className="count">
+						{abbreviateCount ? toThousands(count) : toLocale(count)}
+					</span>
+				)}
 			</MetricBar>
 		</td>
 	);

@@ -1,4 +1,5 @@
 import AccountInput from '../inputs/AccountInput';
+import AccountSelectInput from '../inputs/AccountSelectInput';
 import BehaviorInput from '../inputs/BehaviorInput';
 import BooleanInput from '../inputs/BooleanInput';
 import ClayIcon from '@clayui/icon';
@@ -61,7 +62,7 @@ import {Map} from 'immutable';
 import {Option, Picker} from '@clayui/core';
 import {Property} from 'shared/util/records';
 import {RootState} from 'shared/store';
-import {SegmentTypes} from 'shared/util/constants';
+import {SegmentCategories, SegmentTypes} from 'shared/util/constants';
 
 const acceptedDragTypes = [DragTypes.CriteriaRow, DragTypes.Property];
 
@@ -224,6 +225,7 @@ interface ICriteriaRowProps extends PropsFromRedux {
 	onDelete: (index: number) => void;
 	onMove: OnMove;
 	referencedProperties: Map<string, Map<string, Property>>;
+	segmentCategory: SegmentCategories;
 	segmentType: SegmentTypes;
 	sequential?: boolean;
 	stepNumber?: number;
@@ -439,7 +441,15 @@ class CriteriaRow extends React.Component<
 
 	renderValueInput() {
 		const {
-			props: {channelId, criterion, groupId, id, segmentType, timeZoneId},
+			props: {
+				channelId,
+				criterion,
+				groupId,
+				id,
+				segmentCategory,
+				segmentType,
+				timeZoneId,
+			},
 			state: {selectedProperty},
 		} = this;
 
@@ -450,6 +460,7 @@ class CriteriaRow extends React.Component<
 			[PropertyTypes.Boolean]: BooleanInput,
 			[PropertyTypes.Vocabulary]: VocabularyInput,
 			[PropertyTypes.AccountDate]: AccountInput,
+			[PropertyTypes.AccountSelectText]: AccountSelectInput,
 			[PropertyTypes.AccountNumber]: AccountInput,
 			[PropertyTypes.AccountText]: AccountInput,
 			[PropertyTypes.Date]: DateInput,
@@ -488,6 +499,7 @@ class CriteriaRow extends React.Component<
 				operatorRenderer={this.renderOperator}
 				options={options}
 				property={selectedProperty}
+				segmentCategory={segmentCategory}
 				segmentType={segmentType}
 				timeZoneId={timeZoneId}
 				touched={criterion.touched}

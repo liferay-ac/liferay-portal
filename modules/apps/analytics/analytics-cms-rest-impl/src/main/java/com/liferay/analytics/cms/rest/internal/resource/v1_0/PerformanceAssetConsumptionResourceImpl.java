@@ -10,6 +10,7 @@ import com.liferay.analytics.cms.rest.internal.client.AnalyticsCloudClient;
 import com.liferay.analytics.cms.rest.internal.depot.entry.util.DepotEntryUtil;
 import com.liferay.analytics.cms.rest.resource.v1_0.PerformanceAssetConsumptionResource;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
+import com.liferay.analytics.settings.rest.util.AnalyticsSettingsManagerUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.portal.kernel.license.util.LicenseManagerUtil;
@@ -17,7 +18,7 @@ import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
-import jakarta.ws.rs.BadRequestException;
+import jakarta.validation.ValidationException;
 
 import java.util.Arrays;
 
@@ -46,6 +47,9 @@ public class PerformanceAssetConsumptionResourceImpl
 		LicenseManagerUtil.checkFreeTier();
 
 		_validateGroupBy(groupBy);
+
+		AnalyticsSettingsManagerUtil.checkAnalyticsEnabled(
+			_analyticsSettingsManager, contextCompany.getCompanyId());
 
 		Long[] groupIds = DepotEntryUtil.getGroupIds(
 			DepotEntryUtil.getDepotEntries(
@@ -81,7 +85,7 @@ public class PerformanceAssetConsumptionResourceImpl
 			!StringUtil.equalsIgnoreCase(groupBy, "tag") &&
 			!StringUtil.equalsIgnoreCase(groupBy, "vocabulary")) {
 
-			throw new BadRequestException("Invalid group by: " + groupBy);
+			throw new ValidationException("Invalid group by: " + groupBy);
 		}
 	}
 

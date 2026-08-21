@@ -12,6 +12,7 @@ import {computePrecedingTotals} from '../utils/computePrecedingTotals';
 import {computeSliceAngles} from '../utils/computeSliceAngles';
 import PieChartCenterLabel from './PieChartCenterLabel';
 import PieChartSlice from './PieChartSlice';
+import PieChartTrack from './PieChartTrack';
 
 interface PieChartPlotProps {
 	activeDatum?: PieDatum;
@@ -29,6 +30,7 @@ interface PieChartPlotProps {
 	onSliceBlur: () => void;
 	pathFactory: (angles: SliceAngles) => string;
 	pixelSize: number;
+	showCenterLabel: boolean;
 	sliceRefFactory: (
 		index: number
 	) => (element: SVGPathElement | null) => void;
@@ -55,6 +57,7 @@ export default function PieChartPlot({
 	onSliceBlur,
 	pathFactory,
 	pixelSize,
+	showCenterLabel,
 	sliceRefFactory,
 	total,
 }: PieChartPlotProps) {
@@ -98,6 +101,13 @@ export default function PieChartPlot({
 					))}
 				</defs>
 
+				{total === 0 && (
+					<PieChartTrack
+						innerRadius={innerRadius}
+						pixelSize={pixelSize}
+					/>
+				)}
+
 				{slicePaths.length
 					? data.map((datum, index) => (
 							<PieChartSlice
@@ -137,7 +147,7 @@ export default function PieChartPlot({
 				) : null}
 			</svg>
 
-			{innerRadius > 0 ? (
+			{showCenterLabel && innerRadius > 0 ? (
 				<PieChartCenterLabel
 					activeDatum={activeDatum}
 					activePercent={activePercent}

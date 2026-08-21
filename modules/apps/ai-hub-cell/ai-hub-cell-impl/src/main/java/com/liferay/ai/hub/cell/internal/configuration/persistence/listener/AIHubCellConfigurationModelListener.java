@@ -110,7 +110,10 @@ public class AIHubCellConfigurationModelListener
 				Arrays.asList(), false,
 				Arrays.asList(
 					"Liferay.Headless.Batch.Engine.everything",
-					"Liferay.Portal.Search.REST.everything.read"),
+					"Liferay.Headless.CMP.everything.read",
+					"Liferay.Object.Admin.REST.everything.read",
+					"Liferay.Portal.Search.REST.everything.read",
+					"cmpprojectlink.everything"),
 				false, new ServiceContext());
 		}
 		catch (PortalException portalException) {

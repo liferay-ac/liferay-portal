@@ -35,6 +35,10 @@ public interface Rels {
 
 	public static final String ACCOUNT_LIFECYCLES = "account-lifecycles";
 
+	public static final String ACCOUNT_NAMES = "account-names";
+
+	public static final String ACCOUNT_OVERVIEW = "account-overview";
+
 	public static final String ACCOUNTS = "accounts";
 
 	public static final String ACCOUNTS_DISTRIBUTION = "accounts-distribution";
@@ -89,6 +93,8 @@ public interface Rels {
 	public static final String BLOCKED_KEYWORDS = "blocked-keywords";
 
 	public static final String BULK = "bulk";
+
+	public static final String CATALOG_FIELDS = "catalog-fields";
 
 	public static final String CHANNEL = "channel";
 
@@ -150,6 +156,9 @@ public interface Rels {
 	public static final String DATA_SOURCE_SALESFORCE_USERS_FIELDS =
 		"data-source-salesforce-users-fields";
 
+	public static final String DATA_SOURCE_USAGE_METRICS =
+		"data-source-usage-metrics";
+
 	public static final String DATA_SOURCES = "data-sources";
 
 	public static final String DATA_SOURCES_FIELDS = "data-sources-fields";
@@ -196,12 +205,6 @@ public interface Rels {
 
 	public static final String INDIVIDUAL_SEGMENT_MEMBERSHIPS =
 		"individual-segment-memberships";
-
-	public static final String INDIVIDUAL_SEGMENT_REAL_TIME_MEMBERSHIP_METRIC =
-		"individual-segment-real-time-membership-metric";
-
-	public static final String INDIVIDUAL_SEGMENT_REAL_TIME_MEMBERSHIPS =
-		"individual-segment-real-time-memberships";
 
 	public static final String INDIVIDUAL_SEGMENTS = "individual-segments";
 
@@ -270,6 +273,8 @@ public interface Rels {
 
 	public static final String PROJECTS_LAST_SEEN_DATE =
 		"projects-last-seen-date";
+
+	public static final String PROJECTS_METRICS = "projects-metrics";
 
 	public static final String REPORTS_EXPORT_CSV_COUNT =
 		"reports-export-csv-count";

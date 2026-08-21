@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {Text} from '@clayui/core';
 import ClayLayout from '@clayui/layout';
 import {ChartState, MapChart, PieChart} from '@liferay/frontend-js-charts-web';
 import React, {useContext, useEffect, useMemo, useState} from 'react';
@@ -14,18 +15,31 @@ import PerformanceService from '../PerformanceService';
 import {PerformanceMetric} from '../types';
 import {DownloadButton} from './DownloadButton';
 
+const EMPTY_MESSAGES = {
+	categories: {
+		description: Liferay.Language.get(
+			'views-will-break-down-by-category-once-your-content-starts-getting-traffic'
+		),
+		title: Liferay.Language.get('no-category-data-yet'),
+	},
+	location: {
+		description: Liferay.Language.get(
+			'once-people-view-your-content-youll-see-where-theyre-from-on-the-map'
+		),
+		title: Liferay.Language.get('no-views-by-location-yet'),
+	},
+};
+
 export function AudienceAndDistribution() {
 	return (
 		<>
 			<ClayLayout.Row className="mb-3">
 				<ClayLayout.Col size={12}>
 					<SectionHeader
-						ariaLevel={2}
 						description={Liferay.Language.get(
 							'identify-where-your-audience-is-coming-from-and-what-content-theyre-engaging-with'
 						)}
 						icon="globe-pin"
-						role="heading"
 						title={Liferay.Language.get(
 							'audience-and-distribution'
 						)}
@@ -99,6 +113,10 @@ function Card({
 
 	const metrics = metric?.metrics ?? [];
 
+	const empty = !metrics.length;
+
+	const legend = empty ? 'none' : 'list';
+
 	return (
 		<BaseCard
 			Preferences={
@@ -117,32 +135,51 @@ function Card({
 			title={title}
 			uppercaseTitle={false}
 		>
-			<ChartState
-				empty={!loading && !error && !metrics.length}
-				error={error}
-				loading={loading}
-			>
-				{groupBy === 'categories' ? (
-					<PieChart
-						className="cms-dashboard__pie-chart w-100"
-						data={metrics.map(({value, valueKey}) => ({
-							label: valueKey,
-							value,
-						}))}
-						legend="table"
-						title=""
-					/>
-				) : (
-					<MapChart
-						data={metrics.map(({value, valueKey}) => ({
-							country: valueKey,
-							value,
-						}))}
-						legend="table"
-						title=""
-						variant="choropleth"
-					/>
-				)}
+			<ChartState error={error} loading={loading}>
+				<div className="d-flex flex-column flex-grow-1 justify-content-center">
+					{groupBy === 'categories' ? (
+						<PieChart
+							className="w-100"
+							data={metrics.map(({value, valueKey}) => ({
+								label: valueKey,
+								value,
+							}))}
+							legend={legend}
+							legendPosition="bottom"
+							legendSwatchBorder={false}
+							showCenterLabel={!empty}
+							title=""
+						/>
+					) : (
+						<MapChart
+							data={metrics.map(({value, valueKey}) => ({
+								country: valueKey,
+								value,
+							}))}
+							legend={legend}
+							legendPosition="bottom"
+							legendSwatchBorder={false}
+							title=""
+							variant="choropleth"
+						/>
+					)}
+				</div>
+
+				{empty ? (
+					<div className="mt-4 px-8 text-center">
+						<div>
+							<Text size={4} weight="semi-bold">
+								{EMPTY_MESSAGES[groupBy].title}
+							</Text>
+						</div>
+
+						<div>
+							<Text color="secondary" size={3}>
+								{EMPTY_MESSAGES[groupBy].description}
+							</Text>
+						</div>
+					</div>
+				) : null}
 			</ChartState>
 		</BaseCard>
 	);

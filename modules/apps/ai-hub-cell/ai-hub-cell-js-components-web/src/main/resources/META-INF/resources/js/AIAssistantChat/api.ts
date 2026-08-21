@@ -6,9 +6,16 @@
 import {EventSource} from 'eventsource';
 import {fetch} from 'frontend-js-web';
 
+import {HttpRequestAction} from './types';
+
 const AI_HUB_ENDPOINT = '/o/ai-hub/v1.0';
 
-export type ChatContext = Record<string, unknown>;
+export interface ChatContext {
+	fileUploadSelector?: string;
+	groupId?: number | string;
+	objectEntryFolderExternalReferenceCode?: string;
+	[key: string]: unknown;
+}
 
 export async function createEventSource() {
 	const editMode = document.body.classList.contains('has-edit-mode-menu');
@@ -37,6 +44,29 @@ export async function createEventSource() {
 			withCredentials: true,
 		}
 	);
+}
+
+export async function executeHttpRequestAction({
+	body,
+	href,
+	method,
+}: HttpRequestAction) {
+	const authorizationToken = await postAuthorizationToken();
+
+	if (!authorizationToken) {
+		return;
+	}
+
+	return await fetch(href, {
+		body: JSON.stringify(body),
+		headers: new Headers({
+			'Accept': 'application/json',
+			'Authorization': `Bearer ${authorizationToken.accessToken}`,
+			'Content-Type': 'application/json',
+			'Liferay-AI-Hub-Cell-On-Behalf-Of': authorizationToken.userToken,
+		}),
+		method,
+	});
 }
 
 async function postAuthorizationToken() {

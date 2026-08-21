@@ -5,7 +5,7 @@
 
 import {Cookie, Page, expect} from '@playwright/test';
 
-import {getHeader} from '../helpers/ApiHelpers';
+import {clearAuthToken, getHeader, readAuthToken} from '../helpers/ApiHelpers';
 import {liferayConfig} from '../liferay.config';
 import {faroConfig} from '../tests/osb-faro-web/main/faro.config';
 
@@ -76,11 +76,24 @@ async function performLogin(
 	await page.getByLabel('Password').fill(password);
 	await page.getByLabel('Remember Me').setChecked(rememberMe);
 
-	await page.getByRole('button', {name: 'Sign In'}).last().click();
+	// Two buttons on the page carry the name Sign In, the personal bar
+	// trigger and the prompt's own submit, and the prompt can re-render under
+	// the click: a pick by ordinal that is re-resolved in that window matches
+	// the only survivor, the trigger, which submits nothing. Scoped to the
+	// sign in form, the pick can only ever resolve to the submit, and the
+	// click's own wait for it to be enabled is the form's readiness signal,
+	// because the script that enables it attaches the submit handler first.
+
+	await page
+		.locator('form.sign-in-form')
+		.getByRole('button', {name: 'Sign In'})
+		.click();
 
 	await expect(page.getByLabel(`${name} ${surname}`)).toBeVisible({
 		timeout: 30 * 1000,
 	});
+
+	await readAuthToken(page);
 
 	return await page.context().cookies();
 }
@@ -103,6 +116,11 @@ export async function performLoginViaApi({
 	try {
 		await page.goto(loginUrl);
 
+		// Signing in replaces the session, so drop the token held for the one
+		// being left behind before the request that replaces it.
+
+		clearAuthToken(page);
+
 		const url = `${loginUrl}/c/portal/login`;
 
 		await expect
@@ -120,6 +138,11 @@ export async function performLoginViaApi({
 			.toBe(200);
 
 		await page.goto(loginUrl);
+
+		// The page has settled on the signed in session, so this is the moment
+		// to read the token every later request will carry.
+
+		await readAuthToken(page);
 	}
 	catch (error) {
 		error.message = `Login via API failed\n\n${error.message}`;
@@ -144,6 +167,11 @@ export async function performAnalyticsCloudLoginViaApi(
 	try {
 		await page.goto(loginUrl);
 
+		// Signing in replaces the session, so drop the token held for the one
+		// being left behind before the request that replaces it.
+
+		clearAuthToken(page);
+
 		const url = `${loginUrl}/c/portal/login`;
 
 		await expect
@@ -161,6 +189,11 @@ export async function performAnalyticsCloudLoginViaApi(
 			.toBe(200);
 
 		await page.goto(loginUrl);
+
+		// The page has settled on the signed in session, so this is the moment
+		// to read the token every later request will carry.
+
+		await readAuthToken(page);
 	}
 	catch (error) {
 		error.message = `Analytics Cloud login via API failed\n\n${error.message}`;
@@ -172,19 +205,11 @@ export async function performAnalyticsCloudLoginViaApi(
 }
 
 export async function performLogout(page: Page) {
-	await page.goto('/');
+	await page.goto('/c/portal/logout');
 
-	await expect(async () => {
-		await page.getByTitle('User Profile Menu').click({timeout: 1000});
+	await page.waitForURL((url) => !url.pathname.endsWith('/c/portal/logout'));
 
-		await page
-			.getByRole('menuitem', {name: 'Sign Out'})
-			.click({timeout: 1000});
-
-		await expect(page.getByRole('button', {name: 'Sign In'})).toBeVisible({
-			timeout: 3000,
-		});
-	}).toPass();
+	clearAuthToken(page);
 }
 
 export async function performUserSwitch(

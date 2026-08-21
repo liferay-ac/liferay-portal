@@ -16,7 +16,6 @@ import java.util.Properties;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -29,9 +28,47 @@ import org.mockito.Mockito;
 public class JenkinsResultsParserUtilTest
 	extends com.liferay.jenkins.results.parser.Test {
 
-	@After
-	public void tearDown() {
-		Environment.setInstance(new Environment());
+	@Test
+	public void testDecodeURLParameterPart() {
+		testEquals(
+			"100% pass",
+			JenkinsResultsParserUtil.decodeURLParameterPart("100%25%20pass"));
+		testEquals(
+			"100%%20pass",
+			JenkinsResultsParserUtil.decodeURLParameterPart("100%%20pass"));
+		testEquals(
+			"AWS & CI",
+			JenkinsResultsParserUtil.decodeURLParameterPart("AWS%20%26%20CI"));
+		testEquals(
+			"PortalSmoke#Smoke",
+			JenkinsResultsParserUtil.decodeURLParameterPart(
+				"PortalSmoke%23Smoke"));
+		testEquals(
+			"a+b", JenkinsResultsParserUtil.decodeURLParameterPart("a%2Bb"));
+		testEquals(
+			"master",
+			JenkinsResultsParserUtil.decodeURLParameterPart("master"));
+	}
+
+	@Test
+	public void testEncodeURLParameterPart() {
+		testEquals(
+			"100%25%20pass",
+			JenkinsResultsParserUtil.encodeURLParameterPart("100% pass"));
+		testEquals(
+			"AWS%20CI",
+			JenkinsResultsParserUtil.encodeURLParameterPart("AWS CI"));
+		testEquals(
+			"PortalSmoke%23Smoke",
+			JenkinsResultsParserUtil.encodeURLParameterPart(
+				"PortalSmoke#Smoke"));
+		testEquals(
+			"a%26b", JenkinsResultsParserUtil.encodeURLParameterPart("a&b"));
+		testEquals(
+			"a%2Bb", JenkinsResultsParserUtil.encodeURLParameterPart("a+b"));
+		testEquals(
+			"master",
+			JenkinsResultsParserUtil.encodeURLParameterPart("master"));
 	}
 
 	@Test(timeout = 30000)
@@ -394,8 +431,6 @@ public class JenkinsResultsParserUtilTest
 			"jenkins.admin.user.name", RandomTestUtil.randomString());
 		buildProperties.setProperty(
 			"jenkins.admin.user.token", RandomTestUtil.randomString());
-		buildProperties.setProperty(
-			"jenkins.authentication.token", RandomTestUtil.randomString());
 
 		JenkinsResultsParserUtil.setBuildProperties(buildProperties);
 
@@ -407,7 +442,7 @@ public class JenkinsResultsParserUtilTest
 			urlReader
 		).doGetResponseHeader(
 			Mockito.eq("Location"), Mockito.any(), Mockito.any(), Mockito.any(),
-			Mockito.anyInt(), Mockito.anyString()
+			Mockito.any(), Mockito.anyInt(), Mockito.anyString()
 		);
 
 		JenkinsMaster jenkinsMaster = Mockito.mock(JenkinsMaster.class);
@@ -509,6 +544,14 @@ public class JenkinsResultsParserUtilTest
 		Assert.assertFalse(
 			JenkinsResultsParserUtil.isBuildCachingEnabled(
 				"test-portal-release", "default"));
+	}
+
+	@Test
+	public void testIsCINode() {
+		_testIsCINode("https://test-1-1.liferay.com/", "test-network", true);
+		_testIsCINode("https://test-1-1.liferay.com/", null, true);
+		_testIsCINode(null, "test-network", true);
+		_testIsCINode(null, null, false);
 	}
 
 	@Test
@@ -738,6 +781,33 @@ public class JenkinsResultsParserUtilTest
 			expectedPropertyValue,
 			JenkinsResultsParserUtil.getProperty(
 				properties, actualPropertyName));
+	}
+
+	private void _testIsCINode(
+		String jenkinsURL, String masterNetworkName, boolean expected) {
+
+		Environment environment = mockEnvironment();
+
+		Mockito.when(
+			environment.doGet("JENKINS_URL")
+		).thenReturn(
+			jenkinsURL
+		);
+
+		Mockito.when(
+			environment.doGet("MASTER_NETWORK_NAME")
+		).thenReturn(
+			masterNetworkName
+		);
+
+		ReflectionTestUtil.setFieldValue(
+			JenkinsResultsParserUtil.class, "_ciNode", null);
+
+		Assert.assertEquals(
+			JenkinsResultsParserUtil.combine(
+				"Unexpected isCINode() value for JENKINS_URL=", jenkinsURL,
+				" and MASTER_NETWORK_NAME=", masterNetworkName),
+			expected, JenkinsResultsParserUtil.isCINode());
 	}
 
 }

@@ -5,6 +5,7 @@
 
 package com.liferay.headless.admin.site.resource.v1_0;
 
+import com.liferay.headless.admin.site.dto.v1_0.PageSpecification;
 import com.liferay.headless.admin.site.dto.v1_0.PageSpecificationVersion;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
@@ -44,6 +45,12 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface PageSpecificationVersionResource {
 
+	public void deleteSiteSitePagePageSpecificationVersion(
+			String siteExternalReferenceCode,
+			String sitePageExternalReferenceCode,
+			String pageSpecificationVersionExternalReferenceCode)
+		throws Exception;
+
 	public PageSpecificationVersion getSiteSitePagePageSpecificationVersion(
 			String siteExternalReferenceCode,
 			String sitePageExternalReferenceCode,
@@ -54,6 +61,12 @@ public interface PageSpecificationVersionResource {
 			getSiteSitePagePageSpecificationVersionsPage(
 				String siteExternalReferenceCode,
 				String sitePageExternalReferenceCode)
+		throws Exception;
+
+	public PageSpecification postSiteSitePagePageSpecificationVersionRestore(
+			String siteExternalReferenceCode,
+			String sitePageExternalReferenceCode,
+			String pageSpecificationVersionExternalReferenceCode)
 		throws Exception;
 
 	public default void setContextAcceptLanguage(
@@ -152,4 +165,4 @@ public interface PageSpecificationVersionResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-1909812915
+// LIFERAY-REST-BUILDER-HASH:-606674173

@@ -26,7 +26,6 @@ import com.liferay.portal.kernel.exception.LayoutPermissionException;
 import com.liferay.portal.kernel.exception.NoSuchGroupException;
 import com.liferay.portal.kernel.exception.NoSuchLayoutException;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -342,12 +341,6 @@ public class FriendlyURLServlet extends HttpServlet {
 					}
 
 					if (group.isCMS()) {
-						if (!FeatureFlagManagerUtil.isEnabled(
-								layout.getCompanyId(), "LPD-17564")) {
-
-							throw new NoSuchLayoutException();
-						}
-
 						int depotEntriesCount =
 							depotEntryLocalService.getDepotEntriesCount(
 								group.getCompanyId(),
@@ -1106,9 +1099,13 @@ public class FriendlyURLServlet extends HttpServlet {
 			layoutFriendlyURL = layout.getFriendlyURL(originalLocale);
 		}
 
-		if (requestURI.contains(layoutFriendlyURL)) {
+		String encodedLayoutFriendlyURL = HttpComponentsUtil.encodePath(
+			layoutFriendlyURL);
+
+		if (requestURI.contains(encodedLayoutFriendlyURL)) {
 			requestURI = StringUtil.replaceFirst(
-				requestURI, layoutFriendlyURL, layout.getFriendlyURL(locale));
+				requestURI, encodedLayoutFriendlyURL,
+				HttpComponentsUtil.encodePath(layout.getFriendlyURL(locale)));
 		}
 
 		boolean appendI18nPath = true;

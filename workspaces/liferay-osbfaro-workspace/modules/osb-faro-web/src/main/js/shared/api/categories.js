@@ -19,6 +19,9 @@ export function fetchAccountTopCategories({
 	accountId,
 	channelId,
 	groupId,
+	rangeEnd,
+	rangeKey,
+	rangeStart,
 	selectedMetric,
 }) {
 	return sendRequest({
@@ -28,6 +31,37 @@ export function fetchAccountTopCategories({
 			pageSize: 5,
 			selectedMetric,
 			sort: `${selectedMetric},desc`,
+			...(rangeKey ? {rangeKey} : {}),
+			...(rangeEnd && rangeStart ? {rangeEnd, rangeStart} : {}),
+		},
+		method: 'GET',
+		path: `contacts/${groupId}/asset-summary-categories`,
+	});
+}
+
+/**
+ * `individualId` mirrors the `accountId` parameter `fetchAccountTopCategories`
+ * sends: the endpoint takes one scope or the other.
+ */
+
+export function fetchIndividualTopCategories({
+	channelId,
+	groupId,
+	individualId,
+	rangeEnd,
+	rangeKey,
+	rangeStart,
+	selectedMetric,
+}) {
+	return sendRequest({
+		data: {
+			channelId,
+			individualId,
+			pageSize: 5,
+			selectedMetric,
+			sort: `${selectedMetric},desc`,
+			...(rangeKey ? {rangeKey} : {}),
+			...(rangeEnd && rangeStart ? {rangeEnd, rangeStart} : {}),
 		},
 		method: 'GET',
 		path: `contacts/${groupId}/asset-summary-categories`,

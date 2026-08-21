@@ -3,6 +3,7 @@ import AccountMembership from '../components/AccountMembership';
 import Card from 'shared/components/Card';
 import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
+import EngagementSummary from '../components/EngagementSummary';
 import IndividualAttributesCDP from '../components/IndividualAttributesCDP';
 import IndividualDetailsCDP from '../components/IndividualAllAttributesCDP';
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
@@ -21,6 +22,7 @@ enum IndividualProfileCDPCards {
 }
 
 interface IIndividualProfileCDPProps {
+	channelId: string;
 	groupId: string;
 	individual: Individual;
 }
@@ -121,9 +123,12 @@ const ProfileCDPEmptyState: React.FC<IProfileCDPEmptyStateProps> = ({
 };
 
 const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
+	channelId,
 	groupId,
 	individual,
 }) => {
+	const individualId = individual.get('id');
+
 	const {data: dataSourceData, loading: dataSourceLoading} = useRequest({
 		dataSourceFn: API.dataSource.search,
 		variables: {
@@ -143,7 +148,7 @@ const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
 	return (
 		<>
 			<IndividualAttributesCDP
-				contactId={individual.get('id')}
+				contactId={individualId}
 				loading={dataSourceLoading}
 				propertiesData={individual.get('properties')}
 				showEmptyState={showEmptyState}
@@ -158,6 +163,8 @@ const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
 
 			<AccountMembership
 				accountData={individual.getIn(['accounts', 0])}
+				channelId={channelId}
+				groupId={groupId}
 				loading={dataSourceLoading}
 				showEmptyState={showEmptyState}
 			>
@@ -169,9 +176,25 @@ const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
 				/>
 			</AccountMembership>
 
+			<EngagementSummary
+				channelId={channelId}
+				groupId={groupId}
+				individualId={individualId}
+				individualName={individual.get('name')}
+				loading={dataSourceLoading}
+				showEmptyState={showEmptyState}
+			>
+				<ProfileCDPEmptyState
+					authorized={authorized}
+					dataSourceData={dataSourceData}
+					groupId={groupId}
+					pageDisplay={false}
+				/>
+			</EngagementSummary>
+
 			<IndividualDetailsCDP
 				groupId={groupId}
-				individualId={individual.get('id')}
+				individualId={individualId}
 				showEmptyState={showEmptyState}
 			>
 				<ProfileCDPEmptyState

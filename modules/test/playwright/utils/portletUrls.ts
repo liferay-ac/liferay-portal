@@ -33,6 +33,7 @@ export const PORTLET_URLS = {
 	cmsPicklistBuilder: 'web/cms/picklist-builder',
 	cmsRecycleBin: 'web/cms/recycle-bin',
 	cmsSharedWithMe: 'web/cms/shared-with-me',
+	cmsSpaceSettings: 'web/cms/e/space-settings',
 	cmsStructureBuilder: 'web/cms/structure-builder',
 	cmsStructures: 'web/cms/structures',
 	cmsTags: 'web/cms/categorization/view-tags',
@@ -95,6 +96,8 @@ export const PORTLET_URLS = {
 	pages: '/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet',
 	picklists:
 		'/~/control_panel/manage?p_p_id=com_liferay_object_web_internal_list_type_portlet_portlet_ListTypeDefinitionsPortlet',
+	pimConnectors: 'web/cms/connectors',
+	pimProducts: 'web/cms/products',
 	processBuilder:
 		'/~/control_panel/manage?p_p_id=com_liferay_portal_workflow_web_portlet_ControlPanelWorkflowPortlet',
 	publications:

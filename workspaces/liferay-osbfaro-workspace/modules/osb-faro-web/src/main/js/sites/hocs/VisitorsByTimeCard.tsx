@@ -7,6 +7,7 @@ import ChartTooltip, {
 } from 'shared/components/chart-tooltip';
 import ClayLink from '@clayui/link';
 import HeatmapChart from 'shared/components/HeatmapChart';
+import moment from 'moment';
 import PropTypes from 'prop-types';
 import React, {useContext} from 'react';
 import ReactDOMServer from 'react-dom/server';
@@ -21,22 +22,16 @@ import {
 } from './mappers/visitors-by-time-query';
 import {ReportContainer} from 'shared/components/download-report/DownloadPDFReport';
 import {sub} from 'shared/util/lang';
+import {toThousands} from 'shared/util/numbers';
+import {getHourOnlyFormat} from 'shared/util/date';
 import {withEmpty, withError, withLoading} from 'shared/hoc';
 
-export const formatHour = (hour: string) => {
-	const hourAsNumber = parseInt(hour);
-	const suffix = hourAsNumber >= 12 ? 'PM' : 'AM';
-	let hourDisplay = hourAsNumber;
-
-	if (hourAsNumber === 0) {
-		hourDisplay = 12;
-	}
-	else if (hourAsNumber > 12) {
-		hourDisplay = hourAsNumber - 12;
-	}
-
-	return `${hourDisplay} ${suffix}`;
-};
+export const formatHour = (hour: string) =>
+	moment
+		.utc()
+		.startOf('day')
+		.add(Number(hour), 'hours')
+		.format(getHourOnlyFormat());
 
 export const renderTooltip = ({
 	column,
@@ -65,7 +60,7 @@ export const renderTooltip = ({
 						{
 							align: Alignments.Center,
 							label: sub(Liferay.Language.get('x-visitors'), [
-								value.toLocaleString(),
+								toThousands(value),
 							]) as string,
 						},
 					],
@@ -109,13 +104,15 @@ const HeatmapChartWithData = compose<any>(
 
 interface IVisitorsByTimeCardProps extends React.HTMLAttributes<HTMLElement> {
 	label: string;
+	minHeight?: number;
 }
 
 const VisitorsByTimeCard: React.FC<IVisitorsByTimeCardProps> = ({
 	className,
 	label,
+	minHeight,
 }) => {
-	const {router} = useContext(
+	const {accountId, router, segmentId} = useContext(
 		BasePage.Context as React.Context<IBasePageContext>
 	);
 
@@ -124,16 +121,19 @@ const VisitorsByTimeCard: React.FC<IVisitorsByTimeCardProps> = ({
 			className={className}
 			label={label}
 			legacyDropdownRangeKey={false}
+			minHeight={minHeight}
 			reportContainer={ReportContainer.VisitorsByTimeCard}
 		>
 			{({rangeSelectors}) => (
 				<Card.Body>
 					<HeatmapChartWithData
+						accountId={accountId}
 						columnAxisFormatter={(col: string) => col.slice(0, 3)}
 						rangeSelectors={rangeSelectors}
 						renderTooltip={renderTooltip}
 						router={router}
 						rowAxisFormatter={formatHour}
+						segmentId={segmentId}
 					/>
 				</Card.Body>
 			)}

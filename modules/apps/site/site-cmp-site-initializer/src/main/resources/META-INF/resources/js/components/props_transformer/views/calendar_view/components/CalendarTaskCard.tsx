@@ -6,17 +6,19 @@
 import {ClayButtonWithIcon} from '@clayui/button';
 import {ClayDropDownWithItems} from '@clayui/drop-down';
 import ClayIcon from '@clayui/icon';
-import {IItemsActions} from '@liferay/frontend-data-set-web';
+import {IItemsActions, getItemActionURL} from '@liferay/frontend-data-set-web';
 import {AssigneeAvatar} from '@liferay/object-dynamic-data-mapping-form-field-type';
 import classNames from 'classnames';
 import {navigate} from 'frontend-js-web';
 import React from 'react';
 
-import getActionURL from '../../../../../utils/getActionURL';
 import getTaskItemsActions from '../../../../../utils/getTaskItemsActions';
 import isActionsMenuEvent from '../../../../../utils/isActionsMenuEvent';
 import isOverdue from '../../../../../utils/isOverdue';
-import {ITaskObjectEntry} from '../../../../../utils/types';
+import {
+	ITaskItemsActionsTask,
+	ITaskObjectEntry,
+} from '../../../../../utils/types';
 import StateLabel from '../../../../StateLabel';
 
 import './CalendarTaskCard.scss';
@@ -25,6 +27,7 @@ interface CalendarTaskCardProps {
 	expanded?: boolean;
 	itemsActions?: IItemsActions[];
 	loadData: Function;
+	onTaskChanged?: (task: ITaskItemsActionsTask) => void;
 	task: ITaskObjectEntry;
 }
 
@@ -32,6 +35,7 @@ export default function CalendarTaskCard({
 	expanded = false,
 	itemsActions = [],
 	loadData,
+	onTaskChanged,
 	task,
 }: CalendarTaskCardProps) {
 	const {assignTo, dueDate, state, title} = task;
@@ -39,18 +43,21 @@ export default function CalendarTaskCard({
 	const blocked = state?.key === 'blocked';
 	const overdue = isOverdue({dueDate, state});
 
-	const taskItemsActions = getTaskItemsActions(itemsActions, loadData, {
-		actions: task.actions,
-		embedded: task,
-	});
+	const taskItemsActions = getTaskItemsActions(
+		itemsActions,
+		loadData,
+		{
+			actions: task.actions,
+			embedded: task,
+		},
+		onTaskChanged
+	);
 
 	const hasViewPermission = Boolean(task.actions?.get);
 
 	const handleViewTask = () => {
-		const viewURL = getActionURL({
-			actionId: 'actionLink',
-			itemsActions,
-			task: {embedded: task},
+		const viewURL = getItemActionURL(itemsActions, 'actionLink', {
+			embedded: task,
 		});
 
 		if (viewURL) {

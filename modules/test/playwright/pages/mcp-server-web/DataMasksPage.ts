@@ -5,82 +5,30 @@
 
 import {Locator, Page} from '@playwright/test';
 
-const DATA_MASKS_URL =
-	'/group/guest/~/control_panel/manage?p_p_id=com_liferay_mcp_server_web_internal_portlet_MCPServerPortlet';
+import {FDSTablePage} from './FDSTablePage';
 
-export class DataMasksPage {
-	readonly addFilterButton: Locator;
-	readonly dataSet: Locator;
-	readonly filterButton: Locator;
+const MCP_SERVER_PORTLET_ID =
+	'com_liferay_mcp_server_web_internal_portlet_MCPServerPortlet';
+
+const DATA_MASKS_URL = `/group/guest/~/control_panel/manage?p_p_id=${MCP_SERVER_PORTLET_ID}&_${MCP_SERVER_PORTLET_ID}_mvcRenderCommandName=${encodeURIComponent(
+	'/mcp_server/view_data_masks'
+)}`;
+
+export class DataMasksPage extends FDSTablePage {
 	readonly newDataMaskButton: Locator;
-	readonly orderButton: Locator;
-	readonly page: Page;
-	readonly searchInput: Locator;
-	readonly table: Locator;
 
 	constructor(page: Page) {
-		this.page = page;
-		this.dataSet = page.locator('.fds');
-		this.table = this.dataSet.locator('table');
-		this.searchInput = this.dataSet.getByRole('searchbox', {
-			name: 'Search',
-		});
+		super(page);
+
 		this.newDataMaskButton = page.getByRole('button', {
 			name: 'New Data Mask',
-		});
-		this.filterButton = page.getByRole('button', {
-			exact: true,
-			name: 'Filter',
-		});
-		this.addFilterButton = page.getByRole('button', {
-			exact: true,
-			name: 'Add Filter',
-		});
-		this.orderButton = page.getByRole('button', {
-			exact: true,
-			name: 'Order',
 		});
 	}
 
 	async goto() {
 		await this.page.goto(DATA_MASKS_URL, {waitUntil: 'load'});
 
-		await this.table.waitFor({state: 'visible'});
-	}
-
-	async filterByType(value: string) {
-		await this.filterButton.click();
-
-		await this.page
-			.getByRole('menuitem', {exact: true, name: 'Type'})
-			.click();
-
-		await this.page.getByLabel(value, {exact: true}).check();
-
-		await this.addFilterButton.click();
-	}
-
-	async search(name: string) {
-		await this.searchInput.fill(name);
-		await this.page.keyboard.press('Enter');
-	}
-
-	row(name: string): Locator {
-		return this.table
-			.locator('tbody tr')
-			.filter({has: this.page.getByRole('link', {exact: true, name})});
-	}
-
-	titleLink(name: string): Locator {
-		return this.row(name).getByRole('link', {exact: true, name});
-	}
-
-	async clickAction(name: string, action: string) {
-		await this.row(name).getByRole('button', {name: 'Actions'}).click();
-
-		await this.page
-			.getByRole('menuitem', {exact: true, name: action})
-			.click();
+		await this.waitForTable();
 	}
 
 	get formHeading(): Locator {
@@ -121,9 +69,5 @@ export class DataMasksPage {
 
 	get testButton(): Locator {
 		return this.page.getByRole('button', {exact: true, name: 'Test'});
-	}
-
-	get dialog(): Locator {
-		return this.page.getByRole('dialog');
 	}
 }

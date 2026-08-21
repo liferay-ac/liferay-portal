@@ -1,5 +1,5 @@
 import React from 'react';
-import {formatDateToTimeZone} from 'shared/util/date';
+import {formatDateToTimeZone, getCustomDateFormat} from 'shared/util/date';
 import {
 	getMetricName,
 	mergedVariants,
@@ -13,7 +13,7 @@ import {SummaryBaseCard} from './SummaryBaseCard';
 import {SummaryParagraph} from './SummaryParagraph';
 import {SummarySection} from './SummarySection';
 import {SummaryTitle} from './SummaryTitle';
-import {toRounded} from 'shared/util/numbers';
+import {formatPercent} from 'shared/util/numbers';
 
 export const SummaryWinnerCard: React.FC<{
 	experiment: IExperiment & {
@@ -56,7 +56,11 @@ export const SummaryWinnerCard: React.FC<{
 			<SummaryBaseCard.Header
 				Description={() =>
 					sub(Liferay.Language.get('started-x'), [
-						formatDateToTimeZone(startedDate, 'll', timeZoneId),
+						formatDateToTimeZone(
+							startedDate,
+							getCustomDateFormat(),
+							timeZoneId
+						),
 					]) as any
 				}
 				title={Liferay.Language.get('winner-declared')}
@@ -73,12 +77,11 @@ export const SummaryWinnerCard: React.FC<{
 								),
 								[
 									secondPlaceVariant?.dxpVariantName ?? '',
-									`${toRounded(
+									formatPercent(
 										Math.abs(
 											secondPlaceVariant?.improvement ?? 0
-										),
-										2
-									)}%`,
+										)
+									),
 								]
 							) as string
 						}
@@ -101,10 +104,9 @@ export const SummaryWinnerCard: React.FC<{
 								),
 								[
 									winnerVariant?.dxpVariantName,
-									`${toRounded(
-										winnerVariant?.improvement ?? 0,
-										2
-									)}%`,
+									formatPercent(
+										winnerVariant?.improvement ?? 0
+									),
 								]
 							) as string
 						}
@@ -130,10 +132,10 @@ export const SummaryWinnerCard: React.FC<{
 							title={Liferay.Language.get('test-completion')}
 						>
 							<SummarySection.Heading
-								value={`${toRounded(completion)}%`}
+								value={formatPercent(completion)}
 							/>
 							<SummarySection.ProgressBar
-								value={parseInt(toRounded(completion))}
+								value={Math.floor(completion)}
 							/>
 						</SummarySection>
 
@@ -167,10 +169,9 @@ export const SummaryWinnerCard: React.FC<{
 								{winnerVariant?.improvement !== undefined &&
 									winnerVariant.improvement > 0 && (
 										<SummarySection.Variant
-											lift={`${toRounded(
-												winnerVariant.improvement,
-												2
-											)}%`}
+											lift={formatPercent(
+												winnerVariant.improvement
+											)}
 											status="up"
 										/>
 									)}

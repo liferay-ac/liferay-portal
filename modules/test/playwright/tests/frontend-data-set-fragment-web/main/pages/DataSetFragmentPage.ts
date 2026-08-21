@@ -72,7 +72,7 @@ export class DataSetFragmentPage {
 	// Unresolved API URL preview rendered by the fragment in edit mode
 
 	readonly unresolvedPreview: {
-		alert: Locator;
+		alerts: Locator;
 		container: Locator;
 		skeletonBars: Locator;
 		urlBox: Locator;
@@ -192,7 +192,7 @@ export class DataSetFragmentPage {
 		);
 
 		this.unresolvedPreview = {
-			alert: unresolvedPreviewContainer.locator('.alert-info'),
+			alerts: unresolvedPreviewContainer.locator('.alert-info'),
 			container: unresolvedPreviewContainer,
 			skeletonBars: unresolvedPreviewContainer.locator(
 				'.data-set-skeleton-bar'
@@ -300,7 +300,11 @@ export class DataSetFragmentPage {
 	}
 
 	async editPage({layout}: {layout: Layout}) {
-		await this.page.goto(`/web/guest${layout.friendlyURL}?p_l_mode=edit`);
+		await this.page.goto(
+			`/web/guest${layout.draftLayout?.friendlyURL || layout.friendlyURL}?p_l_mode=edit`
+		);
+
+		await expect(this.fragmentWidgetSearchInput).toBeVisible();
 	}
 
 	async goToPage({layout}: {layout: Layout}) {

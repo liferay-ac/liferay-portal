@@ -16,24 +16,26 @@ import StateSelector, {State} from '../StateSelector';
 import User, {UserProps} from './User';
 
 interface ProjectInfoSummaryProps {
+	cmpProjectObjectEntryId: string;
 	dueDate: string;
 	funnelStages: string[];
+	hasUpdatePermission: boolean;
 	initialState: string;
 	manager: UserProps;
 	personas: string[];
-	projectId: string;
 	sponsor: UserProps;
 	states: State[];
 	tags: string[];
 }
 
 export default function ProjectInfoSummary({
+	cmpProjectObjectEntryId,
 	dueDate,
 	funnelStages,
+	hasUpdatePermission,
 	initialState,
 	manager,
 	personas,
-	projectId,
 	sponsor,
 	states,
 	tags,
@@ -46,16 +48,18 @@ export default function ProjectInfoSummary({
 			defaultOpen={true}
 			items={[
 				{
-					label: 'State',
+					label: Liferay.Language.get('state'),
 					value: (
 						<StateSelector
-							disabled={stateSelectorDisabled}
+							disabled={
+								!hasUpdatePermission || stateSelectorDisabled
+							}
 							onChange={async (key: string) => {
 								setStateSelectorDisabled(true);
 
 								const {error} = await patchProjectById({
 									body: {state: key},
-									projectId,
+									projectId: cmpProjectObjectEntryId,
 								});
 
 								if (!error) {
@@ -77,10 +81,16 @@ export default function ProjectInfoSummary({
 						/>
 					),
 				},
-				{label: 'Manager', value: <User {...manager} />},
-				{label: 'Sponsor', value: <User {...sponsor} />},
 				{
-					label: 'Due Date',
+					label: Liferay.Language.get('manager'),
+					value: <User {...manager} />,
+				},
+				{
+					label: Liferay.Language.get('sponsor'),
+					value: <User {...sponsor} />,
+				},
+				{
+					label: Liferay.Language.get('due-date'),
 					value: DateRenderer({value: dueDate}) ?? '',
 				},
 				{

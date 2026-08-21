@@ -14,6 +14,7 @@ import EventDefinitionQuery from 'event-analysis/queries/EventDefinitionQuery';
 import EventDefinitionsQuery from 'event-analysis/queries/EventDefinitionsQuery';
 import EventMetricQuery from 'shared/queries/EventMetricQuery';
 import EventPropertiesQuery from 'segment/segment-editor/dynamic/queries/EventPropertiesQuery';
+import EventsTrendQuery from 'shared/queries/EventsTrendQuery';
 import getInterestsQuery from 'contacts/queries/InterestsQuery';
 import IndividualInterestsQuery from 'shared/queries/IndividualInterestsQuery';
 import IndividualMetricsQuery from 'shared/queries/IndividualMetricsQuery';
@@ -62,8 +63,10 @@ import {
 import {getSafeRangeSelectors} from 'shared/util/util';
 import {INTERVAL_KEY_MAP} from 'shared/util/time';
 import {isArray, mapValues, range} from 'lodash';
-import {PageAudienceReportQuery} from 'shared/components/audience-report/queries';
-import {SegmentPageViewsQuery} from 'shared/queries/SegmentPageViewsQuery';
+import {
+	PageAudienceReportQuery,
+	PageSegmentQuery,
+} from 'shared/components/audience-report/queries';
 
 const METRIC_TYPENAME_MAP = {
 	histogram: 'HistogramMetric',
@@ -274,20 +277,22 @@ export function mockAssetTabsReq({metrics, name, rangeKey}) {
 	};
 }
 
+const AUDIENCE_REPORT_VARIABLES = {
+	channelId: '456',
+	devices: 'Any',
+	location: 'Any',
+	rangeEnd: null,
+	rangeKey: 30,
+	rangeStart: null,
+	title: 'Home Page',
+	touchpoint: 'https://www.liferay.com',
+};
+
 export function mockAudienceReportReq({queryProps}) {
 	return {
 		request: {
 			query: PageAudienceReportQuery(queryProps),
-			variables: {
-				channelId: '456',
-				devices: 'Any',
-				location: 'Any',
-				rangeEnd: null,
-				rangeKey: 30,
-				rangeStart: null,
-				title: 'Home Page',
-				touchpoint: 'https://www.liferay.com',
-			},
+			variables: AUDIENCE_REPORT_VARIABLES,
 		},
 		result: {
 			data: {
@@ -303,6 +308,25 @@ export function mockAudienceReportReq({queryProps}) {
 							segmentedAnonymousUsersCount: null,
 							segmentedKnownUsersCount: 2,
 						},
+					},
+				},
+			},
+		},
+	};
+}
+
+export function mockSegmentReq({queryProps}) {
+	return {
+		request: {
+			query: PageSegmentQuery(queryProps),
+			variables: AUDIENCE_REPORT_VARIABLES,
+		},
+		result: {
+			data: {
+				page: {
+					__typename: 'PageMetric',
+					viewsMetric: {
+						__typename: 'Metric',
 						segment: {
 							__typename: 'MetricBag',
 							metrics: [
@@ -993,7 +1017,7 @@ export function mockSitesTabsReq({rangeKey}) {
 	};
 }
 
-export function mockSitesTopPagesReq() {
+export function mockSitesTopPagesReq(variables = {}) {
 	return {
 		request: {
 			query: SitesTopPagesQuery,
@@ -1008,6 +1032,7 @@ export function mockSitesTopPagesReq() {
 					type: 'DESC',
 				},
 				start: 0,
+				...variables,
 			},
 		},
 		result: {
@@ -1599,7 +1624,10 @@ export function mockRecommendationReq(item = {}, mockVariables = {}) {
 	};
 }
 
-export function mockPagePathReq(data = [], {rangeKey = 30}) {
+export function mockPagePathReq(
+	data = [],
+	{accountId, rangeKey = 30, segmentId} = {}
+) {
 	return {
 		request: {
 			query: PagePathQuery,
@@ -1610,6 +1638,8 @@ export function mockPagePathReq(data = [], {rangeKey = 30}) {
 				rangeKey,
 				rangeStart: null,
 				title: 'Liferay DXP - Home',
+				...(accountId && {accountId}),
+				...(segmentId && {segmentId}),
 			},
 		},
 		result: {
@@ -1709,34 +1739,6 @@ export function mockSearchStringListReq() {
 					key: 'search-query-strings',
 					value: JSON.stringify(['jackson']),
 				},
-			},
-		},
-	};
-}
-
-export function mockSegmentPageViewsReq({segmentPageViews}) {
-	return {
-		request: {
-			fetchPolicy: 'network-only',
-			query: SegmentPageViewsQuery,
-			variables: {
-				canonicalUrl: 'http://liferay.com',
-				channelId: '456',
-				rangeEnd: null,
-				rangeKey: 0,
-				rangeStart: null,
-				segmentIds: segmentPageViews.map(
-					(segment) => segment.segmentId
-				),
-				title: 'Liferay DXP - Home',
-			},
-		},
-		result: {
-			data: {
-				segmentPageViews: segmentPageViews.map((segment) => ({
-					...segment,
-					__typename: 'SegmentPageView',
-				})),
 			},
 		},
 	};
@@ -2240,18 +2242,6 @@ export const mockEventMetrics = (variables) => ({
 	},
 });
 
-export function mockCommerceTotalOrderValueReq({Query, data, variables}) {
-	return {
-		request: {
-			query: Query,
-			variables,
-		},
-		result: {
-			data,
-		},
-	};
-}
-
 export const mockSessions = (variables) => ({
 	request: {
 		query: UserSessionQuery,
@@ -2305,6 +2295,39 @@ export const mockSessions = (variables) => ({
 							'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36',
 					},
 				],
+			},
+		},
+	},
+});
+
+export const mockEventsTrend = (variables) => ({
+	request: {
+		query: EventsTrendQuery,
+		variables: {
+			channelId: '123123',
+			entityId: '0',
+			entityType: 'INDIVIDUAL',
+			keywords: '',
+			rangeEnd: null,
+			rangeKey: 30,
+			rangeStart: null,
+			...variables,
+		},
+	},
+	result: {
+		data: {
+			eventsByUserSessions: {
+				__typename: 'EventsByUserSession',
+				totalEventsMetric: {
+					__typename: 'Metric',
+					previousValue: 45,
+					trend: {
+						__typename: 'Trend',
+						percentage: 22.5,
+						trendClassification: 'POSITIVE',
+					},
+					value: 56,
+				},
 			},
 		},
 	},
@@ -2451,19 +2474,24 @@ const DEFAULT_ACCOUNT_USER_SESSIONS = [
 				assetTitle: 'Home',
 				canonicalUrl: 'https://liferay.com/home',
 				createDate: '2024-04-03T08:05:00.000Z',
+				eventDate: '2024-04-03T08:05:00.000Z',
+				eventId: 'pageViewed',
 				name: 'pageViewed',
 				pageDescription: '',
 				pageKeywords: '',
 				pageTitle: 'Home',
+				properties: [],
 				referrer: '',
 				url: 'https://liferay.com/home',
 			},
 		],
+		individualId: 'jane-doe-id',
 		languageId: 'en-US',
 		screenHeight: 1080,
 		screenWidth: 1920,
 		timezoneOffset: '-03:00',
 		userAgent: 'Mozilla/5.0',
+		userId: 'jane-doe-id',
 		userName: 'Jane Doe',
 	},
 ];
@@ -2476,7 +2504,7 @@ export const mockAccountUserSessionsReq = ({
 	rangeKey = 30,
 	sessions = DEFAULT_ACCOUNT_USER_SESSIONS,
 	size = 2,
-	totalEvents = 1,
+	totalSessions = 1,
 } = {}) => ({
 	request: {
 		query: AccountUserSessionQuery,
@@ -2497,9 +2525,9 @@ export const mockAccountUserSessionsReq = ({
 		data: {
 			eventsByUserSessions: {
 				__typename: 'EventsByUserSession',
-				totalEventsMetric: {
+				totalSessionsMetric: {
 					__typename: 'Metric',
-					value: totalEvents,
+					value: totalSessions,
 				},
 				userSessions: sessions,
 			},

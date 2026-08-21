@@ -17,8 +17,22 @@ public class RandomTestUtil {
 		return _random.nextDouble();
 	}
 
+	public static int randomInt() {
+		return _random.nextInt();
+	}
+
 	public static long randomLong() {
 		return _random.nextLong();
+	}
+
+	public static String randomSHA() {
+		StringBuilder sb = new StringBuilder(40);
+
+		for (int i = 0; i < 40; i++) {
+			sb.append(Integer.toHexString(_random.nextInt(16)));
+		}
+
+		return sb.toString();
 	}
 
 	public static String randomString() {

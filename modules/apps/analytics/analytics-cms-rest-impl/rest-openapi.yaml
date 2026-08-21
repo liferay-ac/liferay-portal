@@ -150,6 +150,12 @@ components:
                     type: string
                 title:
                     type: string
+        PerformanceHistogramMetric:
+            properties:
+                histograms:
+                    items:
+                        $ref: "#/components/schemas/Histogram"
+                    type: array
         PerformanceMetric:
             properties:
                 metricType:
@@ -170,39 +176,27 @@ components:
                     $ref: "#/components/schemas/Metric"
         PerformanceTopAsset:
             properties:
-                lastPage:
-                    format: int64
-                    type: integer
-                page:
-                    format: int64
-                    type: integer
-                pageSize:
-                    format: int64
-                    type: integer
-                performanceTopAssetItems:
-                    items:
-                        $ref: "#/components/schemas/PerformanceTopAssetItem"
-                    type: array
-                totalCount:
-                    format: int64
-                    type: integer
-        PerformanceTopAssetItem:
-            properties:
+                className:
+                    type: string
                 downloads:
                     format: double
                     type: number
+                embedded:
+                    type: object
                 engagement:
                     format: double
                     type: number
+                externalReferenceCode:
+                    type: string
                 impressions:
                     format: double
                     type: number
-                mimeType:
-                    type: string
                 title:
                     type: string
                 trend:
                     $ref: "#/components/schemas/Trend"
+                type:
+                    type: string
                 views:
                     format: double
                     type: number
@@ -451,12 +445,13 @@ paths:
             operationId: getObjectEntryAcquisitionChannelsPage
             parameters:
                 -   in: query
-                    name: externalReferenceCode
-                    required: true
-                    schema:
-                        type: string
-                -   in: query
                     name: groupId
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: objectEntryId
+                    required: true
                     schema:
                         format: int64
                         type: integer
@@ -483,12 +478,13 @@ paths:
             operationId: getObjectEntryHistogramMetric
             parameters:
                 -   in: query
-                    name: externalReferenceCode
-                    required: true
-                    schema:
-                        type: string
-                -   in: query
                     name: groupId
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: objectEntryId
+                    required: true
                     schema:
                         format: int64
                         type: integer
@@ -517,12 +513,13 @@ paths:
             operationId: getObjectEntryMetric
             parameters:
                 -   in: query
-                    name: externalReferenceCode
-                    required: true
-                    schema:
-                        type: string
-                -   in: query
                     name: groupId
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: objectEntryId
+                    required: true
                     schema:
                         format: int64
                         type: integer
@@ -551,12 +548,13 @@ paths:
             operationId: getObjectEntryTopPages
             parameters:
                 -   in: query
-                    name: externalReferenceCode
-                    required: true
-                    schema:
-                        type: string
-                -   in: query
                     name: groupId
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: objectEntryId
+                    required: true
                     schema:
                         format: int64
                         type: integer
@@ -631,6 +629,35 @@ paths:
                             schema:
                                 $ref: "#/components/schemas/PerformanceAssetConsumption"
             tags: ["PerformanceAssetConsumption"]
+    "/performance-histogram-metric":
+        get:
+            operationId: getPerformanceHistogramMetric
+            parameters:
+                -   in: query
+                    name: depotEntryIds
+                    schema:
+                        items:
+                            format: int64
+                            type: integer
+                        type: array
+                -   in: query
+                    name: rangeKey
+                    schema:
+                        type: integer
+                -   in: query
+                    name: selectedMetric
+                    schema:
+                        type: string
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PerformanceHistogramMetric"
+                        application/xml:
+                            schema:
+                                $ref: "#/components/schemas/PerformanceHistogramMetric"
+            tags: ["PerformanceHistogramMetric"]
     "/performance-metric":
         get:
             operationId: getPerformanceMetric
@@ -726,12 +753,8 @@ paths:
             tags: ["PerformanceOverviewMetric"]
     "/performance-top-asset":
         get:
-            operationId: getPerformanceTopAsset
+            operationId: getPerformanceTopAssetPage
             parameters:
-                -   in: query
-                    name: assetFilterString
-                    schema:
-                        type: string
                 -   in: query
                     name: depotEntryIds
                     schema:
@@ -739,6 +762,15 @@ paths:
                             format: int64
                             type: integer
                         type: array
+                -   in: query
+                    name: filter
+                    schema:
+                        type: string
+                -   in: query
+                    name: nestedFields
+                    required: false
+                    schema:
+                        type: string
                 -   in: query
                     name: page
                     schema:
@@ -754,6 +786,10 @@ paths:
                     schema:
                         type: integer
                 -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
                     name: sort
                     schema:
                         type: string
@@ -762,19 +798,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/PerformanceTopAsset"
+                                items:
+                                    $ref: "#/components/schemas/PerformanceTopAsset"
+                                type: array
                         application/xml:
                             schema:
-                                $ref: "#/components/schemas/PerformanceTopAsset"
+                                items:
+                                    $ref: "#/components/schemas/PerformanceTopAsset"
+                                type: array
             tags: ["PerformanceTopAsset"]
     "/performance-top-asset/export":
         get:
             operationId: getPerformanceTopAssetExport
             parameters:
-                -   in: query
-                    name: assetFilterString
-                    schema:
-                        type: string
                 -   in: query
                     name: depotEntryIds
                     schema:
@@ -783,9 +819,17 @@ paths:
                             type: integer
                         type: array
                 -   in: query
+                    name: filter
+                    schema:
+                        type: string
+                -   in: query
                     name: rangeKey
                     schema:
                         type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
                 -   in: query
                     name: sort
                     schema:

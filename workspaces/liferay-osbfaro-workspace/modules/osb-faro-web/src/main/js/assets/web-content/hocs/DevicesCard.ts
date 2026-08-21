@@ -14,6 +14,7 @@ type JournalMetricResult = {
 
 const BROWSER_DEVICE_QUERY = gql`
 	query WebContentMetrics(
+		$accountId: String
 		$assetId: String!
 		$channelId: String
 		$devices: String
@@ -21,10 +22,12 @@ const BROWSER_DEVICE_QUERY = gql`
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 		$title: String
 		$touchpoint: String
 	) {
 		journal(
+			accountId: $accountId
 			assetId: $assetId
 			canonicalUrl: $touchpoint
 			channelId: $channelId
@@ -33,6 +36,7 @@ const BROWSER_DEVICE_QUERY = gql`
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 			title: $title
 		) {
 			assetId

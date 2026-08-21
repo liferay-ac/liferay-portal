@@ -54,7 +54,6 @@ import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -87,7 +86,6 @@ import org.osgi.framework.ServiceRegistration;
 /**
  * @author Stefano Motta
  */
-@FeatureFlag("LPD-66359")
 @RunWith(Arquillian.class)
 public class ObjectEntryModelListenerTest {
 
@@ -535,10 +533,8 @@ public class ObjectEntryModelListenerTest {
 		}
 
 		@Override
-		public Long[] getCommerceChannelIds(
-			String analyticsChannelId, long companyId) {
-
-			return new Long[0];
+		public long[] getCommerceChannelIds(long companyId, long[] groupIds) {
+			return new long[0];
 		}
 
 		@Override
@@ -566,14 +562,6 @@ public class ObjectEntryModelListenerTest {
 		@Override
 		public boolean syncedContactSettingsEnabled(long companyId) {
 			return false;
-		}
-
-		@Override
-		public String[] updateCommerceChannelIds(
-			String analyticsChannelId, long companyId,
-			Long[] dataSourceCommerceChannelIds) {
-
-			return new String[0];
 		}
 
 		@Override

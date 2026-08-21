@@ -33,7 +33,7 @@ export interface SerializedGroup {
 export interface SerializedRule {
 	attribute: string;
 	operator: string;
-	value: string;
+	value: boolean | number | string;
 }
 
 export interface AudiencesCriteriaType {
@@ -48,3 +48,7 @@ export interface Rule {
 	operator: string;
 	value: string;
 }
+
+export type SaveErrorField = 'externalReferenceCode' | 'name';
+
+export type SaveErrors = Partial<Record<SaveErrorField, string>>;

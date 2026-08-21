@@ -1,3 +1,5 @@
+import BasePage from 'shared/components/base-page';
+import mockStore from 'test/mock-store';
 import React from 'react';
 import TopAssets from '../TopAssets';
 import {
@@ -8,7 +10,13 @@ import {
 	within,
 } from '@testing-library/react';
 import {ITopAsset} from 'shared/api/assets';
+import {MemoryRouter} from 'react-router-dom';
+import {MockedProvider} from '@apollo/client/testing';
+import {mockPreferenceReq, mockTimeRangeReq} from 'test/graphql-data';
+import {Provider} from 'react-redux';
+import {RangeKeyTimeRanges} from 'shared/util/constants';
 import {useRequest} from 'shared/hooks/useRequest';
+import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 jest.unmock('react-dom');
 
@@ -24,15 +32,59 @@ jest.mock('shared/hooks/useRequest', () => ({
 
 const mockPush = jest.fn();
 
+const mockUnlisten = jest.fn();
+
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
-	useHistory: () => ({push: mockPush}),
+	useHistory: () => ({listen: () => mockUnlisten, push: mockPush}),
 	useParams: () => ({channelId: '5', groupId: '23', id: 'acc-1'}),
 }));
 
 const mockedUseRequest = useRequest as jest.Mock;
 
 const ACCOUNT = {accountName: 'Acme', id: 'acc-1'};
+
+const MOCK_CONTEXT = {
+	accountId: ACCOUNT.id,
+	accountName: ACCOUNT.accountName,
+	filters: {},
+	router: {
+		params: {channelId: '5', groupId: '23', id: ACCOUNT.id},
+		query: {rangeKey: RangeKeyTimeRanges.Last30Days},
+	},
+};
+
+const renderTopAssets = () =>
+	render(
+		<Provider store={mockStore()}>
+			<BasePage.Context.Provider value={MOCK_CONTEXT}>
+				<MemoryRouter>
+					<MockedProvider
+						addTypename={false}
+						mocks={[mockTimeRangeReq(), mockPreferenceReq()]}
+					>
+						<TopAssets account={ACCOUNT} />
+					</MockedProvider>
+				</MemoryRouter>
+			</BasePage.Context.Provider>
+		</Provider>
+	);
+
+const renderTopAssetsWithoutAccount = () =>
+	render(
+		<Provider store={mockStore()}>
+			<BasePage.Context.Provider value={MOCK_CONTEXT}>
+				<MemoryRouter>
+					<MockedProvider
+						addTypename={false}
+						mocks={[mockTimeRangeReq(), mockPreferenceReq()]}
+					>
+						<TopAssets />
+					</MockedProvider>
+				</MemoryRouter>
+			</BasePage.Context.Provider>
+		</Provider>
+	);
 
 const buildAsset = (overrides: Partial<ITopAsset> = {}): ITopAsset => ({
 	assetTitle: 'Asset 1',
@@ -112,13 +164,13 @@ describe('TopAssets', () => {
 
 	describe('rendering', () => {
 		it('should render the card title', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(screen.getByText('TOP ASSETS')).toBeInTheDocument();
 		});
 
 		it('should render both tab labels', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(
 				screen.getByRole('tab', {name: 'Content'})
@@ -129,7 +181,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should render the View All button', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(
 				screen.getByRole('button', {name: 'View All'})
@@ -137,7 +189,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should render the Group By picker with the default metric (Impressions)', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(screen.getAllByText('Group By').length).toBeGreaterThan(0);
 			expect(screen.getAllByText('Impressions').length).toBeGreaterThan(
@@ -148,7 +200,7 @@ describe('TopAssets', () => {
 
 	describe('data rendering', () => {
 		it('should render an asset link for every item returned', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(
 				screen.getAllByRole('link', {name: 'Web Content One'})[0]
@@ -168,7 +220,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should render the metric values for the default Impressions metric', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(screen.getAllByText('100').length).toBeGreaterThan(0);
 			expect(screen.getAllByText('80').length).toBeGreaterThan(0);
@@ -178,7 +230,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should route blog assets through the Blogs overview path', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			const link = screen.getAllByRole('link', {
 				name: 'Blog Post',
@@ -188,7 +240,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should route document assets through the Documents and Media path', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			const link = screen.getAllByRole('link', {
 				name: 'Brochure PDF',
@@ -200,7 +252,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should route form assets through the Forms path', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			const link = screen.getAllByRole('link', {
 				name: 'Lead Form',
@@ -210,7 +262,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should route web content assets through the Web Content path', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			const link = screen.getAllByRole('link', {
 				name: 'Web Content One',
@@ -220,7 +272,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should route unknown asset types through the Object Entry path', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			const link = screen.getAllByRole('link', {
 				name: 'Custom Entry',
@@ -230,11 +282,48 @@ describe('TopAssets', () => {
 				'/assets/object-entry/'
 			);
 		});
+
+		it('should include accountId and accountName as query params on each asset link', () => {
+			renderTopAssets();
+
+			const link = screen.getAllByRole('link', {
+				name: 'Web Content One',
+			})[0] as HTMLAnchorElement;
+
+			expect(link.getAttribute('href')).toContain('accountId=acc-1');
+			expect(link.getAttribute('href')).toContain('accountName=Acme');
+		});
+	});
+
+	describe('time range', () => {
+		it('should render the range key dropdown', async () => {
+			const {container} = renderTopAssets();
+
+			await waitForLoadingToBeRemoved(container);
+
+			expect(
+				container.querySelector('.card-header .dropdown-range-key-root')
+			).toBeInTheDocument();
+		});
+
+		it('should request the assets for the selected range', () => {
+			renderTopAssets();
+
+			expect(mockedUseRequest).toHaveBeenCalledWith(
+				expect.objectContaining({
+					variables: expect.objectContaining({
+						rangeEnd: null,
+						rangeKey: 30,
+						rangeStart: null,
+					}),
+				})
+			);
+		});
 	});
 
 	describe('group by picker', () => {
 		it('should refetch with viewsMetric when the user picks Views', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(
 				screen.getAllByRole('combobox', {name: 'Group By'})[0]
@@ -251,7 +340,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should refetch with downloadsMetric when the user picks Downloads on the Files tab', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(screen.getByRole('tab', {name: 'Files'}));
 
@@ -272,7 +361,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should not offer the Downloads metric on the Content tab', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(
 				screen.getAllByRole('combobox', {name: 'Group By'})[0]
@@ -290,7 +379,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should offer the Downloads metric on the Files tab', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(screen.getByRole('tab', {name: 'Files'}));
 
@@ -304,7 +393,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should reset to impressionsMetric when switching to Content while Downloads is selected', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(screen.getByRole('tab', {name: 'Files'}));
 
@@ -330,7 +419,7 @@ describe('TopAssets', () => {
 
 	describe('tab switching', () => {
 		it('should request the Content objectType on initial render', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			const firstCall = mockedUseRequest.mock.calls[0][0];
 
@@ -338,7 +427,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should request the File objectType after clicking the Files tab', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(screen.getByRole('tab', {name: 'Files'}));
 
@@ -353,7 +442,7 @@ describe('TopAssets', () => {
 
 	describe('request shape', () => {
 		it('should forward accountId, channelId, and groupId to the data source', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			const firstCall = mockedUseRequest.mock.calls[0][0];
 
@@ -365,7 +454,7 @@ describe('TopAssets', () => {
 
 	describe('view all', () => {
 		it('should navigate to the asset list when the View All button is clicked', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(screen.getByRole('button', {name: 'View All'}));
 
@@ -379,7 +468,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should pass the default metric (Impressions) as the orderBy param', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(screen.getByRole('button', {name: 'View All'}));
 
@@ -389,7 +478,7 @@ describe('TopAssets', () => {
 		});
 
 		it('should pass the metric selected in the Group By picker as the orderBy param', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(
 				screen.getAllByRole('combobox', {name: 'Group By'})[0]
@@ -403,23 +492,60 @@ describe('TopAssets', () => {
 
 			expect(pushedURL).toContain('orderBy=viewsMetric');
 		});
+
+		it('should pass the Content objectType from the Content tab', () => {
+			renderTopAssets();
+
+			fireEvent.click(screen.getByRole('button', {name: 'View All'}));
+
+			const pushedURL = mockPush.mock.calls[0][0];
+
+			expect(pushedURL).toContain('objectType=content');
+		});
+
+		it('should pass the File objectType from the Files tab', () => {
+			renderTopAssets();
+
+			fireEvent.click(screen.getByRole('tab', {name: 'Files'}));
+
+			fireEvent.click(screen.getByRole('button', {name: 'View All'}));
+
+			const pushedURL = mockPush.mock.calls[0][0];
+
+			expect(pushedURL).toContain('objectType=file');
+		});
 	});
 
 	describe('loading state', () => {
 		it('should render the loading indicator while the request is in flight', () => {
 			mockUseRequestWith({loading: true});
 
-			const {container} = render(<TopAssets account={ACCOUNT} />);
+			const {container} = renderTopAssets();
 
 			expect(
 				container.querySelector('.loading-root')
 			).toBeInTheDocument();
 		});
 
+		it('should stop loading when there is no account to scope by', () => {
+			mockUseRequestWith({loading: true});
+
+			const {container} = renderTopAssetsWithoutAccount();
+
+			const tabPanel = container.querySelector(
+				'.tab-pane'
+			) as HTMLElement;
+
+			expect(tabPanel.querySelector('.loading-root')).toBeNull();
+			expect(
+				within(tabPanel).getAllByText('No Assets Available').length
+			).toBeGreaterThan(0);
+		});
+
 		it('should not render asset rows while loading', () => {
 			mockUseRequestWith({loading: true});
 
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(
 				screen.queryByRole('link', {name: 'Web Content One'})
@@ -429,7 +555,7 @@ describe('TopAssets', () => {
 		it('should not render the View All button while loading', () => {
 			mockUseRequestWith({loading: true});
 
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(screen.queryByRole('button', {name: 'View All'})).toBeNull();
 		});
@@ -439,13 +565,13 @@ describe('TopAssets', () => {
 		it('should not render the View All button when there are no assets', () => {
 			mockUseRequestWith({data: {items: []}});
 
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(screen.queryByRole('button', {name: 'View All'})).toBeNull();
 		});
 
 		it('should render the View All button when assets are returned', () => {
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(
 				screen.getByRole('button', {name: 'View All'})
@@ -457,7 +583,7 @@ describe('TopAssets', () => {
 		it('should render the Content empty state when no assets are returned on the Content tab', () => {
 			mockUseRequestWith({data: {items: []}});
 
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(
 				screen.getAllByText('No Assets Available').length
@@ -467,7 +593,7 @@ describe('TopAssets', () => {
 		it('should render the Files empty state when no assets are returned on the Files tab', () => {
 			mockUseRequestWith({data: {items: []}});
 
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			fireEvent.click(screen.getByRole('tab', {name: 'Files'}));
 
@@ -479,7 +605,7 @@ describe('TopAssets', () => {
 		it('should not render asset rows when no assets are returned', () => {
 			mockUseRequestWith({data: {items: []}});
 
-			render(<TopAssets account={ACCOUNT} />);
+			renderTopAssets();
 
 			expect(
 				screen.queryByRole('link', {name: 'Web Content One'})
@@ -503,13 +629,35 @@ describe('TopAssets', () => {
 				},
 			});
 
-			const {container} = render(<TopAssets account={ACCOUNT} />);
+			const {container} = renderTopAssets();
 
 			const tabPanel = container.querySelector(
 				'.tab-pane'
 			) as HTMLElement;
 
 			expect(within(tabPanel).getAllByText('999').length).toBe(1);
+		});
+
+		it('should show a zero when the asset carries no selected metric', () => {
+			mockUseRequestWith({
+				data: {
+					items: [
+						buildAsset({
+							assetTitle: 'Metricless',
+							id: 'a-metricless',
+							impressionsMetric: undefined,
+						}),
+					],
+				},
+			});
+
+			const {container} = renderTopAssets();
+
+			const tabPanel = container.querySelector(
+				'.tab-pane'
+			) as HTMLElement;
+
+			expect(within(tabPanel).getAllByText('0').length).toBe(1);
 		});
 	});
 });

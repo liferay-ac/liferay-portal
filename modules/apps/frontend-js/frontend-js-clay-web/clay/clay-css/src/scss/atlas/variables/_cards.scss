@@ -31,17 +31,6 @@ $card: map-deep-merge(
 		outline-width: $card-border-width,
 		transition: $card-transition,
 
-		hover: (
-			border-color: $primary-l1,
-			box-shadow: clay-enable-shadows($card-hover-box-shadow),
-			outline-color: $primary-l1,
-		),
-
-		active: (
-			border-color: $primary,
-			outline-color: $primary,
-		),
-
 		disabled: (
 			cursor: $disabled-cursor,
 			opacity: $component-disabled-opacity,
@@ -163,6 +152,9 @@ $card-interactive: map-deep-merge(
 
 		hover: (
 			background-color: $gray-100,
+			border-color: $primary-l1,
+			box-shadow: clay-enable-shadows($card-hover-box-shadow),
+			outline-color: $primary-l1,
 		),
 
 		focus: (
@@ -176,6 +168,8 @@ $card-interactive: map-deep-merge(
 
 		active: (
 			background-color: $gray-200,
+			border-color: $primary,
+			outline-color: $primary,
 		),
 	),
 	$card-interactive
@@ -239,18 +233,6 @@ $card-type-asset: () !default;
 $card-type-asset: map-deep-merge(
 	(
 		transition: $card-transition,
-
-		hover: (
-			transform: translateY(-0.25rem),
-			after: (
-				bottom: -0.25rem,
-				content: '',
-				height: 0.25rem,
-				left: 0,
-				position: absolute,
-				right: 0,
-			),
-		),
 
 		aspect-ratio: (
 			background-color: $gray-100,

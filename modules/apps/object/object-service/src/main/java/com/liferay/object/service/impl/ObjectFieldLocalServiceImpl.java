@@ -77,7 +77,6 @@ import com.liferay.portal.kernel.dao.db.DB;
 import com.liferay.portal.kernel.dao.jdbc.CurrentConnection;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.log.Log;
@@ -91,6 +90,8 @@ import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.search.Indexable;
 import com.liferay.portal.kernel.search.IndexableType;
+import com.liferay.portal.kernel.search.Indexer;
+import com.liferay.portal.kernel.search.IndexerRegistryUtil;
 import com.liferay.portal.kernel.security.permission.ResourceActions;
 import com.liferay.portal.kernel.service.PortletLocalService;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
@@ -220,7 +221,7 @@ public class ObjectFieldLocalServiceImpl
 				objectField.getAttachmentDownloadActionKey();
 
 			_ploEntryLocalService.addOrUpdatePLOEntry(
-				objectField.getCompanyId(), objectField.getUserId(),
+				null, objectField.getCompanyId(), objectField.getUserId(),
 				"action." + attachmentDownloadActionKey,
 				LocaleUtil.toLanguageId(locale),
 				_language.format(
@@ -362,6 +363,8 @@ public class ObjectFieldLocalServiceImpl
 	public void deleteObjectFieldByObjectDefinitionId(Long objectDefinitionId)
 		throws PortalException {
 
+		Indexer<ObjectField> indexer = IndexerRegistryUtil.nullSafeGetIndexer(
+			ObjectField.class);
 		ObjectDefinition objectDefinition =
 			_objectDefinitionPersistence.findByPrimaryKey(objectDefinitionId);
 
@@ -375,9 +378,9 @@ public class ObjectFieldLocalServiceImpl
 
 			objectFieldPersistence.remove(objectField);
 
-			if (FeatureFlagManagerUtil.isEnabled(
-					objectField.getCompanyId(), "LPD-17564") &&
-				objectDefinition.isApproved() &&
+			indexer.delete(objectField);
+
+			if (objectDefinition.isApproved() &&
 				objectField.compareBusinessType(
 					ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT)) {
 
@@ -1026,8 +1029,7 @@ public class ObjectFieldLocalServiceImpl
 			return objectField;
 		}
 
-		if (FeatureFlagManagerUtil.isEnabled(
-				objectField.getCompanyId(), "LPD-17564") &&
+		if (!objectDefinition.isUnmodifiableSystemObject() &&
 			objectField.compareBusinessType(
 				ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT)) {
 
@@ -1043,6 +1045,8 @@ public class ObjectFieldLocalServiceImpl
 			catch (Exception exception) {
 				ReflectionUtil.throwException(exception);
 			}
+
+			addOrUpdateObjectFieldPLOEntries(objectField);
 		}
 
 		if (!objectField.compareBusinessType(
@@ -1308,10 +1312,7 @@ public class ObjectFieldLocalServiceImpl
 				objectField.getBusinessType(),
 				ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT)) {
 
-			if (FeatureFlagManagerUtil.isEnabled(
-					objectField.getCompanyId(), "LPD-17564") &&
-				objectDefinition.isApproved()) {
-
+			if (objectDefinition.isApproved()) {
 				String attachmentDownloadActionKey =
 					objectField.getAttachmentDownloadActionKey();
 
@@ -1572,14 +1573,15 @@ public class ObjectFieldLocalServiceImpl
 				objectField.setDBType(objectFieldBusinessType.getDBType());
 			}
 		}
-		else if (objectFieldDBTypes.contains(dbType) &&
+		else if (Validator.isNull(businessType) &&
+				 objectFieldDBTypes.contains(dbType) &&
 				 _businessTypes.containsKey(dbType)) {
 
 			objectField.setBusinessType(_businessTypes.get(dbType));
 			objectField.setDBType(dbType);
 		}
 		else {
-			if (!businessType.isEmpty()) {
+			if (Validator.isNotNull(businessType)) {
 				_handleException(
 					new ObjectFieldBusinessTypeException(
 						"Invalid business type " + businessType),
@@ -1685,8 +1687,7 @@ public class ObjectFieldLocalServiceImpl
 				newObjectField, objectDefinition, objectFieldBusinessType,
 				objectFieldSettings, oldObjectField);
 
-			if (FeatureFlagManagerUtil.isEnabled(
-					newObjectField.getCompanyId(), "LPD-17564") &&
+			if (!objectDefinition.isUnmodifiableSystemObject() &&
 				businessType.equals(
 					ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT)) {
 

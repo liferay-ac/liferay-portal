@@ -10,9 +10,9 @@ import com.liferay.osb.faro.constants.FaroChannelConstants;
 import com.liferay.osb.faro.model.FaroChannel;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.model.FaroUser;
-import com.liferay.osb.faro.service.FaroProjectLocalService;
 import com.liferay.osb.faro.service.FaroUserLocalService;
 import com.liferay.osb.faro.service.base.FaroChannelLocalServiceBaseImpl;
+import com.liferay.osb.faro.service.persistence.FaroProjectPersistence;
 import com.liferay.osb.faro.util.EmailUtil;
 import com.liferay.osb.faro.util.FaroEmailSender;
 import com.liferay.osb.faro.util.FaroPropsValues;
@@ -160,6 +160,13 @@ public class FaroChannelLocalServiceImpl
 	}
 
 	@Override
+	public FaroChannel fetchFaroChannel(
+		String channelId, long workspaceGroupId) {
+
+		return faroChannelPersistence.fetchByC_W(channelId, workspaceGroupId);
+	}
+
+	@Override
 	public FaroChannel getFaroChannel(String channelId, long workspaceGroupId)
 		throws PortalException {
 
@@ -259,11 +266,11 @@ public class FaroChannelLocalServiceImpl
 				getClassLoader(),
 				"com/liferay/osb/faro/dependencies/property-invite.html"),
 			new String[] {
-				"[$BUTTON_TEXT$]", "[$BUTTON_URL$]", "[$EMAIL_HEADER_URL$]",
-				"[$EMAIL_TITLE$]", "[$FARO_URL$]", "[$FOOTER_MENU_1$]",
-				"[$FOOTER_MENU_2$]", "[$FOOTER_MENU_3$]", "[$FOOTER_MSG_1$]",
-				"[$FOOTER_MSG_2$]", "[$FOOTER_MSG_3$]", "[$FOOTER_MSG_4$]",
-				"[$HEADER_MSG_1$]", "[$LIFERAY_LOGO_URL$]",
+				"[$BUTTON_TEXT$]", "[$BUTTON_URL$]", "[$DOCUMENTATION_URL$]",
+				"[$EMAIL_HEADER_URL$]", "[$EMAIL_TITLE$]", "[$FARO_URL$]",
+				"[$FOOTER_MENU_1$]", "[$FOOTER_MENU_2$]", "[$FOOTER_MENU_3$]",
+				"[$FOOTER_MSG_1$]", "[$FOOTER_MSG_2$]", "[$FOOTER_MSG_3$]",
+				"[$FOOTER_MSG_4$]", "[$HEADER_MSG_1$]", "[$LIFERAY_LOGO_URL$]",
 				"[$NOTIFICATION_MSG_1$]", "[$NOTIFICATION_MSG_2$]", "[$YEAR$]"
 			},
 			new String[] {
@@ -272,8 +279,10 @@ public class FaroChannelLocalServiceImpl
 					EmailUtil.getLanguageKey(
 						faroProject, "go-to-analytics-cloud",
 						"go-to-liferay-data-platform")),
-				EmailUtil.getShareIconURL(), EmailUtil.getEmailHeaderURL(),
-				subject, FaroPropsValues.FARO_URL,
+				EmailUtil.getShareIconURL(),
+				EmailUtil.getDocumentationURL(faroProject),
+				EmailUtil.getEmailHeaderURL(), subject,
+				FaroPropsValues.FARO_URL,
 				_language.get(resourceBundle, "contact-support"),
 				_language.get(resourceBundle, "documentation"),
 				_language.get(resourceBundle, "announcements"),
@@ -315,9 +324,8 @@ public class FaroChannelLocalServiceImpl
 			long userId)
 		throws Exception {
 
-		FaroProject faroProject =
-			_faroProjectLocalService.getFaroProjectByGroupId(
-				faroChannel.getWorkspaceGroupId());
+		FaroProject faroProject = _faroProjectPersistence.findByGroupId(
+			faroChannel.getWorkspaceGroupId());
 
 		User user = _userLocalService.getUser(userId);
 
@@ -334,8 +342,6 @@ public class FaroChannelLocalServiceImpl
 				_language.get(resourceBundle, "new-property-access"), user)
 		).setFaroProject(
 			faroProject
-		).setFrom(
-			user
 		).setSubject(
 			_language.get(resourceBundle, "new-property-access")
 		).setToEmailAddress(
@@ -349,7 +355,7 @@ public class FaroChannelLocalServiceImpl
 		FaroChannelLocalServiceImpl.class);
 
 	@Reference
-	private FaroProjectLocalService _faroProjectLocalService;
+	private FaroProjectPersistence _faroProjectPersistence;
 
 	@Reference
 	private FaroUserLocalService _faroUserLocalService;

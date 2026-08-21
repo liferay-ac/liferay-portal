@@ -1,0 +1,38 @@
+{
+	"options": {
+		"auto_approve": false,
+		"parallelism": 10,
+		"provider": "azure",
+		"version": "0.0.1"
+	},
+	"platformComponents": {
+		"values": {
+			"gitops": {
+				"repository": {
+					"url": "https://github.com/example/liferay-gitops.git"
+				}
+			}
+		}
+	},
+	"subscription_id": "your-azure-subscription-id",
+	"tenant_id": "your-azure-tenant-id",
+	"terraform": {
+		"common": {
+			"deployment_name": "liferay-azure-test",
+			"region": "eastus"
+		},
+		"platform": {
+			"cluster_secret_store": {
+				"key_vault": {
+					"name": "your-key-vault-name",
+					"resource_group_name": "your-key-vault-resource-group"
+				}
+			}
+		}
+	},
+	"tfstate": {
+		"container_name": "your-tfstate-container",
+		"resource_group_name": "your-tfstate-resource-group",
+		"storage_account_name": "your-tfstate-account"
+	}
+}

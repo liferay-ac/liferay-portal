@@ -1,10 +1,9 @@
 import moment from 'moment';
-import {formatDateToTimeZone} from 'shared/util/date';
+import {formatDateToTimeZone, getCustomDateTimeFormat} from 'shared/util/date';
 import {formatTime} from 'shared/util/time';
 import {
 	GEOLOCATION_OPTIONS,
 	INPUT_DATE_FORMAT,
-	INPUT_DISPLAY_DATE_TIME_FORMAT,
 	isKnown,
 	isUnknown,
 	PropertyTypes,
@@ -51,6 +50,7 @@ export function getOperatorLabel(
 		case PropertyTypes.SessionGeolocation:
 			supportedOperators = GEOLOCATION_OPTIONS;
 			break;
+		case PropertyTypes.AccountSelectText:
 		case PropertyTypes.Behavior:
 		case PropertyTypes.Boolean:
 		case PropertyTypes.Date:
@@ -112,7 +112,7 @@ export function maybeFormatValue(
 		case PropertyTypes.SessionDateTime:
 			return formatDateToTimeZone(
 				value,
-				INPUT_DISPLAY_DATE_TIME_FORMAT,
+				getCustomDateTimeFormat(),
 				timeZoneId
 			);
 		case PropertyTypes.Duration:

@@ -18,6 +18,7 @@ import com.liferay.commerce.product.model.CommerceCatalog;
 import com.liferay.commerce.product.service.CPConfigurationListLocalService;
 import com.liferay.commerce.product.service.CPDefinitionLocalService;
 import com.liferay.commerce.product.service.base.CommerceCatalogLocalServiceBaseImpl;
+import com.liferay.exportimport.kernel.empty.model.EmptyModelManager;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
@@ -99,6 +100,13 @@ public class CommerceCatalogLocalServiceImpl
 		commerceCatalog.setCommerceCurrencyCode(commerceCurrencyCode);
 		commerceCatalog.setCatalogDefaultLanguageId(catalogDefaultLanguageId);
 		commerceCatalog.setSystem(system);
+
+		if (_emptyModelManager.isEmptyModel()) {
+			commerceCatalog.setStatus(WorkflowConstants.STATUS_EMPTY);
+		}
+		else {
+			commerceCatalog.setStatus(WorkflowConstants.STATUS_APPROVED);
+		}
 
 		// Group
 
@@ -320,6 +328,30 @@ public class CommerceCatalogLocalServiceImpl
 	}
 
 	@Override
+	public CommerceCatalog getOrAddEmptyCommerceCatalog(
+			String externalReferenceCode, long companyId, long userId)
+		throws PortalException {
+
+		ServiceContext serviceContext = new ServiceContext();
+
+		serviceContext.setCompanyId(companyId);
+		serviceContext.setUserId(userId);
+
+		return _emptyModelManager.getOrAddEmptyModel(
+			CommerceCatalog.class, companyId,
+			() -> commerceCatalogLocalService.addCommerceCatalog(
+				externalReferenceCode,
+				AccountConstants.ACCOUNT_ENTRY_ID_DEFAULT,
+				externalReferenceCode, externalReferenceCode,
+				LocaleUtil.toLanguageId(LocaleUtil.getSiteDefault()), false,
+				serviceContext),
+			externalReferenceCode,
+			this::fetchCommerceCatalogByExternalReferenceCode,
+			this::getCommerceCatalogByExternalReferenceCode,
+			CommerceCatalog.class.getName());
+	}
+
+	@Override
 	public List<CommerceCatalog> search(long companyId) throws PortalException {
 		return search(
 			companyId, StringPool.BLANK, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
@@ -367,6 +399,12 @@ public class CommerceCatalogLocalServiceImpl
 		commerceCatalog.setName(name);
 		commerceCatalog.setCommerceCurrencyCode(commerceCurrencyCode);
 		commerceCatalog.setCatalogDefaultLanguageId(catalogDefaultLanguageId);
+		commerceCatalog.setStatus(
+			_emptyModelManager.solveEmptyModel(
+				commerceCatalog.getExternalReferenceCode(),
+				commerceCatalog.getModelClassName(),
+				commerceCatalog.getCompanyId(), 0, commerceCatalog.getStatus(),
+				() -> WorkflowConstants.STATUS_APPROVED));
 
 		return commerceCatalogPersistence.update(commerceCatalog);
 	}
@@ -496,6 +534,10 @@ public class CommerceCatalogLocalServiceImpl
 		AccountEntry accountEntry = _accountEntryLocalService.getAccountEntry(
 			accountEntryId);
 
+		if (accountEntry.getStatus() == WorkflowConstants.STATUS_EMPTY) {
+			return;
+		}
+
 		if (!StringUtil.equals(
 				accountEntry.getType(),
 				AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER)) {
@@ -531,6 +573,9 @@ public class CommerceCatalogLocalServiceImpl
 
 	@Reference
 	private CPDefinitionLocalService _cpDefinitionLocalService;
+
+	@Reference
+	private EmptyModelManager _emptyModelManager;
 
 	@Reference
 	private GroupLocalService _groupLocalService;

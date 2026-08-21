@@ -7,7 +7,8 @@ import ClayButton from '@clayui/button';
 import {Option, Picker} from '@clayui/core';
 import ClayEmptyState from '@clayui/empty-state';
 import ClayIcon from '@clayui/icon';
-import {useId} from 'frontend-js-components-web';
+import ClayLink from '@clayui/link';
+import {openToast, useId} from 'frontend-js-components-web';
 import React, {useReducer, useRef} from 'react';
 
 import {initializeConfig} from '../../app/config/index';
@@ -31,6 +32,7 @@ import './ElementVariations.scss';
 interface Props {
 	addElementVariationURL: string;
 	audiences: Array<{label: string; value: string}>;
+	createAudienceURL: string;
 	defaultLanguageId: string;
 	deleteElementVariationURL: string;
 	elementVariations: Array<LoadedElementVariation>;
@@ -56,6 +58,13 @@ export default function (props: Props) {
 	return <ElementVariations {...props} />;
 }
 
+function showErrorToast() {
+	openToast({
+		message: Liferay.Language.get('an-unexpected-error-occurred'),
+		type: 'danger',
+	});
+}
+
 function getOrderedAudiences(
 	audiences: Array<{label: string; value: string}>,
 	audienceEntryERCs: Array<string>
@@ -79,6 +88,7 @@ function getOrderedAudiences(
 function ElementVariations({
 	addElementVariationURL,
 	audiences = [],
+	createAudienceURL,
 	defaultLanguageId,
 	deleteElementVariationURL,
 	elementVariations: initialElementVariations = [],
@@ -126,6 +136,12 @@ function ElementVariations({
 	const elementVariationsPreviewRef =
 		useRef<ElementVariationsPreviewRef>(null);
 
+	const createElementVariationDraft = () =>
+		dispatch({
+			draftElementVariation: createElementVariation(experienceKey),
+			type: 'CREATE_ELEMENT_VARIATION_DRAFT',
+		});
+
 	return (
 		<div className="d-flex element-variations flex-column">
 			<div className="d-flex element-variations__content flex-grow-1">
@@ -135,7 +151,9 @@ function ElementVariations({
 							audiences={audiences}
 							defaultLanguageId={defaultLanguageId}
 							dispatch={dispatch}
-							editableElementOptions={editableElementOptions}
+							editableElementOptions={
+								editableElementOptions ?? []
+							}
 							elementVariation={draftElementVariation}
 							elementVariations={experienceElementVariations}
 							key={draftElementVariation.key}
@@ -166,11 +184,13 @@ function ElementVariations({
 									addElementVariationURL,
 									elementVariation: draftElementVariation,
 									plid,
-								}).then(() =>
-									dispatch({
-										type: 'SAVE_ELEMENT_VARIATION_DRAFT',
-									})
-								)
+								})
+									.then(() =>
+										dispatch({
+											type: 'SAVE_ELEMENT_VARIATION_DRAFT',
+										})
+									)
+									.catch(showErrorToast)
 							}
 						/>
 					) : (
@@ -181,7 +201,7 @@ function ElementVariations({
 								</span>
 							</div>
 
-							<div className="flex-grow-1">
+							<div className="flex-grow-1 overflow-auto">
 								<div className="p-3">
 									<label htmlFor={experienceId}>
 										{Liferay.Language.get('experience')}
@@ -226,31 +246,58 @@ function ElementVariations({
 									}
 								/>
 
-								<div className="d-flex justify-content-start m-3">
-									<ClayButton
-										className="w-100"
-										displayType="secondary"
-										onClick={() =>
-											dispatch({
-												draftElementVariation:
-													createElementVariation(
-														experienceKey
-													),
-												type: 'CREATE_ELEMENT_VARIATION_DRAFT',
-											})
-										}
-									>
-										<ClayIcon
-											className="mr-2"
-											symbol="plus"
-										/>
+								{experienceElementVariations.length ? (
+									<div className="d-flex justify-content-start m-3">
+										<ClayButton
+											className="w-100"
+											displayType="secondary"
+											onClick={
+												createElementVariationDraft
+											}
+										>
+											<ClayIcon
+												className="mr-2"
+												symbol="plus"
+											/>
 
-										{Liferay.Language.get('new-variation')}
-									</ClayButton>
-								</div>
+											{Liferay.Language.get(
+												'new-variation'
+											)}
+										</ClayButton>
+									</div>
+								) : null}
 
 								<div className="border-top pt-3">
-									{experienceElementVariations.length ? (
+									{!audiences.length ? (
+										<ClayEmptyState
+											className="mb-0 px-3"
+											description={Liferay.Language.get(
+												'you-need-at-least-one-audience-to-build-element-variations'
+											)}
+											imgSrc={`${Liferay.ThemeDisplay.getPathThemeImages()}/states/empty_state.svg`}
+											small
+											title={Liferay.Language.get(
+												'no-element-variations'
+											)}
+										>
+											<ClayLink
+												button
+												displayType="secondary"
+												href={createAudienceURL}
+												small
+												target="_blank"
+											>
+												<ClayIcon
+													className="mr-2"
+													symbol="shortcut"
+												/>
+
+												{Liferay.Language.get(
+													'create-new-audience'
+												)}
+											</ClayLink>
+										</ClayEmptyState>
+									) : experienceElementVariations.length ? (
 										<ElementVariationsList
 											audiences={audiences}
 											editableElementOptions={
@@ -267,14 +314,15 @@ function ElementVariations({
 														deleteElementVariationURL,
 														externalReferenceCode:
 															elementVariation.externalReferenceCode,
-														plid,
 													}
-												).then(() =>
-													dispatch({
-														key: elementVariation.key,
-														type: 'DELETE_ELEMENT_VARIATION',
-													})
 												)
+													.then(() =>
+														dispatch({
+															key: elementVariation.key,
+															type: 'DELETE_ELEMENT_VARIATION',
+														})
+													)
+													.catch(showErrorToast)
 											}
 											onEditElementVariation={(key) =>
 												dispatch({
@@ -290,16 +338,17 @@ function ElementVariations({
 														active: !elementVariation.active,
 														externalReferenceCode:
 															elementVariation.externalReferenceCode,
-														plid,
 														updateElementVariationURL,
 													}
-												).then(() =>
-													dispatch({
-														active: !elementVariation.active,
-														key: elementVariation.key,
-														type: 'UPDATE_ELEMENT_VARIATION',
-													})
 												)
+													.then(() =>
+														dispatch({
+															active: !elementVariation.active,
+															key: elementVariation.key,
+															type: 'UPDATE_ELEMENT_VARIATION',
+														})
+													)
+													.catch(showErrorToast)
 											}
 										/>
 									) : (
@@ -311,9 +360,19 @@ function ElementVariations({
 											imgSrc={`${Liferay.ThemeDisplay.getPathThemeImages()}/states/empty_state.svg`}
 											small
 											title={Liferay.Language.get(
-												'no-variations-yet'
+												'no-element-variations'
 											)}
-										/>
+										>
+											<ClayButton
+												displayType="secondary"
+												onClick={
+													createElementVariationDraft
+												}
+												size="sm"
+											>
+												{Liferay.Language.get('new')}
+											</ClayButton>
+										</ClayEmptyState>
 									)}
 								</div>
 							</div>
@@ -330,6 +389,10 @@ function ElementVariations({
 					languageId={languageId}
 					previewURL={previewURL}
 					ref={elementVariationsPreviewRef}
+					segmentsExperienceId={
+						selectedExperience?.segmentsExperienceId ??
+						selectedSegmentsExperienceId
+					}
 				/>
 			</div>
 		</div>

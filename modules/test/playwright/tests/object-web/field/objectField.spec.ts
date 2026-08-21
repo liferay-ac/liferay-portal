@@ -22,8 +22,10 @@ import {ObjectFieldsPage} from '../../../pages/object-web/object-fields/ObjectFi
 import {getRandomInt} from '../../../utils/getRandomInt';
 import getRandomString from '../../../utils/getRandomString';
 import {waitForAlert} from '../../../utils/waitForAlert';
+import {waitForSearchToBeReady} from '../../../utils/waitForSearchToBeReady';
 import {AsyncArray} from '../utils/AsyncArray';
 import {generateObjectFields} from '../utils/generateObjectFields';
+import {getFreshObjectRelationshipName} from '../utils/getFreshObjectRelationshipName';
 import {postListTypeDefinitionListTypeEntries} from '../utils/postListTypeDefinitionListTypeEntries';
 
 const test = mergeTests(
@@ -37,7 +39,6 @@ const cmsTest = mergeTests(
 	test,
 	featureFlagsTest({
 		'LPD-11235': {enabled: false},
-		'LPD-17564': {enabled: true},
 	})
 );
 
@@ -119,22 +120,28 @@ test.describe('Manage object fields through Model Builder', () => {
 			await apiHelpers.listTypeAdmin.getListTypeDefinitions()
 		).items;
 
-		const allListTypeDefinitions = existingListTypeDefinitions.concat(
-			await Promise.all(
-				Array(22)
-					.fill(null)
-					.map(
-						async () =>
-							await apiHelpers.listTypeAdmin.postRandomListTypeDefinition()
-					)
-			)
+		const createdListTypeDefinitions = await Promise.all(
+			Array(22)
+				.fill(null)
+				.map(
+					async () =>
+						await apiHelpers.listTypeAdmin.postRandomListTypeDefinition()
+				)
 		);
 
-		allListTypeDefinitions.forEach(({id}) =>
+		// Only what this test created is registered for deletion. Registering
+		// the definitions it merely found would delete picklists belonging to
+		// whatever else is running or expected to remain.
+
+		createdListTypeDefinitions.forEach(({id}) =>
 			apiHelpers.data.push({
 				id,
 				type: 'listTypeDefinition',
 			})
+		);
+
+		const allListTypeDefinitions = existingListTypeDefinitions.concat(
+			createdListTypeDefinitions
 		);
 
 		await modelBuilderDiagramPage.goto({objectFolderName: 'Default'});
@@ -1195,9 +1202,10 @@ test.describe('Manage objectFields through Objects Admin UI', () => {
 					label: {
 						en_US: 'objectRelationshipLabel' + getRandomInt(),
 					},
-					name:
-						'objectRelationshipName' +
-						Math.floor(Math.random() * 99),
+					name: await getFreshObjectRelationshipName(apiHelpers, [
+						objectDefinition1.externalReferenceCode!,
+						objectDefinition2.externalReferenceCode!,
+					]),
 					objectDefinitionExternalReferenceCode1:
 						objectDefinition1.externalReferenceCode,
 					objectDefinitionExternalReferenceCode2:
@@ -1424,8 +1432,10 @@ test.describe('Manage objectFields through Objects Admin UI', () => {
 			ObjectRelationshipAPI
 		);
 
-		const objectRelationshipName =
-			'objectRelationshipName' + Math.floor(Math.random() * 99);
+		const objectRelationshipName = await getFreshObjectRelationshipName(
+			apiHelpers,
+			[objectDefinition.externalReferenceCode!]
+		);
 
 		await objectRelationshipAPIClient.postObjectDefinitionByExternalReferenceCodeObjectRelationship(
 			objectDefinition.externalReferenceCode!,
@@ -1544,8 +1554,11 @@ test.describe('Manage objectFields through Objects Admin UI', () => {
 			ObjectRelationshipAPI
 		);
 
-		const objectRelationship1 =
-			'objectRelationship' + Math.floor(Math.random() * 99);
+		const objectRelationship1 = await getFreshObjectRelationshipName(
+			apiHelpers,
+			[objectDefinition.externalReferenceCode!],
+			'objectRelationship'
+		);
 
 		await objectRelationshipAPIClient.postObjectDefinitionByExternalReferenceCodeObjectRelationship(
 			objectDefinition.externalReferenceCode!,
@@ -1560,8 +1573,14 @@ test.describe('Manage objectFields through Objects Admin UI', () => {
 			}
 		);
 
-		const objectRelationship2 =
-			'objectRelationship' + Math.floor(Math.random() * 99);
+		const objectRelationship2 = await getFreshObjectRelationshipName(
+			apiHelpers,
+			[
+				objectDefinition.externalReferenceCode!,
+				objectDefinition2.externalReferenceCode!,
+			],
+			'objectRelationship'
+		);
 
 		await objectRelationshipAPIClient.postObjectDefinitionByExternalReferenceCodeObjectRelationship(
 			objectDefinition.externalReferenceCode!,
@@ -1908,7 +1927,11 @@ test.describe('Manage objectFields through Objects Admin UI', () => {
 					'L_USER',
 					{
 						label: {en_US: relationshipLabel},
-						name: 'relationship' + getRandomInt(),
+						name: await getFreshObjectRelationshipName(
+							apiHelpers,
+							['L_USER', objectDefinition.externalReferenceCode!],
+							'relationship'
+						),
 						objectDefinitionExternalReferenceCode2:
 							objectDefinition.externalReferenceCode,
 						objectDefinitionId2: objectDefinition.id,
@@ -2148,9 +2171,10 @@ test.describe('Manage objectFields through Objects Admin UI', () => {
 					label: {
 						en_US: 'objectRelationshipLabel' + getRandomInt(),
 					},
-					name:
-						'objectRelationshipName' +
-						Math.floor(Math.random() * 99),
+					name: await getFreshObjectRelationshipName(apiHelpers, [
+						objectDefinition1.externalReferenceCode!,
+						objectDefinition2.externalReferenceCode!,
+					]),
 					objectDefinitionExternalReferenceCode1:
 						objectDefinition1.externalReferenceCode,
 					objectDefinitionExternalReferenceCode2:
@@ -2361,437 +2385,435 @@ test.describe('Manage objectFields through Objects Admin UI', () => {
 			})
 		).toBeVisible();
 	});
+});
 
-	test.describe('Create Object Fields', () => {
-		let createdObjectDefinition: ObjectDefinition;
-		let createdObjectField: ObjectField;
+test.describe('Create Object Fields', () => {
+	let createdObjectDefinition: ObjectDefinition;
+	let createdObjectField: ObjectField;
 
-		test.beforeEach(async ({apiHelpers, objectFieldsPage}) => {
-			const objectFields = generateObjectFields({
-				objectFieldBusinessTypes: ['Text'],
-			});
-
-			const objectDefinition =
-				await apiHelpers.objectAdmin.postRandomObjectDefinition({
-					objectFields,
-					status: {code: 2},
-				});
-
-			apiHelpers.data.push({
-				id: objectDefinition.id,
-				type: 'objectDefinition',
-			});
-
-			createdObjectDefinition = objectDefinition;
-			createdObjectField = objectFields[0];
-
-			await objectFieldsPage.goto(objectDefinition.label['en_US']);
+	test.beforeEach(async ({apiHelpers, objectFieldsPage}) => {
+		const objectFields = generateObjectFields({
+			objectFieldBusinessTypes: ['Text'],
 		});
 
-		async function assertSearchableProperties(
-			objectFieldsPage: ObjectFieldsPage,
-			visible: boolean
-		) {
-			await expect(
-				objectFieldsPage.iframeLocator.getByRole('radio', {
-					name: 'Keyword',
-				})
-			).toBeVisible({visible});
-			await expect(
-				objectFieldsPage.iframeLocator.getByText('Language')
-			).toBeVisible({visible});
-			await expect(
-				objectFieldsPage.iframeLocator.getByRole('radio', {
-					name: 'Text',
-				})
-			).toBeVisible({visible});
-		}
-
-		test('Verify it is not possible to add a custom object field when required properties are missing', async ({
-			objectFieldsPage,
-			page,
-		}) => {
-			await objectFieldsPage.addObjectFieldButton.click();
-
-			await test.step('Verify required error is shown three times when Label, Name and Type are blank', async () => {
-				await objectFieldsPage.saveButton.click();
-
-				await expect(page.getByText('Required')).toHaveCount(3);
+		const objectDefinition =
+			await apiHelpers.objectAdmin.postRandomObjectDefinition({
+				objectFields,
+				status: {code: 2},
 			});
 
-			await test.step('Verify required error is shown two times after filling the Name', async () => {
-				await objectFieldsPage.objectFieldNameInput.fill('testField');
-
-				await objectFieldsPage.saveButton.click();
-
-				await expect(page.getByText('Required')).toHaveCount(2);
-			});
-
-			await test.step('Verify required error is shown one time after filling the Label', async () => {
-				await objectFieldsPage.objectFieldLabelInput.fill('Test Field');
-
-				await objectFieldsPage.saveButton.click();
-
-				await expect(page.getByText('Required')).toHaveCount(1);
-			});
-
-			await test.step('Verify required error is shown for the picklist when the Type is changed to Picklist', async () => {
-				await objectFieldsPage.objectFieldOptionsDropdown.click();
-				await page
-					.getByRole('option', {exact: true, name: 'Picklist'})
-					.click();
-
-				await objectFieldsPage.saveButton.click();
-
-				await expect(page.getByText('Required')).toHaveCount(1);
-			});
+		apiHelpers.data.push({
+			id: objectDefinition.id,
+			type: 'objectDefinition',
 		});
 
-		test('Verify it is not possible to add custom object field with invalid name', async ({
-			objectFieldsPage,
-			page,
-		}) => {
-			await test.step('Verify that Name is autofilled when Label is filled', async () => {
-				await objectFieldsPage.addObjectFieldButton.click();
+		createdObjectDefinition = objectDefinition;
+		createdObjectField = objectFields[0];
 
-				await objectFieldsPage.objectFieldLabelInput.fill('Test Field');
+		await objectFieldsPage.goto(objectDefinition.label['en_US']);
+	});
 
-				await expect(objectFieldsPage.objectFieldNameInput).toHaveValue(
-					'testField'
-				);
-			});
+	async function assertSearchableProperties(
+		objectFieldsPage: ObjectFieldsPage,
+		visible: boolean
+	) {
+		await expect(
+			objectFieldsPage.iframeLocator.getByRole('radio', {
+				name: 'Keyword',
+			})
+		).toBeVisible({visible});
+		await expect(
+			objectFieldsPage.iframeLocator.getByText('Language')
+		).toBeVisible({visible});
+		await expect(
+			objectFieldsPage.iframeLocator.getByRole('radio', {
+				name: 'Text',
+			})
+		).toBeVisible({visible});
+	}
 
-			await test.step('Verify it is not possible to save Name with special characters', async () => {
-				await objectFieldsPage.objectFieldNameInput.fill(
-					'Field@Special!'
-				);
+	test('Verify it is not possible to add a custom object field when required properties are missing', async ({
+		objectFieldsPage,
+		page,
+	}) => {
+		await objectFieldsPage.addObjectFieldButton.click();
 
-				await objectFieldsPage.objectFieldOptionsDropdown.click();
-				await page
-					.getByRole('option', {exact: true, name: 'Text'})
-					.click();
+		await test.step('Verify required error is shown three times when Label, Name and Type are blank', async () => {
+			await objectFieldsPage.saveButton.click();
 
-				await objectFieldsPage.saveButton.click();
-
-				await expect(
-					page.getByText('Name must only contain letters and digits.')
-				).toBeVisible();
-			});
-
-			await test.step('Verify it is not possible to save Name that begin with uppercase letter', async () => {
-				await objectFieldsPage.objectFieldNameInput.fill(
-					'FieldUpperCase'
-				);
-
-				await objectFieldsPage.saveButton.click();
-
-				await expect(
-					page.getByText(
-						'The first character of a name must be a lowercase letter.'
-					)
-				).toBeVisible();
-			});
-
-			await test.step('Verify it is not possible to save Duplicated name', async () => {
-				await objectFieldsPage.objectFieldNameInput.fill(
-					createdObjectField.name
-				);
-
-				await objectFieldsPage.saveButton.click();
-
-				await expect(
-					page.getByText(
-						'This name is already in use. Try another one.'
-					)
-				).toBeVisible();
-			});
+			await expect(page.getByText('Required')).toHaveCount(3);
 		});
 
-		test('Verify it is possible to cancel the creation of a custom object field', async ({
-			objectFieldsPage,
-			page,
-		}) => {
-			await objectFieldsPage.addObjectFieldButton.click();
+		await test.step('Verify required error is shown two times after filling the Name', async () => {
+			await objectFieldsPage.objectFieldNameInput.fill('testField');
 
-			await objectFieldsPage.objectFieldLabelInput.fill('Cancel Field');
+			await objectFieldsPage.saveButton.click();
 
-			await page.getByRole('button', {name: 'Cancel'}).click();
+			await expect(page.getByText('Required')).toHaveCount(2);
+		});
 
+		await test.step('Verify required error is shown one time after filling the Label', async () => {
+			await objectFieldsPage.objectFieldLabelInput.fill('Test Field');
+
+			await objectFieldsPage.saveButton.click();
+
+			await expect(page.getByText('Required')).toHaveCount(1);
+		});
+
+		await test.step('Verify required error is shown for the picklist when the Type is changed to Picklist', async () => {
+			await objectFieldsPage.objectFieldOptionsDropdown.click();
 			await page
-				.getByRole('search')
-				.getByRole('searchbox', {name: 'Search'})
-				.fill('Cancel Field');
-			await page.keyboard.press('Enter');
+				.getByRole('option', {exact: true, name: 'Picklist'})
+				.click();
 
-			await expect(page.getByText('No Results Found')).toBeVisible();
+			await objectFieldsPage.saveButton.click();
+
+			await expect(page.getByText('Required')).toHaveCount(1);
+		});
+	});
+
+	test('Verify it is not possible to add custom object field with invalid name', async ({
+		objectFieldsPage,
+		page,
+	}) => {
+		await test.step('Verify that Name is autofilled when Label is filled', async () => {
+			await objectFieldsPage.addObjectFieldButton.click();
+
+			await objectFieldsPage.objectFieldLabelInput.fill('Test Field');
+
+			await expect(objectFieldsPage.objectFieldNameInput).toHaveValue(
+				'testField'
+			);
 		});
 
-		test('Verify it is possible to delete a custom object field depending on the object state', async ({
-			apiHelpers,
-			objectFieldsPage,
-			page,
-		}) => {
-			await test.step('Verify it is possible to delete the only custom object field before the object is published', async () => {
-				await objectFieldsPage.deleteObjectField(false, -1);
+		await test.step('Verify it is not possible to save Name with special characters', async () => {
+			await objectFieldsPage.objectFieldNameInput.fill('Field@Special!');
+
+			await objectFieldsPage.objectFieldOptionsDropdown.click();
+			await page.getByRole('option', {exact: true, name: 'Text'}).click();
+
+			await objectFieldsPage.saveButton.click();
+
+			await expect(
+				page.getByText('Name must only contain letters and digits.')
+			).toBeVisible();
+		});
+
+		await test.step('Verify it is not possible to save Name that begin with uppercase letter', async () => {
+			await objectFieldsPage.objectFieldNameInput.fill('FieldUpperCase');
+
+			await objectFieldsPage.saveButton.click();
+
+			await expect(
+				page.getByText(
+					'The first character of a name must be a lowercase letter.'
+				)
+			).toBeVisible();
+		});
+
+		await test.step('Verify it is not possible to save Duplicated name', async () => {
+			await objectFieldsPage.objectFieldNameInput.fill(
+				createdObjectField.name
+			);
+
+			await objectFieldsPage.saveButton.click();
+
+			await expect(
+				page.getByText('This name is already in use. Try another one.')
+			).toBeVisible();
+		});
+	});
+
+	test('Verify it is possible to cancel the creation of a custom object field', async ({
+		objectFieldsPage,
+		page,
+	}) => {
+		await objectFieldsPage.addObjectFieldButton.click();
+
+		await objectFieldsPage.objectFieldLabelInput.fill('Cancel Field');
+
+		await page.getByRole('button', {name: 'Cancel'}).click();
+
+		// Cancelling the modal only starts its close. The close lands later
+		// and returns focus to the element that opened the modal, so wait for
+		// the modal's own field to be gone before touching the page beneath,
+		// and give the Enter to the search box itself rather than to whatever
+		// holds focus by then.
+
+		await expect(objectFieldsPage.objectFieldLabelInput).toBeHidden();
+
+		const searchInput = page
+			.getByRole('search')
+			.getByRole('searchbox', {name: 'Search'});
+
+		await searchInput.fill('Cancel Field');
+
+		await waitForSearchToBeReady(page);
+
+		await searchInput.press('Enter');
+
+		await expect(page.getByText('No Results Found')).toBeVisible();
+	});
+
+	test('Verify it is possible to delete a custom object field depending on the object state', async ({
+		apiHelpers,
+		objectFieldsPage,
+		page,
+	}) => {
+		await test.step('Verify it is possible to delete the only custom object field before the object is published', async () => {
+			await objectFieldsPage.deleteObjectField(false, -1);
+		});
+
+		await test.step('Verify it is not possible to delete the only custom object field after the object is published', async () => {
+			await objectFieldsPage.addObjectField({
+				objectFieldBusinessType: 'Text',
+				objectFieldLabel: 'Text1',
 			});
 
-			await test.step('Verify it is not possible to delete the only custom object field after the object is published', async () => {
-				await objectFieldsPage.addObjectField({
-					objectFieldBusinessType: 'Text',
-					objectFieldLabel: 'Text1',
-				});
-
-				await apiHelpers.objectAdmin.postObjectDefinitionPublish({
-					objectDefinitionId: createdObjectDefinition.id,
-				});
-
-				await objectFieldsPage.deleteObjectField(false, -1);
-
-				await expect(
-					page.getByText('Deletion Not Allowed')
-				).toBeVisible();
-				await expect(
-					page.getByText(
-						`The object field "Text1" cannot be deleted because it is the only custom object field of the published object definition.`
-					)
-				).toBeVisible();
-
-				await page.getByRole('button', {name: 'Done'}).click();
+			await apiHelpers.objectAdmin.postObjectDefinitionPublish({
+				objectDefinitionId: createdObjectDefinition.id,
 			});
 
-			await test.step('Verify it is possible to delete a custom object field when it is not the only one after the object is published', async () => {
-				await objectFieldsPage.addObjectField({
-					objectFieldBusinessType: 'Text',
-					objectFieldLabel: 'Text2',
-				});
+			await objectFieldsPage.deleteObjectField(false, -1);
 
-				await objectFieldsPage.deleteObjectField(true, -1);
+			await expect(page.getByText('Deletion Not Allowed')).toBeVisible();
+			await expect(
+				page.getByText(
+					`The object field "Text1" cannot be deleted because it is the only custom object field of the published object definition.`
+				)
+			).toBeVisible();
+
+			await page.getByRole('button', {name: 'Done'}).click();
+		});
+
+		await test.step('Verify it is possible to delete a custom object field when it is not the only one after the object is published', async () => {
+			await objectFieldsPage.addObjectField({
+				objectFieldBusinessType: 'Text',
+				objectFieldLabel: 'Text2',
+			});
+
+			await objectFieldsPage.deleteObjectField(true, -1);
+
+			await expect(
+				page.getByRole('row').filter({hasText: 'Text1'})
+			).toBeVisible();
+			await expect(
+				page.getByRole('row').filter({hasText: 'Text2'})
+			).toBeHidden();
+		});
+	});
+
+	test('Verify it is possible to update field properties depending on the object state', async ({
+		apiHelpers,
+		objectFieldsPage,
+		page,
+	}) => {
+		await test.step('Before the object is published', async () => {
+			await test.step('Update Label with translation', async () => {
+				await objectFieldsPage.openObjectField(
+					createdObjectField.label!['en_US']
+				);
+
+				await objectFieldsPage.iframeLocator
+					.getByLabel('Label')
+					.fill('Updated Label');
+
+				await objectFieldsPage.iframeLocator
+					.getByTitle('en_US')
+					.click();
+				await objectFieldsPage.iframeLocator
+					.getByRole('option', {name: 'pt_BR'})
+					.click();
+
+				await objectFieldsPage.iframeLocator
+					.getByLabel('Label')
+					.fill('Rótulo Atualizado');
+			});
+
+			await test.step('Verify that Keyword, Language, and Text fields are not visible for non-searchable Text field', async () => {
+				await assertSearchableProperties(objectFieldsPage, false);
+			});
+
+			await test.step('Update Mandatory, Name and Searchable', async () => {
+				await objectFieldsPage.iframeLocator
+					.getByRole('switch', {name: 'Mandatory'})
+					.check();
+				await objectFieldsPage.iframeLocator
+					.locator('input[name="name"]')
+					.fill('updatedName');
+				await objectFieldsPage.iframeLocator
+					.getByRole('switch', {name: 'Searchable'})
+					.check();
+			});
+
+			await test.step('Verify that Keyword, Language, and Text fields are visible for searchable Text field', async () => {
+				await assertSearchableProperties(objectFieldsPage, true);
+			});
+
+			await test.step('Update type to Integer', async () => {
+				await objectFieldsPage.iframeLocator
+					.getByRole('combobox', {name: 'Type'})
+					.click();
+				await objectFieldsPage.iframeLocator
+					.getByRole('option', {exact: true, name: 'Integer'})
+					.click();
+			});
+
+			await test.step('Verify that Keyword, Language, and Text fields are not visible for searchable Integer field', async () => {
+				await assertSearchableProperties(objectFieldsPage, false);
+			});
+
+			await objectFieldsPage.editFieldSaveButton.click();
+
+			await waitForAlert(
+				page,
+				'The object field was updated successfully'
+			);
+
+			await test.step('Verify that Label and Type columns are displayed for the updated field', async () => {
+				await page
+					.getByRole('search')
+					.getByRole('searchbox', {name: 'Search'})
+					.fill('Updated Label');
+				await page.keyboard.press('Enter');
 
 				await expect(
-					page.getByRole('row').filter({hasText: 'Text1'})
+					page
+						.getByRole('row')
+						.filter({hasText: 'Updated Label'})
+						.getByText('Integer')
 				).toBeVisible();
+			});
+
+			await test.step('Verify that translated Label is updated', async () => {
+				await objectFieldsPage.openObjectField('Updated Label');
+
+				await objectFieldsPage.iframeLocator
+					.getByTitle('en_US')
+					.click();
+				await objectFieldsPage.iframeLocator
+					.getByRole('option', {name: 'pt_BR'})
+					.click();
+
 				await expect(
-					page.getByRole('row').filter({hasText: 'Text2'})
-				).toBeHidden();
+					objectFieldsPage.iframeLocator.getByLabel('Label')
+				).toHaveValue('Rótulo Atualizado');
+			});
+
+			await test.step('Verify that Mandatory, Name, Searchable and Type are updated', async () => {
+				await expect(
+					objectFieldsPage.iframeLocator.getByRole('switch', {
+						name: 'Mandatory',
+					})
+				).toBeChecked();
+				await expect(
+					objectFieldsPage.iframeLocator.locator('input[name="name"]')
+				).toHaveValue('updatedName');
+				await expect(
+					objectFieldsPage.iframeLocator.getByRole('switch', {
+						name: 'Searchable',
+					})
+				).toBeChecked();
+				await expect(
+					objectFieldsPage.iframeLocator.getByRole('combobox', {
+						name: 'Type',
+					})
+				).toHaveText('Integer');
 			});
 		});
 
-		test('Verify it is possible to update field properties depending on the object state', async ({
-			apiHelpers,
-			objectFieldsPage,
-			page,
-		}) => {
-			await test.step('Before the object is published', async () => {
-				await test.step('Update Label with translation', async () => {
-					await objectFieldsPage.openObjectField(
-						createdObjectField.label!['en_US']
-					);
-
-					await objectFieldsPage.iframeLocator
-						.getByLabel('Label')
-						.fill('Updated Label');
-
-					await objectFieldsPage.iframeLocator
-						.getByTitle('en_US')
-						.click();
-					await objectFieldsPage.iframeLocator
-						.getByRole('option', {name: 'pt_BR'})
-						.click();
-
-					await objectFieldsPage.iframeLocator
-						.getByLabel('Label')
-						.fill('Rótulo Atualizado');
-				});
-
-				await test.step('Verify that Keyword, Language, and Text fields are not visible for non-searchable Text field', async () => {
-					await assertSearchableProperties(objectFieldsPage, false);
-				});
-
-				await test.step('Update Mandatory, Name and Searchable', async () => {
-					await objectFieldsPage.iframeLocator
-						.getByRole('switch', {name: 'Mandatory'})
-						.check();
-					await objectFieldsPage.iframeLocator
-						.locator('input[name="name"]')
-						.fill('updatedName');
-					await objectFieldsPage.iframeLocator
-						.getByRole('switch', {name: 'Searchable'})
-						.check();
-				});
-
-				await test.step('Verify that Keyword, Language, and Text fields are visible for searchable Text field', async () => {
-					await assertSearchableProperties(objectFieldsPage, true);
-				});
-
-				await test.step('Update type to Integer', async () => {
-					await objectFieldsPage.iframeLocator
-						.getByRole('combobox', {name: 'Type'})
-						.click();
-					await objectFieldsPage.iframeLocator
-						.getByRole('option', {exact: true, name: 'Integer'})
-						.click();
-				});
-
-				await test.step('Verify that Keyword, Language, and Text fields are not visible for searchable Integer field', async () => {
-					await assertSearchableProperties(objectFieldsPage, false);
-				});
-
-				await objectFieldsPage.editFieldSaveButton.click();
-
-				await waitForAlert(
-					page,
-					'The object field was updated successfully'
-				);
-
-				await test.step('Verify that Label and Type columns are displayed for the updated field', async () => {
-					await page
-						.getByRole('search')
-						.getByRole('searchbox', {name: 'Search'})
-						.fill('Updated Label');
-					await page.keyboard.press('Enter');
-
-					await expect(
-						page
-							.getByRole('row')
-							.filter({hasText: 'Updated Label'})
-							.getByText('Integer')
-					).toBeVisible();
-				});
-
-				await test.step('Verify that translated Label is updated', async () => {
-					await objectFieldsPage.openObjectField('Updated Label');
-
-					await objectFieldsPage.iframeLocator
-						.getByTitle('en_US')
-						.click();
-					await objectFieldsPage.iframeLocator
-						.getByRole('option', {name: 'pt_BR'})
-						.click();
-
-					await expect(
-						objectFieldsPage.iframeLocator.getByLabel('Label')
-					).toHaveValue('Rótulo Atualizado');
-				});
-
-				await test.step('Verify that Mandatory, Name, Searchable and Type are updated', async () => {
-					await expect(
-						objectFieldsPage.iframeLocator.getByRole('switch', {
-							name: 'Mandatory',
-						})
-					).toBeChecked();
-					await expect(
-						objectFieldsPage.iframeLocator.locator(
-							'input[name="name"]'
-						)
-					).toHaveValue('updatedName');
-					await expect(
-						objectFieldsPage.iframeLocator.getByRole('switch', {
-							name: 'Searchable',
-						})
-					).toBeChecked();
-					await expect(
-						objectFieldsPage.iframeLocator.getByRole('combobox', {
-							name: 'Type',
-						})
-					).toHaveText('Integer');
-				});
+		await test.step('After the object is published', async () => {
+			await apiHelpers.objectAdmin.postObjectDefinitionPublish({
+				objectDefinitionId: createdObjectDefinition.id,
 			});
 
-			await test.step('After the object is published', async () => {
-				await apiHelpers.objectAdmin.postObjectDefinitionPublish({
-					objectDefinitionId: createdObjectDefinition.id,
-				});
+			await page.reload();
 
-				await page.reload();
+			await test.step('Update Label with translation', async () => {
+				await objectFieldsPage.openObjectField('Updated Label');
 
-				await test.step('Update Label with translation', async () => {
-					await objectFieldsPage.openObjectField('Updated Label');
+				await objectFieldsPage.iframeLocator
+					.getByLabel('Label')
+					.fill('New Updated Label');
 
-					await objectFieldsPage.iframeLocator
-						.getByLabel('Label')
-						.fill('New Updated Label');
+				await objectFieldsPage.iframeLocator
+					.getByTitle('en_US')
+					.click();
+				await objectFieldsPage.iframeLocator
+					.getByRole('option', {name: 'pt_BR'})
+					.click();
 
-					await objectFieldsPage.iframeLocator
-						.getByTitle('en_US')
-						.click();
-					await objectFieldsPage.iframeLocator
-						.getByRole('option', {name: 'pt_BR'})
-						.click();
+				await objectFieldsPage.iframeLocator
+					.getByLabel('Label')
+					.fill('Novo Rótulo Atualizado');
+			});
 
-					await objectFieldsPage.iframeLocator
-						.getByLabel('Label')
-						.fill('Novo Rótulo Atualizado');
-				});
+			await test.step('Uncheck Mandatory and Searchable fields', async () => {
+				await objectFieldsPage.iframeLocator
+					.getByRole('switch', {name: 'Mandatory'})
+					.uncheck();
+				await objectFieldsPage.iframeLocator
+					.getByRole('switch', {name: 'Searchable'})
+					.uncheck();
+			});
 
-				await test.step('Uncheck Mandatory and Searchable fields', async () => {
-					await objectFieldsPage.iframeLocator
-						.getByRole('switch', {name: 'Mandatory'})
-						.uncheck();
-					await objectFieldsPage.iframeLocator
-						.getByRole('switch', {name: 'Searchable'})
-						.uncheck();
-				});
+			await test.step('Verify it is not possible to update Name and Type fields', async () => {
+				await expect(
+					objectFieldsPage.iframeLocator.locator('input[name="name"]')
+				).toBeDisabled();
+				await expect(
+					objectFieldsPage.iframeLocator.getByRole('combobox', {
+						name: 'Type',
+					})
+				).toBeDisabled();
+			});
 
-				await test.step('Verify it is not possible to update Name and Type fields', async () => {
-					await expect(
-						objectFieldsPage.iframeLocator.locator(
-							'input[name="name"]'
-						)
-					).toBeDisabled();
-					await expect(
-						objectFieldsPage.iframeLocator.getByRole('combobox', {
-							name: 'Type',
-						})
-					).toBeDisabled();
-				});
+			await objectFieldsPage.editFieldSaveButton.click();
 
-				await objectFieldsPage.editFieldSaveButton.click();
+			await waitForAlert(
+				page,
+				'The object field was updated successfully'
+			);
 
-				await waitForAlert(
-					page,
-					'The object field was updated successfully'
-				);
+			await test.step('Verify that translated Label is updated', async () => {
+				await objectFieldsPage.openObjectField('New Updated Label');
 
-				await test.step('Verify that translated Label is updated', async () => {
-					await objectFieldsPage.openObjectField('New Updated Label');
+				await objectFieldsPage.iframeLocator
+					.getByTitle('en_US')
+					.click();
+				await objectFieldsPage.iframeLocator
+					.getByRole('option', {name: 'pt_BR'})
+					.click();
 
-					await objectFieldsPage.iframeLocator
-						.getByTitle('en_US')
-						.click();
-					await objectFieldsPage.iframeLocator
-						.getByRole('option', {name: 'pt_BR'})
-						.click();
+				await expect(
+					objectFieldsPage.iframeLocator.getByLabel('Label')
+				).toHaveValue('Novo Rótulo Atualizado');
+			});
 
-					await expect(
-						objectFieldsPage.iframeLocator.getByLabel('Label')
-					).toHaveValue('Novo Rótulo Atualizado');
-				});
+			await test.step('Verify that Mandatory is unchecked and disabled', async () => {
+				await expect(
+					objectFieldsPage.iframeLocator.getByRole('switch', {
+						name: 'Mandatory',
+					})
+				).not.toBeChecked();
+				await expect(
+					objectFieldsPage.iframeLocator.getByRole('switch', {
+						name: 'Mandatory',
+					})
+				).toBeDisabled();
+			});
 
-				await test.step('Verify that Mandatory is unchecked and disabled', async () => {
-					await expect(
-						objectFieldsPage.iframeLocator.getByRole('switch', {
-							name: 'Mandatory',
-						})
-					).not.toBeChecked();
-					await expect(
-						objectFieldsPage.iframeLocator.getByRole('switch', {
-							name: 'Mandatory',
-						})
-					).toBeDisabled();
-				});
-
-				await test.step('Verify that Searchable is unchecked', async () => {
-					await expect(
-						objectFieldsPage.iframeLocator.getByRole('switch', {
-							name: 'Searchable',
-						})
-					).not.toBeChecked();
-					await expect(
-						objectFieldsPage.iframeLocator.getByRole('switch', {
-							name: 'Searchable',
-						})
-					).toBeEnabled();
-				});
+			await test.step('Verify that Searchable is unchecked', async () => {
+				await expect(
+					objectFieldsPage.iframeLocator.getByRole('switch', {
+						name: 'Searchable',
+					})
+				).not.toBeChecked();
+				await expect(
+					objectFieldsPage.iframeLocator.getByRole('switch', {
+						name: 'Searchable',
+					})
+				).toBeEnabled();
 			});
 		});
 	});
@@ -2804,7 +2826,6 @@ test.describe('Manage object fields default value properties', () => {
 		async ({
 			apiHelpers,
 			modelBuilderDiagramPage,
-			modelBuilderLeftSidebarPage,
 			modelBuilderObjectDefinitionNodePage,
 			modelBuilderRightSidebarPage,
 			page,
@@ -2816,6 +2837,8 @@ test.describe('Manage object fields default value properties', () => {
 
 			let objectName: string;
 
+			let objectFolderName: string;
+
 			await test.step('create object with boolean field', async () => {
 				const objectFields = generateObjectFields({
 					objectFieldBusinessTypes: ['Boolean'],
@@ -2823,9 +2846,26 @@ test.describe('Manage object fields default value properties', () => {
 
 				booleanFieldName = objectFields[0].label['en_US'];
 
+				// An isolated folder keeps the diagram to this one definition, so
+				// the node is fitted into view; the Default folder holds every
+				// system definition and pushes the node's controls under the
+				// right sidebar, which Playwright cannot scroll away.
+
+				const objectFolder =
+					await apiHelpers.objectAdmin.postRandomObjectFolder();
+
+				apiHelpers.data.push({
+					id: objectFolder.id,
+					type: 'objectFolder',
+				});
+
+				objectFolderName = objectFolder.name;
+
 				const objectDefinition =
 					await apiHelpers.objectAdmin.postRandomObjectDefinition({
 						objectFields,
+						objectFolderExternalReferenceCode:
+							objectFolder.externalReferenceCode,
 						status: {code: 0},
 					});
 
@@ -2841,12 +2881,8 @@ test.describe('Manage object fields default value properties', () => {
 
 			await test.step('set default value to false for boolean field and check in object entry', async () => {
 				await modelBuilderDiagramPage.goto({
-					objectFolderName: 'Default',
+					objectFolderName,
 				});
-
-				await modelBuilderLeftSidebarPage.sidebarItems
-					.filter({hasText: objectName})
-					.click();
 
 				await modelBuilderObjectDefinitionNodePage.clickShowAllFieldsButton(
 					objectName,
@@ -2856,7 +2892,7 @@ test.describe('Manage object fields default value properties', () => {
 				await modelBuilderDiagramPage.objectDefinitionNodes
 					.filter({hasText: objectName})
 					.getByText('Boolean', {exact: true})
-					.click();
+					.dispatchEvent('click');
 
 				await modelBuilderRightSidebarPage.setDefaultValue(
 					'Boolean',
@@ -2874,12 +2910,8 @@ test.describe('Manage object fields default value properties', () => {
 
 			await test.step('set default value to true for boolean field and check in object entry', async () => {
 				await modelBuilderDiagramPage.goto({
-					objectFolderName: 'Default',
+					objectFolderName,
 				});
-
-				await modelBuilderLeftSidebarPage.sidebarItems
-					.filter({hasText: objectName})
-					.click();
 
 				await modelBuilderObjectDefinitionNodePage.clickShowAllFieldsButton(
 					objectName,
@@ -2889,7 +2921,7 @@ test.describe('Manage object fields default value properties', () => {
 				await modelBuilderDiagramPage.objectDefinitionNodes
 					.filter({hasText: objectName})
 					.getByText('Boolean', {exact: true})
-					.click();
+					.dispatchEvent('click');
 
 				await modelBuilderRightSidebarPage.setDefaultValue(
 					'Boolean',
@@ -2905,12 +2937,8 @@ test.describe('Manage object fields default value properties', () => {
 
 			await test.step('untoggle default value for boolean field and check in object entry', async () => {
 				await modelBuilderDiagramPage.goto({
-					objectFolderName: 'Default',
+					objectFolderName,
 				});
-
-				await modelBuilderLeftSidebarPage.sidebarItems
-					.filter({hasText: objectName})
-					.click();
 
 				await modelBuilderObjectDefinitionNodePage.clickShowAllFieldsButton(
 					objectName,
@@ -2920,7 +2948,7 @@ test.describe('Manage object fields default value properties', () => {
 				await modelBuilderDiagramPage.objectDefinitionNodes
 					.filter({hasText: objectName})
 					.getByText('Boolean', {exact: true})
-					.click();
+					.dispatchEvent('click');
 
 				await modelBuilderRightSidebarPage.advancedTab.click();
 
@@ -3460,7 +3488,6 @@ test.describe('Manage object fields default value properties', () => {
 		async ({
 			apiHelpers,
 			modelBuilderDiagramPage,
-			modelBuilderLeftSidebarPage,
 			modelBuilderObjectDefinitionNodePage,
 			modelBuilderRightSidebarPage,
 			page,
@@ -3469,9 +3496,24 @@ test.describe('Manage object fields default value properties', () => {
 				objectFieldBusinessTypes: ['Text'],
 			});
 
+			// An isolated folder keeps the diagram to this one definition, so
+			// the node is fitted into view; the Default folder holds every
+			// system definition and pushes the node's controls out of the
+			// canvas viewport, which Playwright cannot scroll.
+
+			const objectFolder =
+				await apiHelpers.objectAdmin.postRandomObjectFolder();
+
+			apiHelpers.data.push({
+				id: objectFolder.id,
+				type: 'objectFolder',
+			});
+
 			const objectDefinition =
 				await apiHelpers.objectAdmin.postRandomObjectDefinition({
 					objectFields,
+					objectFolderExternalReferenceCode:
+						objectFolder.externalReferenceCode,
 					status: {code: 0},
 				});
 
@@ -3481,12 +3523,8 @@ test.describe('Manage object fields default value properties', () => {
 			});
 
 			await modelBuilderDiagramPage.goto({
-				objectFolderName: 'Default',
+				objectFolderName: objectFolder.name,
 			});
-
-			await modelBuilderLeftSidebarPage.sidebarItems
-				.filter({hasText: objectDefinition.name})
-				.click();
 
 			await modelBuilderObjectDefinitionNodePage.clickShowAllFieldsButton(
 				objectDefinition.name,
@@ -3496,7 +3534,7 @@ test.describe('Manage object fields default value properties', () => {
 			await modelBuilderDiagramPage.objectDefinitionNodes
 				.filter({hasText: objectDefinition.name})
 				.getByText(objectFields[0].label.en_US, {exact: true})
-				.click();
+				.dispatchEvent('click');
 
 			await modelBuilderRightSidebarPage.setDefaultValue(
 				'Text',
@@ -3569,7 +3607,6 @@ test.describe('Manage object fields default value properties', () => {
 		async ({
 			apiHelpers,
 			modelBuilderDiagramPage,
-			modelBuilderLeftSidebarPage,
 			modelBuilderObjectDefinitionNodePage,
 			modelBuilderRightSidebarPage,
 			page,
@@ -3578,9 +3615,24 @@ test.describe('Manage object fields default value properties', () => {
 				objectFieldBusinessTypes: ['Text'],
 			});
 
+			// An isolated folder keeps the diagram to this one definition, so
+			// the node is fitted into view; the Default folder holds every
+			// system definition and pushes the node's controls out of the
+			// canvas viewport, which Playwright cannot scroll.
+
+			const objectFolder =
+				await apiHelpers.objectAdmin.postRandomObjectFolder();
+
+			apiHelpers.data.push({
+				id: objectFolder.id,
+				type: 'objectFolder',
+			});
+
 			const objectDefinition =
 				await apiHelpers.objectAdmin.postRandomObjectDefinition({
 					objectFields,
+					objectFolderExternalReferenceCode:
+						objectFolder.externalReferenceCode,
 					status: {code: 0},
 				});
 
@@ -3590,12 +3642,8 @@ test.describe('Manage object fields default value properties', () => {
 			});
 
 			await modelBuilderDiagramPage.goto({
-				objectFolderName: 'Default',
+				objectFolderName: objectFolder.name,
 			});
-
-			await modelBuilderLeftSidebarPage.sidebarItems
-				.filter({hasText: objectDefinition.name})
-				.click();
 
 			await modelBuilderObjectDefinitionNodePage.clickShowAllFieldsButton(
 				objectDefinition.name,
@@ -3605,7 +3653,7 @@ test.describe('Manage object fields default value properties', () => {
 			await modelBuilderDiagramPage.objectDefinitionNodes
 				.filter({hasText: objectDefinition.name})
 				.getByText(objectFields[0].label.en_US, {exact: true})
-				.click();
+				.dispatchEvent('click');
 
 			const rightSidebar = page.locator(
 				'.lfr__objects-custom-vertical-bar-content > .sidebar[id*="ModelBuilderRightSidebar"]'

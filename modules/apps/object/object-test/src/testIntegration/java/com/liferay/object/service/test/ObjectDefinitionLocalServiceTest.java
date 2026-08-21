@@ -34,7 +34,6 @@ import com.liferay.object.constants.ObjectFieldSettingConstants;
 import com.liferay.object.constants.ObjectFolderConstants;
 import com.liferay.object.constants.ObjectRelationshipConstants;
 import com.liferay.object.definition.setting.builder.ObjectDefinitionSettingBuilder;
-import com.liferay.object.definition.util.ObjectDefinitionUtil;
 import com.liferay.object.definition.util.ObjectDefinitionValidationThreadLocal;
 import com.liferay.object.exception.DuplicateObjectDefinitionExternalReferenceCodeException;
 import com.liferay.object.exception.NoSuchObjectDefinitionException;
@@ -71,6 +70,7 @@ import com.liferay.object.exception.ObjectFieldNameException;
 import com.liferay.object.exception.ObjectFieldRelationshipTypeException;
 import com.liferay.object.exception.ObjectRelationshipEdgeException;
 import com.liferay.object.field.builder.AssigneeObjectFieldBuilder;
+import com.liferay.object.field.builder.AttachmentObjectFieldBuilder;
 import com.liferay.object.field.builder.BooleanObjectFieldBuilder;
 import com.liferay.object.field.builder.DateObjectFieldBuilder;
 import com.liferay.object.field.builder.DateTimeObjectFieldBuilder;
@@ -120,6 +120,7 @@ import com.liferay.portal.kernel.audit.AuditMessage;
 import com.liferay.portal.kernel.audit.AuditRouter;
 import com.liferay.portal.kernel.dao.db.DBInspector;
 import com.liferay.portal.kernel.dao.jdbc.DataAccess;
+import com.liferay.portal.kernel.dao.orm.EntityCacheUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
@@ -181,7 +182,6 @@ import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.kernel.workflow.WorkflowDefinition;
 import com.liferay.portal.language.override.model.PLOEntry;
 import com.liferay.portal.language.override.service.PLOEntryLocalService;
-import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -884,7 +884,6 @@ public class ObjectDefinitionLocalServiceTest {
 		_objectFolderLocalService.deleteObjectFolder(objectFolder);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testAddObjectDefinitionWithAcceptedGroupIds() throws Exception {
 		String name = ObjectDefinitionTestUtil.getRandomName();
@@ -924,7 +923,6 @@ public class ObjectDefinitionLocalServiceTest {
 				acceptedGroupIds));
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testAddObjectDefinitionWithMissingWorkflowDefinitionReference()
 		throws Exception {
@@ -966,7 +964,7 @@ public class ObjectDefinitionLocalServiceTest {
 			_workflowDefinitionManager.saveWorkflowDefinition(
 				content.getBytes(), TestPropsValues.getCompanyId(),
 				kaleoDefinition.getExternalReferenceCode(), 0,
-				kaleoDefinition.getName(), kaleoDefinition.getScope(),
+				kaleoDefinition.getName(), kaleoDefinition.getScope(), false,
 				kaleoDefinition.getTitle(), TestPropsValues.getUserId());
 
 		workflowDefinitionLink =
@@ -1074,6 +1072,23 @@ public class ObjectDefinitionLocalServiceTest {
 					new ObjectDefinitionSettingBuilder(
 					).name(
 						ObjectDefinitionSettingConstants.NAME_DOMAIN
+					).value(
+						RandomTestUtil.randomString()
+					).build())));
+		AssertUtils.assertFailure(
+			ObjectDefinitionSettingNameException.NotAllowedNames.class,
+			StringBundler.concat(
+				"The settings ",
+				ObjectDefinitionSettingConstants.NAME_SITEMAPABLE,
+				" are not allowed for object definition ",
+				randomObjectDefinitionName),
+			() -> _publishCustomObjectDefinition(
+				randomObjectDefinitionName,
+				ObjectDefinitionConstants.SCOPE_COMPANY,
+				Collections.singletonList(
+					new ObjectDefinitionSettingBuilder(
+					).name(
+						ObjectDefinitionSettingConstants.NAME_SITEMAPABLE
 					).value(
 						RandomTestUtil.randomString()
 					).build())));
@@ -1361,7 +1376,6 @@ public class ObjectDefinitionLocalServiceTest {
 		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition5);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testAddObjectDefinitionWithWorkflowDefinitionLinks()
 		throws Exception {
@@ -2005,7 +2019,6 @@ public class ObjectDefinitionLocalServiceTest {
 		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testAddSystemObjectDefinition() throws Exception {
 
@@ -2073,7 +2086,7 @@ public class ObjectDefinitionLocalServiceTest {
 		objectDefinition =
 			_objectDefinitionLocalService.addSystemObjectDefinition(
 				null, TestPropsValues.getUserId(), 0,
-				ObjectDefinitionUtil.generateRandomClassName(), null, true,
+				ObjectDefinitionTestUtil.getUniqueRandomClassName(), null, true,
 				false, true, false, true, false, false, false, false, false,
 				null, RandomTestUtil.randomLocaleStringMap(), true, "Test",
 				null, null, null, null, RandomTestUtil.randomLocaleStringMap(),
@@ -2754,7 +2767,6 @@ public class ObjectDefinitionLocalServiceTest {
 			_objectEntryLocalService, _objectRelationshipLocalService);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testDeleteObjectDefinitionWithObjectEntries() throws Exception {
 		String objectFieldName = StringUtil.randomId();
@@ -3061,13 +3073,10 @@ public class ObjectDefinitionLocalServiceTest {
 				_objectDefinitionLocalService.addCustomObjectDefinition(
 					null, user.getUserId(), 0, objectDefinition1.getClassName(),
 					true, false, true, false, true, false, false, false, false,
-					null,
-					LocalizedMapUtil.getLocalizedMap(
-						objectDefinition1.getLabel()),
+					null, objectDefinition1.getLabelMap(),
 					objectDefinition1.getShortName(), null, null,
-					LocalizedMapUtil.getLocalizedMap(
-						objectDefinition1.getPluralLabel()),
-					true, ObjectDefinitionConstants.SCOPE_COMPANY,
+					objectDefinition1.getPluralLabelMap(), true,
+					ObjectDefinitionConstants.SCOPE_COMPANY,
 					ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT,
 					Collections.emptyList(),
 					Arrays.asList(
@@ -3186,6 +3195,12 @@ public class ObjectDefinitionLocalServiceTest {
 					externalReferenceCode, companyId, userId,
 					_defaultObjectFolder.getObjectFolderId(), true,
 					ObjectDefinitionConstants.SCOPE_COMPANY, false);
+
+			EntityCacheUtil.clearCache();
+
+			Assert.assertNotNull(
+				_objectDefinitionLocalService.fetchObjectDefinition(
+					objectDefinition.getObjectDefinitionId()));
 
 			Assert.assertEquals(
 				externalReferenceCode,
@@ -3370,6 +3385,88 @@ public class ObjectDefinitionLocalServiceTest {
 	}
 
 	@Test
+	public void testPublishCustomObjectDefinitionWithAttachmentObjectField()
+		throws Exception {
+
+		ObjectField objectField = ObjectFieldUtil.createObjectField(
+			ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT,
+			ObjectFieldConstants.DB_TYPE_LONG, true, false, null,
+			RandomTestUtil.randomString(), "attachment",
+			Arrays.asList(
+				new ObjectFieldSettingBuilder(
+				).name(
+					ObjectFieldSettingConstants.NAME_ACCEPTED_FILE_EXTENSIONS
+				).value(
+					"jpg, jpeg, png, svg, txt"
+				).build(),
+				new ObjectFieldSettingBuilder(
+				).name(
+					ObjectFieldSettingConstants.NAME_FILE_SOURCE
+				).value(
+					ObjectFieldSettingConstants.
+						VALUE_USER_COMPUTER_TO_DOCS_AND_MEDIA
+				).build(),
+				new ObjectFieldSettingBuilder(
+				).name(
+					ObjectFieldSettingConstants.NAME_MAX_FILE_SIZE
+				).value(
+					"100"
+				).build()),
+			false);
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(objectField));
+
+		List<ObjectField> attachmentObjectFields =
+			_objectFieldLocalService.getObjectFieldsByBusinessType(
+				objectDefinition.getObjectDefinitionId(),
+				ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT);
+
+		_assertAttachmentObjectFieldPLOEntries(attachmentObjectFields.get(0));
+
+		ObjectField attachmentObjectField =
+			ObjectFieldUtil.addCustomObjectField(
+				new AttachmentObjectFieldBuilder(
+				).labelMap(
+					LocalizedMapUtil.getLocalizedMap(
+						RandomTestUtil.randomString())
+				).name(
+					"attachment2"
+				).objectDefinitionId(
+					objectDefinition.getObjectDefinitionId()
+				).objectFieldSettings(
+					Arrays.asList(
+						new ObjectFieldSettingBuilder(
+						).name(
+							ObjectFieldSettingConstants.
+								NAME_ACCEPTED_FILE_EXTENSIONS
+						).value(
+							"jpg, jpeg, png, svg, txt"
+						).build(),
+						new ObjectFieldSettingBuilder(
+						).name(
+							ObjectFieldSettingConstants.NAME_FILE_SOURCE
+						).value(
+							ObjectFieldSettingConstants.
+								VALUE_USER_COMPUTER_TO_DOCS_AND_MEDIA
+						).build(),
+						new ObjectFieldSettingBuilder(
+						).name(
+							ObjectFieldSettingConstants.NAME_MAX_FILE_SIZE
+						).value(
+							"100"
+						).build())
+				).userId(
+					TestPropsValues.getUserId()
+				).build());
+
+		_assertAttachmentObjectFieldPLOEntries(attachmentObjectField);
+
+		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
+	}
+
+	@Test
 	public void testPublishObjectDefinitionWithFriendlyURLSeparator()
 		throws Exception {
 
@@ -3452,7 +3549,6 @@ public class ObjectDefinitionLocalServiceTest {
 		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition5);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testSystemObjectFields() throws Exception {
 		ObjectDefinition objectDefinition =
@@ -3486,7 +3582,6 @@ public class ObjectDefinitionLocalServiceTest {
 		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Test
 	public void testUpdateCustomObjectDefinition() throws Exception {
 		_assertObjectDefinitionValidationExceptionValidationErrors(
@@ -4494,6 +4589,25 @@ public class ObjectDefinitionLocalServiceTest {
 				).build()));
 	}
 
+	private void _assertAttachmentObjectFieldPLOEntries(
+		ObjectField attachmentObjectField) {
+
+		String key =
+			"action." + attachmentObjectField.getAttachmentDownloadActionKey();
+
+		for (Locale locale : LanguageUtil.getAvailableLocales()) {
+			PLOEntry ploEntry = _ploEntryLocalService.fetchPLOEntry(
+				attachmentObjectField.getCompanyId(), key,
+				LocaleUtil.toLanguageId(locale));
+
+			Assert.assertEquals(
+				LanguageUtil.format(
+					locale, "download-x",
+					attachmentObjectField.getLabel(locale)),
+				ploEntry.getValue());
+		}
+	}
+
 	private void _assertLabelAndPluralLabel(
 		ObjectDefinition objectDefinition, String label, String pluralLabel) {
 
@@ -5100,7 +5214,7 @@ public class ObjectDefinitionLocalServiceTest {
 		ObjectDefinition objectDefinition =
 			ObjectDefinitionLocalServiceUtil.addSystemObjectDefinition(
 				null, TestPropsValues.getUserId(), 0,
-				ObjectDefinitionUtil.generateRandomClassName(), null,
+				ObjectDefinitionTestUtil.getUniqueRandomClassName(), null,
 				enableCategorization, false, true, false, true, false, true,
 				false, false, false, null,
 				RandomTestUtil.randomLocaleStringMap(), true, "Test", null,

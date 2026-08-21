@@ -11,6 +11,7 @@ import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.headless.cms.client.dto.v1_0.AssetStatistics;
 import com.liferay.headless.cms.client.resource.v1_0.AssetStatisticsResource;
+import com.liferay.headless.cms.resource.v1_0.test.util.CMSOutboundLinkTestUtil;
 import com.liferay.object.constants.ObjectDefinitionConstants;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.field.util.ObjectFieldUtil;
@@ -22,13 +23,16 @@ import com.liferay.object.service.ObjectEntryFolderLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.test.util.ObjectDefinitionTestUtil;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.GroupConstants;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.model.role.RoleConstants;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.rule.SynchronousDestinationTestRule;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
@@ -44,7 +48,6 @@ import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
-import com.liferay.site.cms.site.initializer.test.util.CMSTestUtil;
 
 import java.io.Serializable;
 
@@ -61,7 +64,6 @@ import org.junit.runner.RunWith;
 /**
  * @author Crescenzo Rega
  */
-@FeatureFlag("LPD-17564")
 @RunWith(Arquillian.class)
 public class AssetStatisticsResourceTest
 	extends BaseAssetStatisticsResourceTestCase {
@@ -71,7 +73,8 @@ public class AssetStatisticsResourceTest
 	public static final AggregateTestRule aggregateTestRule =
 		new AggregateTestRule(
 			new LiferayIntegrationTestRule(),
-			PermissionCheckerMethodTestRule.INSTANCE);
+			PermissionCheckerMethodTestRule.INSTANCE,
+			SynchronousDestinationTestRule.INSTANCE);
 
 	@Before
 	@Override
@@ -89,6 +92,7 @@ public class AssetStatisticsResourceTest
 		};
 	}
 
+	@FeatureFlag("LPD-82226")
 	@Override
 	@Test
 	public void testGetAssetStatistics() throws Exception {
@@ -228,6 +232,7 @@ public class AssetStatisticsResourceTest
 
 		_depotEntryLocalService.deleteDepotEntry(depotEntry.getDepotEntryId());
 
+		_testGetAssetStatisticsBrokenLinksCount();
 		_testGetAssetStatisticsByAssetLibrary();
 	}
 
@@ -238,6 +243,15 @@ public class AssetStatisticsResourceTest
 
 	private ObjectEntry _addObjectEntry(
 			DepotEntry depotEntry, ObjectDefinition objectDefinition)
+		throws Exception {
+
+		return _addObjectEntry(
+			RandomTestUtil.randomString(), depotEntry, objectDefinition);
+	}
+
+	private ObjectEntry _addObjectEntry(
+			String content, DepotEntry depotEntry,
+			ObjectDefinition objectDefinition)
 		throws Exception {
 
 		ObjectEntryFolder objectEntryFolder =
@@ -253,7 +267,7 @@ public class AssetStatisticsResourceTest
 			HashMapBuilder.<String, Serializable>put(
 				"content_i18n",
 				HashMapBuilder.put(
-					"en_US", RandomTestUtil.randomString()
+					"en_US", content
 				).build()
 			).put(
 				"title_i18n",
@@ -334,6 +348,22 @@ public class AssetStatisticsResourceTest
 		}
 	}
 
+	private void _assertBrokenLinksCount(
+			Long assetLibraryId, long expectedBrokenLinksCount)
+		throws Exception {
+
+		for (AssetStatisticsResource assetStatisticsResource :
+				_assetStatisticsResources) {
+
+			AssetStatistics assetStatistics =
+				assetStatisticsResource.getAssetStatistics(assetLibraryId);
+
+			Assert.assertEquals(
+				expectedBrokenLinksCount,
+				GetterUtil.getLong(assetStatistics.getBrokenLinksCount()));
+		}
+	}
+
 	private AssetStatisticsResource _buildAssetStatisticsResource(User user) {
 		return AssetStatisticsResource.builder(
 		).authentication(
@@ -349,12 +379,70 @@ public class AssetStatisticsResourceTest
 	private ObjectDefinition _getBasicWebContentObjectDefinition()
 		throws Exception {
 
-		Group cmsGroup = CMSTestUtil.getOrAddGroup(
-			AssetStatisticsResourceTest.class);
+		Group cmsGroup = _groupLocalService.getGroup(
+			TestPropsValues.getCompanyId(), GroupConstants.CMS);
 
 		return _objectDefinitionLocalService.
 			getObjectDefinitionByExternalReferenceCode(
 				"L_CMS_BASIC_WEB_CONTENT", cmsGroup.getCompanyId());
+	}
+
+	private void _testGetAssetStatisticsBrokenLinksCount() throws Exception {
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext();
+
+		DepotEntry depotEntry = _addSpaceDepotEntry(serviceContext);
+
+		try {
+			ObjectDefinition objectDefinition =
+				_getBasicWebContentObjectDefinition();
+
+			ObjectEntry targetObjectEntry = _addObjectEntry(
+				depotEntry, objectDefinition);
+
+			_addObjectEntry(
+				CMSOutboundLinkTestUtil.getImageHTML(
+					targetObjectEntry.getExternalReferenceCode()),
+				depotEntry, objectDefinition);
+
+			_assertBrokenLinksCount(depotEntry.getGroupId(), 0);
+
+			_objectEntryLocalService.updateStatus(
+				TestPropsValues.getUserId(),
+				targetObjectEntry.getObjectEntryId(),
+				WorkflowConstants.STATUS_EXPIRED, serviceContext);
+
+			_assertBrokenLinksCount(depotEntry.getGroupId(), 1);
+
+			_addObjectEntry(
+				CMSOutboundLinkTestUtil.getImageHTML(
+					targetObjectEntry.getExternalReferenceCode()),
+				depotEntry, objectDefinition);
+
+			_assertBrokenLinksCount(depotEntry.getGroupId(), 2);
+
+			ObjectEntry otherTargetObjectEntry = _addObjectEntry(
+				depotEntry, objectDefinition);
+
+			_objectEntryLocalService.updateStatus(
+				TestPropsValues.getUserId(),
+				otherTargetObjectEntry.getObjectEntryId(),
+				WorkflowConstants.STATUS_EXPIRED, serviceContext);
+
+			String imageHTML = CMSOutboundLinkTestUtil.getImageHTML(
+				targetObjectEntry.getExternalReferenceCode());
+			String otherImageHTML = CMSOutboundLinkTestUtil.getImageHTML(
+				otherTargetObjectEntry.getExternalReferenceCode());
+
+			_addObjectEntry(
+				imageHTML + otherImageHTML, depotEntry, objectDefinition);
+
+			_assertBrokenLinksCount(depotEntry.getGroupId(), 3);
+		}
+		finally {
+			_depotEntryLocalService.deleteDepotEntry(
+				depotEntry.getDepotEntryId());
+		}
 	}
 
 	private void _testGetAssetStatisticsByAssetLibrary() throws Exception {
@@ -407,6 +495,9 @@ public class AssetStatisticsResourceTest
 
 	@Inject
 	private DepotEntryLocalService _depotEntryLocalService;
+
+	@Inject
+	private GroupLocalService _groupLocalService;
 
 	@Inject
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;

@@ -68,6 +68,8 @@ describe('detection', () => {
 
 		delete (navigator as any).userAgent;
 
+		sessionStorage.clear();
+
 		window.history.replaceState({}, '', '/');
 
 		audiences.clear();
@@ -381,11 +383,19 @@ describe('detection', () => {
 		});
 	});
 
-	describe('attribute segments', () => {
-		it('positive test', async () => {
+	describe('attribute segment', () => {
+		it('applies variations when a cached segment matches', async () => {
+			sessionStorage.setItem(
+				'liferay.audiences.acSegments',
+				JSON.stringify({
+					segments: ['SEGMENT_REAL_TIME'],
+					userId: '20164',
+				})
+			);
+
 			mockAudiencesDefinitionWithAttribute(
-				'segments',
-				'includes',
+				'segment',
+				'eq',
 				'SEGMENT_REAL_TIME'
 			);
 
@@ -394,11 +404,55 @@ describe('detection', () => {
 			expect(audiences.get()).toEqual(new Set(['the_audience']));
 		});
 
-		it('negative test', async () => {
+		it('shows the default experience when no cached segment matches', async () => {
+			sessionStorage.setItem(
+				'liferay.audiences.acSegments',
+				JSON.stringify({
+					segments: ['SEGMENT_REAL_TIME'],
+					userId: '20164',
+				})
+			);
+
 			mockAudiencesDefinitionWithAttribute(
-				'segments',
-				'includes',
+				'segment',
+				'eq',
 				'NON_EXISTENT_SEGMENT'
+			);
+
+			await audiences.runDetection(URL);
+
+			expect(audiences.get()).toEqual(new Set());
+		});
+
+		it('ignores segments cached for a different user', async () => {
+			delete (global as any).Analytics;
+
+			sessionStorage.setItem(
+				'liferay.audiences.acSegments',
+				JSON.stringify({
+					segments: ['SEGMENT_REAL_TIME'],
+					userId: '10000',
+				})
+			);
+
+			mockAudiencesDefinitionWithAttribute(
+				'segment',
+				'eq',
+				'SEGMENT_REAL_TIME'
+			);
+
+			await audiences.runDetection(URL);
+
+			expect(audiences.get()).toEqual(new Set());
+		});
+
+		it('shows the default experience on the first visit, before the segments are cached', async () => {
+			delete (global as any).Analytics;
+
+			mockAudiencesDefinitionWithAttribute(
+				'segment',
+				'eq',
+				'SEGMENT_REAL_TIME'
 			);
 
 			await audiences.runDetection(URL);

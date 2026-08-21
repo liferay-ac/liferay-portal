@@ -64,7 +64,6 @@ export enum AccountTypes {
 
 export const INPUT_DATE_FORMAT = 'YYYY-MM-DD';
 export const INPUT_DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mmZ';
-export const INPUT_DISPLAY_DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm';
 
 /**
  * Constants for OData query.
@@ -130,6 +129,7 @@ export enum RelationalOperators {
 export enum PropertyTypes {
 	AccountDate = 'account-date',
 	AccountNumber = 'account-number',
+	AccountSelectText = 'account-select-text',
 	AccountText = 'account-text',
 	Behavior = 'behavior',
 	Boolean = 'boolean',
@@ -199,6 +199,18 @@ export const SUPPORTED_OPERATORS_MAP = {
 			key: CustomFunctionOperators.AccountsFilter,
 			label: Liferay.Language.get('is').toLowerCase(),
 			name: CustomFunctionOperators.AccountsFilter,
+		},
+	],
+	[PropertyTypes.AccountSelectText]: [
+		{
+			key: CustomFunctionOperators.AccountsFilter,
+			label: Liferay.Language.get('is').toLowerCase(),
+			name: CustomFunctionOperators.AccountsFilter,
+		},
+		{
+			key: NotOperators.NotAccountsFilter,
+			label: Liferay.Language.get('is-not').toLowerCase(),
+			name: NotOperators.NotAccountsFilter,
 		},
 	],
 	[PropertyTypes.AccountText]: [
@@ -472,6 +484,10 @@ export const SUPPORTED_OPERATORS_MAP = {
 export const SUPPORTED_PROPERTY_TYPES_MAP = {
 	[PropertyTypes.AccountDate]: [CustomFunctionOperators.AccountsFilter],
 	[PropertyTypes.AccountNumber]: [CustomFunctionOperators.AccountsFilter],
+	[PropertyTypes.AccountSelectText]: [
+		CustomFunctionOperators.AccountsFilter,
+		NotOperators.NotAccountsFilter,
+	],
 	[PropertyTypes.AccountText]: [CustomFunctionOperators.AccountsFilter],
 	[PropertyTypes.Behavior]: [
 		CustomFunctionOperators.ActivitiesFilterByCount,

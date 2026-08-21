@@ -18,8 +18,6 @@ public class AudiencesCriteriaKeys {
 
 	public static final String DEVICE_TYPE = "device_type";
 
-	public static final String GEOLOCATION = "geolocation";
-
 	public static final String HOSTNAME = "hostname";
 
 	public static final String LANGUAGE = "language";
@@ -34,16 +32,12 @@ public class AudiencesCriteriaKeys {
 
 	public static final String REQUEST_PARAMETERS = "request_parameters";
 
-	public static final String SEGMENTS = "segments";
+	public static final String SEGMENT = "segment";
 
 	public static final String TIMEZONE = "timezone";
 
 	public static final String URL = "url";
 
 	public static final String USER_AGENT = "user_agent";
-
-	public static final String USER_AUTHENTICATION = "user_authentication";
-
-	public static final String USER_LANGUAGE = "user_language";
 
 }

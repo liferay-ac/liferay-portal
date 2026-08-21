@@ -763,6 +763,9 @@ public class ObjectDefinitionResourceImpl
 			serviceBuilderObjectValidationRules = new ArrayList<>(
 				_objectValidationRuleLocalService.getObjectValidationRules(
 					objectDefinitionId));
+		List<com.liferay.object.model.ObjectView> serviceBuilderObjectViews =
+			new ArrayList<>(
+				_objectViewLocalService.getObjectViews(objectDefinitionId));
 
 		if (serviceBuilderObjectDefinition.isModifiableAndSystem() &&
 			ObjectDefinitionUtil.isInvokerBundleAllowed()) {
@@ -809,12 +812,10 @@ public class ObjectDefinitionResourceImpl
 			serviceBuilderObjectActions.removeIf(
 				objectAction ->
 					objectAction.isSystem() ||
-					(FeatureFlagManagerUtil.isEnabled(
-						contextCompany.getCompanyId(), "LPD-17564") &&
-					 ArrayUtil.contains(
-						 ObjectActionConstants.
-							 getSubscriptionObjectActionNames(),
-						 objectAction.getName())));
+					ArrayUtil.contains(
+						ObjectActionConstants.
+							getSubscriptionObjectActionNames(),
+						objectAction.getName()));
 			serviceBuilderObjectFields.removeIf(ObjectFieldModel::isSystem);
 			serviceBuilderObjectRelationships.removeIf(
 				ObjectRelationshipModel::isSystem);
@@ -934,7 +935,20 @@ public class ObjectDefinitionResourceImpl
 		ObjectView[] objectViews = objectDefinition.getObjectViews();
 
 		if (objectViews != null) {
-			_objectViewLocalService.deleteObjectViews(objectDefinitionId);
+			Set<String> deleteObjectViewsERCs = SetUtil.asymmetricDifference(
+				transform(
+					serviceBuilderObjectViews,
+					com.liferay.object.model.ObjectView::
+						getExternalReferenceCode),
+				transform(
+					ListUtil.fromArray(objectViews),
+					ObjectView::getExternalReferenceCode));
+
+			for (String deleteObjectViewsERC : deleteObjectViewsERCs) {
+				_objectViewLocalService.deleteObjectView(
+					_objectViewLocalService.fetchObjectView(
+						deleteObjectViewsERC, objectDefinitionId));
+			}
 		}
 
 		_addObjectDefinitionResources(
@@ -1038,9 +1052,9 @@ public class ObjectDefinitionResourceImpl
 				com.liferay.object.model.ObjectAction
 					serviceBuilderObjectAction = null;
 
-				if (StringUtil.equals(
-						objectAction.getName(),
-						ObjectActionNameConstants.NAME_ASSIGN_TO_ME) &&
+				if (ArrayUtil.contains(
+						ObjectActionNameConstants.OBJECT_ACTION_NAMES,
+						objectAction.getName()) &&
 					GetterUtil.getBoolean(objectAction.getSystem())) {
 
 					serviceBuilderObjectAction =
@@ -1059,9 +1073,7 @@ public class ObjectDefinitionResourceImpl
 				}
 
 				if (serviceBuilderObjectAction != null) {
-					if (FeatureFlagManagerUtil.isEnabled(
-							contextCompany.getCompanyId(), "LPD-17564") &&
-						ArrayUtil.contains(
+					if (ArrayUtil.contains(
 							ObjectActionConstants.
 								getSubscriptionObjectActionNames(),
 							objectAction.getName())) {
@@ -1228,6 +1240,18 @@ public class ObjectDefinitionResourceImpl
 			).build();
 
 			for (ObjectView objectView : objectViews) {
+				com.liferay.object.model.ObjectView serviceBuilderObjectView =
+					_objectViewLocalService.fetchObjectView(
+						objectView.getExternalReferenceCode(),
+						objectDefinitionId);
+
+				if (serviceBuilderObjectView != null) {
+					objectViewResource.putObjectView(
+						serviceBuilderObjectView.getObjectViewId(), objectView);
+
+					continue;
+				}
+
 				objectViewResource.postObjectDefinitionObjectView(
 					objectDefinitionId, objectView);
 			}

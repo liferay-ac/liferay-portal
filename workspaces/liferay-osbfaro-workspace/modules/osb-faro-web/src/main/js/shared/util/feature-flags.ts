@@ -1,10 +1,11 @@
 /**
  * Feature flags for osb-faro-web.
  *
- * Analytics Cloud ships on its own release cadence, decoupled from the portal
- * master branch, so we cannot rely on `Liferay.Util.FeatureFlags` (which tracks
- * portal master). Instead, flags live here as a registry and are resolved at
- * module load time from `localStorage`, falling back to each flag's default.
+ * Liferay Data Platform ships on its own release cadence, decoupled from the
+ * portal master branch, so we cannot rely on `Liferay.Util.FeatureFlags`
+ * (which tracks portal master). Instead, flags live here as a registry and
+ * are resolved at module load time from `localStorage`, falling back to each
+ * flag's default.
  *
  * They can be toggled at runtime through the hidden panel at
  * `/workspace/:groupId/settings/feature-flags`. Because the exported `const`
@@ -17,10 +18,8 @@ export const FEATURE_FLAGS_STORAGE_KEY = 'faro:feature-flags';
 export type FeatureFlagKey =
 	| 'ENABLE_ASSET_CARD'
 	| 'ENABLE_BLOCKLIST_KEYWORDS'
-	| 'ENABLE_COMMERCE'
 	| 'ENABLE_DELETE_DATA_SOURCE_BUTTON'
-	| 'ENABLE_FORM_ABANDONMENT'
-	| 'ENABLE_REAL_TIME_SEGMENTS';
+	| 'ENABLE_FORM_ABANDONMENT';
 
 export interface FeatureFlagDefinition {
 	defaultValue: boolean;
@@ -30,10 +29,8 @@ export interface FeatureFlagDefinition {
 export const FEATURE_FLAGS: FeatureFlagDefinition[] = [
 	{defaultValue: false, key: 'ENABLE_ASSET_CARD'},
 	{defaultValue: false, key: 'ENABLE_BLOCKLIST_KEYWORDS'},
-	{defaultValue: false, key: 'ENABLE_COMMERCE'},
 	{defaultValue: true, key: 'ENABLE_DELETE_DATA_SOURCE_BUTTON'},
 	{defaultValue: false, key: 'ENABLE_FORM_ABANDONMENT'},
-	{defaultValue: false, key: 'ENABLE_REAL_TIME_SEGMENTS'},
 ];
 
 const DEFAULTS = FEATURE_FLAGS.reduce(
@@ -98,16 +95,10 @@ export const ENABLE_BLOCKLIST_KEYWORDS = isFeatureFlagEnabled(
 	'ENABLE_BLOCKLIST_KEYWORDS'
 );
 
-export const ENABLE_COMMERCE = isFeatureFlagEnabled('ENABLE_COMMERCE');
-
 export const ENABLE_DELETE_DATA_SOURCE_BUTTON = isFeatureFlagEnabled(
 	'ENABLE_DELETE_DATA_SOURCE_BUTTON'
 );
 
 export const ENABLE_FORM_ABANDONMENT = isFeatureFlagEnabled(
 	'ENABLE_FORM_ABANDONMENT'
-);
-
-export const ENABLE_REAL_TIME_SEGMENTS = isFeatureFlagEnabled(
-	'ENABLE_REAL_TIME_SEGMENTS'
 );

@@ -253,7 +253,7 @@ definition {
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "Infrastructure",
 				configurationName = "Export/Import, Staging",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			AssertNotChecked.assertNotCheckedNotVisible(
 				key_settingFieldName = "Show Advanced Staging Configuration by Default",
@@ -385,7 +385,7 @@ definition {
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "Infrastructure",
 				configurationName = "Export/Import, Staging",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 		}
 
 		task ("When: Enable advanced staging configuration checkbox") {
@@ -618,6 +618,8 @@ definition {
 
 	@priority = 3
 	test DeletePublishTemplate {
+		Staging.enablePublishTemplatesFeatureFlag();
+
 		Site.openSiteSettingsAdmin(siteURLKey = "site-name");
 
 		Site.disableRecycleBinCP();
@@ -654,7 +656,7 @@ definition {
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "Infrastructure",
 				configurationName = "Export/Import, Staging",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			SystemSettings.configureSystemSetting(
 				enableSetting = "true",
@@ -1645,6 +1647,10 @@ definition {
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
+		task ("Given: Publish Templates feature flag is enabled") {
+			Staging.enablePublishTemplatesFeatureFlag();
+		}
+
 		task ("Enable private pages") {
 			PagesAdmin.enablePrivatePages();
 		}
@@ -1857,6 +1863,8 @@ definition {
 	test PublishWebContentWithUnchangedReferencedContent {
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
+
+		Staging.enablePublishTemplatesFeatureFlag();
 
 		JSONLayout.addWidgetToPublicLayout(
 			groupName = "Site Name",
@@ -2290,6 +2298,8 @@ definition {
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
+		Staging.enablePublishTemplatesFeatureFlag();
+
 		JSONLayout.addPublicLayout(
 			groupName = "Site Name",
 			layoutName = "Test Page 1");
@@ -2449,7 +2459,7 @@ definition {
 		SystemSettings.gotoConfiguration(
 			configurationCategory = "Infrastructure",
 			configurationName = "Export/Import, Staging",
-			configurationScope = "Virtual Instance Scope");
+			configurationScope = "System Scope");
 
 		SystemSettings.configureSystemSetting(
 			enableSetting = "true",

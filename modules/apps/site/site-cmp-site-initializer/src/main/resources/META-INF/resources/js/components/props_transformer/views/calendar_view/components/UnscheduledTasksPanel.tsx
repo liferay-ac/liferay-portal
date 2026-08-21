@@ -13,14 +13,19 @@ import ClayLink from '@clayui/link';
 import ClayList from '@clayui/list';
 import {ClayPaginationBarWithBasicItems} from '@clayui/pagination-bar';
 import {Draggable} from '@fullcalendar/interaction';
-import {FrontendDataSetContext} from '@liferay/frontend-data-set-web';
+import {
+	FrontendDataSetContext,
+	getItemActionURL,
+} from '@liferay/frontend-data-set-web';
 import {AssigneeAvatar} from '@liferay/object-dynamic-data-mapping-form-field-type';
 import React, {useContext, useEffect, useMemo, useState} from 'react';
 
 import {TASK_DRAGGING_CLASS_NAME} from '../../../../../utils/constants';
-import getActionURL from '../../../../../utils/getActionURL';
 import getTaskItemsActions from '../../../../../utils/getTaskItemsActions';
-import {ITaskObjectEntry} from '../../../../../utils/types';
+import {
+	ITaskItemsActionsTask,
+	ITaskObjectEntry,
+} from '../../../../../utils/types';
 import StateLabel from '../../../../StateLabel';
 import sortTasksByPriority from '../utils/sortTasksByPriority';
 
@@ -36,6 +41,7 @@ const DRAGGABLE_ITEM_CLASS_NAME = 'lfr__cmp-unscheduled-tasks-panel-item';
 interface UnscheduledTasksPanelProps {
 	containerRef: React.RefObject<HTMLElement>;
 	onOpenChange: (open: boolean) => void;
+	onTaskChanged?: (task: ITaskItemsActionsTask) => void;
 	open: boolean;
 	tasks: ITaskObjectEntry[];
 }
@@ -43,6 +49,7 @@ interface UnscheduledTasksPanelProps {
 export default function UnscheduledTasksPanel({
 	containerRef,
 	onOpenChange,
+	onTaskChanged,
 	open,
 	tasks,
 }: UnscheduledTasksPanelProps) {
@@ -142,7 +149,7 @@ export default function UnscheduledTasksPanel({
 						/>
 					</span>
 
-					{Liferay.Language.get('unscheduled-tasks')}
+					{Liferay.Language.get('no-due-date')}
 				</SidePanel.Title>
 			</SidePanel.Header>
 
@@ -179,15 +186,18 @@ export default function UnscheduledTasksPanel({
 								const taskItemsActions = getTaskItemsActions(
 									itemsActions ?? [],
 									loadData,
-									{actions: task.actions, embedded: task}
+									{actions: task.actions, embedded: task},
+									onTaskChanged
 								);
 
 								const viewURL = task.actions?.get
-									? getActionURL({
-											actionId: 'actionLink',
-											itemsActions: itemsActions ?? [],
-											task: {embedded: task},
-										})
+									? getItemActionURL(
+											itemsActions ?? [],
+											'actionLink',
+											{
+												embedded: task,
+											}
+										)
 									: undefined;
 
 								return (

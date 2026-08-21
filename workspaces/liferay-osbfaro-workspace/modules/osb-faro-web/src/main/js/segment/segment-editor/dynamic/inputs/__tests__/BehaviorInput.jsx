@@ -230,9 +230,61 @@ describe('BehaviorInput', () => {
 
 			expect(valid.asset).toBe(true);
 		});
+
+		it('should clear the asset filter and mark it invalid when no type is selected', () => {
+			const onChange = jest.fn();
+			const ref = renderWithRef(onChange);
+
+			ref.current.handlePageAssetSelect({
+				applicationId: '',
+				eventId: '',
+				selections: []
+			});
+
+			const {valid, value} = onChange.mock.calls[0][0];
+
+			const propertyNames = value
+				.getIn(['criterionGroup', 'items'])
+				.map(item => item.get('propertyName'))
+				.toArray();
+
+			// No asset type -> no applicationId/eventId/activityKey items, and the
+			// asset validity is false so the segment cannot be saved yet.
+
+			expect(propertyNames).not.toContain('applicationId');
+			expect(propertyNames).not.toContain(ACTIVITY_KEY);
+			expect(valid.asset).toBe(false);
+		});
 	});
 
 	describe('attribute filter', () => {
+		const valueWithoutAssetType = createCustomValueMap([
+			{key: 'criterionGroup', value: []},
+			{key: 'operator', value: RelationalOperators.GE},
+			{key: 'value', value: ''}
+		]);
+
+		it('should disable the "Add Event Attribute" button until an asset type is selected', () => {
+			const {getByText} = render(
+				<DefaultComponent value={valueWithoutAssetType} />
+			);
+
+			expect(
+				getByText('Add Event Attribute').closest('button').disabled
+			).toBe(true);
+		});
+
+		it('should keep the "Add Event Attribute" button when there is no event to read attributes from', () => {
+			const {getByText, queryByTestId} = render(
+				<DefaultComponent value={valueWithoutAssetType} />
+			);
+
+			fireEvent.click(getByText('Add Event Attribute'));
+
+			expect(queryByTestId('attribute-filter-section')).toBeNull();
+			expect(getByText('Add Event Attribute')).toBeTruthy();
+		});
+
 		it('should show the "Add Event Attribute" button when there is no attribute criterion', () => {
 			const {getByText, queryByTestId} = render(<DefaultComponent />);
 

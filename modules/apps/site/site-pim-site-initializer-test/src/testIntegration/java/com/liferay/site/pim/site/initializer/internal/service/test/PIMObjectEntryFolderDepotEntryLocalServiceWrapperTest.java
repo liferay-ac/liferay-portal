@@ -6,24 +6,19 @@
 package com.liferay.site.pim.site.initializer.internal.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
-import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.service.ObjectEntryFolderLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
-import com.liferay.portal.kernel.test.util.RandomTestUtil;
-import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
-import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.site.pim.site.initializer.constants.PIMObjectEntryFolderConstants;
 import com.liferay.site.pim.site.initializer.test.util.PIMTestUtil;
-
-import java.util.Collections;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,9 +30,7 @@ import org.junit.runner.RunWith;
 /**
  * @author Stefano Motta
  */
-@FeatureFlags(
-	featureFlags = {@FeatureFlag("LPD-17564"), @FeatureFlag("LPD-96666")}
-)
+@FeatureFlags(featureFlags = @FeatureFlag("LPD-96666"))
 @RunWith(Arquillian.class)
 public class PIMObjectEntryFolderDepotEntryLocalServiceWrapperTest {
 
@@ -50,19 +43,12 @@ public class PIMObjectEntryFolderDepotEntryLocalServiceWrapperTest {
 
 	@Before
 	public void setUp() throws Exception {
-		PIMTestUtil.getOrAddGroup(
-			PIMObjectEntryFolderDepotEntryLocalServiceWrapperTest.class);
+		PIMTestUtil.getOrAddGroup();
 	}
 
 	@Test
 	public void testAddDepotEntry() throws Exception {
-		DepotEntry depotEntry = _depotEntryLocalService.addDepotEntry(
-			Collections.singletonMap(
-				LocaleUtil.getDefault(), RandomTestUtil.randomString()),
-			Collections.singletonMap(
-				LocaleUtil.getDefault(), RandomTestUtil.randomString()),
-			DepotConstants.TYPE_SPACE,
-			ServiceContextTestUtil.getServiceContext());
+		DepotEntry depotEntry = PIMTestUtil.addSpaceDepotEntry();
 
 		Assert.assertNotNull(
 			_objectEntryFolderLocalService.
@@ -77,27 +63,23 @@ public class PIMObjectEntryFolderDepotEntryLocalServiceWrapperTest {
 		Assert.assertNotNull(
 			_objectEntryFolderLocalService.
 				fetchObjectEntryFolderByExternalReferenceCode(
-					"L_PRODUCTS", depotEntry.getGroupId(),
-					TestPropsValues.getCompanyId()));
+					PIMObjectEntryFolderConstants.
+						EXTERNAL_REFERENCE_CODE_PRODUCTS,
+					depotEntry.getGroupId(), TestPropsValues.getCompanyId()));
 	}
 
 	@Test
 	public void testDeleteDepotEntry() throws Exception {
-		DepotEntry depotEntry = _depotEntryLocalService.addDepotEntry(
-			Collections.singletonMap(
-				LocaleUtil.getDefault(), RandomTestUtil.randomString()),
-			Collections.singletonMap(
-				LocaleUtil.getDefault(), RandomTestUtil.randomString()),
-			DepotConstants.TYPE_SPACE,
-			ServiceContextTestUtil.getServiceContext());
+		DepotEntry depotEntry = PIMTestUtil.addSpaceDepotEntry();
 
 		_depotEntryLocalService.deleteDepotEntry(depotEntry);
 
 		Assert.assertNull(
 			_objectEntryFolderLocalService.
 				fetchObjectEntryFolderByExternalReferenceCode(
-					"L_PRODUCTS", depotEntry.getGroupId(),
-					TestPropsValues.getCompanyId()));
+					PIMObjectEntryFolderConstants.
+						EXTERNAL_REFERENCE_CODE_PRODUCTS,
+					depotEntry.getGroupId(), TestPropsValues.getCompanyId()));
 	}
 
 	@Inject

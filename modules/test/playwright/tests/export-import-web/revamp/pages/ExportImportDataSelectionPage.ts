@@ -11,13 +11,16 @@ export class ExportImportDataSelectionPage {
 	readonly collapseSectionButton: (name: string) => Locator;
 	readonly expandSectionButton: (name: string) => Locator;
 	readonly page: Page;
+	readonly section: Locator;
 
 	constructor(page: Page) {
-		this.collapseSectionButton = (name) =>
-			page.getByRole('button', {name: `Collapse ${name}`});
-		this.expandSectionButton = (name) =>
-			page.getByRole('button', {name: `Expand ${name}`});
 		this.page = page;
+		this.section = page.locator('[data-testid="data-selection-section"]');
+
+		this.collapseSectionButton = (name) =>
+			this.section.getByRole('button', {name: `Collapse ${name}`});
+		this.expandSectionButton = (name) =>
+			this.section.getByRole('button', {name: `Expand ${name}`});
 	}
 
 	async expandSection(name: string) {
@@ -25,5 +28,58 @@ export class ExportImportDataSelectionPage {
 			target: this.collapseSectionButton(name),
 			trigger: this.expandSectionButton(name),
 		});
+	}
+
+	async getExportableItems() {
+		await this.waitForContent();
+
+		const exportableItems = new Map<string, number>();
+
+		const labels = await this.section.locator('label').all();
+
+		for (const label of labels) {
+			const countLabel = label
+				.locator('xpath=..')
+				.getByText(/^\d+ Items?$/);
+
+			if ((await countLabel.count()) === 0) {
+				continue;
+			}
+
+			const name = await label.textContent();
+			const count = await countLabel.textContent();
+
+			if (name && count) {
+				exportableItems.set(name.trim(), parseInt(count, 10));
+			}
+		}
+
+		return exportableItems;
+	}
+
+	async uncheckItem(sectionName: string, label: string) {
+		await this.expandSection(sectionName);
+
+		await this.section
+			.getByRole('checkbox', {exact: true, name: label})
+			.uncheck();
+	}
+
+	async selectOnlyObjectDefinition(label: string) {
+		await this.waitForContent();
+
+		const checkboxes = await this.section.getByRole('checkbox').all();
+
+		for (const checkbox of checkboxes) {
+			await checkbox.uncheck();
+		}
+
+		await this.expandSection('Objects');
+
+		await this.section.getByRole('checkbox', {name: label}).check();
+	}
+
+	async waitForContent() {
+		await this.section.getByRole('checkbox').first().waitFor();
 	}
 }

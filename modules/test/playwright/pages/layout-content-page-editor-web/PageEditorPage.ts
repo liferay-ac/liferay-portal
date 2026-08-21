@@ -57,9 +57,11 @@ export class PageEditorPage {
 	readonly publishButton: Locator;
 	readonly publishMasterButton: Locator;
 	readonly publishToLiveButton: Locator;
+	readonly previewItemSelectorButton: Locator;
 	readonly redoButton: Locator;
 	readonly segmentEditorPage: SegmentEditorPage;
 	readonly selectItemMappingButton: Locator;
+	readonly selectOtherPreviewItemMenuItem: Locator;
 	readonly undoButton: Locator;
 	readonly undoHistory: Locator;
 
@@ -86,9 +88,19 @@ export class PageEditorPage {
 		this.publishToLiveButton = page.getByRole('button', {
 			name: 'Publish to Live',
 		});
+
+		// Projects configure testIdAttribute differently, so the page editor
+		// data-qa-id attributes are matched explicitly
+
+		this.previewItemSelectorButton = page.locator(
+			'[data-qa-id="previewItemSelectorButton"]'
+		);
 		this.redoButton = page.getByTitle('Redo');
 		this.segmentEditorPage = new SegmentEditorPage(page);
 		this.selectItemMappingButton = page.getByLabel('Select Item');
+		this.selectOtherPreviewItemMenuItem = page.locator(
+			'[data-qa-id="selectOtherItemDropdownItem"]'
+		);
 		this.undoButton = page.getByTitle('Undo');
 		this.undoHistory = page.locator('.page-editor__undo-history');
 	}
@@ -97,7 +109,7 @@ export class PageEditorPage {
 		await this.page.goto('/');
 
 		await this.page.goto(
-			`/web${siteUrl || '/guest'}${layout.friendlyUrlPath || layout.friendlyURL}?p_l_mode=edit`
+			`/web${siteUrl || '/guest'}${layout.draftLayout?.friendlyURL || layout.friendlyUrlPath || layout.friendlyURL}?p_l_mode=edit`
 		);
 	}
 
@@ -220,7 +232,7 @@ export class PageEditorPage {
 		await this.page.getByLabel('Create Variations').click();
 
 		await this.page
-			.getByRole('heading', {name: 'Element Variations'})
+			.getByText('Element Variations', {exact: true})
 			.waitFor();
 	}
 
@@ -1785,6 +1797,26 @@ export class PageEditorPage {
 		}
 	}
 
+	async selectDisplayPagePreviewItem(itemName: string) {
+		await this.previewItemSelectorButton.click();
+
+		await this.selectOtherPreviewItemMenuItem.click();
+
+		// The item selector renders each entry differently per item type, so the
+		// entry is reached by its name and the click bubbles up to the row
+
+		const item = this.page
+			.frameLocator('iframe[title="Select"]')
+			.getByText(itemName, {exact: true})
+			.first();
+
+		await expect(item).toBeVisible();
+
+		await item.click();
+
+		await expect(this.previewItemSelectorButton).toHaveText(itemName);
+	}
+
 	async selectDirectImage(fileName: string, imageId: string) {
 		await this.selectEditable(imageId, 'image-square');
 
@@ -2196,7 +2228,9 @@ export class PageEditorPage {
 	}
 
 	async waitForChangesSaved({timeout}: {timeout?: number} = {}) {
-		await this.page.getByLabel('Saved', {exact: true}).waitFor({timeout});
+		await this.page
+			.getByLabel('Saved as Draft', {exact: true})
+			.waitFor({timeout});
 
 		await this.page
 			.getByText(

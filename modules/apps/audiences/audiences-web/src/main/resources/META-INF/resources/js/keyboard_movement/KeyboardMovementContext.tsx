@@ -6,8 +6,8 @@
 import {ScreenReaderAnnouncer} from '@liferay/layout-js-components-web';
 import React, {useCallback, useContext, useRef, useState} from 'react';
 
-import {DropPosition} from '../constants/dropPositions';
 import {AudiencesCriteria} from '../types';
+import {DropZone} from '../util/getDropPosition';
 
 export interface MovementSource {
 	audiencesCriteria?: AudiencesCriteria;
@@ -17,8 +17,8 @@ export interface MovementSource {
 }
 
 export interface MovementTarget {
-	index: number | null;
-	position: DropPosition | null;
+	nodeId: string | null;
+	position: DropZone | null;
 }
 
 interface KeyboardMovementContextValue {
@@ -30,7 +30,7 @@ interface KeyboardMovementContextValue {
 }
 
 const INITIAL_TARGET: MovementTarget = {
-	index: null,
+	nodeId: null,
 	position: null,
 };
 

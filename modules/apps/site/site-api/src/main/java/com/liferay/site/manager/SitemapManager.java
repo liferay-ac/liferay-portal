@@ -42,6 +42,9 @@ public interface SitemapManager {
 		UnicodeProperties typeSettingsUnicodeProperties, Date modifiedDate,
 		String canonicalURL, Map<Locale, String> alternateURLs, long groupId);
 
+	public void deleteRegenerateSitemapScheduledJobs(long companyId)
+		throws PortalException;
+
 	public String encodeXML(String input);
 
 	public Map<Locale, String> getAlternateURLs(
@@ -51,6 +54,9 @@ public interface SitemapManager {
 	public long getAssetTypeClassNameId(String assetTypeKey);
 
 	public Map<Long, String> getAssetTypeKeys();
+
+	public Date getNextRegenerateSitemapDate(long companyId)
+		throws PortalException;
 
 	public String getSitemap(
 			long groupId, boolean privateLayout, ThemeDisplay themeDisplay)
@@ -75,6 +81,8 @@ public interface SitemapManager {
 			String assetTypeKey, String layoutUuid, long groupId, int page,
 			boolean privateLayout, ThemeDisplay themeDisplay)
 		throws PortalException;
+
+	public boolean isRegenerateSitemapInProgress(long companyId);
 
 	public void regenerateSitemap(
 			String assetTypeKey, long companyId, long groupId)

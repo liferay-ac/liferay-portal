@@ -5,33 +5,62 @@
 
 package com.liferay.site.pim.site.initializer.test.util;
 
+import com.liferay.depot.constants.DepotConstants;
+import com.liferay.depot.model.DepotEntry;
+import com.liferay.depot.service.DepotEntryLocalServiceUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.service.ObjectDefinitionLocalServiceUtil;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.GroupConstants;
 import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
-import com.liferay.site.cms.site.initializer.test.util.CMSTestUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.site.initializer.SiteInitializer;
 import com.liferay.site.initializer.SiteInitializerRegistry;
+import com.liferay.site.pim.site.initializer.constants.PIMObjectDefinitionConstants;
+
+import java.util.Collections;
 
 /**
  * @author Stefano Motta
  */
 public class PIMTestUtil {
 
-	public static Group getOrAddGroup(Class<?> clazz) throws Exception {
-		Group group = CMSTestUtil.getOrAddGroup(clazz);
+	public static DepotEntry addSpaceDepotEntry() throws Exception {
+		return DepotEntryLocalServiceUtil.addDepotEntry(
+			Collections.singletonMap(
+				LocaleUtil.getDefault(), RandomTestUtil.randomString()),
+			Collections.singletonMap(
+				LocaleUtil.getDefault(), RandomTestUtil.randomString()),
+			DepotConstants.TYPE_SPACE,
+			ServiceContextTestUtil.getServiceContext());
+	}
 
-		ObjectDefinition objectDefinition =
+	public static Group getOrAddGroup() throws Exception {
+		Group group = GroupLocalServiceUtil.getGroup(
+			TestPropsValues.getCompanyId(), GroupConstants.CMS);
+
+		ObjectDefinition pimBaseSkuObjectDefinition =
 			ObjectDefinitionLocalServiceUtil.
 				fetchObjectDefinitionByExternalReferenceCode(
-					"L_PIM_BASE_SKU", TestPropsValues.getCompanyId());
+					PIMObjectDefinitionConstants.
+						EXTERNAL_REFERENCE_CODE_BASE_SKU,
+					TestPropsValues.getCompanyId());
+		ObjectDefinition pimLinkObjectDefinition =
+			ObjectDefinitionLocalServiceUtil.
+				fetchObjectDefinitionByExternalReferenceCode(
+					PIMObjectDefinitionConstants.EXTERNAL_REFERENCE_CODE_LINK,
+					TestPropsValues.getCompanyId());
 
-		if (objectDefinition != null) {
+		if ((pimBaseSkuObjectDefinition != null) &&
+			(pimLinkObjectDefinition != null)) {
+
 			return group;
 		}
 

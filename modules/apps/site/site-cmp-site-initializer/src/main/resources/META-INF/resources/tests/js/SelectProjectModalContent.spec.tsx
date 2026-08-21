@@ -26,7 +26,7 @@ const defaultProps = {
 	addProjectURL: 'http://localhost/add-project',
 	addTaskURL: 'http://localhost/add-task',
 	closeModal: mockCloseModal,
-	projectObjectDefinitionId: 123,
+	cmpProjectObjectDefinitionId: 123,
 };
 
 describe('SelectProjectModalContent', () => {
@@ -155,6 +155,9 @@ describe('SelectProjectModalContent', () => {
 			expect(navigateArgs.pathname).toBe('/add-task');
 			expect(navigateArgs.searchParams.get('projectGroupId')).toBe('123');
 			expect(navigateArgs.searchParams.get('projectId')).toBe('123');
+			expect(navigateArgs.searchParams.get('redirect')).toBe(
+				window.location.href
+			);
 		});
 	});
 });

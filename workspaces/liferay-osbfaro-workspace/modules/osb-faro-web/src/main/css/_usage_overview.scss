@@ -1,17 +1,27 @@
+.card-title-rectangle {
+	background: $primaryLighten33;
+	border-radius: 4px;
+	flex: none;
+	flex-grow: 0;
+	height: 24px;
+	order: 0;
+	width: 203px;
+}
+
 .chart-bars {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 
 	.big-bar {
-		background: #5791ff;
+		background: var(--cadmin-primary-l0);
 		border-radius: 4px;
 		height: 12px;
 		width: 95%;
 	}
 
 	.small-bar {
-		background: #b3cdff;
+		background: $primaryLighten33;
 		border-radius: 4px;
 		height: 24px;
 		width: 25%;
@@ -22,7 +32,7 @@
 	min-height: 150px;
 
 	.generic-pie-label {
-		fill: #333333;
+		fill: var(--cadmin-dark-l1);
 		font-size: 1.75rem;
 		font-weight: bold;
 	}
@@ -31,8 +41,8 @@
 .gradient-opaque {
 	mask-image: linear-gradient(
 		to bottom,
-		rgba(0, 0, 0, 0.8) 0%,
-		rgba(0, 0, 0, 0) 100%
+		rgb(from var(--cadmin-black) r g b / 0.8) 0%,
+		rgb(from var(--cadmin-black) r g b / 0) 100%
 	);
 }
 

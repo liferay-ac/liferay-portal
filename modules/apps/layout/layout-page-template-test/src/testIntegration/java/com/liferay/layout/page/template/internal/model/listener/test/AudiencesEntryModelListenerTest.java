@@ -61,8 +61,8 @@ public class AudiencesEntryModelListenerTest {
 	public void testOnBeforeRemove() throws Exception {
 		AudiencesEntry audiencesEntry =
 			_audiencesEntryLocalService.addAudiencesEntry(
-				null, StringPool.BLANK, RandomTestUtil.randomString(),
-				_serviceContext);
+				null, _serviceContext.getUserId(), StringPool.BLANK,
+				RandomTestUtil.randomString());
 		String audienceEntryERC = RandomTestUtil.randomString();
 		String externalReferenceCode = RandomTestUtil.randomString();
 
@@ -82,7 +82,7 @@ public class AudiencesEntryModelListenerTest {
 			layoutPageTemplateStructureRelElementVariationAudienceEntryRels =
 				_layoutPageTemplateStructureRelElementVariationAudienceEntryRelLocalService.
 					getLayoutPageTemplateStructureRelElementVariationAudienceEntryRels(
-						externalReferenceCode);
+						_group.getGroupId(), externalReferenceCode);
 
 		Assert.assertEquals(
 			layoutPageTemplateStructureRelElementVariationAudienceEntryRels.
@@ -97,7 +97,7 @@ public class AudiencesEntryModelListenerTest {
 		layoutPageTemplateStructureRelElementVariationAudienceEntryRels =
 			_layoutPageTemplateStructureRelElementVariationAudienceEntryRelLocalService.
 				getLayoutPageTemplateStructureRelElementVariationAudienceEntryRels(
-					externalReferenceCode);
+					_group.getGroupId(), externalReferenceCode);
 
 		Assert.assertEquals(
 			layoutPageTemplateStructureRelElementVariationAudienceEntryRels.

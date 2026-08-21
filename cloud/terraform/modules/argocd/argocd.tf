@@ -2,11 +2,11 @@ resource "helm_release" "argocd" {
 	chart="argo-cd"
 	create_namespace=false
 	depends_on=[
-		kubernetes_namespace.argocd,
-		kubernetes_secret.argocd_secret,
+		kubernetes_namespace_v1.argocd,
+		kubernetes_secret_v1.argocd_secret,
 	]
 	name="argocd"
-	namespace=var.argocd_namespace
+	namespace=local.argocd_namespace
 	repository="https://argoproj.github.io/argo-helm"
 	values=concat(
 		[
@@ -25,7 +25,7 @@ resource "helm_release" "argocd" {
 					}
 					configs={
 						cm={
-							"admin.enabled"=var.argocd_sso_config.enable_admin_login
+							"admin.enabled"=var.argocd_admin_login_enabled
 							"kustomize.buildOptions"="--enable-helm"
 							"resource.customizations.health.${var.infrastructure_api_group}_LiferayInfrastructure"=file("${path.module}/health-LiferayInfrastructure.lua")
 							"resource.customizations.health.argoproj.io_Application"=file("${path.module}/health-argoproj.io_Application.lua")
@@ -36,6 +36,7 @@ resource "helm_release" "argocd" {
 							"resource.customizations.ignoreDifferences.all"=yamlencode(
 								{
 									managedFieldsManagers=[
+										"admissionsenforcer",
 										"apiextensions.crossplane.io/composite",
 										"crossplane",
 										"kube-controller-manager",
@@ -54,6 +55,7 @@ resource "helm_release" "argocd" {
 								])
 						}
 						params={
+							"controller.sync.timeout.seconds"="900"
 							"server.insecure"="true"
 						}
 					}
@@ -142,7 +144,17 @@ resource "helm_release" "argocd" {
 					}
 				}),
 		],
-		var.argocd_sso_config.enable_saml_sso ? [
+		local.argocd_external_url != null ? [
+			yamlencode(
+				{
+					configs={
+						cm={
+							url=local.argocd_external_url
+						}
+					}
+				}),
+		] : [],
+		local.argocd_sso_enabled ? [
 			yamlencode(
 				{
 					configs={
@@ -191,13 +203,13 @@ resource "helm_release" "argocd" {
 	version=var.argocd_helm_chart_version
 	wait=true
 }
-resource "kubernetes_namespace" "argocd" {
+resource "kubernetes_namespace_v1" "argocd" {
 	metadata {
 		labels=local.common_labels
-		name=var.argocd_namespace
+		name=local.argocd_namespace
 	}
 }
-resource "kubernetes_secret" "argocd_secret" {
+resource "kubernetes_secret_v1" "argocd_secret" {
 	data={
 		"server.secretkey"=random_password.argocd_server_secretkey.result
 	}
@@ -210,7 +222,7 @@ resource "kubernetes_secret" "argocd_secret" {
 	metadata {
 		annotations={
 			"meta.helm.sh/release-name"="argocd"
-			"meta.helm.sh/release-namespace"=kubernetes_namespace.argocd.metadata[0].name
+			"meta.helm.sh/release-namespace"=kubernetes_namespace_v1.argocd.metadata[0].name
 		}
 		labels=merge(
 			local.common_labels,
@@ -218,7 +230,7 @@ resource "kubernetes_secret" "argocd_secret" {
 				"app.kubernetes.io/managed-by"="Helm"
 			})
 		name="argocd-secret"
-		namespace=kubernetes_namespace.argocd.metadata[0].name
+		namespace=kubernetes_namespace_v1.argocd.metadata[0].name
 	}
 	type="Opaque"
 }

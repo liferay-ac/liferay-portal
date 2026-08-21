@@ -7,12 +7,12 @@ package com.liferay.headless.dsr.internal.resource.v1_0;
 
 import com.liferay.headless.dsr.dto.v1_0.InvitedMember;
 import com.liferay.headless.dsr.resource.v1_0.InvitedMemberResource;
+import com.liferay.object.exception.ObjectEntryExpirationDateException;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.service.ObjectEntryService;
 import com.liferay.portal.kernel.exception.NoSuchModelException;
 import com.liferay.portal.kernel.exception.RoleAssignmentException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.model.Group;
@@ -55,12 +55,6 @@ public class InvitedMemberResourceImpl extends BaseInvitedMemberResourceImpl {
 	public void deleteRoomInvitedMember(Long roomId, Long invitedMemberId)
 		throws Exception {
 
-		if (!FeatureFlagManagerUtil.isEnabled(
-				contextCompany.getCompanyId(), "LPD-66359")) {
-
-			throw new UnsupportedOperationException();
-		}
-
 		ObjectEntry objectEntry = _getObjectEntry(roomId);
 
 		DSRRoomUtil.checkPermission(
@@ -79,12 +73,6 @@ public class InvitedMemberResourceImpl extends BaseInvitedMemberResourceImpl {
 	public Page<InvitedMember> getRoomInvitedMembersPage(Long roomId)
 		throws Exception {
 
-		if (!FeatureFlagManagerUtil.isEnabled(
-				contextCompany.getCompanyId(), "LPD-66359")) {
-
-			throw new UnsupportedOperationException();
-		}
-
 		ObjectEntry objectEntry = _getObjectEntry(roomId);
 
 		Group group = _groupService.getGroup(
@@ -102,12 +90,6 @@ public class InvitedMemberResourceImpl extends BaseInvitedMemberResourceImpl {
 	public InvitedMember patchRoomInvitedMember(
 			Long roomId, Long invitedMemberId, InvitedMember invitedMember)
 		throws Exception {
-
-		if (!FeatureFlagManagerUtil.isEnabled(
-				contextCompany.getCompanyId(), "LPD-66359")) {
-
-			throw new UnsupportedOperationException();
-		}
 
 		ObjectEntry objectEntry = _getObjectEntry(roomId);
 
@@ -128,15 +110,20 @@ public class InvitedMemberResourceImpl extends BaseInvitedMemberResourceImpl {
 
 		_checkPermission(group, invitedMember.getRoleKey());
 
+		Date expirationDate = invitedMember.getMembershipExpirationDate();
+
+		if ((expirationDate != null) && expirationDate.before(new Date())) {
+			throw new ObjectEntryExpirationDateException(
+				"Expiration date must be a future date",
+				"expiration-date-must-be-a-future-date");
+		}
+
 		JSONObject jsonObject = _jsonFactory.createJSONObject(
 			ticket.getExtraInfo());
 
-		if (invitedMember.getMembershipExpirationDate() != null) {
-			Date membershipExpirationDate =
-				invitedMember.getMembershipExpirationDate();
-
+		if (expirationDate != null) {
 			jsonObject.put(
-				"membershipExpirationDate", membershipExpirationDate.getTime());
+				"membershipExpirationDate", expirationDate.getTime());
 		}
 		else {
 			jsonObject.remove("membershipExpirationDate");

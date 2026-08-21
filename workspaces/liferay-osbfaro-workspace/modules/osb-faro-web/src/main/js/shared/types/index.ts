@@ -50,10 +50,16 @@ export interface ICompositionBag {
 }
 
 export interface IBasePageContext {
+	accountId?: string | null;
+	accountName?: string | null;
 	experienceId?: string | null;
 	filters: any;
+	individualId?: string | null;
+	individualName?: string | null;
 	router: any;
 	rangeSelectors?: RangeSelectors;
+	segmentId?: string | null;
+	segmentName?: string | null;
 }
 
 export interface IPagination {
@@ -120,12 +126,16 @@ export type Router = {
 		type?: string;
 	};
 	query: {
+		accountId?: string;
+		accountName?: string;
 		field?: string;
 		page?: string;
 		query?: string;
 		rangeEnd?: string;
 		rangeKey?: RangeKeyTimeRanges;
 		rangeStart?: string;
+		segmentId?: string;
+		segmentName?: string;
 		sortOrder?: OrderByDirections;
 		state?: string;
 	};

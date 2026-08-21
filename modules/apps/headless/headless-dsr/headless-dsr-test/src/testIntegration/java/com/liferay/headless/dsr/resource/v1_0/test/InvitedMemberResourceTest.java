@@ -38,7 +38,6 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.site.dsr.site.initializer.constants.DSRRoleConstants;
 import com.liferay.site.dsr.site.initializer.test.util.DSRTestUtil;
@@ -56,7 +55,6 @@ import org.junit.runner.RunWith;
 /**
  * @author Stefano Motta
  */
-@FeatureFlag("LPD-66359")
 @RunWith(Arquillian.class)
 public class InvitedMemberResourceTest
 	extends BaseInvitedMemberResourceTestCase {
@@ -303,6 +301,25 @@ public class InvitedMemberResourceTest
 		Assert.assertEquals(
 			DSRRoleConstants.NAME_DSR_ROOM_COLLABORATOR,
 			patchedInvitedMember.getRoleKey());
+
+		try {
+			_invitedMemberDSRSellerResource.patchRoomInvitedMember(
+				_objectEntry.getObjectEntryId(), invitedMember1.getId(),
+				new InvitedMember() {
+					{
+						membershipExpirationDate = new Date(
+							System.currentTimeMillis() - Time.DAY);
+					}
+				});
+
+			Assert.fail();
+		}
+		catch (Problem.ProblemException problemException) {
+			Problem problem = problemException.getProblem();
+
+			Assert.assertEquals(
+				"Expiration date must be a future date.", problem.getTitle());
+		}
 	}
 
 	@Override

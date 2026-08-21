@@ -4,9 +4,11 @@ import Card from 'shared/components/Card';
 import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
 import ClaySticker from '@clayui/sticker';
-import FaroConstants from 'shared/util/constants';
+import FaroConstants, {RangeKeyTimeRanges} from 'shared/util/constants';
 import React, {useMemo, useState} from 'react';
 import URLConstants from 'shared/util/url-constants';
+import {ASSET_OBJECT_TYPE_LANG_MAP} from 'shared/util/lang';
+import {AssetObjectTypes} from 'shared/util/constants';
 import {DropdownRangeKey} from 'shared/components/dropdown-range-key/DropdownRangeKey';
 import {FrontendDataSet, pagination} from 'shared/components/FrontendDataSet';
 import {getMimeType} from 'assets/components/mime-type';
@@ -27,6 +29,8 @@ import {useQueryRangeSelectors} from 'shared/hooks/useQueryRangeSelectors';
 
 const {cur: DEFAULT_CUR} = FaroConstants.pagination;
 
+const OBJECT_TYPES = Object.values(AssetObjectTypes);
+
 const mapRoutes = {
 	blog: Routes.ASSETS_BLOGS_OVERVIEW,
 	document: Routes.ASSETS_DOCUMENTS_AND_MEDIA_OVERVIEW,
@@ -35,16 +39,24 @@ const mapRoutes = {
 };
 
 const getAssetURL = ({
+	accountId,
+	accountName,
 	channelId,
 	groupId,
 	itemData,
 	rangeSelectorParams,
+	segmentId,
+	segmentName,
 	value = '',
 }: {
+	accountId?: string | null;
+	accountName?: string | null;
 	channelId: string;
 	groupId: string;
 	itemData: any;
 	rangeSelectorParams: string;
+	segmentId?: string | null;
+	segmentName?: string | null;
 	value?: string;
 }) => {
 	const assetTitle = value || itemData.assetTitle || itemData.id;
@@ -53,6 +65,24 @@ const getAssetURL = ({
 		mapRoutes[itemData.assetType as keyof typeof mapRoutes];
 
 	const route = oldAssetRoute ?? Routes.ASSETS_OBJECT_ENTRY_OVERVIEW;
+
+	const queryParams = new URLSearchParams(rangeSelectorParams);
+
+	if (accountId) {
+		queryParams.set('accountId', accountId);
+	}
+
+	if (accountName) {
+		queryParams.set('accountName', accountName);
+	}
+
+	if (segmentId) {
+		queryParams.set('segmentId', segmentId);
+	}
+
+	if (segmentName) {
+		queryParams.set('segmentName', segmentName);
+	}
 
 	return `${toRoute(route, {
 		assetId: itemData.id,
@@ -65,29 +95,44 @@ const getAssetURL = ({
 		...(assetTitle && {
 			title: encodeURIComponent(assetTitle),
 		}),
-	})}?${rangeSelectorParams}`;
+	})}?${queryParams.toString()}`;
 };
 
 const columns = {
 	assetMetricRenderer: ({value}: {value: {value: number}}) => (
 		<span>{toThousands(value.value)}</span>
 	),
+	assetObjectTypeRenderer: ({value}: {value?: AssetObjectTypes}) => (
+		<span>{(value && ASSET_OBJECT_TYPE_LANG_MAP[value]) || ''}</span>
+	),
 	assetTitleRenderer:
 		({
+			accountId,
+			accountName,
 			channelId,
 			groupId,
 			rangeSelectorParams,
+			segmentId,
+			segmentName,
 		}: {
+			accountId?: string | null;
+			accountName?: string | null;
 			channelId: string;
 			groupId: string;
 			rangeSelectorParams: string;
+			segmentId?: string | null;
+			segmentName?: string | null;
 		}) =>
 		({itemData, value}: {itemData: any; value?: string}) => {
 			const URL = getAssetURL({
+				accountId,
+				accountName,
 				channelId,
 				groupId,
 				itemData,
 				rangeSelectorParams,
+				segmentId,
+				segmentName,
 				value,
 			});
 
@@ -149,6 +194,12 @@ const TABLE_FIELDS = [
 		sortable: true,
 	},
 	{
+		contentRenderer: 'assetObjectTypeRenderer',
+		fieldName: 'objectType',
+		label: Liferay.Language.get('object-type'),
+		sortable: true,
+	},
+	{
 		contentRenderer: 'assetMetricRenderer',
 		fieldName: 'viewsMetric',
 		label: Liferay.Language.get('views'),
@@ -180,6 +231,12 @@ const List = () => {
 	const accountId = searchParams.get('accountId');
 	const accountName = searchParams.get('accountName');
 	const orderBy = searchParams.get('orderBy');
+	const segmentId = searchParams.get('segmentId');
+	const segmentName = searchParams.get('segmentName');
+
+	const objectType = OBJECT_TYPES.find(
+		(value) => value === searchParams.get('objectType')
+	);
 
 	const sortableFields = TABLE_FIELDS.filter((field) => field.sortable);
 
@@ -200,12 +257,10 @@ const List = () => {
 
 	let rangeSelectorParams = `rangeKey=${rangeSelectors.rangeKey}`;
 
-	if (rangeSelectors.rangeEnd) {
-		rangeSelectorParams += `&rangeEnd=${rangeSelectors.rangeEnd}`;
-	}
-
-	if (rangeSelectors.rangeStart) {
-		rangeSelectorParams += `&rangeStart=${rangeSelectors.rangeStart}`;
+	if (rangeSelectors.rangeKey === RangeKeyTimeRanges.CustomRange) {
+		rangeSelectorParams =
+			`rangeEnd=${rangeSelectors.rangeEnd}` +
+			`&rangeStart=${rangeSelectors.rangeStart}`;
 	}
 
 	const filters = useMemo(
@@ -242,6 +297,16 @@ const List = () => {
 							itemLabel: 'name',
 							label: Liferay.Language.get('segments'),
 							multiple: true,
+							...(segmentId && {
+								preloadedData: {
+									selectedItems: [
+										{
+											label: segmentName || segmentId,
+											value: segmentId,
+										},
+									],
+								},
+							}),
 							type: 'selection',
 						},
 					]
@@ -255,6 +320,27 @@ const List = () => {
 				itemLabel: 'name',
 				label: Liferay.Language.get('type'),
 				multiple: true,
+				type: 'selection',
+			},
+			{
+				entityFieldType: 'string',
+				id: 'objectType',
+				items: OBJECT_TYPES.map((value) => ({
+					label: ASSET_OBJECT_TYPE_LANG_MAP[value],
+					value,
+				})),
+				label: Liferay.Language.get('object-type'),
+				multiple: false,
+				...(objectType && {
+					preloadedData: {
+						selectedItems: [
+							{
+								label: ASSET_OBJECT_TYPE_LANG_MAP[objectType],
+								value: objectType,
+							},
+						],
+					},
+				}),
 				type: 'selection',
 			},
 			{
@@ -297,7 +383,10 @@ const List = () => {
 			channelId,
 			groupId,
 			LDPEnabled,
+			objectType,
 			rangeSelectorParams,
+			segmentId,
+			segmentName,
 		]
 	);
 
@@ -351,25 +440,30 @@ const List = () => {
 						apiURL={`/o/faro/contacts/${groupId}/asset-summary?channelId=${channelId}&${rangeSelectorParams}`}
 						customDataRenderers={{
 							assetMetricRenderer: columns.assetMetricRenderer,
+							assetObjectTypeRenderer:
+								columns.assetObjectTypeRenderer,
 							assetTitleRenderer: columns.assetTitleRenderer({
+								accountId,
+								accountName,
 								channelId: channelId!,
 								groupId: groupId!,
 								rangeSelectorParams,
+								segmentId,
+								segmentName,
 							}),
 						}}
 						emptyState={{
 							description:
 								assetsEmptyStateDescription as unknown as string,
 							image: '/states/satellite.svg',
-							title: Liferay.Language.get(
-								'there-are-no-assets-found'
-							),
+							title: Liferay.Language.get('no-assets-were-found'),
 						}}
 						filters={filters}
 						groupedFilters={[
 							{
 								filters: [
 									'assetType',
+									'objectType',
 									'tags/id',
 									'categories/id',
 									'mimeType',
@@ -409,10 +503,14 @@ const List = () => {
 								onClick: ({itemData}: {itemData: any}) => {
 									history.push(
 										getAssetURL({
+											accountId,
+											accountName,
 											channelId: channelId!,
 											groupId: groupId!,
 											itemData,
 											rangeSelectorParams,
+											segmentId,
+											segmentName,
 										})
 									);
 								},

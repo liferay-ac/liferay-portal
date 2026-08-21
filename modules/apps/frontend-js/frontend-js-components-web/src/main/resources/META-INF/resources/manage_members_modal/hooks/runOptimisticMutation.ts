@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {sub} from 'frontend-js-web';
+import {escapeHTML, sub} from 'frontend-js-web';
 import {Dispatch} from 'react';
 
 import openToast from '../../toast/openToast';
@@ -13,6 +13,7 @@ import {Action} from './membersReducer';
 export interface OptimisticMutation {
 	errorMessage: string;
 	name: string;
+	onSuccess?: () => void;
 	optimisticAction: Action;
 	performMutation: () => Promise<ServiceResult>;
 	rollbackAction: Action;
@@ -25,7 +26,7 @@ function showMemberToast(
 	type: 'danger' | 'success'
 ) {
 	openToast({
-		message: sub(message, [`<strong>${name}</strong>`]),
+		message: sub(message, [`<strong>${escapeHTML(name)}</strong>`]),
 		type,
 	});
 }
@@ -35,6 +36,7 @@ export async function runOptimisticMutation(
 	{
 		errorMessage,
 		name,
+		onSuccess,
 		optimisticAction,
 		performMutation,
 		rollbackAction,
@@ -51,6 +53,8 @@ export async function runOptimisticMutation(
 		showMemberToast(errorMessage, name, 'danger');
 	}
 	else {
+		onSuccess?.();
+
 		showMemberToast(successMessage, name, 'success');
 	}
 }

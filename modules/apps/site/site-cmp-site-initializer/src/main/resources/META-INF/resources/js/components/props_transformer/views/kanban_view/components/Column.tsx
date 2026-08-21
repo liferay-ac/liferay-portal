@@ -12,20 +12,15 @@ import {useDrop} from 'react-dnd';
 
 import {getStateObjectField} from '../../../../../utils/api';
 import {openCMPModal} from '../../../../../utils/openCMPModal';
-import {IColumn, ITask} from '../../../../../utils/types';
+import {IColumn} from '../../../../../utils/types';
 import StateLabel from '../../../../StateLabel';
 import CreateTaskModal from '../../../../modal/CreateTaskModal';
 import {KanbanViewContext} from '../context';
-import Task from './Task';
+import Task, {ITaskDragItem} from './Task';
 
 import './Column.scss';
 
 import classNames from 'classnames';
-
-interface DragItem {
-	task: ITask;
-	type: ItemTypes;
-}
 
 interface IColumnProps {
 	column: IColumn;
@@ -45,10 +40,10 @@ export function ColumnView({
 }: IColumnViewProps) {
 	const {
 		changeTaskStatus,
+		cmpProjectObjectDefinitionId,
+		cmpProjectObjectEntryId,
 		hasAddTaskPermission,
 		loadData,
-		projectId,
-		projectObjectDefinitionId,
 	} = useContext(KanbanViewContext);
 
 	const canTransition = (taskStateKey: string) => {
@@ -73,7 +68,7 @@ export function ColumnView({
 
 	const [{canDrop, isOver}, drop] = useDrop({
 		accept: ItemTypes.TASK,
-		canDrop: ({task: {actions, embedded}}: DragItem) => {
+		canDrop: ({task: {actions, embedded}}: ITaskDragItem) => {
 			if (!actions.update) {
 				return false;
 			}
@@ -133,11 +128,13 @@ export function ColumnView({
 									}) => (
 										<CreateTaskModal
 											closeModal={closeModal}
-											loadData={loadData}
-											projectId={projectId}
-											projectObjectDefinitionId={
-												projectObjectDefinitionId
+											cmpProjectObjectDefinitionId={
+												cmpProjectObjectDefinitionId
 											}
+											cmpProjectObjectEntryId={
+												cmpProjectObjectEntryId
+											}
+											loadData={loadData}
 											state={key}
 										/>
 									),

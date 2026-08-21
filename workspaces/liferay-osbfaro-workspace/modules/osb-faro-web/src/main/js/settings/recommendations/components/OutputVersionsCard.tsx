@@ -11,7 +11,7 @@ import {
 	getSortFromOrderIOMap,
 	ID,
 } from 'shared/util/pagination';
-import {CUSTOM_DATE_FORMAT} from 'shared/util/date';
+import {getCustomDateFormat} from 'shared/util/date';
 import {getFormattedTitle} from 'shared/components/NoResultsDisplay';
 import {getMapResultToProps} from 'shared/hoc/mappers/metrics';
 import {graphql} from '@apollo/client/react/hoc';
@@ -28,6 +28,7 @@ import {
 import {OrderedMap} from 'immutable';
 import {OrderParams} from 'shared/util/records';
 import {sub} from 'shared/util/lang';
+import {toThousands} from 'shared/util/numbers';
 import {withEmpty} from 'cerebro-shared/hocs/utils';
 import {
 	withError,
@@ -42,7 +43,7 @@ const getContextItemCount =
 		const contextItem = context.find(({key}) => key === contextItemKey);
 
 		if (contextItem) {
-			return Number(contextItem.value).toLocaleString();
+			return toThousands(Number(contextItem.value));
 		}
 
 		return '0';
@@ -132,15 +133,23 @@ const OutputVersionsCard: React.FC<IOutputVersionsCardProps> = ({
 					{
 						accessor: 'completedDate',
 						className: 'table-cell-expand',
-						dataFormatter: (val: string) =>
-							applyTimeZone(val, timeZoneId).calendar(null, {
-								lastDay: CUSTOM_DATE_FORMAT,
-								lastWeek: CUSTOM_DATE_FORMAT,
-								nextDay: CUSTOM_DATE_FORMAT,
-								nextWeek: CUSTOM_DATE_FORMAT,
-								sameDay: `[${Liferay.Language.get('today')}]`,
-								sameElse: CUSTOM_DATE_FORMAT,
-							}),
+						dataFormatter: (val: string) => {
+							const dateFormat = getCustomDateFormat();
+
+							return applyTimeZone(val, timeZoneId).calendar(
+								null,
+								{
+									lastDay: dateFormat,
+									lastWeek: dateFormat,
+									nextDay: dateFormat,
+									nextWeek: dateFormat,
+									sameDay: `[${Liferay.Language.get(
+										'today'
+									)}]`,
+									sameElse: dateFormat,
+								}
+							);
+						},
 						label: Liferay.Language.get('training-date'),
 						sortable: false,
 						title: true,

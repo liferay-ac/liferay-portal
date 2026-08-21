@@ -27,6 +27,7 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -84,6 +85,8 @@ public abstract class BaseAssetStatisticsResourceTestCase {
 	public static void setUpClass() throws Exception {
 		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -273,6 +276,14 @@ public abstract class BaseAssetStatisticsResourceTestCase {
 
 			if (Objects.equals("approvedCount", additionalAssertFieldName)) {
 				if (assetStatistics.getApprovedCount() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("brokenLinksCount", additionalAssertFieldName)) {
+				if (assetStatistics.getBrokenLinksCount() == null) {
 					valid = false;
 				}
 
@@ -472,6 +483,17 @@ public abstract class BaseAssetStatisticsResourceTestCase {
 				if (!Objects.deepEquals(
 						assetStatistics1.getApprovedCount(),
 						assetStatistics2.getApprovedCount())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("brokenLinksCount", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						assetStatistics1.getBrokenLinksCount(),
+						assetStatistics2.getBrokenLinksCount())) {
 
 					return false;
 				}
@@ -686,6 +708,11 @@ public abstract class BaseAssetStatisticsResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("brokenLinksCount")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
 		if (entityFieldName.equals("expiredCount")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -774,6 +801,7 @@ public abstract class BaseAssetStatisticsResourceTestCase {
 		return new AssetStatistics() {
 			{
 				approvedCount = RandomTestUtil.randomLong();
+				brokenLinksCount = RandomTestUtil.randomLong();
 				expiredCount = RandomTestUtil.randomLong();
 				expiringSoonCount = RandomTestUtil.randomLong();
 				inDraftCount = RandomTestUtil.randomLong();
@@ -1009,4 +1037,4 @@ public abstract class BaseAssetStatisticsResourceTestCase {
 		_assetStatisticsResource;
 
 }
-// LIFERAY-REST-BUILDER-HASH:-237696254
+// LIFERAY-REST-BUILDER-HASH:-1448042726

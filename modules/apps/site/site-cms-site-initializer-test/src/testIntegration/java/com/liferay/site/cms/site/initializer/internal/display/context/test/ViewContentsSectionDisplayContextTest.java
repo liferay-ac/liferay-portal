@@ -41,7 +41,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 /**
  * @author Mikel Lorza
  */
-@FeatureFlag("LPD-17564")
 @RunWith(Arquillian.class)
 @Sync
 public class ViewContentsSectionDisplayContextTest
@@ -238,6 +237,24 @@ public class ViewContentsSectionDisplayContextTest
 
 		FrontendDataSetTestUtil.assertFDSActionDropdownItem(
 			"trash", "delete", "Delete", null, fdsActionDropdownItems.get(15));
+	}
+
+	@FeatureFlag("LPD-72278")
+	@Test
+	@TestInfo("LPD-100130")
+	public void testGetFDSActionDropdownItemsWithAddToLaunchEnabled()
+		throws Exception {
+
+		List<FDSActionDropdownItem> fdsActionDropdownItems =
+			getFDSActionDropdownItems();
+
+		Assert.assertEquals(
+			fdsActionDropdownItems.toString(), 17,
+			fdsActionDropdownItems.size());
+
+		FrontendDataSetTestUtil.assertFDSActionDropdownItem(
+			"rocket", "addToLaunch", "Add to Launch", "get",
+			fdsActionDropdownItems.get(16));
 	}
 
 	@Override

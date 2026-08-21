@@ -8,6 +8,7 @@ import {withDevicesCard} from 'shared/hoc/DevicesCard';
 
 const BROWSER_DEVICE = gql`
 	query FormsMetrics(
+		$accountId: String
 		$assetId: String!
 		$channelId: String
 		$devices: String
@@ -15,10 +16,12 @@ const BROWSER_DEVICE = gql`
 		$rangeEnd: String
 		$rangeKey: Int
 		$rangeStart: String
+		$segmentId: String
 		$title: String
 		$touchpoint: String
 	) {
 		form(
+			accountId: $accountId
 			assetId: $assetId
 			canonicalUrl: $touchpoint
 			channelId: $channelId
@@ -27,6 +30,7 @@ const BROWSER_DEVICE = gql`
 			rangeEnd: $rangeEnd
 			rangeKey: $rangeKey
 			rangeStart: $rangeStart
+			segmentId: $segmentId
 			title: $title
 		) {
 			submissionsMetric {

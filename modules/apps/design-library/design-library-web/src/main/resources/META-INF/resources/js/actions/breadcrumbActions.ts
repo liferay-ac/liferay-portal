@@ -4,11 +4,12 @@
  */
 
 import {openModal} from 'frontend-js-components-web';
-import {sub} from 'frontend-js-web';
+import {navigate} from 'frontend-js-web';
 
 import DesignLibraryConnectedSitesModal from '../modal/DesignLibraryConnectedSitesModal';
 import DesignLibraryManageMembersModal from '../modal/DesignLibraryManageMembersModal';
-import confirmAndDeleteEntryAction from '../props_transformer/actions/confirmAndDeleteEntryAction';
+import confirmAndDeleteEntriesAction from '../props_transformer/actions/confirmAndDeleteEntriesAction';
+import getDesignLibrariesConfirmationMessage from '../props_transformer/actions/getDesignLibrariesConfirmationMessage';
 
 export function confirmDeleteDesignLibrary({
 	descriptiveName,
@@ -19,35 +20,46 @@ export function confirmDeleteDesignLibrary({
 	href: string;
 	redirect?: string;
 }) {
-	confirmAndDeleteEntryAction({
-		bodyHTML: `
-			<p>${Liferay.Language.get('delete-design-library-confirmation-body-main')}</p>
-			<p>${Liferay.Language.get('delete-design-library-confirmation-body-warning')}</p>
-		`,
-		deleteAction: {
-			href,
-			method: 'DELETE',
+	const items = [
+		{
+			actions: {delete: {href, method: 'DELETE'}},
+			name: descriptiveName,
 		},
-		redirect,
-		successMessage: sub(
-			Liferay.Language.get('x-was-successfully-deleted'),
-			`<strong>${Liferay.Util.escapeHTML(descriptiveName)}</strong>`
-		),
-		title: sub(
-			Liferay.Language.get('delete-design-library-confirmation-title'),
-			descriptiveName
-		),
+	];
+
+	confirmAndDeleteEntriesAction({
+		confirmationMessage: getDesignLibrariesConfirmationMessage(items),
+		items,
+		loadData: () => {
+			if (redirect) {
+				navigate(redirect);
+			}
+		},
 	});
 }
 
 export function openConnectedSitesModal({
 	externalReferenceCode,
+	refreshDataSetIds,
 }: {
 	externalReferenceCode: string;
+	refreshDataSetIds?: string[];
 }) {
+	let changed = false;
+
 	openModal({
 		contentComponent: () =>
-			DesignLibraryConnectedSitesModal({externalReferenceCode}),
+			DesignLibraryConnectedSitesModal({
+				externalReferenceCode,
+				onChange: () => {
+					changed = true;
+				},
+			}),
+		onClose: () => {
+			if (changed) {
+				refreshDataSets(refreshDataSetIds);
+			}
+		},
 		size: 'md',
 	});
 }
@@ -55,19 +67,40 @@ export function openConnectedSitesModal({
 export function openManageMembersModal({
 	externalReferenceCode,
 	hasAssignMembersPermission,
+	headerTitle,
 	ownerId,
+	refreshDataSetIds,
 }: {
 	externalReferenceCode: string;
 	hasAssignMembersPermission: boolean;
+	headerTitle: string;
 	ownerId: string;
+	refreshDataSetIds?: string[];
 }) {
+	let changed = false;
+
 	openModal({
 		contentComponent: () =>
 			DesignLibraryManageMembersModal({
 				externalReferenceCode,
 				hasAssignMembersPermission,
+				headerTitle,
+				onChange: () => {
+					changed = true;
+				},
 				ownerId,
 			}),
+		onClose: () => {
+			if (changed) {
+				refreshDataSets(refreshDataSetIds);
+			}
+		},
 		size: 'md',
+	});
+}
+
+function refreshDataSets(dataSetIds?: string[]) {
+	(dataSetIds || []).forEach((dataSetId) => {
+		Liferay.fire('fds-update-display', {id: dataSetId});
 	});
 }

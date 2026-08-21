@@ -1,4 +1,4 @@
-import sendRequest, {getFormData, stringifyValues} from 'shared/util/request';
+import sendRequest, {getFormData, getRequestData} from 'shared/util/request';
 import {
 	buildOrderByFields,
 	createOrderIOMap,
@@ -274,6 +274,9 @@ export function createMarketoCampaign({
 	});
 }
 
+/**
+ * @param {{[key: string]: any}} params
+ */
 export function updateMarketoCampaign({
 	channelsConfiguration,
 	contactsConfiguration,
@@ -330,6 +333,9 @@ export function createSalesforce({
 	return sendRequest({
 		data: {
 			...data,
+			campaignsConfiguration: {
+				enableAllCampaigns: true,
+			},
 			name,
 		},
 		method: 'POST',
@@ -369,7 +375,7 @@ function sendMarketoCampaignRequest({data, method, path}) {
 
 	return window
 		.fetch(`/o/faro/${path}`, {
-			body: data ? getFormData(stringifyValues(data)) : undefined,
+			body: data ? getFormData(getRequestData(data)) : undefined,
 			method,
 		})
 		.then(async (response) => {
@@ -456,6 +462,9 @@ export function updateSalesforce({
 	return sendRequest({
 		data: {
 			...data,
+			campaignsConfiguration: {
+				enableAllCampaigns: true,
+			},
 			name,
 		},
 		method: 'PATCH',

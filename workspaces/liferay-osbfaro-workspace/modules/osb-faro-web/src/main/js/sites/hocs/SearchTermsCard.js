@@ -1,6 +1,5 @@
 import BaseCard from 'shared/components/base-card';
 import Card from 'shared/components/Card';
-import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
 import React from 'react';
 import SearchTermsQuery from 'shared/queries/SearchTermsQuery';
@@ -12,6 +11,7 @@ import {
 	mapCardPropsToOptions,
 } from './mappers/composition-query';
 import {graphql} from '@apollo/client/react/hoc';
+import {pickBy} from 'lodash';
 import {ReportContainer} from 'shared/components/download-report/DownloadPDFReport';
 import {Routes, setUriQueryValues, toRoute} from 'shared/util/router';
 import {useParams} from 'react-router-dom';
@@ -46,6 +46,7 @@ const TableWithData = withTableData(withData, {
 	),
 	getColumns: ({maxCount, totalCount}) => [
 		compositionListColumns.getRelativeMetricBar({
+			abbreviateCount: true,
 			label: `${Liferay.Language.get(
 				'search-query'
 			)} | ${Liferay.Language.get('searches')}`,
@@ -61,7 +62,7 @@ const TableWithData = withTableData(withData, {
 	rowIdentifier: 'name',
 });
 
-const SearchTermsCard = (props) => {
+const SearchTermsCard = ({minHeight, ...props}) => {
 	const {channelId, groupId, id} = useParams();
 
 	return (
@@ -69,26 +70,36 @@ const SearchTermsCard = (props) => {
 			className="search-terms-card-root"
 			label={Liferay.Language.get('search-terms')}
 			legacyDropdownRangeKey={false}
+			minHeight={minHeight}
 			reportContainer={ReportContainer.SearchTermsCard}
 		>
-			{({rangeSelectors}) => (
+			{({accountId, rangeSelectors, segmentId}) => (
 				<>
 					<TableWithData
 						{...props}
+						accountId={accountId}
 						channelId={channelId}
 						id={id}
 						rangeSelectors={rangeSelectors}
 						rowBordered={false}
+						segmentId={segmentId}
 					/>
 
-					<Card.Footer>
+					<Card.Footer className="d-flex">
 						<ClayLink
+							aria-label={Liferay.Language.get(
+								'view-all-search-terms'
+							)}
 							borderless
 							button
-							className="button-root"
-							displayType="secondary"
+							className="ml-auto rounded-lg"
+							displayType="primary"
 							href={setUriQueryValues(
-								rangeSelectors,
+								pickBy({
+									accountId,
+									segmentId,
+									...rangeSelectors,
+								}),
 								toRoute(Routes.SITES_SEARCH_TERMS, {
 									channelId,
 									groupId,
@@ -96,12 +107,7 @@ const SearchTermsCard = (props) => {
 							)}
 							small
 						>
-							{Liferay.Language.get('all-search-terms')}
-
-							<ClayIcon
-								className="icon-root ml-2"
-								symbol="angle-right-small"
-							/>
+							{Liferay.Language.get('view-all')}
 						</ClayLink>
 					</Card.Footer>
 				</>

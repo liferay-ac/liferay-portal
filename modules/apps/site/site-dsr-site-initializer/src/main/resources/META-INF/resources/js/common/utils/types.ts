@@ -130,7 +130,9 @@ export interface IRoomObjectEntry {
 	dateModified: string;
 	description: string;
 	externalReferenceCode: string;
+	friendlyURL: string;
 	id: number;
+	initialized: boolean;
 	name: string;
 	r_accountToDSRRooms_accountEntry: {
 		description: string;

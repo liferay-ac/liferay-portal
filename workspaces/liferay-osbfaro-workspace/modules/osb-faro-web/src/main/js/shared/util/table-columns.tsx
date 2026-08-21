@@ -23,7 +23,12 @@ import {
 	SourceCell,
 	WillBeRemovedCell,
 } from 'shared/components/table/cell-components';
-import {applyTimeZone, formatDateToTimeZone, formatUTCDate} from './date';
+import {
+	applyTimeZone,
+	formatDateToTimeZone,
+	formatUTCDate,
+	getCustomDateFormat,
+} from './date';
 import {Colors} from './colors-size';
 import {formatTime} from './time';
 import {get, isNil, noop, pickBy} from 'lodash';
@@ -31,6 +36,7 @@ import {getSafeDecodedURIComponent} from './util';
 import {Routes, setUriQueryValues, toRoute} from 'shared/util/router';
 import {SegmentTypes} from './constants';
 import {sub} from 'shared/util/lang';
+import {formatPercentFromRatio, toLocale, toRounded} from 'shared/util/numbers';
 
 type ChannelGroupParams = {
 	channelId: string | undefined;
@@ -51,7 +57,7 @@ export const accountsListColumns = {
 	activitiesCount: {
 		accessor: 'activitiesCount',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('total-activities'),
 	},
 	emailAddress: {
@@ -59,6 +65,17 @@ export const accountsListColumns = {
 		label: Liferay.Language.get('email'),
 		sortable: false,
 	},
+	getAccountName: ({channelId, groupId}: ChannelGroupParams) => ({
+		accessor: 'accountName',
+		cellRenderer: NameCell,
+		cellRendererProps: {
+			nameKey: 'accountName',
+			routeFn: ({data: {id}}: {data: {id: string}}) =>
+				toRoute(Routes.CONTACTS_ACCOUNT, {channelId, groupId, id}),
+		},
+		className: 'table-cell-expand',
+		label: Liferay.Language.get('account'),
+	}),
 	getName: ({channelId, groupId}: ChannelGroupParams) => ({
 		accessor: 'name',
 		cellRenderer: NameCell,
@@ -72,7 +89,7 @@ export const accountsListColumns = {
 	individualCount: {
 		accessor: 'individualCount',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('individuals'),
 	},
 	name: {
@@ -94,7 +111,7 @@ export const activityAssetsListColumns = {
 	commentCount: {
 		accessor: 'count',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('comments'),
 	},
 	downloadCount: {
@@ -123,13 +140,13 @@ export const activityAssetsListColumns = {
 	submissionCount: {
 		accessor: 'count',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('submissions'),
 	},
 	viewCount: {
 		accessor: 'count',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('views'),
 	},
 };
@@ -377,7 +394,8 @@ export const changesListColumns = {
 	getDateFirst: (timeZoneId: string) => ({
 		accessor: 'dateFirst',
 		dataFormatter: (value: string | number | null | undefined) =>
-			!isNil(value) && formatDateToTimeZone(value, 'll', timeZoneId),
+			!isNil(value) &&
+			formatDateToTimeZone(value, getCustomDateFormat(), timeZoneId),
 		label: Liferay.Language.get('first-seen'),
 	}),
 	getIndividualName: ({channelId, groupId}: ChannelGroupParams) => ({
@@ -399,7 +417,7 @@ export const changesListColumns = {
 			operation && [
 				<span key="MEMBERSHIP_CHANGE">
 					{applyTimeZone(dateChanged, timeZoneId).calendar(null, {
-						sameElse: 'll',
+						sameElse: getCustomDateFormat(),
 					})}
 
 					<Label
@@ -459,12 +477,13 @@ export const compositionListColumns = {
 		accessor: 'count',
 		className: 'table-column-text-end',
 		dataFormatter: (data: number) =>
-			`${((data / totalCount) * 100).toFixed(2)}%`,
+			formatPercentFromRatio(data / totalCount),
 		label: sub(Liferay.Language.get('percent-of-x'), [metricName]),
 		sortable: false,
 		title: true,
 	}),
 	getRelativeMetricBar: ({
+		abbreviateCount = false,
 		empty = false,
 		label,
 		maxCount,
@@ -472,6 +491,7 @@ export const compositionListColumns = {
 		sortable = false,
 		totalCount,
 	}: {
+		abbreviateCount?: boolean;
 		empty?: boolean;
 		label: React.ReactNode;
 		maxCount: number;
@@ -482,6 +502,7 @@ export const compositionListColumns = {
 		accessor: 'count',
 		cellRenderer: RelativeMetricBarCell,
 		cellRendererProps: {
+			abbreviateCount,
 			empty,
 			maxCount,
 			showName,
@@ -607,7 +628,11 @@ export const eventListColumns = {
 				})}
 				data={data}
 				dateFormatter={(date: string | number) =>
-					formatDateToTimeZone(date, 'll', timeZoneId)
+					formatDateToTimeZone(
+						date,
+						getCustomDateFormat(),
+						timeZoneId
+					)
 				}
 				datePath="lastSeenDate"
 			/>
@@ -695,7 +720,7 @@ export const individualsListColumns = {
 	activitiesCount: {
 		accessor: 'activitiesCount',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('total-activities'),
 	},
 	email: {
@@ -709,7 +734,11 @@ export const individualsListColumns = {
 			<DateCell
 				data={data}
 				dateFormatter={(date: string | number) =>
-					formatDateToTimeZone(date, 'll', timeZoneId)
+					formatDateToTimeZone(
+						date,
+						getCustomDateFormat(),
+						timeZoneId
+					)
 				}
 				datePath="dateCreated"
 			/>
@@ -719,7 +748,8 @@ export const individualsListColumns = {
 	getLastActivityDate: (timeZoneId: string) => ({
 		accessor: 'lastActivityDate',
 		dataFormatter: (data: string | number | null | undefined) =>
-			!isNil(data) && formatDateToTimeZone(data, 'll', timeZoneId),
+			!isNil(data) &&
+			formatDateToTimeZone(data, getCustomDateFormat(), timeZoneId),
 		label: Liferay.Language.get('last-activity'),
 	}),
 	getName: ({channelId, groupId}: ChannelGroupParams) => ({
@@ -830,8 +860,7 @@ export const interestListColumns = {
 	}) => ({
 		accessor: 'count',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number) =>
-			`${((data / total) * 100).toFixed(2)}%`,
+		dataFormatter: (data: number) => formatPercentFromRatio(data / total),
 		label: sub(Liferay.Language.get('percent-of-x'), [metricName]),
 		sortable: false,
 		title: true,
@@ -858,7 +887,7 @@ export const metricsListColumns = {
 	abandonmentsMetric: {
 		accessor: 'abandonmentsMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number) => `${(data * 100).toFixed(2)}%`,
+		dataFormatter: (data: number) => formatPercentFromRatio(data),
 		label: Liferay.Language.get('abandonment'),
 	},
 	avgTimeOnPageMetric: {
@@ -870,13 +899,13 @@ export const metricsListColumns = {
 	bounceRateMetric: {
 		accessor: 'bounceRateMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number) => `${(data * 100).toFixed(1)}%`,
+		dataFormatter: (data: number) => formatPercentFromRatio(data),
 		label: Liferay.Language.get('bounce-rate'),
 	},
 	commentsMetric: {
 		accessor: 'commentsMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('comments'),
 	},
 	completionTimeMetric: {
@@ -888,19 +917,19 @@ export const metricsListColumns = {
 	downloadsMetric: {
 		accessor: 'downloadsMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('downloads'),
 	},
 	entrancesMetric: {
 		accessor: 'entrancesMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('entrances'),
 	},
 	exitRateMetric: {
 		accessor: 'exitRateMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number) => `${(data * 100).toFixed(2)}%`,
+		dataFormatter: (data: number) => formatPercentFromRatio(data),
 		label: Liferay.Language.get('exit-percentage'),
 	},
 	getCreateDate: (timeZoneId: string) => ({
@@ -909,7 +938,11 @@ export const metricsListColumns = {
 			<DateCell
 				data={data}
 				dateFormatter={(date: string | number) =>
-					formatDateToTimeZone(date, 'll', timeZoneId)
+					formatDateToTimeZone(
+						date,
+						getCustomDateFormat(),
+						timeZoneId
+					)
 				}
 				datePath="createDate"
 			/>
@@ -985,7 +1018,7 @@ export const metricsListColumns = {
 	impressionMadeMetric: {
 		accessor: 'impressionMadeMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('impressions'),
 	},
 	modifiedDate: {
@@ -999,7 +1032,8 @@ export const metricsListColumns = {
 			};
 		}) => {
 			const date =
-				!isNil(modifiedDate) && moment(modifiedDate).format('ll');
+				!isNil(modifiedDate) &&
+				moment(modifiedDate).format(getCustomDateFormat());
 
 			return (
 				<td>
@@ -1017,7 +1051,7 @@ export const metricsListColumns = {
 	ratingsMetric: {
 		accessor: 'ratingsMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number) => `${(data * 10).toFixed(2)}/10`,
+		dataFormatter: (data: number) => `${toRounded(data * 10, 2)}/10`,
 		label: Liferay.Language.get('rating'),
 	},
 	readingTimeMetric: {
@@ -1029,19 +1063,19 @@ export const metricsListColumns = {
 	submissionsMetric: {
 		accessor: 'submissionsMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('submissions'),
 	},
 	viewsMetric: {
 		accessor: 'viewsMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('views'),
 	},
 	visitorsMetric: {
 		accessor: 'visitorsMetric',
 		className: 'table-column-text-end',
-		dataFormatter: (data: number | string) => data.toLocaleString(),
+		dataFormatter: (data: number | string) => toLocale(Number(data)),
 		label: Liferay.Language.get('unique-visitors'),
 	},
 };
@@ -1075,13 +1109,21 @@ export const organizationsListColumns = [
 
 export const sitePagesListColumns = {
 	getTitleUrl: ({
+		accountId,
+		accountName,
 		channelId,
 		groupId,
 		rangeSelectors,
 		route,
+		segmentId,
+		segmentName,
 	}: ChannelGroupParams & {
+		accountId?: string | null;
+		accountName?: string | null;
 		rangeSelectors: Record<string, any>;
 		route: string;
+		segmentId?: string | null;
+		segmentName?: string | null;
 	}) => ({
 		accessor: 'assetTitle',
 		cellRenderer: NameCell,
@@ -1096,7 +1138,13 @@ export const sitePagesListColumns = {
 				data: {assetId: string; assetTitle?: string};
 			}) =>
 				setUriQueryValues(
-					pickBy(rangeSelectors),
+					pickBy({
+						accountId,
+						accountName,
+						segmentId,
+						segmentName,
+						...rangeSelectors,
+					}),
 					toRoute(route, {
 						channelId,
 						groupId,
@@ -1193,7 +1241,11 @@ export const segmentsListColumns = {
 			<DateCell
 				data={data}
 				dateFormatter={(date: string | number) =>
-					formatDateToTimeZone(date, 'll', timeZoneId)
+					formatDateToTimeZone(
+						date,
+						getCustomDateFormat(),
+						timeZoneId
+					)
 				}
 				datePath="dateCreated"
 			/>
@@ -1249,7 +1301,7 @@ export const segmentsListColumns = {
 		cellRendererProps: {
 			dateFormatter: (date: string | number) =>
 				moment(date).calendar(null, {
-					sameElse: 'll',
+					sameElse: getCustomDateFormat(),
 				}),
 			datePath: 'individualAddedDate',
 		},
@@ -1281,7 +1333,7 @@ export const usersListColumns = {
 		cellRendererProps: {
 			dateFormatter: (date: string | number) =>
 				applyTimeZone(date, timeZoneId).calendar(null, {
-					sameElse: 'll',
+					sameElse: getCustomDateFormat(),
 				}),
 			datePath: 'lastLoginDate',
 		},

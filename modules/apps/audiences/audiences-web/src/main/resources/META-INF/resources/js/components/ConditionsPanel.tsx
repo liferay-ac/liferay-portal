@@ -23,19 +23,18 @@ import {DROP_POSITIONS} from '../constants/dropPositions';
 import useKeyboardNavigation, {
 	NavigationItemProps,
 } from '../hooks/useKeyboardNavigation';
-import {useMovementSource} from '../keyboard_movement/KeyboardMovementContext';
-import KeyboardMovementManager, {
-	MovementItem,
-} from '../keyboard_movement/KeyboardMovementManager';
-import {Action} from '../reducer';
 import {
-	AudiencesCriteria,
-	AudiencesCriteriaType,
-	CriteriaNode,
-	Group,
-} from '../types';
+	useMovementSource,
+	useMovementTarget,
+} from '../keyboard_movement/KeyboardMovementContext';
+import KeyboardMovementManager from '../keyboard_movement/KeyboardMovementManager';
+import {Action} from '../reducer';
+import {AudiencesCriteria, AudiencesCriteriaType, Group} from '../types';
+import {getAudiencesCriteriasByKey} from '../util/getAudiencesCriteriasByKey';
+import {getConditionLabel} from '../util/getConditionLabel';
 import {DropZone, getDropPosition} from '../util/getDropPosition';
 import {canGroupNode} from '../util/tree/canGroupNode';
+import {flattenRules} from '../util/tree/flattenRules';
 import {isGroup} from '../util/tree/isGroup';
 import RuleRow from './RuleRow';
 
@@ -51,29 +50,37 @@ interface RenderContext {
 	dispatch: Dispatch<Action>;
 	getItemProps: (index: number) => NavigationItemProps;
 	iconColorsByKey: Record<string, string>;
+	ruleIndexById: Map<string, number>;
 }
 
-function toMovementItems(
-	items: CriteriaNode[],
-	audiencesCriteriasByKey: Record<string, AudiencesCriteria>
-): MovementItem[] {
-	return items.map((node) => {
+function collectNodeNames(
+	group: Group,
+	audiencesCriteriasByKey: Record<string, AudiencesCriteria>,
+	namesById: Record<string, string> = {}
+): Record<string, string> {
+	group.items.forEach((node) => {
 		if (isGroup(node)) {
-			return {
-				icon: 'folder',
-				id: node.id,
-				name: Liferay.Language.get('group'),
-			};
+			const conjunction =
+				node.conjunction === 'OR'
+					? Liferay.Language.get('any')
+					: Liferay.Language.get('all');
+
+			namesById[node.id] = `${conjunction} ${Liferay.Language.get(
+				'of-these-criteria-are-met'
+			)}`;
+
+			collectNodeNames(node, audiencesCriteriasByKey, namesById);
 		}
+		else {
+			const audiencesCriteria = audiencesCriteriasByKey[node.attribute];
 
-		const audiencesCriteria = audiencesCriteriasByKey[node.attribute];
-
-		return {
-			icon: audiencesCriteria?.icon ?? '',
-			id: node.id,
-			name: audiencesCriteria?.label ?? node.attribute,
-		};
+			namesById[node.id] = audiencesCriteria
+				? getConditionLabel(node, audiencesCriteria)
+				: node.attribute;
+		}
 	});
+
+	return namesById;
 }
 
 export default function ConditionsPanel({
@@ -81,19 +88,8 @@ export default function ConditionsPanel({
 	dispatch,
 	root,
 }: IProps) {
-	const audiencesCriteriasByKey: Record<string, AudiencesCriteria> = useMemo(
-		() =>
-			Object.fromEntries(
-				audiencesCriteriaTypes
-					.flatMap(
-						(audiencesCriteriaType) =>
-							audiencesCriteriaType.audiencesCriterias
-					)
-					.map((audiencesCriteria) => [
-						audiencesCriteria.key,
-						audiencesCriteria,
-					])
-			),
+	const audiencesCriteriasByKey = useMemo(
+		() => getAudiencesCriteriasByKey(audiencesCriteriaTypes),
 		[audiencesCriteriaTypes]
 	);
 
@@ -117,13 +113,19 @@ export default function ConditionsPanel({
 
 	const movementSource = useMovementSource();
 
+	const ruleIndexById = useMemo(
+		() =>
+			new Map(flattenRules(root).map((rule, index) => [rule.id, index])),
+		[root]
+	);
+
 	const {getItemProps} = useKeyboardNavigation({
-		itemCount: root.items.filter((node) => !isGroup(node)).length,
+		itemCount: ruleIndexById.size,
 	});
 
-	const keyboardMovementItems = toMovementItems(
-		root.items,
-		audiencesCriteriasByKey
+	const namesById = useMemo(
+		() => collectNodeNames(root, audiencesCriteriasByKey),
+		[audiencesCriteriasByKey, root]
 	);
 
 	const [{canDrop, isOver}, drop] = useDrop<
@@ -152,6 +154,7 @@ export default function ConditionsPanel({
 		dispatch,
 		getItemProps,
 		iconColorsByKey,
+		ruleIndexById,
 	};
 
 	return (
@@ -159,8 +162,8 @@ export default function ConditionsPanel({
 			{movementSource ? (
 				<KeyboardMovementManager
 					dispatch={dispatch}
-					items={keyboardMovementItems}
-					nodes={root.items}
+					namesById={namesById}
+					root={root}
 					source={movementSource}
 				/>
 			) : null}
@@ -175,6 +178,7 @@ export default function ConditionsPanel({
 				<>
 					<ConjunctionBar
 						conjunction={root.conjunction}
+						conjunctionLabelId={`audience-builder-conjunction-${root.id}`}
 						onConjunctionChange={(value) =>
 							dispatch({
 								conjunction: value,
@@ -185,9 +189,8 @@ export default function ConditionsPanel({
 
 					<div
 						aria-label={Liferay.Language.get('conditions')}
-						aria-orientation="vertical"
 						className="px-3 py-2"
-						role="menu"
+						role="list"
 					>
 						<GroupItems context={context} group={root} path={[]} />
 					</div>
@@ -216,9 +219,8 @@ function GroupItems({context, group, path}: GroupItemsProps) {
 		dispatch,
 		getItemProps,
 		iconColorsByKey,
+		ruleIndexById,
 	} = context;
-
-	const topLevel = !path.length;
 
 	const handleAddRule = (
 		audiencesCriteria: AudiencesCriteria,
@@ -246,10 +248,6 @@ function GroupItems({context, group, path}: GroupItemsProps) {
 		<>
 			{group.items.map((node, index) => {
 				const nodePath = [...path, index];
-
-				const ruleIndex = group.items
-					.slice(0, index)
-					.filter((item) => !isGroup(item)).length;
 
 				return (
 					<Fragment key={node.id}>
@@ -281,12 +279,9 @@ function GroupItems({context, group, path}: GroupItemsProps) {
 								canGroup={canGroupNode(nodePath)}
 								iconColor={iconColorsByKey[node.attribute]}
 								index={index}
-								movable={topLevel}
-								navigationProps={
-									topLevel
-										? getItemProps(ruleIndex)
-										: undefined
-								}
+								navigationProps={getItemProps(
+									ruleIndexById.get(node.id) ?? 0
+								)}
 								onAddRule={handleAddRule}
 								onChange={(rule) =>
 									dispatch({
@@ -330,7 +325,7 @@ function GroupItems({context, group, path}: GroupItemsProps) {
 									dispatch({
 										nodeId,
 										targetId: node.id,
-										type: 'MOVE_GROUP',
+										type: 'MOVE_RULE_INTO_NEW_GROUP',
 									})
 								}
 								onMoveRule={handleMoveRule}
@@ -363,9 +358,13 @@ function GroupRow({
 }: GroupRowProps) {
 	const {dispatch} = context;
 
+	const movementTarget = useMovementTarget();
+
 	const groupRef = useRef<HTMLDivElement | null>(null);
 
 	const [dropPosition, setDropPosition] = useState<DropZone | null>(null);
+
+	const isMovementTarget = movementTarget.nodeId === group.id;
 
 	const [{isOver}, dropRef] = useDrop<RowDragItem, void, {isOver: boolean}>({
 		accept: [DRAG_TYPES.ATTRIBUTE, DRAG_TYPES.RULE],
@@ -405,23 +404,31 @@ function GroupRow({
 		dropRef(element);
 	};
 
+	const conjunctionLabelId = `audience-builder-conjunction-${group.id}`;
+
 	return (
 		<div
-			aria-label={Liferay.Language.get('group')}
+			aria-labelledby={`${conjunctionLabelId}-value ${conjunctionLabelId}`}
 			className={classNames(
 				'audience-builder-group border overflow-hidden rounded',
 				{
 					'audience-builder-group--drop-bottom':
-						isOver && dropPosition === DROP_POSITIONS.bottom,
+						(isOver && dropPosition === DROP_POSITIONS.bottom) ||
+						(isMovementTarget &&
+							movementTarget.position === DROP_POSITIONS.bottom),
 					'audience-builder-group--drop-top':
-						isOver && dropPosition === DROP_POSITIONS.top,
+						(isOver && dropPosition === DROP_POSITIONS.top) ||
+						(isMovementTarget &&
+							movementTarget.position === DROP_POSITIONS.top),
 				}
 			)}
+			data-keyboard-movement-id={group.id}
 			ref={setGroupRef}
-			role="group"
+			role="listitem"
 		>
 			<ConjunctionBar
 				conjunction={group.conjunction}
+				conjunctionLabelId={conjunctionLabelId}
 				onConjunctionChange={(value) =>
 					dispatch({
 						conjunction: value,
@@ -431,7 +438,11 @@ function GroupRow({
 				}
 			/>
 
-			<div className="px-3 py-2">
+			<div
+				aria-labelledby={`${conjunctionLabelId}-value ${conjunctionLabelId}`}
+				className="px-3 py-2"
+				role="list"
+			>
 				<GroupItems context={context} group={group} path={path} />
 			</div>
 		</div>
@@ -440,18 +451,21 @@ function GroupRow({
 
 interface ConjunctionBarProps {
 	conjunction: string;
+	conjunctionLabelId: string;
 	onConjunctionChange: (conjunction: string) => void;
 }
 
 function ConjunctionBar({
 	conjunction,
+	conjunctionLabelId,
 	onConjunctionChange,
 }: ConjunctionBarProps) {
 	return (
 		<div className="align-items-center bg-lighter border-top c-gap-2 d-flex p-3 text-3 text-secondary">
 			<Picker
-				aria-label={Liferay.Language.get('conjunction')}
+				aria-labelledby={conjunctionLabelId}
 				className="form-control-sm w-auto"
+				id={`${conjunctionLabelId}-value`}
 				items={[
 					{label: Liferay.Language.get('all'), value: 'AND'},
 					{label: Liferay.Language.get('any'), value: 'OR'},
@@ -462,7 +476,9 @@ function ConjunctionBar({
 				{(item) => <Option key={item.value}>{item.label}</Option>}
 			</Picker>
 
-			{Liferay.Language.get('of-these-criteria-are-met')}
+			<span id={conjunctionLabelId}>
+				{Liferay.Language.get('of-these-criteria-are-met')}
+			</span>
 		</div>
 	);
 }

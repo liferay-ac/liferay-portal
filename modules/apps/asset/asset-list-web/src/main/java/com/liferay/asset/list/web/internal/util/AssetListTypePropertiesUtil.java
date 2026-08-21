@@ -128,7 +128,7 @@ public class AssetListTypePropertiesUtil {
 			JSONUtil.put(
 				"label", LanguageUtil.get(locale, "modified-date")
 			).put(
-				"name", Field.MODIFIED_DATE
+				"name", "modifiedDate"
 			).put(
 				"type", "date"
 			),
@@ -236,6 +236,10 @@ public class AssetListTypePropertiesUtil {
 	}
 
 	private static String _toType(String businessType) {
+		if (businessType == null) {
+			return null;
+		}
+
 		if (businessType.equals(ObjectFieldConstants.BUSINESS_TYPE_BOOLEAN)) {
 			return "boolean";
 		}

@@ -1,48 +1,6 @@
-import {
-	getActionFromEventId,
-	getEventId,
-	getSupportedApplicationIds,
-} from '../activity-keys';
+import {getActionFromEventId, getEventId} from '../activity-keys';
 
 describe('activity-keys', () => {
-	describe('getSupportedApplicationIds', () => {
-		it('should map each event action to the applicationIds that support it', () => {
-			expect(getSupportedApplicationIds('click')).toEqual([
-				'Blog',
-				'WebContent',
-			]);
-			expect(getSupportedApplicationIds('comment')).toEqual(['Blog']);
-			expect(getSupportedApplicationIds('download')).toEqual([
-				'Document',
-				'ObjectEntry',
-			]);
-			expect(getSupportedApplicationIds('impression')).toEqual([
-				'Blog',
-				'Document',
-				'ObjectEntry',
-				'WebContent',
-			]);
-			expect(getSupportedApplicationIds('submit')).toEqual(['Form']);
-			expect(getSupportedApplicationIds('view')).toEqual([
-				'Blog',
-				'Document',
-				'Form',
-				'ObjectEntry',
-				'WebContent',
-			]);
-		});
-
-		it('should return every applicationId for an unknown action', () => {
-			expect(getSupportedApplicationIds(undefined)).toEqual([
-				'Blog',
-				'Document',
-				'Form',
-				'ObjectEntry',
-				'WebContent',
-			]);
-		});
-	});
-
 	describe('getEventId', () => {
 		it('should resolve the analytics eventId for supported pairs', () => {
 			expect(getEventId('WebContent', 'click')).toBe('webContentClicked');
@@ -53,9 +11,35 @@ describe('activity-keys', () => {
 			expect(getEventId('Page', 'view')).toBe('pageViewed');
 		});
 
-		it('should return an empty string for unsupported pairs', () => {
-			expect(getEventId('Document', 'click')).toBe('');
-			expect(getEventId('Form', 'download')).toBe('');
+		it('should name the pairs nothing emits yet by the same convention', () => {
+			expect(getEventId('Document', 'click')).toBe('documentClicked');
+			expect(getEventId('Form', 'download')).toBe('formDownloaded');
+			expect(getEventId('ObjectEntry', 'click')).toBe(
+				'objectEntryClicked'
+			);
+			expect(getEventId('WebContent', 'submit')).toBe(
+				'webContentSubmitted'
+			);
+		});
+
+		it('should give every asset type an eventId for every action', () => {
+			['Blog', 'Document', 'Form', 'ObjectEntry', 'WebContent'].forEach(
+				(applicationId) =>
+					[
+						'click',
+						'comment',
+						'download',
+						'impression',
+						'submit',
+						'view',
+					].forEach((action) =>
+						expect(getEventId(applicationId, action)).toBeTruthy()
+					)
+			);
+		});
+
+		it('should still return an empty string without an action', () => {
+			expect(getEventId('Document', undefined)).toBe('');
 		});
 	});
 
@@ -64,6 +48,17 @@ describe('activity-keys', () => {
 			expect(getActionFromEventId('webContentClicked')).toBe('click');
 			expect(getActionFromEventId('commentPosted')).toBe('comment');
 			expect(getActionFromEventId('pageViewed')).toBe('view');
+		});
+
+		// The round trip the empty eventId used to break: the criterion has to
+		// come back as Click, not as an attribute that no longer exists.
+
+		it('should resolve the eventIds of the pairs nothing emits yet', () => {
+			expect(getActionFromEventId('documentClicked')).toBe('click');
+			expect(getActionFromEventId('formImpressionMade')).toBe(
+				'impression'
+			);
+			expect(getActionFromEventId('objectEntrySubmitted')).toBe('submit');
 		});
 	});
 });

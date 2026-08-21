@@ -10,6 +10,11 @@ import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.constants.DepotRolesConstants;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
+import com.liferay.exportimport.kernel.configuration.ExportImportConfigurationSettingsMapFactoryUtil;
+import com.liferay.exportimport.kernel.configuration.constants.ExportImportConfigurationConstants;
+import com.liferay.exportimport.kernel.lar.PortletDataHandlerKeys;
+import com.liferay.exportimport.kernel.service.ExportImportConfigurationLocalService;
+import com.liferay.exportimport.kernel.service.ExportImportLocalService;
 import com.liferay.exportimport.test.rule.LazyReferencing;
 import com.liferay.exportimport.test.rule.LazyReferencingTestRule;
 import com.liferay.exportimport.test.util.ExportImportTestUtil;
@@ -64,11 +69,13 @@ import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.FeatureFlag;
+import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LanguageIds;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.site.initializer.SiteInitializer;
+import com.liferay.staging.StagingGroupHelper;
 
 import java.io.File;
 
@@ -173,7 +180,6 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 	public void testGetSiteSiteInitializer() throws Exception {
 	}
 
-	@FeatureFlag("LPD-17564")
 	@Override
 	@Test
 	public void testGetSitesPage() throws Exception {
@@ -185,6 +191,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		_testGetSitesPageWithAssetLibraryMember();
 		_testGetSitesPageWithDepotEntry();
 		_testGetSitesPageWithExcludedExternalReferenceCodes();
+		_testGetSitesPageWithExternalReferenceCodes();
 		_testGetSitesPageWithInactiveSites();
 		_testGetSitesPageWithoutAuthentication();
 		_testGetSitesPageWithoutSiteMembership();
@@ -200,6 +207,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 			_addUserWithRegularRole(RoleConstants.CMS_ADMINISTRATOR));
 	}
 
+	@FeatureFlags(featureFlags = @FeatureFlag("LPD-85946"))
 	@LazyReferencing
 	@Override
 	@Test
@@ -229,6 +237,8 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		_testPostSiteWithLocalizedName();
 		_testPostSiteWithNondefaultLocales();
 		_testPostSiteWithParentSiteExternalReferenceCode();
+		_testPostSiteWithSelectedSitesOnExport();
+		_testPostSiteWithSelectedSitesOnImport();
 		_testPostSiteWithTypeSettingsFields();
 		_testPostSiteWithoutAuthentication();
 	}
@@ -273,6 +283,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		super.testPutSiteSiteInitializer();
 
 		_testPutSiteSiteInitializerPreservesFriendlyUrlPath();
+		_testPutSiteSiteInitializerSystemSite();
 	}
 
 	@Override
@@ -484,6 +495,31 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 			site.getName(), group.getName(LocaleUtil.getDefault()));
 	}
 
+	private File _exportLayoutsAsFile(String... siteExternalReferenceCodes)
+		throws Exception {
+
+		Group companyGroup = _stagingGroupHelper.fetchCompanyGroup(
+			TestPropsValues.getCompanyId());
+
+		return _exportImportLocalService.exportLayoutsAsFile(
+			_exportImportConfigurationLocalService.
+				addDraftExportImportConfiguration(
+					TestPropsValues.getUserId(),
+					ExportImportConfigurationConstants.TYPE_EXPORT_LAYOUT,
+					ExportImportConfigurationSettingsMapFactoryUtil.
+						buildExportLayoutSettingsMap(
+							TestPropsValues.getUser(),
+							companyGroup.getGroupId(), false, new long[0],
+							HashMapBuilder.put(
+								PortletDataHandlerKeys.PORTLET_DATA,
+								new String[] {Boolean.TRUE.toString()}
+							).put(
+								PortletDataHandlerKeys.
+									SITE_EXTERNAL_REFERENCE_CODES,
+								siteExternalReferenceCodes
+							).build())));
+	}
+
 	private SiteResource _getSiteResource(User user) {
 		return SiteResource.builder(
 		).authentication(
@@ -496,11 +532,41 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		).build();
 	}
 
+	private void _importSites(
+			File larFile, String... siteExternalReferenceCodes)
+		throws Exception {
+
+		Group companyGroup = _stagingGroupHelper.fetchCompanyGroup(
+			TestPropsValues.getCompanyId());
+
+		_exportImportLocalService.importLayouts(
+			_exportImportConfigurationLocalService.
+				addDraftExportImportConfiguration(
+					TestPropsValues.getUserId(),
+					ExportImportConfigurationConstants.TYPE_IMPORT_LAYOUT,
+					ExportImportConfigurationSettingsMapFactoryUtil.
+						buildImportLayoutSettingsMap(
+							TestPropsValues.getUser(),
+							companyGroup.getGroupId(), false, new long[0],
+							HashMapBuilder.put(
+								PortletDataHandlerKeys.PORTLET_DATA,
+								new String[] {Boolean.TRUE.toString()}
+							).put(
+								PortletDataHandlerKeys.PORTLET_DATA_ALL,
+								new String[] {Boolean.TRUE.toString()}
+							).put(
+								PortletDataHandlerKeys.
+									SITE_EXTERNAL_REFERENCE_CODES,
+								siteExternalReferenceCodes
+							).build())),
+			larFile);
+	}
+
 	private void _testGetSitesPageWithActiveAndInactiveSites()
 		throws Exception {
 
 		Page<Site> page = siteResource.getSitesPage(
-			null, null, null, Pagination.of(1, 100));
+			null, null, null, null, Pagination.of(1, 100));
 
 		long totalCount = page.getTotalCount();
 
@@ -511,7 +577,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		testGetSitesPage_addSite(site);
 
 		page = siteResource.getSitesPage(
-			null, null, null, Pagination.of(1, 100));
+			null, null, null, null, Pagination.of(1, 100));
 
 		Assert.assertEquals(totalCount + 1, page.getTotalCount());
 	}
@@ -521,7 +587,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		throws Exception {
 
 		Page<Site> sitesPage = siteResource.getSitesPage(
-			true, null, null, Pagination.of(1, 100));
+			true, null, null, null, Pagination.of(1, 100));
 
 		List<Site> originalItems = (List<Site>)sitesPage.getItems();
 
@@ -535,7 +601,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		_groupLocalService.updateGroup(group);
 
 		sitesPage = siteResource.getSitesPage(
-			true, null, null, Pagination.of(1, 100));
+			true, null, null, null, Pagination.of(1, 100));
 
 		List<Site> existingItems = (List<Site>)sitesPage.getItems();
 
@@ -548,21 +614,21 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 				_addDepotEntry(), DepotRolesConstants.ASSET_LIBRARY_MEMBER));
 
 		Page<Site> sitesPage1 = siteResource.getSitesPage(
-			null, null, null, Pagination.of(1, 1));
+			null, null, null, null, Pagination.of(1, 1));
 
 		long totalCount = sitesPage1.getTotalCount();
 
 		_testPostSite_addSite(randomSite());
 
 		Page<Site> sitesPage2 = siteResource.getSitesPage(
-			null, null, null, Pagination.of(1, 1));
+			null, null, null, null, Pagination.of(1, 1));
 
 		Assert.assertEquals(totalCount, sitesPage2.getTotalCount());
 	}
 
 	private void _testGetSitesPageWithDepotEntry() throws Exception {
 		Page<Site> sitesPage = siteResource.getSitesPage(
-			true, null, null, Pagination.of(1, 100));
+			true, null, null, null, Pagination.of(1, 100));
 
 		List<Site> originalItems = (List<Site>)sitesPage.getItems();
 
@@ -574,7 +640,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 			ServiceContextTestUtil.getServiceContext());
 
 		sitesPage = siteResource.getSitesPage(
-			true, null, null, Pagination.of(1, 100));
+			true, null, null, null, Pagination.of(1, 100));
 
 		List<Site> existingItems = (List<Site>)sitesPage.getItems();
 
@@ -601,7 +667,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 
 		Page<Site> sitesPage = siteResource.getSitesPage(
 			true, new String[] {postExcludedSite.getExternalReferenceCode()},
-			null, Pagination.of(1, 100));
+			null, null, Pagination.of(1, 100));
 
 		for (Site site : sitesPage.getItems()) {
 			String externalReferenceCode = site.getExternalReferenceCode();
@@ -622,9 +688,32 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		Assert.assertTrue(includedSiteFound);
 	}
 
+	private void _testGetSitesPageWithExternalReferenceCodes()
+		throws Exception {
+
+		Site postIncludedSite = _testPostSite_addSite(randomSite());
+
+		_testPostSite_addSite(randomSite());
+
+		Page<Site> sitesPage = siteResource.getSitesPage(
+			null, null,
+			new String[] {postIncludedSite.getExternalReferenceCode()}, null,
+			Pagination.of(1, 100));
+
+		List<Site> sites = (List<Site>)sitesPage.getItems();
+
+		Assert.assertEquals(sites.toString(), 1, sites.size());
+
+		Site site = sites.get(0);
+
+		Assert.assertEquals(
+			postIncludedSite.getExternalReferenceCode(),
+			site.getExternalReferenceCode());
+	}
+
 	private void _testGetSitesPageWithInactiveSites() throws Exception {
 		Page<Site> page = siteResource.getSitesPage(
-			false, null, null, Pagination.of(1, 100));
+			false, null, null, null, Pagination.of(1, 100));
 
 		long totalCount = page.getTotalCount();
 
@@ -635,7 +724,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		testGetSitesPage_addSite(site1);
 
 		page = siteResource.getSitesPage(
-			false, null, null, Pagination.of(1, 100));
+			false, null, null, null, Pagination.of(1, 100));
 
 		Assert.assertEquals(totalCount + 1, page.getTotalCount());
 
@@ -652,7 +741,8 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		SiteResource siteResource = builder.build();
 
 		try {
-			siteResource.getSitesPage(true, null, null, Pagination.of(1, 1));
+			siteResource.getSitesPage(
+				true, null, null, null, Pagination.of(1, 1));
 
 			Assert.fail();
 		}
@@ -683,7 +773,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		).build();
 
 		Page<Site> page = siteResource.getSitesPage(
-			null, null, null, Pagination.of(1, 100));
+			null, null, null, null, Pagination.of(1, 100));
 
 		Collection<Site> sites = page.getItems();
 
@@ -701,7 +791,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		Site postSite = _testPostSite_addSite(randomSite);
 
 		Page<Site> sitesPage = siteResource.getSitesPage(
-			true, null, name, Pagination.of(1, 10));
+			true, null, null, name, Pagination.of(1, 10));
 
 		List<Site> items = (List<Site>)sitesPage.getItems();
 
@@ -716,7 +806,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		SiteResource siteResource = _getSiteResource(user);
 
 		Page<Site> sitesPage = siteResource.getSitesPage(
-			null, null, null, Pagination.of(1, 500));
+			null, null, null, null, Pagination.of(1, 500));
 
 		assertContains(site, (List<Site>)sitesPage.getItems());
 	}
@@ -1342,6 +1432,57 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		assertValid(postSite);
 	}
 
+	private void _testPostSiteWithSelectedSitesOnExport() throws Exception {
+		Site site1 = _testPostSite_addSite(randomSite());
+		Site site2 = _testPostSite_addSite(randomSite());
+
+		String externalReferenceCode1 = site1.getExternalReferenceCode();
+		String externalReferenceCode2 = site2.getExternalReferenceCode();
+
+		File larFile = _exportLayoutsAsFile(externalReferenceCode1);
+
+		siteResource.deleteSite(externalReferenceCode1);
+		siteResource.deleteSite(externalReferenceCode2);
+
+		_importSites(larFile, externalReferenceCode1, externalReferenceCode2);
+
+		Assert.assertNotNull(
+			_groupLocalService.fetchGroupByExternalReferenceCode(
+				externalReferenceCode1, TestPropsValues.getCompanyId()));
+		Assert.assertNull(
+			_groupLocalService.fetchGroupByExternalReferenceCode(
+				externalReferenceCode2, TestPropsValues.getCompanyId()));
+	}
+
+	private void _testPostSiteWithSelectedSitesOnImport() throws Exception {
+		Site site1 = _testPostSite_addSite(randomSite());
+		Site site2 = _testPostSite_addSite(randomSite());
+
+		String externalReferenceCode1 = site1.getExternalReferenceCode();
+		String externalReferenceCode2 = site2.getExternalReferenceCode();
+
+		File larFile = _exportLayoutsAsFile(
+			externalReferenceCode1, externalReferenceCode2);
+
+		siteResource.deleteSite(externalReferenceCode1);
+		siteResource.deleteSite(externalReferenceCode2);
+
+		_importSites(larFile, externalReferenceCode1);
+
+		Assert.assertNotNull(
+			_groupLocalService.fetchGroupByExternalReferenceCode(
+				externalReferenceCode1, TestPropsValues.getCompanyId()));
+		Assert.assertNull(
+			_groupLocalService.fetchGroupByExternalReferenceCode(
+				externalReferenceCode2, TestPropsValues.getCompanyId()));
+
+		_importSites(larFile, externalReferenceCode1, externalReferenceCode2);
+
+		Assert.assertNotNull(
+			_groupLocalService.fetchGroupByExternalReferenceCode(
+				externalReferenceCode2, TestPropsValues.getCompanyId()));
+	}
+
 	private void _testPostSiteWithTypeSettingsFields() throws Exception {
 		Site randomSite = randomSite();
 
@@ -1663,6 +1804,52 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 			originalFriendlyUrlPath, getSite.getFriendlyUrlPath());
 	}
 
+	private void _testPutSiteSiteInitializerSystemSite() throws Exception {
+		Group guestGroup = _groupLocalService.getGroup(
+			TestPropsValues.getCompanyId(), GroupConstants.GUEST);
+
+		Site site = new Site() {
+			{
+				externalReferenceCode = guestGroup.getExternalReferenceCode();
+				name = GroupConstants.GUEST;
+			}
+		};
+
+		Site putSite = siteResource.putSiteSiteInitializer(
+			guestGroup.getExternalReferenceCode(), site, getMultipartFiles());
+
+		Assert.assertTrue(putSite.getActive());
+
+		site.setActive(false);
+
+		try {
+			siteResource.putSiteSiteInitializer(
+				guestGroup.getExternalReferenceCode(), site,
+				getMultipartFiles());
+
+			Assert.fail();
+		}
+		catch (Problem.ProblemException problemException) {
+			Problem problem = problemException.getProblem();
+
+			Assert.assertEquals("METHOD_NOT_ALLOWED", problem.getStatus());
+			Assert.assertEquals(
+				String.format(
+					"Site %s cannot be deactivated because it is a system " +
+						"required site",
+					guestGroup.getExternalReferenceCode()),
+				problem.getTitle());
+		}
+
+		Group group = _groupLocalService.getGroup(guestGroup.getGroupId());
+
+		group.setType(guestGroup.getType());
+		group.setTypeSettings(guestGroup.getTypeSettings());
+		group.setManualMembership(guestGroup.isManualMembership());
+
+		_groupLocalService.updateGroup(group);
+	}
+
 	private void _testPutSiteWithExcludedTypeSettings() throws Exception {
 		Site postSite = testPutSite_addSite();
 
@@ -1782,6 +1969,13 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 	private DepotEntryLocalService _depotEntryLocalService;
 
 	@Inject
+	private ExportImportConfigurationLocalService
+		_exportImportConfigurationLocalService;
+
+	@Inject
+	private ExportImportLocalService _exportImportLocalService;
+
+	@Inject
 	private GroupLocalService _groupLocalService;
 
 	@Inject
@@ -1794,6 +1988,9 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 	private RoleLocalService _roleLocalService;
 
 	private final List<Site> _sites = new ArrayList<>();
+
+	@Inject
+	private StagingGroupHelper _stagingGroupHelper;
 
 	@Inject
 	private UserGroupRoleLocalService _userGroupRoleLocalService;

@@ -7,6 +7,7 @@ import {Locator, Page, expect} from '@playwright/test';
 
 import {liferayConfig} from '../../../../liferay.config';
 import POM from '../../../../utils/POM';
+import {clickAndExpectToBeVisible} from '../../../../utils/clickAndExpectToBeVisible';
 import {waitForAlert} from '../../../../utils/waitForAlert';
 
 const PORTLET_NAME =
@@ -17,8 +18,8 @@ const PORTLET_URL =
 	`?p_p_id=${PORTLET_NAME}`;
 
 export class DesignLibrariesPage extends POM {
-	readonly portletName = PORTLET_NAME;
 	readonly emptyStateContainer: Locator;
+	readonly portletName = PORTLET_NAME;
 
 	constructor(page: Page) {
 		super(page, PORTLET_URL);
@@ -26,10 +27,17 @@ export class DesignLibrariesPage extends POM {
 		this.emptyStateContainer = page.locator('.fds .c-empty-state');
 	}
 
-	override async waitFor() {
-		await this.page
-			.locator('.data-set-content-wrapper')
-			.waitFor({state: 'visible'});
+	async clickNewStyleBook() {
+		const newStyleBookMenuItem = this.page.getByRole('menuitem', {
+			name: 'New Style Book',
+		});
+
+		await clickAndExpectToBeVisible({
+			target: newStyleBookMenuItem,
+			trigger: this.page.getByRole('button', {name: 'Add Asset'}),
+		});
+
+		await newStyleBookMenuItem.click();
 	}
 
 	async create({
@@ -66,7 +74,7 @@ export class DesignLibrariesPage extends POM {
 	) {
 		await this.goToDesignLibrary(designLibraryName);
 
-		await this.page.getByRole('button', {name: 'New Style Book'}).click();
+		await this.clickNewStyleBook();
 
 		const modal = this.page.getByRole('dialog');
 
@@ -126,5 +134,11 @@ export class DesignLibrariesPage extends POM {
 		await expect(designLibraryLink).toBeVisible();
 
 		await designLibraryLink.click();
+	}
+
+	override async waitFor() {
+		await this.page
+			.locator('.data-set-content-wrapper')
+			.waitFor({state: 'visible'});
 	}
 }

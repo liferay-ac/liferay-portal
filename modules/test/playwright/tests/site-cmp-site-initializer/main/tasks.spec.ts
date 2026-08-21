@@ -25,7 +25,6 @@ const test = mergeTests(
 	dataApiHelpersTest,
 	featureFlagsTest({
 		'LPD-58677': {enabled: true},
-		'LPD-69885': {enabled: true},
 	}),
 	globalMenuPagesTest,
 	loginTest(),
@@ -37,10 +36,6 @@ const cmpTask = 'cmp/tasks';
 let project;
 const tasks = [];
 let taskNames: string[] = [];
-let taskTags: string[] = [];
-
-const generateTaskTag = () =>
-	'L_CMP_TASK_' + Math.floor(Math.random() * 100000000);
 
 /**
  * Formats a date as its long month name and year.
@@ -51,7 +46,6 @@ const getMonthYearLabel = (date: Date): string =>
 
 test.beforeEach(async ({apiHelpers}) => {
 	taskNames = [getRandomString(), getRandomString(), getRandomString()];
-	taskTags = [];
 
 	project = await apiHelpers.objectEntry.postObjectEntry(
 		{
@@ -61,13 +55,8 @@ test.beforeEach(async ({apiHelpers}) => {
 	);
 
 	for (const taskName of taskNames) {
-		const taskTag = generateTaskTag();
-
-		taskTags.push(taskTag);
-
 		const task = await apiHelpers.objectEntry.postObjectEntry(
 			{
-				keywords: [taskTag],
 				r_cmpProjectToCMPTasks_c_cmpProjectId: project.id,
 				title: taskName,
 			},
@@ -100,6 +89,56 @@ test.afterEach(async ({apiHelpers}) => {
 		);
 	}
 });
+
+test.use({viewport: {height: 1080, width: 1920}});
+
+test(
+	'Bulk actions and selection are hidden for project members',
+	{tag: ['@LPD-99451']},
+	async ({apiHelpers, page, tasksPage}) => {
+		const defaultSpace =
+			await apiHelpers.headlessAssetLibrary.createAssetLibrary({
+				name: `Space ${getRandomString()}`,
+				settings: {},
+				type: 'Space',
+			});
+
+		const user = await addSpaceUser(
+			apiHelpers,
+			project.systemProperties.scope.externalReferenceCode,
+			'Project Member'
+		);
+
+		await apiHelpers.headlessAssetLibrary.putAssetLibraryUserAccount(
+			defaultSpace.externalReferenceCode,
+			user.externalReferenceCode
+		);
+
+		await performUserSwitch(page, user.alternateName);
+
+		await tasksPage.goto();
+
+		await tasksPage.projectTasksTab.click();
+
+		await expect(tasksPage.getItem(taskNames[0])).toBeVisible();
+		await expect(
+			tasksPage
+				.getItem(taskNames[0])
+				.locator('input[title="Select Item"]')
+		).toBeHidden();
+
+		await tasksPage.allTasksTab.click();
+
+		await expect(tasksPage.getItem(taskNames[0])).toBeVisible();
+		await expect(
+			tasksPage
+				.getItem(taskNames[0])
+				.locator('input[title="Select Item"]')
+		).toBeHidden();
+
+		await performUserSwitch(page, 'test');
+	}
+);
 
 test('Bulk delete tasks', {tag: ['@LPD-75299']}, async ({page, tasksPage}) => {
 	await test.step('Select 2 task and delete them using the Bulk Action', async () => {
@@ -157,13 +196,11 @@ test(
 
 			await expect(tasksPage.assignTaskToDialog).toBeVisible();
 
-			await page
-				.getByPlaceholder('Unassigned')
-				.fill('Asset Library Content Reviewer');
+			await page.getByPlaceholder('Unassigned').fill('Project Member');
 
 			await page
 				.getByRole('option', {
-					name: 'Asset Library Content Reviewer',
+					name: 'Project Member',
 				})
 				.click();
 
@@ -174,7 +211,7 @@ test(
 
 				await expect(
 					page.getByRole('row', {
-						name: 'Asset Library Content Reviewer',
+						name: 'Project Member',
 					})
 				).toHaveCount(2, {timeout: 1000});
 			}).toPass({timeout: 10000});
@@ -349,7 +386,7 @@ test(
 
 		await test.step('Dragging an unscheduled task into the calendar schedules it', async () => {
 			await expect(calendarView.unscheduledTasksButton).toContainText(
-				'3 Unscheduled Tasks'
+				'3 Tasks With No Due Date'
 			);
 
 			await clickAndExpectToBeVisible({
@@ -378,7 +415,7 @@ test(
 			).toBeHidden();
 
 			await expect(calendarView.unscheduledTasksButton).toContainText(
-				'2 Unscheduled Tasks'
+				'2 Tasks With No Due Date'
 			);
 		});
 
@@ -400,8 +437,205 @@ test(
 			).toBeVisible();
 
 			await expect(calendarView.unscheduledTasksButton).toContainText(
-				'2 Unscheduled Tasks'
+				'2 Tasks With No Due Date'
 			);
+		});
+	}
+);
+
+test(
+	'Calendar view creates a task by clicking a day',
+	{tag: ['@LPD-93258', '@LPD-97621']},
+	async ({page, projectPage, projectsPage, tasksPage}) => {
+		const taskTitle = getRandomString();
+
+		const targetDate = new Date();
+
+		targetDate.setDate(15);
+
+		const dayCell = tasksPage.getCalendarDayCell(targetDate);
+
+		await test.step('View the project and open its calendar view', async () => {
+			await projectsPage.goto();
+
+			await projectsPage.getProject(project.title).click();
+
+			await projectPage.tasksTab.click();
+
+			await tasksPage.tableViewButton.click();
+
+			await tasksPage.calendarView.viewOption.click();
+
+			await expect(tasksPage.calendarView.title).toBeVisible();
+		});
+
+		await test.step('Click the add task button to open the create task modal', async () => {
+			const addTaskButton = dayCell.getByLabel('Add Task');
+
+			await dayCell.hover();
+
+			await clickAndExpectToBeVisible({
+				target: tasksPage.titleInput,
+				trigger: addTaskButton,
+			});
+		});
+
+		await test.step('The clicked day is pre-filled as the due date', async () => {
+			const locale = await page.evaluate(() =>
+				Liferay.ThemeDisplay.getBCP47LanguageId()
+			);
+
+			const expectedDueDate = targetDate.toLocaleDateString(locale, {
+				day: '2-digit',
+				month: '2-digit',
+				year: 'numeric',
+			});
+
+			await expect(
+				page.getByLabel('Due Date', {exact: true})
+			).toHaveValue(expectedDueDate);
+		});
+
+		await test.step('Fill in the title and save', async () => {
+			await tasksPage.titleInput.fill(taskTitle);
+
+			await tasksPage.saveButton.click();
+		});
+
+		await test.step('The new task appears on the clicked day', async () => {
+			await expect(
+				dayCell.getByText(taskTitle, {exact: true})
+			).toBeVisible();
+		});
+
+		await test.step('Clicking a day slot opens the create task modal with that day pre-filled', async () => {
+			const daySlotDate = new Date();
+
+			daySlotDate.setDate(10);
+
+			await clickAndExpectToBeVisible({
+				target: tasksPage.titleInput,
+				trigger: tasksPage.getCalendarDayCell(daySlotDate),
+			});
+
+			const locale = await page.evaluate(() =>
+				Liferay.ThemeDisplay.getBCP47LanguageId()
+			);
+
+			await expect(
+				page.getByLabel('Due Date', {exact: true})
+			).toHaveValue(
+				daySlotDate.toLocaleDateString(locale, {
+					day: '2-digit',
+					month: '2-digit',
+					year: 'numeric',
+				})
+			);
+
+			await page.getByRole('button', {name: 'Cancel'}).click();
+
+			await expect(tasksPage.titleInput).toBeHidden();
+		});
+
+		await test.step('Saving from a day slot keeps the calendar on the navigated month', async () => {
+			const nextMonthTaskTitle = getRandomString();
+
+			const nextMonthDate = new Date();
+
+			nextMonthDate.setDate(15);
+			nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+
+			await tasksPage.calendarView.nextMonthButton.click();
+
+			const nextMonthDayCell =
+				tasksPage.getCalendarDayCell(nextMonthDate);
+
+			await clickAndExpectToBeVisible({
+				target: tasksPage.titleInput,
+				trigger: nextMonthDayCell,
+			});
+
+			await tasksPage.titleInput.fill(nextMonthTaskTitle);
+
+			await tasksPage.saveButton.click();
+
+			await expect(
+				nextMonthDayCell.getByText(nextMonthTaskTitle, {exact: true})
+			).toBeVisible();
+		});
+	}
+);
+
+test(
+	'Calendar view displays task actions',
+	{tag: ['@LPD-69885', '@LPD-96185']},
+	async ({apiHelpers, page, projectPage, projectsPage, tasksPage}) => {
+		const scheduledTaskTitle = getRandomString();
+
+		const targetDate = new Date();
+
+		targetDate.setDate(15);
+
+		const dueDate = toDateString(targetDate);
+
+		const {calendarView} = tasksPage;
+
+		const dayCell = tasksPage.getCalendarDayCell(targetDate);
+
+		const kebab = dayCell.getByLabel('Actions');
+
+		const taskEvent = dayCell.getByText(scheduledTaskTitle);
+
+		await test.step('Create a task with a due date', async () => {
+			await apiHelpers.objectEntry.postObjectEntry(
+				{
+					dueDate: `${dueDate}T00:00:00Z`,
+					r_cmpProjectToCMPTasks_c_cmpProjectId: project.id,
+					title: scheduledTaskTitle,
+				},
+				cmpTask,
+				project.scopeKey
+			);
+		});
+
+		await test.step('View the project and open its calendar view', async () => {
+			await projectsPage.goto();
+
+			await projectsPage.getProject(project.title).click();
+
+			await projectPage.tasksTab.click();
+
+			await tasksPage.tableViewButton.click();
+
+			await calendarView.viewOption.click();
+
+			await expect(calendarView.title).toBeVisible();
+		});
+
+		await test.step('Open the kebab and run an action without navigating away', async () => {
+			await taskEvent.hover();
+
+			await kebab.click();
+
+			await expect(page).not.toHaveURL(/\/e\/task\//);
+
+			await page.getByRole('menuitem', {name: 'Watch Task'}).click();
+
+			await expect(page).not.toHaveURL(/\/e\/task\//);
+		});
+
+		await test.step('Check the unscheduled panel tasks display a kebab and clicking it shows the actions', async () => {
+			await clickAndExpectToBeVisible({
+				target: calendarView.unscheduledTasksPanel,
+				trigger: calendarView.unscheduledTasksButton,
+			});
+
+			await clickAndExpectToBeVisible({
+				target: page.getByRole('menuitem', {name: 'Delete'}),
+				trigger: calendarView.unscheduledTasksPanel
+					.getByLabel('Actions')
+					.first(),
+			});
 		});
 	}
 );
@@ -430,7 +664,7 @@ test(
 		const taskTitleBase = getRandomString();
 
 		const taskTitles = Array.from(
-			{length: 3},
+			{length: 5},
 			(_, index) => `${taskTitleBase}-${index}`
 		);
 
@@ -554,10 +788,10 @@ test(
 			const dayCell = tasksPage.getCalendarDayCell(tomorrow);
 
 			await expect(
-				dayCell.getByText(taskTitles[1], {exact: true})
+				dayCell.getByText(taskTitles[3], {exact: true})
 			).toBeHidden();
 			await expect(
-				dayCell.getByText(taskTitles[2], {exact: true})
+				dayCell.getByText(taskTitles[4], {exact: true})
 			).toBeHidden();
 
 			await expect(calendarView.moreLinkButton).toBeVisible();
@@ -574,12 +808,12 @@ test(
 			});
 
 			await expect(
-				calendarView.moreLinkPopover.getByText(taskTitles[1], {
+				calendarView.moreLinkPopover.getByText(taskTitles[3], {
 					exact: true,
 				})
 			).toBeVisible();
 			await expect(
-				calendarView.moreLinkPopover.getByText(taskTitles[2], {
+				calendarView.moreLinkPopover.getByText(taskTitles[4], {
 					exact: true,
 				})
 			).toBeVisible();
@@ -587,13 +821,13 @@ test(
 
 		await test.step('Clicking a task in the more popover opens its view page', async () => {
 			await calendarView.moreLinkPopover
-				.getByText(taskTitles[1], {exact: true})
+				.getByText(taskTitles[3], {exact: true})
 				.click();
 
 			await expect(page).toHaveURL(/\/e\/task\//);
 
 			await expect(
-				page.getByText(taskTitles[1], {exact: true})
+				page.getByText(taskTitles[3], {exact: true})
 			).toBeVisible();
 
 			await page.goBack();
@@ -605,7 +839,7 @@ test(
 			await expect(calendarView.unscheduledTasksButton).toBeVisible();
 
 			await expect(calendarView.unscheduledTasksButton).toContainText(
-				/\d+ Unscheduled Tasks?/
+				/\d+ Tasks? With No Due Date/
 			);
 		});
 
@@ -697,31 +931,30 @@ test(
 );
 
 test(
-	"Calendar's task actions are displayed",
-	{tag: ['@LPD-69885', '@LPD-96185']},
+	'Calendar view updates a task due date from the kebab menu',
+	{tag: ['@LPD-69885', '@LPD-98671']},
 	async ({apiHelpers, page, projectPage, projectsPage, tasksPage}) => {
-		const scheduledTaskTitle = getRandomString();
-
-		const targetDate = new Date();
-
-		targetDate.setDate(15);
-
-		const dueDate = toDateString(targetDate);
+		const taskTitle = getRandomString();
 
 		const {calendarView} = tasksPage;
 
-		const dayCell = tasksPage.getCalendarDayCell(targetDate);
+		const scheduledDate = new Date();
 
-		const kebab = dayCell.getByLabel('Actions');
+		scheduledDate.setDate(15);
 
-		const taskEvent = dayCell.getByText(scheduledTaskTitle);
+		const rescheduledDate = new Date();
+
+		rescheduledDate.setDate(20);
+
+		const sourceCell = tasksPage.getCalendarDayCell(scheduledDate);
+		const targetCell = tasksPage.getCalendarDayCell(rescheduledDate);
 
 		await test.step('Create a task with a due date', async () => {
 			await apiHelpers.objectEntry.postObjectEntry(
 				{
-					dueDate: `${dueDate}T00:00:00Z`,
+					dueDate: `${toDateString(scheduledDate)}T00:00:00Z`,
 					r_cmpProjectToCMPTasks_c_cmpProjectId: project.id,
-					title: scheduledTaskTitle,
+					title: taskTitle,
 				},
 				cmpTask,
 				project.scopeKey
@@ -742,150 +975,91 @@ test(
 			await expect(calendarView.title).toBeVisible();
 		});
 
-		await test.step('Open the kebab and run an action without navigating away', async () => {
-			await taskEvent.hover();
+		const locale = await page.evaluate(() =>
+			Liferay.ThemeDisplay.getBCP47LanguageId()
+		);
 
-			await kebab.click();
-
-			await expect(page).not.toHaveURL(/\/e\/task\//);
-
-			await page.getByRole('menuitem', {name: 'Watch Task'}).click();
-
-			await expect(page).not.toHaveURL(/\/e\/task\//);
-		});
-
-		await test.step('Check the unscheduled panel tasks display a kebab and clicking it shows the actions', async () => {
-			await clickAndExpectToBeVisible({
-				target: calendarView.unscheduledTasksPanel,
-				trigger: calendarView.unscheduledTasksButton,
-			});
-
-			await clickAndExpectToBeVisible({
-				target: page.getByRole('menuitem', {name: 'Delete'}),
-				trigger: calendarView.unscheduledTasksPanel
-					.getByLabel('Actions')
-					.first(),
-			});
-		});
-	}
-);
-
-test(
-	'Create a task from the calendar by clicking a day',
-	{tag: ['@LPD-93258', '@LPD-97621']},
-	async ({page, projectPage, projectsPage, tasksPage}) => {
-		const taskTitle = getRandomString();
-
-		const targetDate = new Date();
-
-		targetDate.setDate(15);
-
-		const dayCell = tasksPage.getCalendarDayCell(targetDate);
-
-		await test.step('View the project and open its calendar view', async () => {
-			await projectsPage.goto();
-
-			await projectsPage.getProject(project.title).click();
-
-			await projectPage.tasksTab.click();
-
-			await tasksPage.tableViewButton.click();
-
-			await tasksPage.calendarView.viewOption.click();
-
-			await expect(tasksPage.calendarView.title).toBeVisible();
-		});
-
-		await test.step('Click the add task button to open the create task modal', async () => {
-			const addTaskButton = dayCell.getByLabel('Add Task');
-
-			await dayCell.hover();
-
-			await clickAndExpectToBeVisible({
-				target: tasksPage.titleInput,
-				trigger: addTaskButton,
-			});
-		});
-
-		await test.step('The clicked day is pre-filled as the due date', async () => {
-			const locale = await page.evaluate(() =>
-				Liferay.ThemeDisplay.getBCP47LanguageId()
-			);
-
-			const expectedDueDate = targetDate.toLocaleDateString(locale, {
+		const toPickerString = (date: Date) =>
+			date.toLocaleDateString(locale, {
 				day: '2-digit',
 				month: '2-digit',
 				year: 'numeric',
 			});
 
-			await expect(page.getByLabel('Due Date')).toHaveValue(
-				expectedDueDate
+		await test.step('Open the Update Due Date modal from the task kebab', async () => {
+			await sourceCell.getByText(taskTitle, {exact: true}).hover();
+
+			await sourceCell.getByLabel('Actions').click();
+
+			await page.getByRole('menuitem', {name: 'Update Due Date'}).click();
+
+			await expect(tasksPage.updateDueDateDialog).toBeVisible();
+		});
+
+		await test.step('The modal is pre-filled with the current due date', async () => {
+			await expect(page.getByPlaceholder('MM/DD/YYYY')).toHaveValue(
+				toPickerString(scheduledDate)
 			);
 		});
 
-		await test.step('Fill in the title and save', async () => {
-			await tasksPage.titleInput.fill(taskTitle);
+		await test.step('Updating the date moves the task to the new day', async () => {
+			await page
+				.getByPlaceholder('MM/DD/YYYY')
+				.fill(toPickerString(rescheduledDate));
 
-			await tasksPage.saveButton.click();
-		});
+			await tasksPage.updateDueDateDialog
+				.getByRole('button', {exact: true, name: 'Update'})
+				.click();
 
-		await test.step('The new task appears on the clicked day', async () => {
+			await waitForAlert(
+				page,
+				`${taskTitle} due date was successfully updated.`
+			);
+
 			await expect(
-				dayCell.getByText(taskTitle, {exact: true})
+				targetCell.getByText(taskTitle, {exact: true})
 			).toBeVisible();
-		});
-
-		await test.step('Clicking a day slot opens the create task modal with that day pre-filled', async () => {
-			const daySlotDate = new Date();
-
-			daySlotDate.setDate(10);
-
-			await clickAndExpectToBeVisible({
-				target: tasksPage.titleInput,
-				trigger: tasksPage.getCalendarDayCell(daySlotDate),
-			});
-
-			const locale = await page.evaluate(() =>
-				Liferay.ThemeDisplay.getBCP47LanguageId()
-			);
-
-			await expect(page.getByLabel('Due Date')).toHaveValue(
-				daySlotDate.toLocaleDateString(locale, {
-					day: '2-digit',
-					month: '2-digit',
-					year: 'numeric',
-				})
-			);
-
-			await page.getByRole('button', {name: 'Cancel'}).click();
-
-			await expect(tasksPage.titleInput).toBeHidden();
-		});
-
-		await test.step('Saving from a day slot keeps the calendar on the navigated month', async () => {
-			const nextMonthTaskTitle = getRandomString();
-
-			const nextMonthDate = new Date();
-
-			nextMonthDate.setDate(15);
-			nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
-
-			await tasksPage.calendarView.nextMonthButton.click();
-
-			const nextMonthDayCell =
-				tasksPage.getCalendarDayCell(nextMonthDate);
-
-			await clickAndExpectToBeVisible({
-				target: tasksPage.titleInput,
-				trigger: nextMonthDayCell,
-			});
-
-			await tasksPage.titleInput.fill(nextMonthTaskTitle);
-
-			await tasksPage.saveButton.click();
 
 			await expect(
-				nextMonthDayCell.getByText(nextMonthTaskTitle, {exact: true})
+				sourceCell.getByText(taskTitle, {exact: true})
+			).toBeHidden();
+		});
+
+		await test.step('Reopen the Update Due Date modal from the rescheduled task', async () => {
+			await targetCell.getByText(taskTitle, {exact: true}).hover();
+
+			await targetCell.getByLabel('Actions').click();
+
+			await page.getByRole('menuitem', {name: 'Update Due Date'}).click();
+
+			await expect(tasksPage.updateDueDateDialog).toBeVisible();
+		});
+
+		await test.step('Clearing the date moves the task to the unscheduled panel', async () => {
+			await page.getByPlaceholder('MM/DD/YYYY').clear();
+
+			await tasksPage.updateDueDateDialog
+				.getByRole('button', {exact: true, name: 'Update'})
+				.click();
+
+			await waitForAlert(
+				page,
+				`${taskTitle} due date was successfully updated.`
+			);
+
+			await expect(
+				targetCell.getByText(taskTitle, {exact: true})
+			).toBeHidden();
+
+			await clickAndExpectToBeVisible({
+				target: calendarView.unscheduledTasksPanel,
+				trigger: calendarView.unscheduledTasksButton,
+			});
+
+			await expect(
+				calendarView.unscheduledTasksPanel.getByText(taskTitle, {
+					exact: true,
+				})
 			).toBeVisible();
 		});
 	}
@@ -1050,7 +1224,6 @@ test(
 
 		await apiHelpers.objectEntry.postObjectEntry(
 			{
-				keywords: [taskTags[0]],
 				objectEntryFolderExternalReferenceCode: 'L_CONTENTS',
 				title: blogTitle,
 			},
@@ -1080,64 +1253,117 @@ test(
 );
 
 test(
-	'Kanban View Task creation generates a tag',
-	{tag: ['@LPD-80545']},
-	async ({apiHelpers, page, tasksPage}) => {
-		const cmpProjectApplicationName = 'cmp/projects';
-		const cmpTaskApplicationName = 'cmp/tasks';
-
-		const project = await apiHelpers.objectEntry.postObjectEntry(
-			{
-				title: getRandomString(),
-			},
-			cmpProjectApplicationName
-		);
-
-		await apiHelpers.objectEntry.postObjectEntry(
-			{
-				r_cmpProjectToCMPTasks_c_cmpProjectId: project.id,
-				title: getRandomString(),
-			},
-			cmpTaskApplicationName,
-			project.scopeKey
-		);
-
+	'Table view updates a task due date from the kebab menu',
+	{tag: ['@LPD-69885', '@LPD-98671']},
+	async ({apiHelpers, page, projectPage, projectsPage, tasksPage}) => {
 		const taskTitle = getRandomString();
 
-		await test.step('Go to tasks page and switch to kanban view', async () => {
-			await tasksPage.goto();
+		const scheduledDate = new Date();
 
-			await tasksPage.projectTasksTab.click();
+		scheduledDate.setDate(15);
 
-			await tasksPage.tableViewButton.click();
+		const rescheduledDate = new Date();
 
-			await tasksPage.dropdownKanbanViewButton.click();
-		});
+		rescheduledDate.setDate(20);
 
-		await test.step('Add a new task', async () => {
-			await tasksPage.addTaskKanbanButton.click();
-
-			await tasksPage.titleInput.fill(taskTitle);
-
-			await tasksPage.projectTitleButton.click();
-
-			await page.getByRole('option', {name: project.title}).click();
-
-			await tasksPage.saveButton.click();
-		});
-
-		await test.step('Go to tasks page and select the created task', async () => {
-			await tasksPage.kanbanViewButton.click();
-
-			await tasksPage.dropdownTableViewButton.click();
-
-			await page.getByRole('link', {name: taskTitle}).click();
-		});
-
-		await test.step("Check if the created task's AssetTagName follows the pattern", async () => {
-			await expect(tasksPage.assetTagNameField).toContainText(
-				'L_CMP_TASK_'
+		await test.step('Create a task with a due date', async () => {
+			await apiHelpers.objectEntry.postObjectEntry(
+				{
+					dueDate: `${toDateString(scheduledDate)}T00:00:00Z`,
+					r_cmpProjectToCMPTasks_c_cmpProjectId: project.id,
+					title: taskTitle,
+				},
+				cmpTask,
+				project.scopeKey
 			);
+		});
+
+		await test.step('View the project and open its task table', async () => {
+			await projectsPage.goto();
+
+			await projectsPage.getProject(project.title).click();
+
+			await projectPage.tasksTab.click();
+
+			await expect(tasksPage.getItem(taskTitle)).toBeVisible();
+		});
+
+		const locale = await page.evaluate(() =>
+			Liferay.ThemeDisplay.getBCP47LanguageId()
+		);
+
+		const toPickerString = (date: Date) =>
+			date.toLocaleDateString(locale, {
+				day: '2-digit',
+				month: '2-digit',
+				year: 'numeric',
+			});
+
+		const toDisplayString = (date: Date) =>
+			date.toLocaleDateString(locale, {
+				day: 'numeric',
+				month: 'short',
+				year: 'numeric',
+			});
+
+		await test.step('Open the Update Due Date modal from the row kebab', async () => {
+			await tasksPage.execItemAction({
+				action: 'Update Due Date',
+				filter: taskTitle,
+			});
+
+			await expect(tasksPage.updateDueDateDialog).toBeVisible();
+		});
+
+		await test.step('The modal is pre-filled with the current due date', async () => {
+			await expect(page.getByPlaceholder('MM/DD/YYYY')).toHaveValue(
+				toPickerString(scheduledDate)
+			);
+		});
+
+		await test.step('Updating the date shows the new due date on the row', async () => {
+			await page
+				.getByPlaceholder('MM/DD/YYYY')
+				.fill(toPickerString(rescheduledDate));
+
+			await tasksPage.updateDueDateDialog
+				.getByRole('button', {exact: true, name: 'Update'})
+				.click();
+
+			await waitForAlert(
+				page,
+				`${taskTitle} due date was successfully updated.`
+			);
+
+			await expect(
+				tasksPage
+					.getItem(taskTitle)
+					.getByText(toDisplayString(rescheduledDate))
+			).toBeVisible();
+		});
+
+		await test.step('Clearing the date removes the due date from the row', async () => {
+			await tasksPage.execItemAction({
+				action: 'Update Due Date',
+				filter: taskTitle,
+			});
+
+			await page.getByPlaceholder('MM/DD/YYYY').clear();
+
+			await tasksPage.updateDueDateDialog
+				.getByRole('button', {exact: true, name: 'Update'})
+				.click();
+
+			await waitForAlert(
+				page,
+				`${taskTitle} due date was successfully updated.`
+			);
+
+			await expect(
+				tasksPage
+					.getItem(taskTitle)
+					.getByText(toDisplayString(rescheduledDate))
+			).toBeHidden();
 		});
 	}
 );
@@ -1176,7 +1402,6 @@ test(
 		await test.step('Create two CMS Blog entries; both generate KaleoTaskInstanceTokens', async () => {
 			await apiHelpers.objectEntry.postObjectEntry(
 				{
-					keywords: [taskTags[0]],
 					objectEntryFolderExternalReferenceCode: 'L_CONTENTS',
 					title: assignedBlogTitle,
 				},
@@ -1186,7 +1411,6 @@ test(
 
 			await apiHelpers.objectEntry.postObjectEntry(
 				{
-					keywords: [taskTags[0]],
 					objectEntryFolderExternalReferenceCode: 'L_CONTENTS',
 					title: unassignedBlogTitle,
 				},
@@ -1270,7 +1494,6 @@ test(
 
 		await apiHelpers.objectEntry.postObjectEntry(
 			{
-				keywords: [taskTags[0]],
 				objectEntryFolderExternalReferenceCode: 'L_CONTENTS',
 				title: blogTitle,
 			},
@@ -1454,7 +1677,13 @@ test(
 
 			await page.getByRole('menuitem', {name: 'Edit'}).click();
 
-			await page.getByRole('textbox', {name: 'Due Date'}).fill(todayDate);
+			await page.getByTestId('date-button').click();
+
+			await page
+				.getByRole('button', {name: 'Select Current Date'})
+				.click();
+
+			await page.keyboard.press('Escape');
 
 			await tasksPage.saveButton.click();
 

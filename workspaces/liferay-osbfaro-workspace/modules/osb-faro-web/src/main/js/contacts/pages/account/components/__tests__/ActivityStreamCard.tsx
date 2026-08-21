@@ -2,7 +2,7 @@ import ActivityStreamCard from '../ActivityStreamCard';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {act, fireEvent, render} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter, Route} from 'react-router-dom';
 import {
 	mockAccountEventMetricsReq,
 	mockAccountEventsTrendReq,
@@ -14,6 +14,12 @@ import {RangeKeyTimeRanges} from 'shared/util/constants';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 jest.unmock('react-dom');
+
+jest.mock('shared/hooks/useTimeZone', () => ({
+	useTimeZone: () => ({
+		timeZoneId: 'UTC',
+	}),
+}));
 
 jest.mock('recharts', () => {
 	const OriginalModule = jest.requireActual('recharts');
@@ -31,24 +37,28 @@ jest.mock('recharts', () => {
 const SEARCH_KEYWORDS = 'add to cart';
 
 interface WrapperProps {
+	accountName?: string;
 	mocks: any[];
 }
 
-const Wrapper: React.FC<WrapperProps> = ({mocks}) => (
+const Wrapper: React.FC<WrapperProps> = ({accountName, mocks}) => (
 	<Provider store={mockStore()}>
-		<MemoryRouter>
-			<MockedProvider mocks={mocks}>
-				<ActivityStreamCard
-					accountId="abc"
-					channelId="123123"
-					interval="D"
-					rangeSelectors={{
-						rangeEnd: null,
-						rangeKey: RangeKeyTimeRanges.Last30Days,
-						rangeStart: null,
-					}}
-				/>
-			</MockedProvider>
+		<MemoryRouter initialEntries={['/workspace/liferay.com']}>
+			<Route path="/workspace/:groupId">
+				<MockedProvider mocks={mocks}>
+					<ActivityStreamCard
+						accountId="abc"
+						accountName={accountName}
+						channelId="123123"
+						interval="D"
+						rangeSelectors={{
+							rangeEnd: null,
+							rangeKey: RangeKeyTimeRanges.Last30Days,
+							rangeStart: null,
+						}}
+					/>
+				</MockedProvider>
+			</Route>
 		</MemoryRouter>
 	</Provider>
 );
@@ -71,13 +81,35 @@ describe('ActivityStreamCard', () => {
 		expect(getByText('Jane Doe')).toBeInTheDocument();
 	});
 
-	it('drives pagination from the activity stream event total, not the session count', async () => {
+	it('includes accountId and accountName as query params on a page event link', async () => {
+		const {container} = render(
+			<Wrapper
+				accountName="Acme Corporation"
+				mocks={[
+					mockAccountEventMetricsReq(),
+					mockAccountEventsTrendReq(),
+					mockAccountUserSessionsReq(),
+				]}
+			/>
+		);
+
+		await waitForLoadingToBeRemoved(container);
+
+		const link = container.querySelector(
+			'.page-row .title'
+		) as HTMLAnchorElement;
+
+		expect(link.getAttribute('href')).toContain('accountId=abc');
+		expect(link.getAttribute('href')).toContain('accountName=Acme');
+	});
+
+	it('drives pagination from the activity stream session total, not the event count', async () => {
 		const {container} = render(
 			<Wrapper
 				mocks={[
 					mockAccountEventMetricsReq(),
 					mockAccountEventsTrendReq(),
-					mockAccountUserSessionsReq({totalEvents: 186}),
+					mockAccountUserSessionsReq({totalSessions: 186}),
 				]}
 			/>
 		);
@@ -99,7 +131,10 @@ describe('ActivityStreamCard', () => {
 						trendClassification: 'NEUTRAL',
 						value: 0,
 					}),
-					mockAccountUserSessionsReq({sessions: [], totalEvents: 0}),
+					mockAccountUserSessionsReq({
+						sessions: [],
+						totalSessions: 0,
+					}),
 				]}
 			/>
 		);
@@ -127,7 +162,7 @@ describe('ActivityStreamCard', () => {
 					mockAccountUserSessionsReq({
 						keywords: SEARCH_KEYWORDS,
 						sessions: [],
-						totalEvents: 0,
+						totalSessions: 0,
 					}),
 					mockAccountEventMetricsReq(),
 					mockAccountEventsTrendReq(),
@@ -151,7 +186,7 @@ describe('ActivityStreamCard', () => {
 			await jest.advanceTimersByTimeAsync(500);
 		});
 
-		expect(getByText('There are no results found.')).toBeInTheDocument();
+		expect(getByText('No results were found.')).toBeInTheDocument();
 
 		fireEvent.click(getByText('Clear Search'));
 

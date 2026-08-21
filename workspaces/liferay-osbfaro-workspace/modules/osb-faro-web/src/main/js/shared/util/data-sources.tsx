@@ -10,6 +10,7 @@ import {
 import {DataSource} from 'shared/util/records';
 import {Map as ImmutableMap, List} from 'immutable';
 import {Routes, toRoute} from 'shared/util/router';
+import {sub} from 'shared/util/lang';
 import {toPromise} from 'shared/components/form';
 
 export const LIFERAY_SITE_TYPE = `${EntityTypes.DataSource}-site`;
@@ -92,9 +93,12 @@ export const STATUS_DISPLAY = {
 	[DataSourceStates.Disconnected]: {
 		display: 'secondary',
 		label: Liferay.Language.get('disconnected'),
-		message: Liferay.Language.get(
-			'the-data-source-is-disconnected.-data-is-no-longer-being-synced-from-dxp,-but-you-can-reconnect-to-resume-syncing'
-		),
+		message: sub(
+			Liferay.Language.get(
+				'the-data-source-is-disconnected.-data-is-no-longer-being-synced-from-x,-but-you-can-reconnect-to-resume-syncing'
+			),
+			[Liferay.Language.get('liferay-dxp')]
+		) as string,
 	},
 	[DataSourceStates.InProgressDeleting]: {
 		display: 'info',
@@ -191,6 +195,24 @@ export function validateUniqueName({
 
 			return toPromise(error);
 		});
+}
+
+/**
+ * Get the preselection rule the select properties modal must apply for a
+ * DataSource. Demandbase only enriches individuals that browse a synced site,
+ * so the properties already syncing a site start out selected. Every other
+ * provider type starts with an empty selection, so no filter is returned.
+ * @param {DataSource} dataSource - The DataSource the properties are assigned to.
+ * @returns {function|undefined} - The filter to pass to the modal, when any.
+ */
+export function getChannelsAutoSelectFilter(
+	dataSource?: DataSource | null
+): ((channel: {groupsCount: number}) => boolean) | undefined {
+	if (dataSource?.providerType !== DataSourceTypes.Demandbase) {
+		return undefined;
+	}
+
+	return (channel) => channel.groupsCount > 0;
 }
 
 /**

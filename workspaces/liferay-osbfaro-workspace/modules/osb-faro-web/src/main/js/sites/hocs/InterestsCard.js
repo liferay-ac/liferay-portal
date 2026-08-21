@@ -1,6 +1,5 @@
 import BaseCard from 'shared/components/base-card';
 import Card from 'shared/components/Card';
-import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
 import InterestsQuery from 'shared/queries/InterestsQuery';
 import React from 'react';
@@ -12,6 +11,7 @@ import {
 	mapCardPropsToOptions,
 } from './mappers/composition-query';
 import {graphql} from '@apollo/client/react/hoc';
+import {pickBy} from 'lodash';
 import {ReportContainer} from 'shared/components/download-report/DownloadPDFReport';
 import {Routes, setUriQueryValues, toRoute} from 'shared/util/router';
 import {useParams} from 'react-router-dom';
@@ -46,6 +46,7 @@ const TableWithData = withTableData(withData, {
 	),
 	getColumns: ({maxCount, totalCount}) => [
 		compositionListColumns.getRelativeMetricBar({
+			abbreviateCount: true,
 			label: `${Liferay.Language.get(
 				'interest-topics'
 			)} | ${Liferay.Language.get('sessions')}`,
@@ -61,7 +62,7 @@ const TableWithData = withTableData(withData, {
 	rowIdentifier: 'name',
 });
 
-const InterestsCard = () => {
+const InterestsCard = ({minHeight}) => {
 	const {channelId, groupId} = useParams();
 
 	const {Last7Days, Last30Days, Last90Days, Yesterday} = RangeKeyTimeRanges;
@@ -73,25 +74,35 @@ const InterestsCard = () => {
 			className="interests-card-root"
 			label={Liferay.Language.get('interests')}
 			legacyDropdownRangeKey={false}
+			minHeight={minHeight}
 			rangeKeys={rangeKeys}
 			reportContainer={ReportContainer.InterestsCard}
 		>
-			{({rangeSelectors}) => (
+			{({accountId, rangeSelectors, segmentId}) => (
 				<>
 					<TableWithData
+						accountId={accountId}
 						channelId={channelId}
 						rangeSelectors={rangeSelectors}
 						rowBordered={false}
+						segmentId={segmentId}
 					/>
 
-					<Card.Footer>
+					<Card.Footer className="d-flex">
 						<ClayLink
+							aria-label={Liferay.Language.get(
+								'view-all-interests'
+							)}
 							borderless
 							button
-							className="button-root"
-							displayType="secondary"
+							className="ml-auto rounded-lg"
+							displayType="primary"
 							href={setUriQueryValues(
-								rangeSelectors,
+								pickBy({
+									accountId,
+									segmentId,
+									...rangeSelectors,
+								}),
 								toRoute(Routes.SITES_INTERESTS, {
 									channelId,
 									groupId,
@@ -99,12 +110,7 @@ const InterestsCard = () => {
 							)}
 							small
 						>
-							{Liferay.Language.get('all-interests')}
-
-							<ClayIcon
-								className="icon-root ml-2"
-								symbol="angle-right-small"
-							/>
+							{Liferay.Language.get('view-all')}
 						</ClayLink>
 					</Card.Footer>
 				</>

@@ -25,6 +25,7 @@ export interface ActionDropdownItemProps {
 	label?: string;
 	ownerId?: string;
 	redirect?: string;
+	refreshDataSetIds?: string[];
 	target?: string;
 }
 interface DesignLibraryBreadcrumbProps {
@@ -38,16 +39,20 @@ function ActionDropdownItem({
 	externalReferenceCode = '',
 	hasAssignMembersPermission = false,
 	href = '',
-	label,
+	label = '',
 	ownerId = '',
 	redirect,
+	refreshDataSetIds,
 	target,
 	...props
 }: ActionDropdownItemProps) {
 	const handleClick = () => {
 		const actions: Record<ActionTarget, () => void> = {
 			'connected-sites': () => {
-				openConnectedSitesModal({externalReferenceCode});
+				openConnectedSitesModal({
+					externalReferenceCode,
+					refreshDataSetIds,
+				});
 			},
 
 			'delete': () => {
@@ -58,7 +63,9 @@ function ActionDropdownItem({
 				openManageMembersModal({
 					externalReferenceCode,
 					hasAssignMembersPermission,
+					headerTitle: label,
 					ownerId,
+					refreshDataSetIds,
 				});
 			},
 		};

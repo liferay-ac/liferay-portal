@@ -656,8 +656,10 @@ public class JournalEditArticleDisplayContext {
 		if (Validator.isNotNull(getArticleId())) {
 			DDMFormValues ddmFormValues = _article.getDDMFormValues();
 
-			defaultArticleLanguageId = LocaleUtil.toLanguageId(
-				ddmFormValues.getDefaultLocale());
+			if (ddmFormValues != null) {
+				defaultArticleLanguageId = LocaleUtil.toLanguageId(
+					ddmFormValues.getDefaultLocale());
+			}
 		}
 		else if (Validator.isNull(defaultArticleLanguageId) &&
 				 (getClassNameId() ==
@@ -1280,8 +1282,8 @@ public class JournalEditArticleDisplayContext {
 			"editDDMTemplateURL",
 			() -> PortletURLBuilder.createRenderURL(
 				_liferayPortletResponse
-			).setMVCPath(
-				"/edit_ddm_template.jsp"
+			).setMVCRenderCommandName(
+				"/journal/edit_ddm_template"
 			).setRedirect(
 				_themeDisplay.getURLCurrent()
 			).setParameter(

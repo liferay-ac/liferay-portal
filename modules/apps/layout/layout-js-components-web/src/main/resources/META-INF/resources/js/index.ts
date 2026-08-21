@@ -5,7 +5,10 @@
 
 export {default as InstallFragmentModal} from '././components/marketplace/InstallFragmentModal';
 export {default as CardStyleModal} from '././components/modals/CardStyleModal';
-export {default as FragmentSetModal} from '././components/modals/FragmentSetModal';
+export {
+	default as FragmentSetModal,
+	FragmentSetModalContent,
+} from '././components/modals/FragmentSetModal';
 export {
 	default as ColorPicker,
 	DEFAULT_TOKEN_LABEL,
@@ -50,6 +53,7 @@ export {default as useMediaQuery} from './hooks/useMediaQuery';
 export type {default as ConfigurationCustomComponentProps} from './types/ConfigurationCustomComponentProps';
 export {default as SegmentExperience} from './types/SegmentExperience';
 export {default as convertRGBtoHex} from './utils/convertRGBtoHex';
+export {default as hideProductMenuIfPresent} from './utils/hideProductMenuIfPresent';
 export {default as isCtrlOrMeta} from './utils/isCtrlOrMeta';
 export {default as isNullOrUndefined} from './utils/isNullOrUndefined';
 export {default as isValidStyleValue} from './utils/isValidStyleValue';

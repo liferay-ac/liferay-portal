@@ -37,7 +37,7 @@ const DEFAULT_PROPS = {
 };
 
 describe('fetchData', () => {
-	it('drops the query string when fetching a selected value by id', async () => {
+	it('appends the query string after the id when fetching a selected value by id', async () => {
 		(fetch as jest.Mock)
 			.mockResolvedValueOnce({
 				json: () => Promise.resolve({items: []}),
@@ -56,9 +56,35 @@ describe('fetchData', () => {
 
 		await waitFor(() =>
 			expect(fetch).toHaveBeenCalledWith(
-				`${API_URL}/123`,
+				`${API_URL}/123?flatten=true`,
 				expect.anything()
 			)
+		);
+	});
+
+	it('clears the value when the fetched item matches neither valueKey nor id', async () => {
+		const onChange = jest.fn();
+
+		(fetch as jest.Mock)
+			.mockResolvedValueOnce({
+				json: () => Promise.resolve({items: []}),
+			})
+			.mockResolvedValueOnce({
+				json: () => Promise.resolve({id: 39013, productId: 39013}),
+			});
+
+		render(
+			<ObjectRelationship
+				{...DEFAULT_PROPS}
+				apiURL={API_URL}
+				onChange={onChange}
+				value="39014"
+				valueKey="productId"
+			/>
+		);
+
+		await waitFor(() =>
+			expect(onChange).toHaveBeenCalledWith({target: {value: null}})
 		);
 	});
 
@@ -100,6 +126,36 @@ describe('fetchData', () => {
 				expect.anything()
 			)
 		);
+	});
+
+	it('keeps the value when the fetched item matches on valueKey instead of id', async () => {
+		const onChange = jest.fn();
+
+		(fetch as jest.Mock)
+			.mockResolvedValueOnce({
+				json: () => Promise.resolve({items: []}),
+			})
+			.mockResolvedValueOnce({
+				json: () => Promise.resolve({id: 39013, productId: 39014}),
+			});
+
+		const {container} = render(
+			<ObjectRelationship
+				{...DEFAULT_PROPS}
+				apiURL={API_URL}
+				onChange={onChange}
+				value="39014"
+				valueKey="productId"
+			/>
+		);
+
+		await waitFor(() =>
+			expect(container.querySelector('input[type="hidden"]')).toHaveValue(
+				'39014'
+			)
+		);
+
+		expect(onChange).not.toHaveBeenCalled();
 	});
 });
 

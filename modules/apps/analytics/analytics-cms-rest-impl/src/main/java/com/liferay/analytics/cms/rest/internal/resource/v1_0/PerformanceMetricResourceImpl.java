@@ -10,13 +10,15 @@ import com.liferay.analytics.cms.rest.internal.client.AnalyticsCloudClient;
 import com.liferay.analytics.cms.rest.internal.depot.entry.util.DepotEntryUtil;
 import com.liferay.analytics.cms.rest.resource.v1_0.PerformanceMetricResource;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
+import com.liferay.analytics.settings.rest.util.AnalyticsSettingsManagerUtil;
 import com.liferay.petra.io.StreamUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.license.util.LicenseManagerUtil;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.StringUtil;
 
-import jakarta.ws.rs.BadRequestException;
+import jakarta.validation.ValidationException;
+
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 
@@ -50,6 +52,9 @@ public class PerformanceMetricResourceImpl
 
 		_validateMetricType(metricType);
 
+		AnalyticsSettingsManagerUtil.checkAnalyticsEnabled(
+			_analyticsSettingsManager, contextCompany.getCompanyId());
+
 		Long[] groupIds = DepotEntryUtil.getGroupIds(
 			DepotEntryUtil.getDepotEntries(
 				contextCompany.getCompanyId(), depotEntryIds));
@@ -73,6 +78,9 @@ public class PerformanceMetricResourceImpl
 
 		_validateMetricType(metricType);
 
+		AnalyticsSettingsManagerUtil.checkAnalyticsEnabled(
+			_analyticsSettingsManager, contextCompany.getCompanyId());
+
 		Long[] groupIds = DepotEntryUtil.getGroupIds(
 			DepotEntryUtil.getDepotEntries(
 				contextCompany.getCompanyId(), depotEntryIds));
@@ -83,7 +91,7 @@ public class PerformanceMetricResourceImpl
 		InputStream inputStream = analyticsCloudClient.getInputStream(
 			_analyticsSettingsManager.getAnalyticsConfiguration(
 				contextCompany.getCompanyId()),
-			null, Arrays.asList(groupIds), metricType,
+			null, Arrays.asList(groupIds), null, metricType,
 			_getPath(groupBy) + "/export", rangeKey, null);
 
 		return Response.ok(
@@ -106,7 +114,7 @@ public class PerformanceMetricResourceImpl
 			return "/geolocation";
 		}
 
-		throw new BadRequestException("Invalid group by: " + groupBy);
+		throw new ValidationException("Invalid group by: " + groupBy);
 	}
 
 	private void _validateMetricType(String metricType) {
@@ -115,7 +123,7 @@ public class PerformanceMetricResourceImpl
 			!StringUtil.equalsIgnoreCase(metricType, "readsMetric") &&
 			!StringUtil.equalsIgnoreCase(metricType, "viewsMetric")) {
 
-			throw new BadRequestException("Invalid metric type: " + metricType);
+			throw new ValidationException("Invalid metric type: " + metricType);
 		}
 	}
 

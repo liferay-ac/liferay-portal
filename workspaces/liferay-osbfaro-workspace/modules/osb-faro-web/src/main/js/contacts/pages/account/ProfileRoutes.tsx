@@ -8,7 +8,7 @@ import React, {lazy, Suspense, useContext} from 'react';
 import RouteNotFound from 'shared/components/RouteNotFound';
 import {ACCOUNTS, Routes, toRoute} from 'shared/util/router';
 import {ChannelContext} from 'shared/context/channel';
-import {Switch, useParams} from 'react-router-dom';
+import {Redirect, Switch, useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
 
 const Activities = lazy(
@@ -17,12 +17,20 @@ const Activities = lazy(
 const Profile = lazy(
 	() => import(/* webpackChunkName: "AccountProfile" */ './Profile')
 );
+const Overview = lazy(
+	() => import(/* webpackChunkName: "Overview" */ './Overview')
+);
 
 const NAV_ITEMS = [
 	{
 		exact: true,
+		label: Liferay.Language.get('overview'),
+		route: Routes.CONTACTS_ACCOUNT_OVERVIEW,
+	},
+	{
+		exact: true,
 		label: Liferay.Language.get('activities'),
-		route: Routes.CONTACTS_ACCOUNT,
+		route: Routes.CONTACTS_ACCOUNT_ACTIVITIES,
 	},
 	{
 		exact: true,
@@ -100,6 +108,16 @@ const AccountProfileRoutes = () => {
 			<BasePage.Body>
 				<Suspense fallback={<Loading />}>
 					<Switch>
+						<Redirect
+							exact
+							from={Routes.CONTACTS_ACCOUNT}
+							to={toRoute(Routes.CONTACTS_ACCOUNT_OVERVIEW, {
+								channelId: channelId!,
+								groupId: groupId!,
+								id: id!,
+							})}
+						/>
+
 						<BundleRouter
 							componentProps={{account: data, loading}}
 							data={Profile}
@@ -108,9 +126,17 @@ const AccountProfileRoutes = () => {
 						/>
 
 						<BundleRouter
+							componentProps={{accountName}}
 							data={Activities}
 							exact
-							path={Routes.CONTACTS_ACCOUNT}
+							path={Routes.CONTACTS_ACCOUNT_ACTIVITIES}
+						/>
+
+						<BundleRouter
+							componentProps={{account: data}}
+							data={Overview}
+							exact
+							path={Routes.CONTACTS_ACCOUNT_OVERVIEW}
 						/>
 
 						<RouteNotFound />

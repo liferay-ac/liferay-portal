@@ -8,7 +8,6 @@ package com.liferay.consent.management.platform.integration.internal.servlet.tag
 import com.liferay.consent.management.platform.integration.configuration.ConsentManagementPlatformConfiguration;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProviderUtil;
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.module.configuration.ConfigurationException;
@@ -47,12 +46,6 @@ public class ConsentManagementPlatformTopHeadDynamicInclude
 		ThemeDisplay themeDisplay =
 			(ThemeDisplay)httpServletRequest.getAttribute(
 				WebKeys.THEME_DISPLAY);
-
-		if (!FeatureFlagManagerUtil.isEnabled(
-				themeDisplay.getCompanyId(), "LPD-65299")) {
-
-			return;
-		}
 
 		ConsentManagementPlatformConfiguration
 			consentManagementPlatformConfiguration = null;
@@ -107,7 +100,7 @@ public class ConsentManagementPlatformTopHeadDynamicInclude
 			return html;
 		}
 
-		Matcher matcher = _scriptPattern.matcher(html);
+		Matcher matcher = _linkOrScriptPattern.matcher(html);
 
 		return matcher.replaceAll(
 			matchResult -> matchResult.group() + nonceAttribute);
@@ -116,7 +109,7 @@ public class ConsentManagementPlatformTopHeadDynamicInclude
 	private static final Log _log = LogFactoryUtil.getLog(
 		ConsentManagementPlatformTopHeadDynamicInclude.class);
 
-	private static final Pattern _scriptPattern = Pattern.compile(
-		"<script(?=[\\s>])", Pattern.CASE_INSENSITIVE);
+	private static final Pattern _linkOrScriptPattern = Pattern.compile(
+		"<(?:link|script)(?=[\\s>])", Pattern.CASE_INSENSITIVE);
 
 }
