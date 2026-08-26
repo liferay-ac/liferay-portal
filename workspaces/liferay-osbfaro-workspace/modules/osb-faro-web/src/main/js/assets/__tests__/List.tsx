@@ -40,8 +40,59 @@ jest.mock('@liferay/frontend-data-set-web', () => ({
 	}) => {
 		const [transformerResult, setTransformerResult] = React.useState('');
 
+		// The real data set drops a hidden column from the rendered table
+		// rather than marking it hidden, and each header cell carries its
+		// field name in `data-id`. That is what List reads to resolve the
+		// columns the CSV export should ask for, so the stub reproduces it.
+
+		const [hiddenFieldNames, setHiddenFieldNames] = React.useState<
+			Array<string>
+		>([]);
+
+		const fields = views?.[0]?.schema?.fields ?? [];
+
 		return (
 			<div data-testid="fds-component" id={id}>
+				<table>
+					<thead>
+						<tr>
+							{fields
+								.filter(
+									({fieldName}) =>
+										!hiddenFieldNames.includes(
+											String(fieldName)
+										)
+								)
+								.map(({fieldName}) => (
+									<th
+										data-id={`string,${fieldName}`}
+										key={String(fieldName)}
+									/>
+								))}
+
+							<th data-id="string,visibility" />
+						</tr>
+					</thead>
+				</table>
+
+				<button
+					data-testid="fds-hide-views-metric"
+					onClick={() => setHiddenFieldNames(['viewsMetric'])}
+				>
+					{'Hide Views'}
+				</button>
+
+				<button
+					data-testid="fds-hide-every-column"
+					onClick={() =>
+						setHiddenFieldNames(
+							fields.map(({fieldName}) => String(fieldName))
+						)
+					}
+				>
+					{'Hide Every Column'}
+				</button>
+
 				<button
 					data-testid="fds-run-transformer"
 					onClick={() => {
@@ -231,7 +282,11 @@ jest.mock('shared/components/download-report/DownloadStaticCSVReport', () => ({
 		rangeSelectors,
 		type,
 	}: {
-		getFDSQuery?: () => {filter: string; query: string};
+		getFDSQuery?: () => {
+			fields?: string;
+			filter: string;
+			query: string;
+		};
 		rangeSelectors?: any;
 		type?: string;
 	}) => {
@@ -718,6 +773,12 @@ describe('List', () => {
 	});
 
 	describe('Download CSV', () => {
+		const getFDSQueryResult = () =>
+			JSON.parse(
+				screen.getByTestId('download-csv-fds-query-result')
+					.textContent || '{}'
+			);
+
 		it('should render the Download CSV button for the asset type', () => {
 			renderList();
 
@@ -741,9 +802,7 @@ describe('List', () => {
 				screen.getByTestId('download-csv-call-get-fds-query')
 			);
 
-			expect(
-				screen.getByTestId('download-csv-fds-query-result')
-			).toHaveTextContent(JSON.stringify({filter: '', query: ''}));
+			expect(getFDSQueryResult()).toMatchObject({filter: '', query: ''});
 		});
 
 		it('should capture the filter and query the data set reports and expose them via getFDSQuery', () => {
@@ -754,14 +813,10 @@ describe('List', () => {
 				screen.getByTestId('download-csv-call-get-fds-query')
 			);
 
-			expect(
-				screen.getByTestId('download-csv-fds-query-result')
-			).toHaveTextContent(
-				JSON.stringify({
-					filter: "(assetType eq 'blog')",
-					query: 'liferay',
-				})
-			);
+			expect(getFDSQueryResult()).toMatchObject({
+				filter: "(assetType eq 'blog')",
+				query: 'liferay',
+			});
 		});
 
 		it('should pass the additionalAPIURLParameters through unchanged', () => {
@@ -772,6 +827,54 @@ describe('List', () => {
 			expect(
 				screen.getByTestId('fds-transformer-result')
 			).toHaveTextContent('unchanged=1');
+		});
+
+		describe('visible columns', () => {
+			it('should list every column the table is rendering', () => {
+				renderList();
+
+				fireEvent.click(
+					screen.getByTestId('download-csv-call-get-fds-query')
+				);
+
+				expect(getFDSQueryResult().fields).toBe(
+					'assetTitle,assetType,objectType,viewsMetric,impressionsMetric,downloadsMetric'
+				);
+			});
+
+			it('should drop a column the user has hidden', () => {
+				renderList();
+
+				fireEvent.click(screen.getByTestId('fds-hide-views-metric'));
+				fireEvent.click(
+					screen.getByTestId('download-csv-call-get-fds-query')
+				);
+
+				expect(getFDSQueryResult().fields).toBe(
+					'assetTitle,assetType,objectType,impressionsMetric,downloadsMetric'
+				);
+			});
+
+			it('should ignore the header cell of the columns visibility menu', () => {
+				renderList();
+
+				fireEvent.click(
+					screen.getByTestId('download-csv-call-get-fds-query')
+				);
+
+				expect(getFDSQueryResult().fields).not.toContain('visibility');
+			});
+
+			it('should omit fields when no header cell matches a known column', () => {
+				renderList();
+
+				fireEvent.click(screen.getByTestId('fds-hide-every-column'));
+				fireEvent.click(
+					screen.getByTestId('download-csv-call-get-fds-query')
+				);
+
+				expect(getFDSQueryResult().fields).toBeUndefined();
+			});
 		});
 	});
 

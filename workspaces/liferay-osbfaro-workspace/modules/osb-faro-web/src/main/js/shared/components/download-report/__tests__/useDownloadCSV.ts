@@ -138,6 +138,23 @@ describe('useDownloadCSV', () => {
 		);
 	});
 
+	it('should include the fields override in the URL when provided', () => {
+		const {result} = renderHook(() =>
+			useDownloadCSV({type: CSVType.Asset})
+		);
+
+		const url = result.current(
+			{
+				rangeEnd: '',
+				rangeKey: RangeKeyTimeRanges.Last30Days,
+				rangeStart: '',
+			},
+			{fields: 'assetTitle,viewsMetric'}
+		);
+
+		expect(url).toContain('fields=assetTitle,viewsMetric');
+	});
+
 	it('should include order by fields if field and sortOrder are present', () => {
 		(window as {location: unknown}).location = new URL(
 			'https://ldp.liferay.com/workspace/liferay.com/420253908131944590/?field=name&page=1&sortOrder=DESC'

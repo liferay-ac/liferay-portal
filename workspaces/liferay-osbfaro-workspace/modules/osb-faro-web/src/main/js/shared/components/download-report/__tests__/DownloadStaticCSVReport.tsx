@@ -4,7 +4,7 @@ import React from 'react';
 import {addAlert} from 'shared/actions/alerts';
 import {Alert} from 'shared/types';
 import {CSVType} from '../utils';
-import {DownloadStaticCSVReport} from '../DownloadStaticCSVReport';
+import {DownloadStaticCSVReport, IFDSQuery} from '../DownloadStaticCSVReport';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route} from 'react-router-dom';
@@ -49,7 +49,7 @@ const DefaultComponent = ({
 	rangeSelectors,
 	type = CSVType.Individual,
 }: {
-	getFDSQuery?: () => {filter: string; query: string};
+	getFDSQuery?: () => IFDSQuery;
 	objectType?: string;
 	rangeSelectors?: any;
 	type?: CSVType;
@@ -235,8 +235,9 @@ describe('DownloadStaticCSVReport', () => {
 		);
 	});
 
-	it('reads the filter and query from getFDSQuery and forwards them to the export URL and count request', async () => {
+	it('reads the list state from getFDSQuery and forwards it to the export URL and count request', async () => {
 		const getFDSQuery = jest.fn(() => ({
+			fields: 'assetTitle,assetType',
 			filter: "(assetType eq 'blog')",
 			query: 'liferay',
 		}));
@@ -274,16 +275,23 @@ describe('DownloadStaticCSVReport', () => {
 
 		await waitFor(() => {
 			expect(mockedGenerateURL).toHaveBeenCalledWith(rangeSelectors, {
+				fields: 'assetTitle,assetType',
 				filter: "(assetType eq 'blog')",
 				query: 'liferay',
 			});
 		});
+
+		// The row count does not depend on the visible columns, so `fields` is
+		// not part of the count request.
 
 		expect(API.csv.fetchCount).toHaveBeenCalledWith(
 			expect.objectContaining({
 				filter: "(assetType eq 'blog')",
 				query: 'liferay',
 			})
+		);
+		expect(API.csv.fetchCount).not.toHaveBeenCalledWith(
+			expect.objectContaining({fields: expect.anything()})
 		);
 		expect(getFDSQuery).toHaveBeenCalledTimes(1);
 	});
