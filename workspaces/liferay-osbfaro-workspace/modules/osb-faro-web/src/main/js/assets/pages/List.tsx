@@ -264,6 +264,42 @@ const List = () => {
 
 	const fdsQueryRef = useRef({filter: '', query: ''});
 
+	// The data set offers no way to read which columns the user has toggled
+	// visible: that state lives in its internal ViewsContext and the module
+	// exports no reader for it, nor an event to listen to. A hidden column is
+	// genuinely absent from the rendered table though, so the header cells are
+	// the source of truth -- each one carries its field name in `data-id` (see
+	// the @clayui/core table Cell). Read it when the export is submitted.
+
+	const tableRef = useRef<HTMLDivElement>(null);
+
+	const getVisibleTableFields = () => {
+
+		// `data-id` carries the key's type as a prefix, as in
+		// 'string,assetTitle'.
+
+		const renderedFieldNames = new Set(
+			Array.from(
+				tableRef.current?.querySelectorAll('thead th[data-id]') ?? []
+			).map((headerCell) => {
+				const dataId = headerCell.getAttribute('data-id') ?? '';
+
+				return dataId.slice(dataId.indexOf(',') + 1);
+			})
+		);
+
+		const visibleFieldNames = TABLE_FIELDS.filter((field) =>
+			renderedFieldNames.has(field.fieldName)
+		).map((field) => field.fieldName);
+
+		// Falling back to an undefined `fields` exports every column, which is
+		// how the export behaved before it took visibility into account.
+
+		return visibleFieldNames.length
+			? visibleFieldNames.join(',')
+			: undefined;
+	};
+
 	let rangeSelectorParams = `rangeKey=${rangeSelectors.rangeKey}`;
 
 	if (rangeSelectors.rangeKey === RangeKeyTimeRanges.CustomRange) {
@@ -422,7 +458,10 @@ const List = () => {
 					<div className="mr-1">
 						<DownloadStaticCSVReport
 							disabled={false}
-							getFDSQuery={() => fdsQueryRef.current}
+							getFDSQuery={() => ({
+								...fdsQueryRef.current,
+								fields: getVisibleTableFields(),
+							})}
 							rangeSelectors={rangeSelectors}
 							type={CSVType.Asset}
 							typeLang={Liferay.Language.get('assets')}
@@ -455,129 +494,138 @@ const List = () => {
 
 			<BasePage.Body fluid sidebarOpened={!!infoPanelData}>
 				<Card minHeight={300}>
-					<FrontendDataSet
+					<div ref={tableRef}>
+						<FrontendDataSet
 
-						// Not a real transformation: this reports the query the
-						// data set is about to send so the CSV export can match
-						// what is on screen, and hands back the additional
-						// parameters unchanged.
+							// Not a real transformation: this reports the query the
+							// data set is about to send so the CSV export can match
+							// what is on screen, and hands back the additional
+							// parameters unchanged.
 
-						additionalAPIURLParametersTransformer={(
-							loadDataArgs
-						) => {
-							const {odataFiltersStrings = [], searchParam = ''} =
-								loadDataArgs;
+							additionalAPIURLParametersTransformer={(
+								loadDataArgs
+							) => {
+								const {
+									odataFiltersStrings = [],
+									searchParam = '',
+								} = loadDataArgs;
 
-							fdsQueryRef.current = {
-								filter: odataFiltersStrings
-									.filter(Boolean)
-									.map((odataString) => `(${odataString})`)
-									.join(' and '),
-								query: searchParam,
-							};
+								fdsQueryRef.current = {
+									filter: odataFiltersStrings
+										.filter(Boolean)
+										.map(
+											(odataString) => `(${odataString})`
+										)
+										.join(' and '),
+									query: searchParam,
+								};
 
-							return loadDataArgs.additionalAPIURLParameters;
-						}}
-						apiURL={`/o/faro/contacts/${groupId}/asset-summary?channelId=${channelId}&${rangeSelectorParams}`}
-						customDataRenderers={{
-							assetMetricRenderer: columns.assetMetricRenderer,
-							assetObjectTypeRenderer:
-								columns.assetObjectTypeRenderer,
-							assetTitleRenderer: columns.assetTitleRenderer({
-								accountId,
-								accountName,
-								channelId: channelId!,
-								groupId: groupId!,
-								rangeSelectorParams,
-								segmentId,
-								segmentName,
-							}),
-						}}
-						emptyState={{
-							description:
-								assetsEmptyStateDescription as unknown as string,
-							image: '/states/satellite.svg',
-							title: Liferay.Language.get('no-assets-were-found'),
-						}}
-						filters={filters}
-						groupedFilters={[
-							{
-								filters: [
-									'assetType',
-									'objectType',
-									'tags/id',
-									'categories/id',
-									'mimeType',
-								],
-								label: Liferay.Language.get('filter-by'),
-							},
-							...(LDPEnabled
-								? [
-										{
-											filters: [
-												'accountIds',
-												'segmentIds',
-											],
-											label: Liferay.Language.get(
-												'filter-by-people'
-											),
-										},
-									]
-								: []),
-						]}
-						id="assetTable"
-						itemsActions={[
-							{
-								data: {
-									id: 'infoPanel',
+								return loadDataArgs.additionalAPIURLParameters;
+							}}
+							apiURL={`/o/faro/contacts/${groupId}/asset-summary?channelId=${channelId}&${rangeSelectorParams}`}
+							customDataRenderers={{
+								assetMetricRenderer:
+									columns.assetMetricRenderer,
+								assetObjectTypeRenderer:
+									columns.assetObjectTypeRenderer,
+								assetTitleRenderer: columns.assetTitleRenderer({
+									accountId,
+									accountName,
+									channelId: channelId!,
+									groupId: groupId!,
+									rangeSelectorParams,
+									segmentId,
+									segmentName,
+								}),
+							}}
+							emptyState={{
+								description:
+									assetsEmptyStateDescription as unknown as string,
+								image: '/states/satellite.svg',
+								title: Liferay.Language.get(
+									'no-assets-were-found'
+								),
+							}}
+							filters={filters}
+							groupedFilters={[
+								{
+									filters: [
+										'assetType',
+										'objectType',
+										'tags/id',
+										'categories/id',
+										'mimeType',
+									],
+									label: Liferay.Language.get('filter-by'),
 								},
-								icon: 'info-circle-open',
-								label: Liferay.Language.get('show-details'),
-								onClick: setInfoPanelData,
-							},
-							{
-								data: {
-									id: 'viewAsset',
+								...(LDPEnabled
+									? [
+											{
+												filters: [
+													'accountIds',
+													'segmentIds',
+												],
+												label: Liferay.Language.get(
+													'filter-by-people'
+												),
+											},
+										]
+									: []),
+							]}
+							id="assetTable"
+							itemsActions={[
+								{
+									data: {
+										id: 'infoPanel',
+									},
+									icon: 'info-circle-open',
+									label: Liferay.Language.get('show-details'),
+									onClick: setInfoPanelData,
 								},
-								icon: 'view',
-								label: Liferay.Language.get('view'),
-								onClick: ({itemData}: {itemData: any}) => {
-									history.push(
-										getAssetURL({
-											accountId,
-											accountName,
-											channelId: channelId!,
-											groupId: groupId!,
-											itemData,
-											rangeSelectorParams,
-											segmentId,
-											segmentName,
-										})
-									);
+								{
+									data: {
+										id: 'viewAsset',
+									},
+									icon: 'view',
+									label: Liferay.Language.get('view'),
+									onClick: ({itemData}: {itemData: any}) => {
+										history.push(
+											getAssetURL({
+												accountId,
+												accountName,
+												channelId: channelId!,
+												groupId: groupId!,
+												itemData,
+												rangeSelectorParams,
+												segmentId,
+												segmentName,
+											})
+										);
+									},
 								},
-							},
-						]}
+							]}
 
-						// Trick to restart FDS every time the rangeSelectors changes.
+							// Trick to restart FDS every time the rangeSelectors changes.
 
-						key={Object.values(rangeSelectors).join()}
-						pagination={pagination}
-						showPagination
-						snapshotsEnabled
-						sorts={sorts}
-						views={[
-							{
-								contentRenderer: 'table',
-								default: true,
-								label: Liferay.Language.get('default-view'),
-								name: 'table',
-								schema: {
-									fields: TABLE_FIELDS,
+							key={Object.values(rangeSelectors).join()}
+							pagination={pagination}
+							showPagination
+							snapshotsEnabled
+							sorts={sorts}
+							views={[
+								{
+									contentRenderer: 'table',
+									default: true,
+									label: Liferay.Language.get('default-view'),
+									name: 'table',
+									schema: {
+										fields: TABLE_FIELDS,
+									},
+									thumbnail: 'table',
 								},
-								thumbnail: 'table',
-							},
-						]}
-					/>
+							]}
+						/>
+					</div>
 				</Card>
 
 				<InfoPanel

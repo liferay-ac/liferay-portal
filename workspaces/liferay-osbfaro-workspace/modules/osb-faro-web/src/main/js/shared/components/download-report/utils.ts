@@ -46,7 +46,7 @@ export function useDownloadCSV({
 
 	return (
 		rangeSelectors: RangeSelectors = DEFAULT_RANGE_SELECTORS as unknown as RangeSelectors,
-		overrides: {filter?: string; query?: string} = {}
+		overrides: {fields?: string; filter?: string; query?: string} = {}
 	) => {
 		const searchParams = new URLSearchParams(location.search);
 
@@ -70,6 +70,7 @@ export function useDownloadCSV({
 			assetId: assetId && encodeURIComponent(assetId),
 			assetTitle: title,
 			assetType,
+			fields: overrides.fields,
 			filter: resolvedFilter && encodeURIComponent(resolvedFilter),
 			individualId,
 			objectType,

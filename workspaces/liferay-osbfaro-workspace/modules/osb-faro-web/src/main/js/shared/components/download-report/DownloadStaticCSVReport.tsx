@@ -12,6 +12,16 @@ import {toLocale} from 'shared/util/numbers';
 import {useDispatch} from 'react-redux';
 import {useParams} from 'react-router-dom';
 
+/**
+ * The state of the list being exported: the filters and search it is showing,
+ * and the columns it is rendering.
+ */
+export interface IFDSQuery {
+	fields?: string;
+	filter: string;
+	query: string;
+}
+
 interface IDownloadStaticCSVReport {
 	children?: any;
 	disabled: boolean;
@@ -27,7 +37,7 @@ interface IDownloadStaticCSVReport {
 	 * current value has to be read when the export is submitted, not when
 	 * this component last rendered.
 	 */
-	getFDSQuery?: () => {filter: string; query: string};
+	getFDSQuery?: () => IFDSQuery;
 	objectType?: string;
 	rangeSelectors?: RangeSelectors;
 	segmentId?: string;
@@ -75,6 +85,7 @@ export const DownloadStaticCSVReport: React.FC<IDownloadStaticCSVReport> = ({
 							const fdsQuery = getFDSQuery?.();
 
 							const url = generateURL(rangeSelectors, {
+								fields: fdsQuery?.fields,
 								filter: fdsQuery?.filter,
 								query: fdsQuery?.query,
 							});
@@ -100,6 +111,9 @@ export const DownloadStaticCSVReport: React.FC<IDownloadStaticCSVReport> = ({
 
 							a.href = url;
 							a.click();
+
+							// The row count does not depend on which columns are
+							// visible, so `fields` is not forwarded here.
 
 							const count = await API.csv.fetchCount({
 								channelId: channelId!,
