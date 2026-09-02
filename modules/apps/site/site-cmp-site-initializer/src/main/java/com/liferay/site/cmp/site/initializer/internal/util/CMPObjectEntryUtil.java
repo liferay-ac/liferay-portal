@@ -17,6 +17,8 @@ import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.util.ArrayUtil;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 
 import java.util.Collections;
@@ -26,6 +28,64 @@ import java.util.List;
  * @author Guilherme Camacho
  */
 public class CMPObjectEntryUtil {
+
+	/**
+	 * Returns the IDs of every CMP project the given object entry belongs to,
+	 * both the projects linked to it directly and the projects owning the CMP
+	 * tasks linked to it.
+	 */
+	public static long[] getCMPProjectObjectEntryIds(
+			long[] cmpTaskObjectEntryIds,
+			FilterFactory<Predicate> filterFactory,
+			GroupLocalService groupLocalService,
+			ObjectDefinitionLocalService objectDefinitionLocalService,
+			ObjectEntry objectEntry,
+			ObjectEntryLocalService objectEntryLocalService)
+		throws PortalException {
+
+		return ArrayUtil.unique(
+			ArrayUtil.append(
+				getLinkedObjectEntryIds(
+					filterFactory, groupLocalService, "L_CMP_PROJECT_LINK",
+					objectDefinitionLocalService, objectEntry,
+					objectEntryLocalService,
+					"r_cmpProjectToCMPProjectLinks_c_cmpProjectId"),
+				TransformUtil.transformToLongArray(
+					ListUtil.fromArray(cmpTaskObjectEntryIds),
+					cmpTaskObjectEntryId -> {
+						ObjectEntry cmpTaskObjectEntry =
+							objectEntryLocalService.fetchObjectEntry(
+								cmpTaskObjectEntryId);
+
+						if (cmpTaskObjectEntry == null) {
+							return null;
+						}
+
+						long cmpProjectObjectEntryId = MapUtil.getLong(
+							cmpTaskObjectEntry.getValues(),
+							"r_cmpProjectToCMPTasks_c_cmpProjectId");
+
+						if (cmpProjectObjectEntryId == 0) {
+							return null;
+						}
+
+						return cmpProjectObjectEntryId;
+					})));
+	}
+
+	public static long[] getCMPTaskObjectEntryIds(
+			FilterFactory<Predicate> filterFactory,
+			GroupLocalService groupLocalService,
+			ObjectDefinitionLocalService objectDefinitionLocalService,
+			ObjectEntry objectEntry,
+			ObjectEntryLocalService objectEntryLocalService)
+		throws PortalException {
+
+		return getLinkedObjectEntryIds(
+			filterFactory, groupLocalService, "L_CMP_TASK_LINK",
+			objectDefinitionLocalService, objectEntry, objectEntryLocalService,
+			"r_cmpTaskToCMPTaskLinks_c_cmpTaskId");
+	}
 
 	public static long[] getLinkedObjectEntryIds(
 			FilterFactory<Predicate> filterFactory,
