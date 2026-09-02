@@ -98,6 +98,37 @@ describe('ObjectEntry Plugin', () => {
 
 			document.body.removeChild(objectEntryElement);
 		});
+
+		it('includes the CMP projects when the objectEntry declares them', async () => {
+			const objectEntryElement = createObjectEntryLinkElement();
+
+			objectEntryElement.dataset.analyticsCmpProjects =
+				'[{"id":39601,"name":"Spring Campaign"}]';
+
+			await userEvent.click(objectEntryElement);
+
+			expect(Analytics.getEvents()).toEqual([
+				expect.objectContaining({
+					properties: expect.objectContaining({
+						cmpProjects: '[{"id":39601,"name":"Spring Campaign"}]',
+					}),
+				}),
+			]);
+
+			document.body.removeChild(objectEntryElement);
+		});
+
+		it('omits the CMP projects when the objectEntry declares none', async () => {
+			const objectEntryElement = createObjectEntryLinkElement();
+
+			await userEvent.click(objectEntryElement);
+
+			const [{properties}] = Analytics.getEvents();
+
+			expect(properties).not.toHaveProperty('cmpProjects');
+
+			document.body.removeChild(objectEntryElement);
+		});
 	});
 
 	describe('objectEntryViewed event', () => {
