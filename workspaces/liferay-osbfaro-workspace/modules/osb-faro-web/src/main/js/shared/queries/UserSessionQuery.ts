@@ -8,6 +8,8 @@ export interface UserSessionEvent {
 	createDate: string;
 	eventDate: string;
 	eventId: string;
+	experienceId?: string | null;
+	experienceName?: string | null;
 	name: string;
 	pageDescription: string;
 	pageGroupId?: string | null;
