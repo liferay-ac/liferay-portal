@@ -109,8 +109,17 @@
 
 	.became-known-label,
 	.campaign-label,
-	.data-source-label {
+	.data-source-label,
+	.experience-label {
 		font-size: $fontSizeSmall;
+
+		// Clay sets a leading icon 0.85714em from the label's text, which
+		// reads as a gap on rows this dense; a tighter one keeps the icon
+		// bound to the word it qualifies.
+
+		.label-item-before {
+			margin-right: 4px;
+		}
 	}
 
 	.device-icon {
@@ -188,7 +197,12 @@
 			column-gap: 12px;
 			max-width: 100%;
 
-			> .campaign-label-root:not(:first-child) {
+			// The rule separates the event count from the labels that follow
+			// it, so only the first label carries it — labels sitting side by
+			// side read as one group rather than a divided list.
+
+			> .event-count-pill + .campaign-label-root,
+			> .event-count-pill + .experience-label-root {
 				border-left: 1px solid $mainLighten74;
 				padding-left: 12px;
 			}

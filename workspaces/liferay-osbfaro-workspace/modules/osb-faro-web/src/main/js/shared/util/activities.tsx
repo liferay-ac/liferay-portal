@@ -4,6 +4,7 @@ import {DEFAULT_ACTIVITY_MAX} from 'shared/api/activities';
 import getEventDashboardUrl, {
 	EventDashboardContext,
 } from './getEventDashboardUrl';
+import getEventExperienceName from './getEventExperienceName';
 import {getCustomDateFormat} from 'shared/util/date';
 import {getSafeDecodedURIComponent} from './util';
 import {AssetTypes, TimeIntervals} from 'shared/util/constants';
@@ -65,6 +66,13 @@ export type VerticalTimelineHeader = {
 export type VerticalTimelinePageGroup = {
 	campaign?: TimelineCampaign;
 	descriptionUrl?: string;
+
+	/**
+	 * Every distinct DXP page experience that served a view in this group, in
+	 * the order they were seen. Absent when no view carried one, which is what
+	 * a page served by its default experience looks like.
+	 */
+	experienceNames?: string[];
 	nestedItems: SessionEvent[];
 	pageGroup: true;
 	subtitle: string;
@@ -327,6 +335,19 @@ export const groupEventsByPage = (
 
 		const pageEvent = pageEvents[pageEventIndex] ?? pageEvents[0];
 
+		// A page group can hold several views of the same page, and each view
+		// can have been served by a different experience (a segment
+		// membership can change mid-session), so the group carries every
+		// distinct name it saw rather than only the representative event's.
+
+		const experienceNames = Array.from(
+			new Set(
+				pageEvents
+					.map(getEventExperienceName)
+					.filter((name): name is string => !!name)
+			)
+		);
+
 		const subtitle = getSafeDecodedURIComponent(pageKey);
 
 		// formatEvents already builds a descriptionUrl for every event,
@@ -353,6 +374,7 @@ export const groupEventsByPage = (
 				descriptionUrl:
 					formattedPageEvents[Math.max(pageEventIndex, 0)]
 						.descriptionUrl,
+				...(experienceNames.length && {experienceNames}),
 
 				// The page group's own subtitle and campaign label already show
 				// the page URL and the touch it came from, so its nested

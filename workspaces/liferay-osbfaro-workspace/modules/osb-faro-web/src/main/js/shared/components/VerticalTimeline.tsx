@@ -131,6 +131,40 @@ const CampaignLabel: FC<{campaign: TimelineCampaign}> = ({
 	</span>
 );
 
+/**
+ * Marks a page view that a DXP page experience other than the default served.
+ * The label is deliberately generic — the experience names go in the tooltip —
+ * because a page group can hold more than one view of the same page, each one
+ * possibly served by a different experience. No experience data means the
+ * page was served by its default experience, and the label is dropped
+ * entirely.
+ */
+const ExperienceLabel: FC<{experienceNames?: string[]}> = ({
+	experienceNames,
+}) =>
+	experienceNames?.length ? (
+		<span
+			className="experience-label-root align-items-center d-inline-flex flex-shrink-0"
+			data-tooltip
+			data-tooltip-align="top"
+			title={experienceNames.join('\n')}
+		>
+			<ClayLabel
+				className="experience-label flex-shrink-0 font-weight-semi-bold m-0"
+				displayType="info"
+				withClose={false}
+			>
+				<ClayLabel.ItemBefore>
+					<ClayIcon symbol="test" />
+				</ClayLabel.ItemBefore>
+
+				<ClayLabel.ItemExpand>
+					{Liferay.Language.get('experience')}
+				</ClayLabel.ItemExpand>
+			</ClayLabel>
+		</span>
+	) : null;
+
 const DeviceIcon: FC<{browserName?: string; device?: string}> = ({
 	browserName,
 	device = '',
@@ -388,6 +422,7 @@ const PageGroupRow: FC<IRowProps<VerticalTimelinePageGroup>> = ({
 	item: {
 		campaign,
 		descriptionUrl,
+		experienceNames,
 		nestedItems,
 		subtitle,
 		time,
@@ -438,6 +473,10 @@ const PageGroupRow: FC<IRowProps<VerticalTimelinePageGroup>> = ({
 							<EventCountPill totalEvents={totalEvents} />
 
 							{campaign && <CampaignLabel campaign={campaign} />}
+
+							<ExperienceLabel
+								experienceNames={experienceNames}
+							/>
 						</div>
 					</div>
 				</div>
