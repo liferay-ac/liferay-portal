@@ -134,9 +134,7 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 							route: Routes.CONTACTS_ACCOUNT,
 							value,
 						}),
-					activitiesCountRenderer: ({value}: {value?: number}) => (
-						<div>{toThousands(value ?? 0)}</div>
-					),
+					activitiesCountRenderer: columns.countRenderer,
 					annualRevenueRenderer: ({value}: {value: number}) => (
 						<div>{toThousands(value)}</div>
 					),
