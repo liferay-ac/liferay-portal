@@ -267,7 +267,7 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 						<>
 							<span className="mr-1">
 								{Liferay.Language.get(
-									'check-back-later-to-verify-if-data-has-been-received-from-your-data-sources'
+									'check-back-later-to-verify-if-data-has-been-received-from-your-data-sources,-or-you-can-try-a-different-date-range'
 								)}
 							</span>
 
@@ -283,7 +283,9 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 						</>
 					}
 					spacer
-					title={Liferay.Language.get('no-events-were-found')}
+					title={Liferay.Language.get(
+						'there-is-no-activity-on-the-selected-period'
+					)}
 				/>
 			);
 		}
