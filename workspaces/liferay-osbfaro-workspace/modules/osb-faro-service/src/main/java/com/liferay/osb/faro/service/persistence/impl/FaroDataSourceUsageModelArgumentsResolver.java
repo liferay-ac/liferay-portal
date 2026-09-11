@@ -55,7 +55,7 @@ public class FaroDataSourceUsageModelArgumentsResolver
 
 		if (!checkColumn || (columnBitmask == 0)) {
 			return _getValue(
-				faroDataSourceUsageModelImpl, finderPath, original);
+				faroDataSourceUsageModelImpl, columnNames, original);
 		}
 
 		Long finderPathColumnBitmask = _finderPathColumnBitmasksCache.get(
@@ -75,7 +75,7 @@ public class FaroDataSourceUsageModelArgumentsResolver
 
 		if ((columnBitmask & finderPathColumnBitmask) != 0) {
 			return _getValue(
-				faroDataSourceUsageModelImpl, finderPath, original);
+				faroDataSourceUsageModelImpl, columnNames, original);
 		}
 
 		return null;
@@ -93,26 +93,22 @@ public class FaroDataSourceUsageModelArgumentsResolver
 
 	private static Object[] _getValue(
 		FaroDataSourceUsageModelImpl faroDataSourceUsageModelImpl,
-		FinderPath finderPath, boolean original) {
-
-		String[] columnNames = finderPath.getColumnNames();
+		String[] columnNames, boolean original) {
 
 		Object[] arguments = new Object[columnNames.length];
 
 		for (int i = 0; i < arguments.length; i++) {
 			String columnName = columnNames[i];
 
-			Object value;
-
 			if (original) {
-				value = faroDataSourceUsageModelImpl.getColumnOriginalValue(
-					columnName);
+				arguments[i] =
+					faroDataSourceUsageModelImpl.getColumnOriginalValue(
+						columnName);
 			}
 			else {
-				value = faroDataSourceUsageModelImpl.getColumnValue(columnName);
+				arguments[i] = faroDataSourceUsageModelImpl.getColumnValue(
+					columnName);
 			}
-
-			arguments[i] = finderPath.normalizeArgument(i, value);
 		}
 
 		return arguments;
@@ -122,4 +118,4 @@ public class FaroDataSourceUsageModelArgumentsResolver
 		new ConcurrentHashMap<>();
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:498098123
+// LIFERAY-SERVICE-BUILDER-HASH:632881248
