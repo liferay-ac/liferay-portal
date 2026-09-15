@@ -343,7 +343,8 @@ public abstract class BaseAccountResourceTestCase {
 			accountResource.getWorkspaceGroupChannelAccountsPage(
 				groupId, channelId, RandomTestUtil.randomString(),
 				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
-				null, Pagination.of(1, 10), null);
+				RandomTestUtil.randomString(), null, Pagination.of(1, 10),
+				null);
 
 		long totalCount = page.getTotalCount();
 
@@ -355,7 +356,7 @@ public abstract class BaseAccountResourceTestCase {
 
 			page = accountResource.getWorkspaceGroupChannelAccountsPage(
 				irrelevantGroupId, irrelevantChannelId, null, null, null, null,
-				Pagination.of(1, (int)totalCount + 1), null);
+				null, Pagination.of(1, (int)totalCount + 1), null);
 
 			Assert.assertEquals(totalCount + 1, page.getTotalCount());
 
@@ -373,8 +374,8 @@ public abstract class BaseAccountResourceTestCase {
 			groupId, channelId, randomAccount());
 
 		page = accountResource.getWorkspaceGroupChannelAccountsPage(
-			groupId, channelId, null, null, null, null, Pagination.of(1, 10),
-			null);
+			groupId, channelId, null, null, null, null, null,
+			Pagination.of(1, 10), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -406,7 +407,7 @@ public abstract class BaseAccountResourceTestCase {
 
 		Page<Account> accountsPage =
 			accountResource.getWorkspaceGroupChannelAccountsPage(
-				groupId, channelId, null, null, null, null, null, null);
+				groupId, channelId, null, null, null, null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(accountsPage.getTotalCount());
 
@@ -426,7 +427,7 @@ public abstract class BaseAccountResourceTestCase {
 		if (totalCount >= (pageSizeLimit - 2)) {
 			Page<Account> page1 =
 				accountResource.getWorkspaceGroupChannelAccountsPage(
-					groupId, channelId, null, null, null, null,
+					groupId, channelId, null, null, null, null, null,
 					Pagination.of(
 						(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
 						pageSizeLimit),
@@ -438,7 +439,7 @@ public abstract class BaseAccountResourceTestCase {
 
 			Page<Account> page2 =
 				accountResource.getWorkspaceGroupChannelAccountsPage(
-					groupId, channelId, null, null, null, null,
+					groupId, channelId, null, null, null, null, null,
 					Pagination.of(
 						(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
 						pageSizeLimit),
@@ -448,7 +449,7 @@ public abstract class BaseAccountResourceTestCase {
 
 			Page<Account> page3 =
 				accountResource.getWorkspaceGroupChannelAccountsPage(
-					groupId, channelId, null, null, null, null,
+					groupId, channelId, null, null, null, null, null,
 					Pagination.of(
 						(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
 						pageSizeLimit),
@@ -459,7 +460,7 @@ public abstract class BaseAccountResourceTestCase {
 		else {
 			Page<Account> page1 =
 				accountResource.getWorkspaceGroupChannelAccountsPage(
-					groupId, channelId, null, null, null, null,
+					groupId, channelId, null, null, null, null, null,
 					Pagination.of(1, totalCount + 2), null);
 
 			List<Account> accounts1 = (List<Account>)page1.getItems();
@@ -469,7 +470,7 @@ public abstract class BaseAccountResourceTestCase {
 
 			Page<Account> page2 =
 				accountResource.getWorkspaceGroupChannelAccountsPage(
-					groupId, channelId, null, null, null, null,
+					groupId, channelId, null, null, null, null, null,
 					Pagination.of(2, totalCount + 2), null);
 
 			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
@@ -480,7 +481,7 @@ public abstract class BaseAccountResourceTestCase {
 
 			Page<Account> page3 =
 				accountResource.getWorkspaceGroupChannelAccountsPage(
-					groupId, channelId, null, null, null, null,
+					groupId, channelId, null, null, null, null, null,
 					Pagination.of(1, (int)totalCount + 3), null);
 
 			assertContains(account1, (List<Account>)page3.getItems());
@@ -610,12 +611,12 @@ public abstract class BaseAccountResourceTestCase {
 
 		Page<Account> page =
 			accountResource.getWorkspaceGroupChannelAccountsPage(
-				groupId, channelId, null, null, null, null, null, null);
+				groupId, channelId, null, null, null, null, null, null, null);
 
 		for (EntityField entityField : entityFields) {
 			Page<Account> ascPage =
 				accountResource.getWorkspaceGroupChannelAccountsPage(
-					groupId, channelId, null, null, null, null,
+					groupId, channelId, null, null, null, null, null,
 					Pagination.of(1, (int)page.getTotalCount() + 1),
 					entityField.getName() + ":asc");
 
@@ -624,7 +625,7 @@ public abstract class BaseAccountResourceTestCase {
 
 			Page<Account> descPage =
 				accountResource.getWorkspaceGroupChannelAccountsPage(
-					groupId, channelId, null, null, null, null,
+					groupId, channelId, null, null, null, null, null,
 					Pagination.of(1, (int)page.getTotalCount() + 1),
 					entityField.getName() + ":desc");
 
@@ -1919,4 +1920,4 @@ public abstract class BaseAccountResourceTestCase {
 		_accountResource;
 
 }
-// LIFERAY-REST-BUILDER-HASH:877723796
+// LIFERAY-REST-BUILDER-HASH:-1845843405
