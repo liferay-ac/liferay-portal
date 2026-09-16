@@ -42,16 +42,16 @@ public interface AccountResource {
 		throws Exception;
 
 	public Page<Account> getWorkspaceGroupChannelAccountsPage(
-			Long groupId, String channelId, String rangeEnd, String rangeKey,
-			String rangeStart, String search, Pagination pagination,
-			String sortString)
+			Long groupId, String channelId, String lifecycleStage,
+			String rangeEnd, String rangeKey, String rangeStart, String search,
+			Pagination pagination, String sortString)
 		throws Exception;
 
 	public HttpInvoker.HttpResponse
 			getWorkspaceGroupChannelAccountsPageHttpResponse(
-				Long groupId, String channelId, String rangeEnd,
-				String rangeKey, String rangeStart, String search,
-				Pagination pagination, String sortString)
+				Long groupId, String channelId, String lifecycleStage,
+				String rangeEnd, String rangeKey, String rangeStart,
+				String search, Pagination pagination, String sortString)
 		throws Exception;
 
 	public static class Builder {
@@ -269,15 +269,15 @@ public interface AccountResource {
 		}
 
 		public Page<Account> getWorkspaceGroupChannelAccountsPage(
-				Long groupId, String channelId, String rangeEnd,
-				String rangeKey, String rangeStart, String search,
-				Pagination pagination, String sortString)
+				Long groupId, String channelId, String lifecycleStage,
+				String rangeEnd, String rangeKey, String rangeStart,
+				String search, Pagination pagination, String sortString)
 			throws Exception {
 
 			HttpInvoker.HttpResponse httpResponse =
 				getWorkspaceGroupChannelAccountsPageHttpResponse(
-					groupId, channelId, rangeEnd, rangeKey, rangeStart, search,
-					pagination, sortString);
+					groupId, channelId, lifecycleStage, rangeEnd, rangeKey,
+					rangeStart, search, pagination, sortString);
 
 			String content = httpResponse.getContent();
 
@@ -340,9 +340,9 @@ public interface AccountResource {
 
 		public HttpInvoker.HttpResponse
 				getWorkspaceGroupChannelAccountsPageHttpResponse(
-					Long groupId, String channelId, String rangeEnd,
-					String rangeKey, String rangeStart, String search,
-					Pagination pagination, String sortString)
+					Long groupId, String channelId, String lifecycleStage,
+					String rangeEnd, String rangeKey, String rangeStart,
+					String search, Pagination pagination, String sortString)
 			throws Exception {
 
 			HttpInvoker httpInvoker = HttpInvoker.newHttpInvoker();
@@ -365,6 +365,11 @@ public interface AccountResource {
 			}
 
 			httpInvoker.httpMethod(HttpInvoker.HttpMethod.GET);
+
+			if (lifecycleStage != null) {
+				httpInvoker.parameter(
+					"lifecycleStage", String.valueOf(lifecycleStage));
+			}
 
 			if (rangeEnd != null) {
 				httpInvoker.parameter("rangeEnd", String.valueOf(rangeEnd));
@@ -421,4 +426,4 @@ public interface AccountResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-199871151
+// LIFERAY-REST-BUILDER-HASH:-2074771572
