@@ -7,6 +7,7 @@ package com.liferay.osb.faro.rest.internal.graphql.servlet.v1_0;
 
 import com.liferay.osb.faro.rest.internal.graphql.mutation.v1_0.Mutation;
 import com.liferay.osb.faro.rest.internal.graphql.query.v1_0.Query;
+import com.liferay.osb.faro.rest.internal.resource.v1_0.AccountLifecycleStageTransitionResourceImpl;
 import com.liferay.osb.faro.rest.internal.resource.v1_0.AccountResourceImpl;
 import com.liferay.osb.faro.rest.internal.resource.v1_0.AssetSummaryMetricResourceImpl;
 import com.liferay.osb.faro.rest.internal.resource.v1_0.ChannelResourceImpl;
@@ -20,6 +21,7 @@ import com.liferay.osb.faro.rest.internal.resource.v1_0.PageMetricResourceImpl;
 import com.liferay.osb.faro.rest.internal.resource.v1_0.SearchTermResourceImpl;
 import com.liferay.osb.faro.rest.internal.resource.v1_0.UserSessionResourceImpl;
 import com.liferay.osb.faro.rest.internal.resource.v1_0.WorkspaceResourceImpl;
+import com.liferay.osb.faro.rest.resource.v1_0.AccountLifecycleStageTransitionResource;
 import com.liferay.osb.faro.rest.resource.v1_0.AccountResource;
 import com.liferay.osb.faro.rest.resource.v1_0.AssetSummaryMetricResource;
 import com.liferay.osb.faro.rest.resource.v1_0.ChannelResource;
@@ -60,6 +62,8 @@ public class ServletDataImpl implements ServletData {
 	public void activate(BundleContext bundleContext) {
 		Query.setAccountResourceComponentServiceObjects(
 			_accountResourceComponentServiceObjects);
+		Query.setAccountLifecycleStageTransitionResourceComponentServiceObjects(
+			_accountLifecycleStageTransitionResourceComponentServiceObjects);
 		Query.setAssetSummaryMetricResourceComponentServiceObjects(
 			_assetSummaryMetricResourceComponentServiceObjects);
 		Query.setChannelResourceComponentServiceObjects(
@@ -131,6 +135,11 @@ public class ServletDataImpl implements ServletData {
 						new ObjectValuePair<>(
 							AccountResourceImpl.class,
 							"getWorkspaceGroupChannelAccountsPage"));
+					put(
+						"query#workspaceGroupAccountLifecycleStageTransitions",
+						new ObjectValuePair<>(
+							AccountLifecycleStageTransitionResourceImpl.class,
+							"getWorkspaceGroupAccountLifecycleStageTransitionsPage"));
 					put(
 						"query#workspaceGroupChannelAssetSummaries",
 						new ObjectValuePair<>(
@@ -228,6 +237,10 @@ public class ServletDataImpl implements ServletData {
 		_accountResourceComponentServiceObjects;
 
 	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
+	private ComponentServiceObjects<AccountLifecycleStageTransitionResource>
+		_accountLifecycleStageTransitionResourceComponentServiceObjects;
+
+	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
 	private ComponentServiceObjects<AssetSummaryMetricResource>
 		_assetSummaryMetricResourceComponentServiceObjects;
 
@@ -276,4 +289,4 @@ public class ServletDataImpl implements ServletData {
 		_workspaceResourceComponentServiceObjects;
 
 }
-// LIFERAY-REST-BUILDER-HASH:-886469587
+// LIFERAY-REST-BUILDER-HASH:2146778047

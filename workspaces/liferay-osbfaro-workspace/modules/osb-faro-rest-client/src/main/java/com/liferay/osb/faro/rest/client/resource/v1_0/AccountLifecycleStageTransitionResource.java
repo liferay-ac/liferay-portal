@@ -5,12 +5,12 @@
 
 package com.liferay.osb.faro.rest.client.resource.v1_0;
 
-import com.liferay.osb.faro.rest.client.dto.v1_0.Account;
+import com.liferay.osb.faro.rest.client.dto.v1_0.AccountLifecycleStageTransition;
 import com.liferay.osb.faro.rest.client.http.HttpInvoker;
 import com.liferay.osb.faro.rest.client.pagination.Page;
 import com.liferay.osb.faro.rest.client.pagination.Pagination;
 import com.liferay.osb.faro.rest.client.problem.Problem;
-import com.liferay.osb.faro.rest.client.serdes.v1_0.AccountSerDes;
+import com.liferay.osb.faro.rest.client.serdes.v1_0.AccountLifecycleStageTransitionSerDes;
 
 import jakarta.annotation.Generated;
 
@@ -28,30 +28,28 @@ import java.util.logging.Logger;
  * @generated
  */
 @Generated("")
-public interface AccountResource {
+public interface AccountLifecycleStageTransitionResource {
 
 	public static Builder builder() {
 		return new Builder();
 	}
 
-	public Account getWorkspaceGroupAccount(Long groupId, String accountId)
-		throws Exception;
-
-	public HttpInvoker.HttpResponse getWorkspaceGroupAccountHttpResponse(
-			Long groupId, String accountId)
-		throws Exception;
-
-	public Page<Account> getWorkspaceGroupChannelAccountsPage(
-			Long groupId, String channelId, String lifecycleStage,
-			String rangeEnd, String rangeKey, String rangeStart, String search,
-			Pagination pagination, String sortString)
+	public Page<AccountLifecycleStageTransition>
+			getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+				Long groupId, String accountLifecycleId, String country,
+				String fromLifecycleStage, String industry, String rangeEnd,
+				String rangeKey, String rangeStart, Long segmentId,
+				String toLifecycleStage, Pagination pagination,
+				String sortString)
 		throws Exception;
 
 	public HttpInvoker.HttpResponse
-			getWorkspaceGroupChannelAccountsPageHttpResponse(
-				Long groupId, String channelId, String lifecycleStage,
-				String rangeEnd, String rangeKey, String rangeStart,
-				String search, Pagination pagination, String sortString)
+			getWorkspaceGroupAccountLifecycleStageTransitionsPageHttpResponse(
+				Long groupId, String accountLifecycleId, String country,
+				String fromLifecycleStage, String industry, String rangeEnd,
+				String rangeKey, String rangeStart, Long segmentId,
+				String toLifecycleStage, Pagination pagination,
+				String sortString)
 		throws Exception;
 
 	public static class Builder {
@@ -67,8 +65,8 @@ public interface AccountResource {
 			return header("Authorization", "Bearer " + token);
 		}
 
-		public AccountResource build() {
-			return new AccountResourceImpl(this);
+		public AccountLifecycleStageTransitionResource build() {
+			return new AccountLifecycleStageTransitionResourceImpl(this);
 		}
 
 		public Builder contextPath(String contextPath) {
@@ -160,13 +158,23 @@ public interface AccountResource {
 
 	}
 
-	public static class AccountResourceImpl implements AccountResource {
+	public static class AccountLifecycleStageTransitionResourceImpl
+		implements AccountLifecycleStageTransitionResource {
 
-		public Account getWorkspaceGroupAccount(Long groupId, String accountId)
+		public Page<AccountLifecycleStageTransition>
+				getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+					Long groupId, String accountLifecycleId, String country,
+					String fromLifecycleStage, String industry, String rangeEnd,
+					String rangeKey, String rangeStart, Long segmentId,
+					String toLifecycleStage, Pagination pagination,
+					String sortString)
 			throws Exception {
 
 			HttpInvoker.HttpResponse httpResponse =
-				getWorkspaceGroupAccountHttpResponse(groupId, accountId);
+				getWorkspaceGroupAccountLifecycleStageTransitionsPageHttpResponse(
+					groupId, accountLifecycleId, country, fromLifecycleStage,
+					industry, rangeEnd, rangeKey, rangeStart, segmentId,
+					toLifecycleStage, pagination, sortString);
 
 			String content = httpResponse.getContent();
 
@@ -216,118 +224,8 @@ public interface AccountResource {
 			}
 
 			try {
-				return AccountSerDes.toDTO(content);
-			}
-			catch (Exception e) {
-				_logger.log(
-					Level.WARNING,
-					"Unable to process HTTP response: " + content, e);
-
-				throw new Problem.ProblemException(Problem.toDTO(content));
-			}
-		}
-
-		public HttpInvoker.HttpResponse getWorkspaceGroupAccountHttpResponse(
-				Long groupId, String accountId)
-			throws Exception {
-
-			HttpInvoker httpInvoker = HttpInvoker.newHttpInvoker();
-
-			if (_builder._locale != null) {
-				httpInvoker.header(
-					"Accept-Language", _builder._locale.toLanguageTag());
-			}
-
-			for (Map.Entry<String, String> entry :
-					_builder._headers.entrySet()) {
-
-				httpInvoker.header(entry.getKey(), entry.getValue());
-			}
-
-			for (Map.Entry<String, String> entry :
-					_builder._parameters.entrySet()) {
-
-				httpInvoker.parameter(entry.getKey(), entry.getValue());
-			}
-
-			httpInvoker.httpMethod(HttpInvoker.HttpMethod.GET);
-
-			httpInvoker.path(
-				_builder._scheme + "://" + _builder._host + ":" +
-					_builder._port + _builder._contextPath +
-						"/o/faro-rest/v1.0/workspace/{groupId}/accounts/{accountId}");
-
-			httpInvoker.path("groupId", groupId);
-			httpInvoker.path("accountId", accountId);
-
-			if ((_builder._login != null) && (_builder._password != null)) {
-				httpInvoker.userNameAndPassword(
-					_builder._login + ":" + _builder._password);
-			}
-
-			return httpInvoker.invoke();
-		}
-
-		public Page<Account> getWorkspaceGroupChannelAccountsPage(
-				Long groupId, String channelId, String lifecycleStage,
-				String rangeEnd, String rangeKey, String rangeStart,
-				String search, Pagination pagination, String sortString)
-			throws Exception {
-
-			HttpInvoker.HttpResponse httpResponse =
-				getWorkspaceGroupChannelAccountsPageHttpResponse(
-					groupId, channelId, lifecycleStage, rangeEnd, rangeKey,
-					rangeStart, search, pagination, sortString);
-
-			String content = httpResponse.getContent();
-
-			if ((httpResponse.getStatusCode() / 100) != 2) {
-				_logger.log(
-					Level.WARNING,
-					"Unable to process HTTP response content: " + content);
-				_logger.log(
-					Level.WARNING,
-					"HTTP response message: " + httpResponse.getMessage());
-				_logger.log(
-					Level.WARNING,
-					"HTTP response status code: " +
-						httpResponse.getStatusCode());
-
-				Problem.ProblemException problemException = null;
-
-				if (Objects.equals(
-						httpResponse.getContentType(), "application/json")) {
-
-					problemException = new Problem.ProblemException(
-						Problem.toDTO(content));
-				}
-				else {
-					_logger.log(
-						Level.WARNING,
-						"Unable to process content type: " +
-							httpResponse.getContentType());
-
-					Problem problem = new Problem();
-
-					problem.setStatus(
-						String.valueOf(httpResponse.getStatusCode()));
-
-					problemException = new Problem.ProblemException(problem);
-				}
-
-				throw problemException;
-			}
-			else {
-				_logger.fine("HTTP response content: " + content);
-				_logger.fine(
-					"HTTP response message: " + httpResponse.getMessage());
-				_logger.fine(
-					"HTTP response status code: " +
-						httpResponse.getStatusCode());
-			}
-
-			try {
-				return Page.of(content, AccountSerDes::toDTO);
+				return Page.of(
+					content, AccountLifecycleStageTransitionSerDes::toDTO);
 			}
 			catch (Exception e) {
 				_logger.log(
@@ -339,10 +237,12 @@ public interface AccountResource {
 		}
 
 		public HttpInvoker.HttpResponse
-				getWorkspaceGroupChannelAccountsPageHttpResponse(
-					Long groupId, String channelId, String lifecycleStage,
-					String rangeEnd, String rangeKey, String rangeStart,
-					String search, Pagination pagination, String sortString)
+				getWorkspaceGroupAccountLifecycleStageTransitionsPageHttpResponse(
+					Long groupId, String accountLifecycleId, String country,
+					String fromLifecycleStage, String industry, String rangeEnd,
+					String rangeKey, String rangeStart, Long segmentId,
+					String toLifecycleStage, Pagination pagination,
+					String sortString)
 			throws Exception {
 
 			HttpInvoker httpInvoker = HttpInvoker.newHttpInvoker();
@@ -366,9 +266,17 @@ public interface AccountResource {
 
 			httpInvoker.httpMethod(HttpInvoker.HttpMethod.GET);
 
-			if (lifecycleStage != null) {
+			if (country != null) {
+				httpInvoker.parameter("country", String.valueOf(country));
+			}
+
+			if (fromLifecycleStage != null) {
 				httpInvoker.parameter(
-					"lifecycleStage", String.valueOf(lifecycleStage));
+					"fromLifecycleStage", String.valueOf(fromLifecycleStage));
+			}
+
+			if (industry != null) {
+				httpInvoker.parameter("industry", String.valueOf(industry));
 			}
 
 			if (rangeEnd != null) {
@@ -383,8 +291,13 @@ public interface AccountResource {
 				httpInvoker.parameter("rangeStart", String.valueOf(rangeStart));
 			}
 
-			if (search != null) {
-				httpInvoker.parameter("search", String.valueOf(search));
+			if (segmentId != null) {
+				httpInvoker.parameter("segmentId", String.valueOf(segmentId));
+			}
+
+			if (toLifecycleStage != null) {
+				httpInvoker.parameter(
+					"toLifecycleStage", String.valueOf(toLifecycleStage));
 			}
 
 			if (pagination != null) {
@@ -401,10 +314,10 @@ public interface AccountResource {
 			httpInvoker.path(
 				_builder._scheme + "://" + _builder._host + ":" +
 					_builder._port + _builder._contextPath +
-						"/o/faro-rest/v1.0/workspace/{groupId}/channels/{channelId}/accounts");
+						"/o/faro-rest/v1.0/workspace/{groupId}/account-lifecycles/{accountLifecycleId}/stage-transitions");
 
 			httpInvoker.path("groupId", groupId);
-			httpInvoker.path("channelId", channelId);
+			httpInvoker.path("accountLifecycleId", accountLifecycleId);
 
 			if ((_builder._login != null) && (_builder._password != null)) {
 				httpInvoker.userNameAndPassword(
@@ -414,16 +327,16 @@ public interface AccountResource {
 			return httpInvoker.invoke();
 		}
 
-		private AccountResourceImpl(Builder builder) {
+		private AccountLifecycleStageTransitionResourceImpl(Builder builder) {
 			_builder = builder;
 		}
 
 		private static final Logger _logger = Logger.getLogger(
-			AccountResource.class.getName());
+			AccountLifecycleStageTransitionResource.class.getName());
 
 		private Builder _builder;
 
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-2074771572
+// LIFERAY-REST-BUILDER-HASH:-1205689248

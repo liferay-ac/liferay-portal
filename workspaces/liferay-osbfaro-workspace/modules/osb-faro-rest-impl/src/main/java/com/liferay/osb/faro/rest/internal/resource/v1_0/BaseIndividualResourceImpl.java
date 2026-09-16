@@ -54,22 +54,22 @@ public abstract class BaseIndividualResourceImpl
 	 * curl -X 'GET' 'http://localhost:8080/o/faro-rest/v1.0/workspace/{groupId}/channels/{channelId}/individuals'  -u 'test@liferay.com:test'
 	 */
 	@io.swagger.v3.oas.annotations.Operation(
-		description = "List individuals for an Analytics Cloud workspace. Optionally narrowed to an associated account, segment, interest, activity status, or date range, and searchable by name or email with `search`. To fetch a single individual by id, use `getWorkspaceGroupIndividual` instead."
+		description = "List individuals for an Analytics Cloud workspace. Optionally narrowed to an associated account, segment, interest, activity status, or date range, and searchable by name or email with `search`. To fetch a single individual by ID, use `getWorkspaceGroupIndividual` instead."
 	)
 	@io.swagger.v3.oas.annotations.Parameters(
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the Liferay site that owns the Analytics Cloud workspace.",
+				description = "ID of the Liferay site that owns the Analytics Cloud workspace.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "groupId"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the channel whose search terms should be listed.",
+				description = "ID of the channel whose search terms should be listed.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "channelId"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Optional account id to restrict results to individuals associated with an account.",
+				description = "Optional account ID to restrict results to individuals associated with an account.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
 				name = "accountId"
 			),
@@ -84,7 +84,7 @@ public abstract class BaseIndividualResourceImpl
 				name = "includeAnonymousUsers"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Optional individual segment id to restrict results to members of that segment.",
+				description = "Optional individual segment ID to restrict results to members of that segment.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
 				name = "individualSegmentId"
 			),
@@ -189,12 +189,12 @@ public abstract class BaseIndividualResourceImpl
 	 * curl -X 'GET' 'http://localhost:8080/o/faro-rest/v1.0/workspace/{groupId}/individuals/{individualId}'  -u 'test@liferay.com:test'
 	 */
 	@io.swagger.v3.oas.annotations.Operation(
-		description = "Fetch a single Individual from an Analytics Cloud workspace. Optionally narrowed to a channel (also known as property). Use this to fetch a contact's full profile once you have an id. To search individuals by name, email, or other attributes, use `getWorkspaceGroupChannelIndividualsPage`."
+		description = "Fetch a single Individual from an Analytics Cloud workspace. Optionally narrowed to a channel (also known as property). Use this to fetch a contact's full profile once you have an ID. To search individuals by name, email, or other attributes, use `getWorkspaceGroupChannelIndividualsPage`."
 	)
 	@io.swagger.v3.oas.annotations.Parameters(
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the Liferay site that owns the Analytics Cloud workspace.",
+				description = "ID of the Liferay site that owns the Analytics Cloud workspace.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "groupId"
 			),
@@ -204,7 +204,7 @@ public abstract class BaseIndividualResourceImpl
 				name = "individualId"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Optional channel id to scope the lookup to a single channel.",
+				description = "Optional channel ID to scope the lookup to a single channel.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
 				name = "channelId"
 			)
@@ -686,4 +686,4 @@ public abstract class BaseIndividualResourceImpl
 		LogFactoryUtil.getLog(BaseIndividualResourceImpl.class);
 
 }
-// LIFERAY-REST-BUILDER-HASH:-1567496933
+// LIFERAY-REST-BUILDER-HASH:-868861139

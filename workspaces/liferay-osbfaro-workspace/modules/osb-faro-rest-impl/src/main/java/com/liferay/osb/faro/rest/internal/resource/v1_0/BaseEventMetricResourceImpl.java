@@ -53,12 +53,12 @@ public abstract class BaseEventMetricResourceImpl
 	@io.swagger.v3.oas.annotations.Parameters(
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the Liferay site that owns the Analytics Cloud workspace.",
+				description = "ID of the Liferay site that owns the Analytics Cloud workspace.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "groupId"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the channel whose events should be counted should be returned.",
+				description = "ID of the channel whose events should be counted should be returned.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "channelId"
 			),
@@ -149,12 +149,12 @@ public abstract class BaseEventMetricResourceImpl
 	@io.swagger.v3.oas.annotations.Parameters(
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the Liferay site that owns the Analytics Cloud workspace.",
+				description = "ID of the Liferay site that owns the Analytics Cloud workspace.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "groupId"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the channel whose events should be counted should be returned.",
+				description = "ID of the channel whose events should be counted should be returned.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "channelId"
 			),
@@ -679,4 +679,4 @@ public abstract class BaseEventMetricResourceImpl
 		LogFactoryUtil.getLog(BaseEventMetricResourceImpl.class);
 
 }
-// LIFERAY-REST-BUILDER-HASH:164392492
+// LIFERAY-REST-BUILDER-HASH:-1664094804

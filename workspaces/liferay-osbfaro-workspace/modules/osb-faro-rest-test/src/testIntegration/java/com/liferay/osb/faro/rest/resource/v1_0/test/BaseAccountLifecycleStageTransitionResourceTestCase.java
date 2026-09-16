@@ -13,12 +13,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
-import com.liferay.osb.faro.rest.client.dto.v1_0.AssetSummaryMetric;
+import com.liferay.osb.faro.rest.client.dto.v1_0.AccountLifecycleStageTransition;
 import com.liferay.osb.faro.rest.client.http.HttpInvoker;
 import com.liferay.osb.faro.rest.client.pagination.Page;
 import com.liferay.osb.faro.rest.client.pagination.Pagination;
-import com.liferay.osb.faro.rest.client.resource.v1_0.AssetSummaryMetricResource;
-import com.liferay.osb.faro.rest.client.serdes.v1_0.AssetSummaryMetricSerDes;
+import com.liferay.osb.faro.rest.client.resource.v1_0.AccountLifecycleStageTransitionResource;
+import com.liferay.osb.faro.rest.client.serdes.v1_0.AccountLifecycleStageTransitionSerDes;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
@@ -77,7 +77,7 @@ import org.junit.Test;
  * @generated
  */
 @Generated("")
-public abstract class BaseAssetSummaryMetricResourceTestCase {
+public abstract class BaseAccountLifecycleStageTransitionResourceTestCase {
 
 	@ClassRule
 	@Rule
@@ -98,21 +98,22 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 		testCompany = CompanyLocalServiceUtil.getCompany(
 			testGroup.getCompanyId());
 
-		_assetSummaryMetricResource.setContextCompany(testCompany);
+		_accountLifecycleStageTransitionResource.setContextCompany(testCompany);
 
 		_testCompanyAdminUser = UserTestUtil.getAdminUser(
 			testCompany.getCompanyId());
 
-		assetSummaryMetricResource = AssetSummaryMetricResource.builder(
-		).authentication(
-			_testCompanyAdminUser.getEmailAddress(),
-			PropsValues.DEFAULT_ADMIN_PASSWORD
-		).endpoint(
-			testCompany.getVirtualHostname(),
-			PortalUtil.getPortalServerPort(false), "http"
-		).locale(
-			LocaleUtil.getDefault()
-		).build();
+		accountLifecycleStageTransitionResource =
+			AccountLifecycleStageTransitionResource.builder(
+			).authentication(
+				_testCompanyAdminUser.getEmailAddress(),
+				PropsValues.DEFAULT_ADMIN_PASSWORD
+			).endpoint(
+				testCompany.getVirtualHostname(),
+				PortalUtil.getPortalServerPort(false), "http"
+			).locale(
+				LocaleUtil.getDefault()
+			).build();
 	}
 
 	@After
@@ -125,24 +126,32 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	public void testClientSerDesToDTO() throws Exception {
 		ObjectMapper objectMapper = getClientSerDesObjectMapper();
 
-		AssetSummaryMetric assetSummaryMetric1 = randomAssetSummaryMetric();
+		AccountLifecycleStageTransition accountLifecycleStageTransition1 =
+			randomAccountLifecycleStageTransition();
 
-		String json = objectMapper.writeValueAsString(assetSummaryMetric1);
+		String json = objectMapper.writeValueAsString(
+			accountLifecycleStageTransition1);
 
-		AssetSummaryMetric assetSummaryMetric2 = AssetSummaryMetricSerDes.toDTO(
-			json);
+		AccountLifecycleStageTransition accountLifecycleStageTransition2 =
+			AccountLifecycleStageTransitionSerDes.toDTO(json);
 
-		Assert.assertTrue(equals(assetSummaryMetric1, assetSummaryMetric2));
+		Assert.assertTrue(
+			equals(
+				accountLifecycleStageTransition1,
+				accountLifecycleStageTransition2));
 	}
 
 	@Test
 	public void testClientSerDesToJSON() throws Exception {
 		ObjectMapper objectMapper = getClientSerDesObjectMapper();
 
-		AssetSummaryMetric assetSummaryMetric = randomAssetSummaryMetric();
+		AccountLifecycleStageTransition accountLifecycleStageTransition =
+			randomAccountLifecycleStageTransition();
 
-		String json1 = objectMapper.writeValueAsString(assetSummaryMetric);
-		String json2 = AssetSummaryMetricSerDes.toJSON(assetSummaryMetric);
+		String json1 = objectMapper.writeValueAsString(
+			accountLifecycleStageTransition);
+		String json2 = AccountLifecycleStageTransitionSerDes.toJSON(
+			accountLifecycleStageTransition);
 
 		Assert.assertEquals(
 			objectMapper.readTree(json1), objectMapper.readTree(json2));
@@ -170,38 +179,44 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	public void testEscapeRegexInStringFields() throws Exception {
 		String regex = "^[0-9]+(\\.[0-9]{1,2})\"?";
 
-		AssetSummaryMetric assetSummaryMetric = randomAssetSummaryMetric();
+		AccountLifecycleStageTransition accountLifecycleStageTransition =
+			randomAccountLifecycleStageTransition();
 
-		assetSummaryMetric.setAssetId(regex);
-		assetSummaryMetric.setAssetTitle(regex);
+		accountLifecycleStageTransition.setAccountId(regex);
+		accountLifecycleStageTransition.setAccountName(regex);
 
-		String json = AssetSummaryMetricSerDes.toJSON(assetSummaryMetric);
+		String json = AccountLifecycleStageTransitionSerDes.toJSON(
+			accountLifecycleStageTransition);
 
 		Assert.assertFalse(json.contains(regex));
 
-		assetSummaryMetric = AssetSummaryMetricSerDes.toDTO(json);
+		accountLifecycleStageTransition =
+			AccountLifecycleStageTransitionSerDes.toDTO(json);
 
-		Assert.assertEquals(regex, assetSummaryMetric.getAssetId());
-		Assert.assertEquals(regex, assetSummaryMetric.getAssetTitle());
+		Assert.assertEquals(
+			regex, accountLifecycleStageTransition.getAccountId());
+		Assert.assertEquals(
+			regex, accountLifecycleStageTransition.getAccountName());
 	}
 
 	@Test
-	public void testGetWorkspaceGroupChannelAssetSummariesPage()
+	public void testGetWorkspaceGroupAccountLifecycleStageTransitionsPage()
 		throws Exception {
 
 		Long groupId =
-			testGetWorkspaceGroupChannelAssetSummariesPage_getGroupId();
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getGroupId();
 		Long irrelevantGroupId =
-			testGetWorkspaceGroupChannelAssetSummariesPage_getIrrelevantGroupId();
-		String channelId =
-			testGetWorkspaceGroupChannelAssetSummariesPage_getChannelId();
-		String irrelevantChannelId =
-			testGetWorkspaceGroupChannelAssetSummariesPage_getIrrelevantChannelId();
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getIrrelevantGroupId();
+		String accountLifecycleId =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getAccountLifecycleId();
+		String irrelevantAccountLifecycleId =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getIrrelevantAccountLifecycleId();
 
-		Page<AssetSummaryMetric> page =
-			assetSummaryMetricResource.
-				getWorkspaceGroupChannelAssetSummariesPage(
-					groupId, channelId, RandomTestUtil.randomString(),
+		Page<AccountLifecycleStageTransition> page =
+			accountLifecycleStageTransitionResource.
+				getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+					groupId, accountLifecycleId, RandomTestUtil.randomString(),
+					RandomTestUtil.randomString(),
 					RandomTestUtil.randomString(),
 					RandomTestUtil.randomString(),
 					RandomTestUtil.randomString(),
@@ -210,59 +225,66 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 
 		long totalCount = page.getTotalCount();
 
-		if ((irrelevantGroupId != null) && (irrelevantChannelId != null)) {
-			AssetSummaryMetric irrelevantAssetSummaryMetric =
-				testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-					irrelevantGroupId, irrelevantChannelId,
-					randomIrrelevantAssetSummaryMetric());
+		if ((irrelevantGroupId != null) &&
+			(irrelevantAccountLifecycleId != null)) {
+
+			AccountLifecycleStageTransition
+				irrelevantAccountLifecycleStageTransition =
+					testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+						irrelevantGroupId, irrelevantAccountLifecycleId,
+						randomIrrelevantAccountLifecycleStageTransition());
 
 			page =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						irrelevantGroupId, irrelevantChannelId, null, null,
-						null, null, null, null, null,
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						irrelevantGroupId, irrelevantAccountLifecycleId, null,
+						null, null, null, null, null, null, null,
 						Pagination.of(1, (int)totalCount + 1), null);
 
 			Assert.assertEquals(totalCount + 1, page.getTotalCount());
 
 			assertContains(
-				irrelevantAssetSummaryMetric,
-				(List<AssetSummaryMetric>)page.getItems());
+				irrelevantAccountLifecycleStageTransition,
+				(List<AccountLifecycleStageTransition>)page.getItems());
 			assertValid(
 				page,
-				testGetWorkspaceGroupChannelAssetSummariesPage_getExpectedActions(
-					irrelevantGroupId, irrelevantChannelId));
+				testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getExpectedActions(
+					irrelevantGroupId, irrelevantAccountLifecycleId));
 		}
 
-		AssetSummaryMetric assetSummaryMetric1 =
-			testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-				groupId, channelId, randomAssetSummaryMetric());
+		AccountLifecycleStageTransition accountLifecycleStageTransition1 =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+				groupId, accountLifecycleId,
+				randomAccountLifecycleStageTransition());
 
-		AssetSummaryMetric assetSummaryMetric2 =
-			testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-				groupId, channelId, randomAssetSummaryMetric());
+		AccountLifecycleStageTransition accountLifecycleStageTransition2 =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+				groupId, accountLifecycleId,
+				randomAccountLifecycleStageTransition());
 
 		page =
-			assetSummaryMetricResource.
-				getWorkspaceGroupChannelAssetSummariesPage(
-					groupId, channelId, null, null, null, null, null, null,
-					null, Pagination.of(1, 10), null);
+			accountLifecycleStageTransitionResource.
+				getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+					groupId, accountLifecycleId, null, null, null, null, null,
+					null, null, null, Pagination.of(1, 10), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
 		assertContains(
-			assetSummaryMetric1, (List<AssetSummaryMetric>)page.getItems());
+			accountLifecycleStageTransition1,
+			(List<AccountLifecycleStageTransition>)page.getItems());
 		assertContains(
-			assetSummaryMetric2, (List<AssetSummaryMetric>)page.getItems());
+			accountLifecycleStageTransition2,
+			(List<AccountLifecycleStageTransition>)page.getItems());
 		assertValid(
 			page,
-			testGetWorkspaceGroupChannelAssetSummariesPage_getExpectedActions(
-				groupId, channelId));
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getExpectedActions(
+				groupId, accountLifecycleId));
 	}
 
 	protected Map<String, Map<String, String>>
-			testGetWorkspaceGroupChannelAssetSummariesPage_getExpectedActions(
-				Long groupId, String channelId)
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getExpectedActions(
+				Long groupId, String accountLifecycleId)
 		throws Exception {
 
 		Map<String, Map<String, String>> expectedActions = new HashMap<>();
@@ -271,45 +293,49 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	}
 
 	@Test
-	public void testGetWorkspaceGroupChannelAssetSummariesPageWithPagination()
+	public void testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithPagination()
 		throws Exception {
 
 		Long groupId =
-			testGetWorkspaceGroupChannelAssetSummariesPage_getGroupId();
-		String channelId =
-			testGetWorkspaceGroupChannelAssetSummariesPage_getChannelId();
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getGroupId();
+		String accountLifecycleId =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getAccountLifecycleId();
 
-		Page<AssetSummaryMetric> assetSummaryMetricsPage =
-			assetSummaryMetricResource.
-				getWorkspaceGroupChannelAssetSummariesPage(
-					groupId, channelId, null, null, null, null, null, null,
-					null, null, null);
+		Page<AccountLifecycleStageTransition>
+			accountLifecycleStageTransitionsPage =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			assetSummaryMetricsPage.getTotalCount());
+			accountLifecycleStageTransitionsPage.getTotalCount());
 
-		AssetSummaryMetric assetSummaryMetric1 =
-			testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-				groupId, channelId, randomAssetSummaryMetric());
+		AccountLifecycleStageTransition accountLifecycleStageTransition1 =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+				groupId, accountLifecycleId,
+				randomAccountLifecycleStageTransition());
 
-		AssetSummaryMetric assetSummaryMetric2 =
-			testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-				groupId, channelId, randomAssetSummaryMetric());
+		AccountLifecycleStageTransition accountLifecycleStageTransition2 =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+				groupId, accountLifecycleId,
+				randomAccountLifecycleStageTransition());
 
-		AssetSummaryMetric assetSummaryMetric3 =
-			testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-				groupId, channelId, randomAssetSummaryMetric());
+		AccountLifecycleStageTransition accountLifecycleStageTransition3 =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+				groupId, accountLifecycleId,
+				randomAccountLifecycleStageTransition());
 
 		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
 
 		int pageSizeLimit = 500;
 
 		if (totalCount >= (pageSizeLimit - 2)) {
-			Page<AssetSummaryMetric> page1 =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						groupId, channelId, null, null, null, null, null, null,
-						null,
+			Page<AccountLifecycleStageTransition> page1 =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
 							pageSizeLimit),
@@ -318,133 +344,148 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
 
 			assertContains(
-				assetSummaryMetric1,
-				(List<AssetSummaryMetric>)page1.getItems());
+				accountLifecycleStageTransition1,
+				(List<AccountLifecycleStageTransition>)page1.getItems());
 
-			Page<AssetSummaryMetric> page2 =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						groupId, channelId, null, null, null, null, null, null,
-						null,
+			Page<AccountLifecycleStageTransition> page2 =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
 							pageSizeLimit),
 						null);
 
 			assertContains(
-				assetSummaryMetric2,
-				(List<AssetSummaryMetric>)page2.getItems());
+				accountLifecycleStageTransition2,
+				(List<AccountLifecycleStageTransition>)page2.getItems());
 
-			Page<AssetSummaryMetric> page3 =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						groupId, channelId, null, null, null, null, null, null,
-						null,
+			Page<AccountLifecycleStageTransition> page3 =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
 							pageSizeLimit),
 						null);
 
 			assertContains(
-				assetSummaryMetric3,
-				(List<AssetSummaryMetric>)page3.getItems());
+				accountLifecycleStageTransition3,
+				(List<AccountLifecycleStageTransition>)page3.getItems());
 		}
 		else {
-			Page<AssetSummaryMetric> page1 =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						groupId, channelId, null, null, null, null, null, null,
-						null, Pagination.of(1, totalCount + 2), null);
+			Page<AccountLifecycleStageTransition> page1 =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null,
+						Pagination.of(1, totalCount + 2), null);
 
-			List<AssetSummaryMetric> assetSummaryMetrics1 =
-				(List<AssetSummaryMetric>)page1.getItems();
+			List<AccountLifecycleStageTransition>
+				accountLifecycleStageTransitions1 =
+					(List<AccountLifecycleStageTransition>)page1.getItems();
 
 			Assert.assertEquals(
-				assetSummaryMetrics1.toString(), totalCount + 2,
-				assetSummaryMetrics1.size());
+				accountLifecycleStageTransitions1.toString(), totalCount + 2,
+				accountLifecycleStageTransitions1.size());
 
-			Page<AssetSummaryMetric> page2 =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						groupId, channelId, null, null, null, null, null, null,
-						null, Pagination.of(2, totalCount + 2), null);
+			Page<AccountLifecycleStageTransition> page2 =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null,
+						Pagination.of(2, totalCount + 2), null);
 
 			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
 
-			List<AssetSummaryMetric> assetSummaryMetrics2 =
-				(List<AssetSummaryMetric>)page2.getItems();
+			List<AccountLifecycleStageTransition>
+				accountLifecycleStageTransitions2 =
+					(List<AccountLifecycleStageTransition>)page2.getItems();
 
 			Assert.assertEquals(
-				assetSummaryMetrics2.toString(), 1,
-				assetSummaryMetrics2.size());
+				accountLifecycleStageTransitions2.toString(), 1,
+				accountLifecycleStageTransitions2.size());
 
-			Page<AssetSummaryMetric> page3 =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						groupId, channelId, null, null, null, null, null, null,
-						null, Pagination.of(1, (int)totalCount + 3), null);
+			Page<AccountLifecycleStageTransition> page3 =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null,
+						Pagination.of(1, (int)totalCount + 3), null);
 
 			assertContains(
-				assetSummaryMetric1,
-				(List<AssetSummaryMetric>)page3.getItems());
+				accountLifecycleStageTransition1,
+				(List<AccountLifecycleStageTransition>)page3.getItems());
 			assertContains(
-				assetSummaryMetric2,
-				(List<AssetSummaryMetric>)page3.getItems());
+				accountLifecycleStageTransition2,
+				(List<AccountLifecycleStageTransition>)page3.getItems());
 			assertContains(
-				assetSummaryMetric3,
-				(List<AssetSummaryMetric>)page3.getItems());
+				accountLifecycleStageTransition3,
+				(List<AccountLifecycleStageTransition>)page3.getItems());
 		}
 	}
 
 	@Test
-	public void testGetWorkspaceGroupChannelAssetSummariesPageWithSortDateTime()
+	public void testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSortDateTime()
 		throws Exception {
 
-		testGetWorkspaceGroupChannelAssetSummariesPageWithSort(
+		testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSort(
 			EntityField.Type.DATE_TIME,
-			(entityField, assetSummaryMetric1, assetSummaryMetric2) -> {
+			(entityField, accountLifecycleStageTransition1,
+			 accountLifecycleStageTransition2) -> {
+
 				BeanTestUtil.setProperty(
-					assetSummaryMetric1, entityField.getName(),
+					accountLifecycleStageTransition1, entityField.getName(),
 					new Date(System.currentTimeMillis() - (2 * Time.MINUTE)));
 			});
 	}
 
 	@Test
-	public void testGetWorkspaceGroupChannelAssetSummariesPageWithSortDouble()
+	public void testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSortDouble()
 		throws Exception {
 
-		testGetWorkspaceGroupChannelAssetSummariesPageWithSort(
+		testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSort(
 			EntityField.Type.DOUBLE,
-			(entityField, assetSummaryMetric1, assetSummaryMetric2) -> {
+			(entityField, accountLifecycleStageTransition1,
+			 accountLifecycleStageTransition2) -> {
+
 				BeanTestUtil.setProperty(
-					assetSummaryMetric1, entityField.getName(), 0.1);
+					accountLifecycleStageTransition1, entityField.getName(),
+					0.1);
 				BeanTestUtil.setProperty(
-					assetSummaryMetric2, entityField.getName(), 0.5);
+					accountLifecycleStageTransition2, entityField.getName(),
+					0.5);
 			});
 	}
 
 	@Test
-	public void testGetWorkspaceGroupChannelAssetSummariesPageWithSortInteger()
+	public void testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSortInteger()
 		throws Exception {
 
-		testGetWorkspaceGroupChannelAssetSummariesPageWithSort(
+		testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSort(
 			EntityField.Type.INTEGER,
-			(entityField, assetSummaryMetric1, assetSummaryMetric2) -> {
+			(entityField, accountLifecycleStageTransition1,
+			 accountLifecycleStageTransition2) -> {
+
 				BeanTestUtil.setProperty(
-					assetSummaryMetric1, entityField.getName(), 0);
+					accountLifecycleStageTransition1, entityField.getName(), 0);
 				BeanTestUtil.setProperty(
-					assetSummaryMetric2, entityField.getName(), 1);
+					accountLifecycleStageTransition2, entityField.getName(), 1);
 			});
 	}
 
 	@Test
-	public void testGetWorkspaceGroupChannelAssetSummariesPageWithSortString()
+	public void testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSortString()
 		throws Exception {
 
-		testGetWorkspaceGroupChannelAssetSummariesPageWithSort(
+		testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSort(
 			EntityField.Type.STRING,
-			(entityField, assetSummaryMetric1, assetSummaryMetric2) -> {
-				Class<?> clazz = assetSummaryMetric1.getClass();
+			(entityField, accountLifecycleStageTransition1,
+			 accountLifecycleStageTransition2) -> {
+
+				Class<?> clazz = accountLifecycleStageTransition1.getClass();
 
 				String entityFieldName = entityField.getName();
 
@@ -455,21 +496,21 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 
 				if (returnType.isAssignableFrom(Map.class)) {
 					BeanTestUtil.setProperty(
-						assetSummaryMetric1, entityFieldName,
+						accountLifecycleStageTransition1, entityFieldName,
 						Collections.singletonMap("Aaa", "Aaa"));
 					BeanTestUtil.setProperty(
-						assetSummaryMetric2, entityFieldName,
+						accountLifecycleStageTransition2, entityFieldName,
 						Collections.singletonMap("Bbb", "Bbb"));
 				}
 				else if (entityFieldName.contains("email")) {
 					BeanTestUtil.setProperty(
-						assetSummaryMetric1, entityFieldName,
+						accountLifecycleStageTransition1, entityFieldName,
 						"aaa" +
 							StringUtil.toLowerCase(
 								RandomTestUtil.randomString()) +
 									"@liferay.com");
 					BeanTestUtil.setProperty(
-						assetSummaryMetric2, entityFieldName,
+						accountLifecycleStageTransition2, entityFieldName,
 						"bbb" +
 							StringUtil.toLowerCase(
 								RandomTestUtil.randomString()) +
@@ -477,12 +518,12 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 				}
 				else {
 					BeanTestUtil.setProperty(
-						assetSummaryMetric1, entityFieldName,
+						accountLifecycleStageTransition1, entityFieldName,
 						"aaa" +
 							StringUtil.toLowerCase(
 								RandomTestUtil.randomString()));
 					BeanTestUtil.setProperty(
-						assetSummaryMetric2, entityFieldName,
+						accountLifecycleStageTransition2, entityFieldName,
 						"bbb" +
 							StringUtil.toLowerCase(
 								RandomTestUtil.randomString()));
@@ -490,11 +531,13 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			});
 	}
 
-	protected void testGetWorkspaceGroupChannelAssetSummariesPageWithSort(
-			EntityField.Type type,
-			UnsafeTriConsumer
-				<EntityField, AssetSummaryMetric, AssetSummaryMetric, Exception>
-					unsafeTriConsumer)
+	protected void
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPageWithSort(
+				EntityField.Type type,
+				UnsafeTriConsumer
+					<EntityField, AccountLifecycleStageTransition,
+					 AccountLifecycleStageTransition, Exception>
+						unsafeTriConsumer)
 		throws Exception {
 
 		List<EntityField> entityFields = getEntityFields(type);
@@ -504,74 +547,72 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 		}
 
 		Long groupId =
-			testGetWorkspaceGroupChannelAssetSummariesPage_getGroupId();
-		String channelId =
-			testGetWorkspaceGroupChannelAssetSummariesPage_getChannelId();
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getGroupId();
+		String accountLifecycleId =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getAccountLifecycleId();
 
-		AssetSummaryMetric assetSummaryMetric1 = randomAssetSummaryMetric();
-		AssetSummaryMetric assetSummaryMetric2 = randomAssetSummaryMetric();
+		AccountLifecycleStageTransition accountLifecycleStageTransition1 =
+			randomAccountLifecycleStageTransition();
+		AccountLifecycleStageTransition accountLifecycleStageTransition2 =
+			randomAccountLifecycleStageTransition();
 
 		for (EntityField entityField : entityFields) {
 			unsafeTriConsumer.accept(
-				entityField, assetSummaryMetric1, assetSummaryMetric2);
+				entityField, accountLifecycleStageTransition1,
+				accountLifecycleStageTransition2);
 		}
 
-		assetSummaryMetric1 =
-			testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-				groupId, channelId, assetSummaryMetric1);
+		accountLifecycleStageTransition1 =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+				groupId, accountLifecycleId, accountLifecycleStageTransition1);
 
-		assetSummaryMetric2 =
-			testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-				groupId, channelId, assetSummaryMetric2);
+		accountLifecycleStageTransition2 =
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+				groupId, accountLifecycleId, accountLifecycleStageTransition2);
 
-		Page<AssetSummaryMetric> page =
-			assetSummaryMetricResource.
-				getWorkspaceGroupChannelAssetSummariesPage(
-					groupId, channelId, null, null, null, null, null, null,
-					null, null, null);
+		Page<AccountLifecycleStageTransition> page =
+			accountLifecycleStageTransitionResource.
+				getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+					groupId, accountLifecycleId, null, null, null, null, null,
+					null, null, null, null, null);
 
 		for (EntityField entityField : entityFields) {
-			Page<AssetSummaryMetric> ascPage =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						groupId, channelId, null, null, null, null, null, null,
-						null, Pagination.of(1, (int)page.getTotalCount() + 1),
+			Page<AccountLifecycleStageTransition> ascPage =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null,
+						Pagination.of(1, (int)page.getTotalCount() + 1),
 						entityField.getName() + ":asc");
 
 			assertContains(
-				assetSummaryMetric1,
-				(List<AssetSummaryMetric>)ascPage.getItems());
+				accountLifecycleStageTransition1,
+				(List<AccountLifecycleStageTransition>)ascPage.getItems());
 			assertContains(
-				assetSummaryMetric2,
-				(List<AssetSummaryMetric>)ascPage.getItems());
+				accountLifecycleStageTransition2,
+				(List<AccountLifecycleStageTransition>)ascPage.getItems());
 
-			Page<AssetSummaryMetric> descPage =
-				assetSummaryMetricResource.
-					getWorkspaceGroupChannelAssetSummariesPage(
-						groupId, channelId, null, null, null, null, null, null,
-						null, Pagination.of(1, (int)page.getTotalCount() + 1),
+			Page<AccountLifecycleStageTransition> descPage =
+				accountLifecycleStageTransitionResource.
+					getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+						groupId, accountLifecycleId, null, null, null, null,
+						null, null, null, null,
+						Pagination.of(1, (int)page.getTotalCount() + 1),
 						entityField.getName() + ":desc");
 
 			assertContains(
-				assetSummaryMetric2,
-				(List<AssetSummaryMetric>)descPage.getItems());
+				accountLifecycleStageTransition2,
+				(List<AccountLifecycleStageTransition>)descPage.getItems());
 			assertContains(
-				assetSummaryMetric1,
-				(List<AssetSummaryMetric>)descPage.getItems());
+				accountLifecycleStageTransition1,
+				(List<AccountLifecycleStageTransition>)descPage.getItems());
 		}
 	}
 
-	protected AssetSummaryMetric
-			testGetWorkspaceGroupChannelAssetSummariesPage_addAssetSummaryMetric(
-				Long groupId, String channelId,
-				AssetSummaryMetric assetSummaryMetric)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected Long testGetWorkspaceGroupChannelAssetSummariesPage_getGroupId()
+	protected AccountLifecycleStageTransition
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_addAccountLifecycleStageTransition(
+				Long groupId, String accountLifecycleId,
+				AccountLifecycleStageTransition accountLifecycleStageTransition)
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -579,14 +620,22 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	}
 
 	protected Long
-			testGetWorkspaceGroupChannelAssetSummariesPage_getIrrelevantGroupId()
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getGroupId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getIrrelevantGroupId()
 		throws Exception {
 
 		return null;
 	}
 
 	protected String
-			testGetWorkspaceGroupChannelAssetSummariesPage_getChannelId()
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getAccountLifecycleId()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -594,20 +643,23 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	}
 
 	protected String
-			testGetWorkspaceGroupChannelAssetSummariesPage_getIrrelevantChannelId()
+			testGetWorkspaceGroupAccountLifecycleStageTransitionsPage_getIrrelevantAccountLifecycleId()
 		throws Exception {
 
 		return null;
 	}
 
 	protected void assertContains(
-		AssetSummaryMetric assetSummaryMetric,
-		List<AssetSummaryMetric> assetSummaryMetrics) {
+		AccountLifecycleStageTransition accountLifecycleStageTransition,
+		List<AccountLifecycleStageTransition>
+			accountLifecycleStageTransitions) {
 
 		boolean contains = false;
 
-		for (AssetSummaryMetric item : assetSummaryMetrics) {
-			if (equals(assetSummaryMetric, item)) {
+		for (AccountLifecycleStageTransition item :
+				accountLifecycleStageTransitions) {
+
+			if (equals(accountLifecycleStageTransition, item)) {
 				contains = true;
 
 				break;
@@ -615,7 +667,8 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 		}
 
 		Assert.assertTrue(
-			assetSummaryMetrics + " does not contain " + assetSummaryMetric,
+			accountLifecycleStageTransitions + " does not contain " +
+				accountLifecycleStageTransition,
 			contains);
 	}
 
@@ -628,45 +681,60 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	}
 
 	protected void assertEquals(
-		AssetSummaryMetric assetSummaryMetric1,
-		AssetSummaryMetric assetSummaryMetric2) {
+		AccountLifecycleStageTransition accountLifecycleStageTransition1,
+		AccountLifecycleStageTransition accountLifecycleStageTransition2) {
 
 		Assert.assertTrue(
-			assetSummaryMetric1 + " does not equal " + assetSummaryMetric2,
-			equals(assetSummaryMetric1, assetSummaryMetric2));
+			accountLifecycleStageTransition1 + " does not equal " +
+				accountLifecycleStageTransition2,
+			equals(
+				accountLifecycleStageTransition1,
+				accountLifecycleStageTransition2));
 	}
 
 	protected void assertEquals(
-		List<AssetSummaryMetric> assetSummaryMetrics1,
-		List<AssetSummaryMetric> assetSummaryMetrics2) {
+		List<AccountLifecycleStageTransition> accountLifecycleStageTransitions1,
+		List<AccountLifecycleStageTransition>
+			accountLifecycleStageTransitions2) {
 
 		Assert.assertEquals(
-			assetSummaryMetrics1.size(), assetSummaryMetrics2.size());
+			accountLifecycleStageTransitions1.size(),
+			accountLifecycleStageTransitions2.size());
 
-		for (int i = 0; i < assetSummaryMetrics1.size(); i++) {
-			AssetSummaryMetric assetSummaryMetric1 = assetSummaryMetrics1.get(
-				i);
-			AssetSummaryMetric assetSummaryMetric2 = assetSummaryMetrics2.get(
-				i);
+		for (int i = 0; i < accountLifecycleStageTransitions1.size(); i++) {
+			AccountLifecycleStageTransition accountLifecycleStageTransition1 =
+				accountLifecycleStageTransitions1.get(i);
+			AccountLifecycleStageTransition accountLifecycleStageTransition2 =
+				accountLifecycleStageTransitions2.get(i);
 
-			assertEquals(assetSummaryMetric1, assetSummaryMetric2);
+			assertEquals(
+				accountLifecycleStageTransition1,
+				accountLifecycleStageTransition2);
 		}
 	}
 
 	protected void assertEqualsIgnoringOrder(
-		List<AssetSummaryMetric> assetSummaryMetrics1,
-		List<AssetSummaryMetric> assetSummaryMetrics2) {
+		List<AccountLifecycleStageTransition> accountLifecycleStageTransitions1,
+		List<AccountLifecycleStageTransition>
+			accountLifecycleStageTransitions2) {
 
 		Assert.assertEquals(
-			assetSummaryMetrics1.size(), assetSummaryMetrics2.size());
+			accountLifecycleStageTransitions1.size(),
+			accountLifecycleStageTransitions2.size());
 
-		for (AssetSummaryMetric assetSummaryMetric1 : assetSummaryMetrics1) {
+		for (AccountLifecycleStageTransition accountLifecycleStageTransition1 :
+				accountLifecycleStageTransitions1) {
+
 			boolean contains = false;
 
-			for (AssetSummaryMetric assetSummaryMetric2 :
-					assetSummaryMetrics2) {
+			for (AccountLifecycleStageTransition
+					accountLifecycleStageTransition2 :
+						accountLifecycleStageTransitions2) {
 
-				if (equals(assetSummaryMetric1, assetSummaryMetric2)) {
+				if (equals(
+						accountLifecycleStageTransition1,
+						accountLifecycleStageTransition2)) {
+
 					contains = true;
 
 					break;
@@ -674,13 +742,14 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			}
 
 			Assert.assertTrue(
-				assetSummaryMetrics2 + " does not contain " +
-					assetSummaryMetric1,
+				accountLifecycleStageTransitions2 + " does not contain " +
+					accountLifecycleStageTransition1,
 				contains);
 		}
 	}
 
-	protected void assertValid(AssetSummaryMetric assetSummaryMetric)
+	protected void assertValid(
+			AccountLifecycleStageTransition accountLifecycleStageTransition)
 		throws Exception {
 
 		boolean valid = true;
@@ -688,32 +757,16 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
-			if (Objects.equals("assetId", additionalAssertFieldName)) {
-				if (assetSummaryMetric.getAssetId() == null) {
+			if (Objects.equals("accountId", additionalAssertFieldName)) {
+				if (accountLifecycleStageTransition.getAccountId() == null) {
 					valid = false;
 				}
 
 				continue;
 			}
 
-			if (Objects.equals("assetTitle", additionalAssertFieldName)) {
-				if (assetSummaryMetric.getAssetTitle() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("assetType", additionalAssertFieldName)) {
-				if (assetSummaryMetric.getAssetType() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("downloads", additionalAssertFieldName)) {
-				if (assetSummaryMetric.getDownloads() == null) {
+			if (Objects.equals("accountName", additionalAssertFieldName)) {
+				if (accountLifecycleStageTransition.getAccountName() == null) {
 					valid = false;
 				}
 
@@ -721,17 +774,11 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			}
 
 			if (Objects.equals(
-					"downloadsTrendPercentage", additionalAssertFieldName)) {
+					"fromAccountLifecycleStage", additionalAssertFieldName)) {
 
-				if (assetSummaryMetric.getDownloadsTrendPercentage() == null) {
-					valid = false;
-				}
+				if (accountLifecycleStageTransition.
+						getFromAccountLifecycleStage() == null) {
 
-				continue;
-			}
-
-			if (Objects.equals("impressions", additionalAssertFieldName)) {
-				if (assetSummaryMetric.getImpressions() == null) {
 					valid = false;
 				}
 
@@ -739,47 +786,21 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			}
 
 			if (Objects.equals(
-					"impressionsTrendPercentage", additionalAssertFieldName)) {
+					"toAccountLifecycleStage", additionalAssertFieldName)) {
 
-				if (assetSummaryMetric.getImpressionsTrendPercentage() ==
+				if (accountLifecycleStageTransition.
+						getToAccountLifecycleStage() == null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("transitionDate", additionalAssertFieldName)) {
+				if (accountLifecycleStageTransition.getTransitionDate() ==
 						null) {
 
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("reads", additionalAssertFieldName)) {
-				if (assetSummaryMetric.getReads() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals(
-					"readsTrendPercentage", additionalAssertFieldName)) {
-
-				if (assetSummaryMetric.getReadsTrendPercentage() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("views", additionalAssertFieldName)) {
-				if (assetSummaryMetric.getViews() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals(
-					"viewsTrendPercentage", additionalAssertFieldName)) {
-
-				if (assetSummaryMetric.getViewsTrendPercentage() == null) {
 					valid = false;
 				}
 
@@ -794,20 +815,20 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 		Assert.assertTrue(valid);
 	}
 
-	protected void assertValid(Page<AssetSummaryMetric> page) {
+	protected void assertValid(Page<AccountLifecycleStageTransition> page) {
 		assertValid(page, Collections.emptyMap());
 	}
 
 	protected void assertValid(
-		Page<AssetSummaryMetric> page,
+		Page<AccountLifecycleStageTransition> page,
 		Map<String, Map<String, String>> expectedActions) {
 
 		boolean valid = false;
 
-		java.util.Collection<AssetSummaryMetric> assetSummaryMetrics =
-			page.getItems();
+		java.util.Collection<AccountLifecycleStageTransition>
+			accountLifecycleStageTransitions = page.getItems();
 
-		int size = assetSummaryMetrics.size();
+		int size = accountLifecycleStageTransitions.size();
 
 		if ((page.getLastPage() > 0) && (page.getPage() > 0) &&
 			(page.getPageSize() > 0) && (page.getTotalCount() > 0) &&
@@ -847,8 +868,8 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
-					com.liferay.osb.faro.rest.dto.v1_0.AssetSummaryMetric.
-						class)) {
+					com.liferay.osb.faro.rest.dto.v1_0.
+						AccountLifecycleStageTransition.class)) {
 
 			if (!ArrayUtil.contains(
 					getAdditionalAssertFieldNames(), field.getName())) {
@@ -897,20 +918,22 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	}
 
 	protected boolean equals(
-		AssetSummaryMetric assetSummaryMetric1,
-		AssetSummaryMetric assetSummaryMetric2) {
+		AccountLifecycleStageTransition accountLifecycleStageTransition1,
+		AccountLifecycleStageTransition accountLifecycleStageTransition2) {
 
-		if (assetSummaryMetric1 == assetSummaryMetric2) {
+		if (accountLifecycleStageTransition1 ==
+				accountLifecycleStageTransition2) {
+
 			return true;
 		}
 
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
-			if (Objects.equals("assetId", additionalAssertFieldName)) {
+			if (Objects.equals("accountId", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
-						assetSummaryMetric1.getAssetId(),
-						assetSummaryMetric2.getAssetId())) {
+						accountLifecycleStageTransition1.getAccountId(),
+						accountLifecycleStageTransition2.getAccountId())) {
 
 					return false;
 				}
@@ -918,32 +941,10 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals("assetTitle", additionalAssertFieldName)) {
+			if (Objects.equals("accountName", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
-						assetSummaryMetric1.getAssetTitle(),
-						assetSummaryMetric2.getAssetTitle())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("assetType", additionalAssertFieldName)) {
-				if (!Objects.deepEquals(
-						assetSummaryMetric1.getAssetType(),
-						assetSummaryMetric2.getAssetType())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("downloads", additionalAssertFieldName)) {
-				if (!Objects.deepEquals(
-						assetSummaryMetric1.getDownloads(),
-						assetSummaryMetric2.getDownloads())) {
+						accountLifecycleStageTransition1.getAccountName(),
+						accountLifecycleStageTransition2.getAccountName())) {
 
 					return false;
 				}
@@ -952,22 +953,13 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			}
 
 			if (Objects.equals(
-					"downloadsTrendPercentage", additionalAssertFieldName)) {
+					"fromAccountLifecycleStage", additionalAssertFieldName)) {
 
 				if (!Objects.deepEquals(
-						assetSummaryMetric1.getDownloadsTrendPercentage(),
-						assetSummaryMetric2.getDownloadsTrendPercentage())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("impressions", additionalAssertFieldName)) {
-				if (!Objects.deepEquals(
-						assetSummaryMetric1.getImpressions(),
-						assetSummaryMetric2.getImpressions())) {
+						accountLifecycleStageTransition1.
+							getFromAccountLifecycleStage(),
+						accountLifecycleStageTransition2.
+							getFromAccountLifecycleStage())) {
 
 					return false;
 				}
@@ -976,11 +968,13 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			}
 
 			if (Objects.equals(
-					"impressionsTrendPercentage", additionalAssertFieldName)) {
+					"toAccountLifecycleStage", additionalAssertFieldName)) {
 
 				if (!Objects.deepEquals(
-						assetSummaryMetric1.getImpressionsTrendPercentage(),
-						assetSummaryMetric2.getImpressionsTrendPercentage())) {
+						accountLifecycleStageTransition1.
+							getToAccountLifecycleStage(),
+						accountLifecycleStageTransition2.
+							getToAccountLifecycleStage())) {
 
 					return false;
 				}
@@ -988,47 +982,10 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals("reads", additionalAssertFieldName)) {
+			if (Objects.equals("transitionDate", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
-						assetSummaryMetric1.getReads(),
-						assetSummaryMetric2.getReads())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals(
-					"readsTrendPercentage", additionalAssertFieldName)) {
-
-				if (!Objects.deepEquals(
-						assetSummaryMetric1.getReadsTrendPercentage(),
-						assetSummaryMetric2.getReadsTrendPercentage())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("views", additionalAssertFieldName)) {
-				if (!Objects.deepEquals(
-						assetSummaryMetric1.getViews(),
-						assetSummaryMetric2.getViews())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals(
-					"viewsTrendPercentage", additionalAssertFieldName)) {
-
-				if (!Objects.deepEquals(
-						assetSummaryMetric1.getViewsTrendPercentage(),
-						assetSummaryMetric2.getViewsTrendPercentage())) {
+						accountLifecycleStageTransition1.getTransitionDate(),
+						accountLifecycleStageTransition2.getTransitionDate())) {
 
 					return false;
 				}
@@ -1092,13 +1049,15 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	protected java.util.Collection<EntityField> getEntityFields()
 		throws Exception {
 
-		if (!(_assetSummaryMetricResource instanceof EntityModelResource)) {
+		if (!(_accountLifecycleStageTransitionResource instanceof
+				EntityModelResource)) {
+
 			throw new UnsupportedOperationException(
 				"Resource is not an instance of EntityModelResource");
 		}
 
 		EntityModelResource entityModelResource =
-			(EntityModelResource)_assetSummaryMetricResource;
+			(EntityModelResource)_accountLifecycleStageTransitionResource;
 
 		EntityModel entityModel = entityModelResource.getEntityModel(
 			new MultivaluedHashMap());
@@ -1132,7 +1091,7 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 
 	protected String getFilterString(
 		EntityField entityField, String operator,
-		AssetSummaryMetric assetSummaryMetric) {
+		AccountLifecycleStageTransition accountLifecycleStageTransition) {
 
 		StringBundler sb = new StringBundler();
 
@@ -1144,8 +1103,8 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 		sb.append(operator);
 		sb.append(" ");
 
-		if (entityFieldName.equals("assetId")) {
-			Object object = assetSummaryMetric.getAssetId();
+		if (entityFieldName.equals("accountId")) {
+			Object object = accountLifecycleStageTransition.getAccountId();
 
 			String value = String.valueOf(object);
 
@@ -1190,8 +1149,8 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			return sb.toString();
 		}
 
-		if (entityFieldName.equals("assetTitle")) {
-			Object object = assetSummaryMetric.getAssetTitle();
+		if (entityFieldName.equals("accountName")) {
+			Object object = accountLifecycleStageTransition.getAccountName();
 
 			String value = String.valueOf(object);
 
@@ -1236,61 +1195,43 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			return sb.toString();
 		}
 
-		if (entityFieldName.equals("assetType")) {
+		if (entityFieldName.equals("fromAccountLifecycleStage")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
 		}
 
-		if (entityFieldName.equals("downloads")) {
-			sb.append(String.valueOf(assetSummaryMetric.getDownloads()));
-
-			return sb.toString();
+		if (entityFieldName.equals("toAccountLifecycleStage")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
 		}
 
-		if (entityFieldName.equals("downloadsTrendPercentage")) {
-			sb.append(
-				String.valueOf(
-					assetSummaryMetric.getDownloadsTrendPercentage()));
+		if (entityFieldName.equals("transitionDate")) {
+			if (operator.equals("between")) {
+				Date date = accountLifecycleStageTransition.getTransitionDate();
 
-			return sb.toString();
-		}
+				sb = new StringBundler();
 
-		if (entityFieldName.equals("impressions")) {
-			sb.append(String.valueOf(assetSummaryMetric.getImpressions()));
+				sb.append("(");
+				sb.append(entityFieldName);
+				sb.append(" gt ");
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(" and ");
+				sb.append(entityFieldName);
+				sb.append(" lt ");
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(")");
+			}
+			else {
+				sb.append(entityFieldName);
 
-			return sb.toString();
-		}
+				sb.append(" ");
+				sb.append(operator);
+				sb.append(" ");
 
-		if (entityFieldName.equals("impressionsTrendPercentage")) {
-			sb.append(
-				String.valueOf(
-					assetSummaryMetric.getImpressionsTrendPercentage()));
-
-			return sb.toString();
-		}
-
-		if (entityFieldName.equals("reads")) {
-			sb.append(String.valueOf(assetSummaryMetric.getReads()));
-
-			return sb.toString();
-		}
-
-		if (entityFieldName.equals("readsTrendPercentage")) {
-			sb.append(
-				String.valueOf(assetSummaryMetric.getReadsTrendPercentage()));
-
-			return sb.toString();
-		}
-
-		if (entityFieldName.equals("views")) {
-			sb.append(String.valueOf(assetSummaryMetric.getViews()));
-
-			return sb.toString();
-		}
-
-		if (entityFieldName.equals("viewsTrendPercentage")) {
-			sb.append(
-				String.valueOf(assetSummaryMetric.getViewsTrendPercentage()));
+				sb.append(
+					_format.format(
+						accountLifecycleStageTransition.getTransitionDate()));
+			}
 
 			return sb.toString();
 		}
@@ -1339,40 +1280,41 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 			invoke(queryGraphQLField.toString()));
 	}
 
-	protected AssetSummaryMetric randomAssetSummaryMetric() throws Exception {
-		return new AssetSummaryMetric() {
+	protected AccountLifecycleStageTransition
+			randomAccountLifecycleStageTransition()
+		throws Exception {
+
+		return new AccountLifecycleStageTransition() {
 			{
-				assetId = StringUtil.toLowerCase(RandomTestUtil.randomString());
-				assetTitle = StringUtil.toLowerCase(
+				accountId = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
-				downloads = RandomTestUtil.randomDouble();
-				downloadsTrendPercentage = RandomTestUtil.randomDouble();
-				impressions = RandomTestUtil.randomDouble();
-				impressionsTrendPercentage = RandomTestUtil.randomDouble();
-				reads = RandomTestUtil.randomDouble();
-				readsTrendPercentage = RandomTestUtil.randomDouble();
-				views = RandomTestUtil.randomDouble();
-				viewsTrendPercentage = RandomTestUtil.randomDouble();
+				accountName = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				transitionDate = RandomTestUtil.nextDate();
 			}
 		};
 	}
 
-	protected AssetSummaryMetric randomIrrelevantAssetSummaryMetric()
+	protected AccountLifecycleStageTransition
+			randomIrrelevantAccountLifecycleStageTransition()
 		throws Exception {
 
-		AssetSummaryMetric randomIrrelevantAssetSummaryMetric =
-			randomAssetSummaryMetric();
+		AccountLifecycleStageTransition
+			randomIrrelevantAccountLifecycleStageTransition =
+				randomAccountLifecycleStageTransition();
 
-		return randomIrrelevantAssetSummaryMetric;
+		return randomIrrelevantAccountLifecycleStageTransition;
 	}
 
-	protected AssetSummaryMetric randomPatchAssetSummaryMetric()
+	protected AccountLifecycleStageTransition
+			randomPatchAccountLifecycleStageTransition()
 		throws Exception {
 
-		return randomAssetSummaryMetric();
+		return randomAccountLifecycleStageTransition();
 	}
 
-	protected AssetSummaryMetricResource assetSummaryMetricResource;
+	protected AccountLifecycleStageTransitionResource
+		accountLifecycleStageTransitionResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1571,15 +1513,17 @@ public abstract class BaseAssetSummaryMetricResourceTestCase {
 	}
 
 	private static final com.liferay.portal.kernel.log.Log _log =
-		LogFactoryUtil.getLog(BaseAssetSummaryMetricResourceTestCase.class);
+		LogFactoryUtil.getLog(
+			BaseAccountLifecycleStageTransitionResourceTestCase.class);
 
 	private static Format _format;
 
 	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
-	private com.liferay.osb.faro.rest.resource.v1_0.AssetSummaryMetricResource
-		_assetSummaryMetricResource;
+	private com.liferay.osb.faro.rest.resource.v1_0.
+		AccountLifecycleStageTransitionResource
+			_accountLifecycleStageTransitionResource;
 
 }
-// LIFERAY-REST-BUILDER-HASH:1609249094
+// LIFERAY-REST-BUILDER-HASH:-682377298

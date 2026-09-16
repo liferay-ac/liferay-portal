@@ -147,7 +147,7 @@ public class IndividualSegmentMembershipChange implements Serializable {
 	private Supplier<Date> _dateFirstSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "Identifier of the change record."
+		description = "ID of the change record."
 	)
 	public String getId() {
 		if (_idSupplier != null) {
@@ -180,7 +180,7 @@ public class IndividualSegmentMembershipChange implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Identifier of the change record.")
+	@GraphQLField(description = "ID of the change record.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String id;
 
@@ -233,7 +233,7 @@ public class IndividualSegmentMembershipChange implements Serializable {
 	private Supplier<String> _individualEmailSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "Identifier of the individual whose membership changed. Use with `getWorkspaceGroupIndividual` to fetch the individual."
+		description = "ID of the individual whose membership changed. Use with `getWorkspaceGroupIndividual` to fetch the individual."
 	)
 	public String getIndividualId() {
 		if (_individualIdSupplier != null) {
@@ -269,7 +269,7 @@ public class IndividualSegmentMembershipChange implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "Identifier of the individual whose membership changed. Use with `getWorkspaceGroupIndividual` to fetch the individual."
+		description = "ID of the individual whose membership changed. Use with `getWorkspaceGroupIndividual` to fetch the individual."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String individualId;
@@ -323,7 +323,7 @@ public class IndividualSegmentMembershipChange implements Serializable {
 	private Supplier<String> _individualNameSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "Identifier of the segment this change belongs to."
+		description = "ID of the segment this change belongs to."
 	)
 	public String getIndividualSegmentId() {
 		if (_individualSegmentIdSupplier != null) {
@@ -358,9 +358,7 @@ public class IndividualSegmentMembershipChange implements Serializable {
 		};
 	}
 
-	@GraphQLField(
-		description = "Identifier of the segment this change belongs to."
-	)
+	@GraphQLField(description = "ID of the segment this change belongs to.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String individualSegmentId;
 
@@ -673,4 +671,4 @@ public class IndividualSegmentMembershipChange implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
-// LIFERAY-REST-BUILDER-HASH:1987774678
+// LIFERAY-REST-BUILDER-HASH:2052792626

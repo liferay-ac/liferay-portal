@@ -5,7 +5,7 @@
 
 package com.liferay.osb.faro.rest.resource.v1_0;
 
-import com.liferay.osb.faro.rest.dto.v1_0.Account;
+import com.liferay.osb.faro.rest.dto.v1_0.AccountLifecycleStageTransition;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
@@ -41,16 +41,15 @@ import org.osgi.annotation.versioning.ProviderType;
  */
 @Generated("")
 @ProviderType
-public interface AccountResource {
+public interface AccountLifecycleStageTransitionResource {
 
-	public Account getWorkspaceGroupAccount(Long groupId, String accountId)
-		throws Exception;
-
-	public Page<Account> getWorkspaceGroupChannelAccountsPage(
-			Long groupId, String channelId, String lifecycleStage,
-			String rangeEnd, String rangeKey, String rangeStart, String search,
-			Pagination pagination,
-			com.liferay.portal.kernel.search.Sort[] sorts)
+	public Page<AccountLifecycleStageTransition>
+			getWorkspaceGroupAccountLifecycleStageTransitionsPage(
+				Long groupId, String accountLifecycleId, String country,
+				String fromLifecycleStage, String industry, String rangeEnd,
+				String rangeKey, String rangeStart, Long segmentId,
+				String toLifecycleStage, Pagination pagination,
+				com.liferay.portal.kernel.search.Sort[] sorts)
 		throws Exception;
 
 	public default void setContextAcceptLanguage(
@@ -115,7 +114,7 @@ public interface AccountResource {
 	@ProviderType
 	public interface Builder {
 
-		public AccountResource build();
+		public AccountLifecycleStageTransitionResource build();
 
 		public Builder checkPermissions(boolean checkPermissions);
 
@@ -141,4 +140,4 @@ public interface AccountResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:1128248714
+// LIFERAY-REST-BUILDER-HASH:-947199327
