@@ -59,17 +59,17 @@ public abstract class BasePageMetricResourceImpl
 	@io.swagger.v3.oas.annotations.Parameters(
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the Liferay site that owns the Analytics Cloud workspace.",
+				description = "ID of the Liferay site that owns the Analytics Cloud workspace.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "groupId"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Identifier of the channel whose search terms should be listed.",
+				description = "ID of the channel whose search terms should be listed.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
 				name = "channelId"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Optional data source id to scope results to a single data source.",
+				description = "Optional data source ID to scope results to a single data source.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
 				name = "dataSourceId"
 			),
@@ -603,4 +603,4 @@ public abstract class BasePageMetricResourceImpl
 		LogFactoryUtil.getLog(BasePageMetricResourceImpl.class);
 
 }
-// LIFERAY-REST-BUILDER-HASH:346168057
+// LIFERAY-REST-BUILDER-HASH:-1373160519
