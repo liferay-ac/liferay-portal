@@ -842,12 +842,12 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByType(
-		String type, int start, int end,
+		int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
 		return _collectionPersistenceFinderByType.find(
-			finderCache, new Object[] {new String[] {type}}, start, end,
+			finderCache, new Object[] {new int[] {type}}, start, end,
 			orderByComparator, useFinderCache);
 	}
 
@@ -861,11 +861,11 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry findByType_First(
-			String type, OrderByComparator<SegmentsEntry> orderByComparator)
+			int type, OrderByComparator<SegmentsEntry> orderByComparator)
 		throws NoSuchEntryException {
 
 		return _collectionPersistenceFinderByType.findFirst(
-			finderCache, new Object[] {new String[] {type}}, orderByComparator);
+			finderCache, new Object[] {new int[] {type}}, orderByComparator);
 	}
 
 	/**
@@ -877,10 +877,10 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry fetchByType_First(
-		String type, OrderByComparator<SegmentsEntry> orderByComparator) {
+		int type, OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderByType.fetchFirst(
-			finderCache, new Object[] {new String[] {type}}, orderByComparator);
+			finderCache, new Object[] {new int[] {type}}, orderByComparator);
 	}
 
 	/**
@@ -899,7 +899,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByType(
-		String[] types, int start, int end,
+		int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -914,9 +914,9 @@ public class SegmentsEntryPersistenceImpl
 	 * @param type the type
 	 */
 	@Override
-	public void removeByType(String type) {
+	public void removeByType(int type) {
 		_collectionPersistenceFinderByType.remove(
-			finderCache, new Object[] {new String[] {type}});
+			finderCache, new Object[] {new int[] {type}});
 	}
 
 	/**
@@ -926,9 +926,9 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByType(String type) {
+	public int countByType(int type) {
 		return _collectionPersistenceFinderByType.count(
-			finderCache, new Object[] {new String[] {type}});
+			finderCache, new Object[] {new int[] {type}});
 	}
 
 	/**
@@ -938,7 +938,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByType(String[] types) {
+	public int countByType(int[] types) {
 		return _collectionPersistenceFinderByType.count(
 			finderCache, new Object[] {ArrayUtil.sortedUnique(types)});
 	}
@@ -1600,14 +1600,13 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findBySRC_T(
-		String source, String type, int start, int end,
+		String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
 		return _collectionPersistenceFinderBySRC_T.find(
-			finderCache,
-			new Object[] {new String[] {source}, new String[] {type}}, start,
-			end, orderByComparator, useFinderCache);
+			finderCache, new Object[] {new String[] {source}, new int[] {type}},
+			start, end, orderByComparator, useFinderCache);
 	}
 
 	/**
@@ -1621,13 +1620,12 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry findBySRC_T_First(
-			String source, String type,
+			String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws NoSuchEntryException {
 
 		return _collectionPersistenceFinderBySRC_T.findFirst(
-			finderCache,
-			new Object[] {new String[] {source}, new String[] {type}},
+			finderCache, new Object[] {new String[] {source}, new int[] {type}},
 			orderByComparator);
 	}
 
@@ -1641,12 +1639,11 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry fetchBySRC_T_First(
-		String source, String type,
+		String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderBySRC_T.fetchFirst(
-			finderCache,
-			new Object[] {new String[] {source}, new String[] {type}},
+			finderCache, new Object[] {new String[] {source}, new int[] {type}},
 			orderByComparator);
 	}
 
@@ -1667,7 +1664,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findBySRC_T(
-		String[] sources, String[] types, int start, int end,
+		String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -1686,10 +1683,10 @@ public class SegmentsEntryPersistenceImpl
 	 * @param type the type
 	 */
 	@Override
-	public void removeBySRC_T(String source, String type) {
+	public void removeBySRC_T(String source, int type) {
 		_collectionPersistenceFinderBySRC_T.remove(
 			finderCache,
-			new Object[] {new String[] {source}, new String[] {type}});
+			new Object[] {new String[] {source}, new int[] {type}});
 	}
 
 	/**
@@ -1700,10 +1697,10 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countBySRC_T(String source, String type) {
+	public int countBySRC_T(String source, int type) {
 		return _collectionPersistenceFinderBySRC_T.count(
 			finderCache,
-			new Object[] {new String[] {source}, new String[] {type}});
+			new Object[] {new String[] {source}, new int[] {type}});
 	}
 
 	/**
@@ -1714,7 +1711,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countBySRC_T(String[] sources, String[] types) {
+	public int countBySRC_T(String[] sources, int[] types) {
 		return _collectionPersistenceFinderBySRC_T.count(
 			finderCache,
 			new Object[] {
@@ -1733,7 +1730,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the matching segments entries
 	 */
 	@Override
-	public List<SegmentsEntry> findBySRC_NotT(String source, String type) {
+	public List<SegmentsEntry> findBySRC_NotT(String source, int type) {
 		return findBySRC_NotT(
 			source, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
 	}
@@ -1753,7 +1750,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findBySRC_NotT(
-		String source, String type, int start, int end) {
+		String source, int type, int start, int end) {
 
 		return findBySRC_NotT(source, type, start, end, null);
 	}
@@ -1774,7 +1771,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findBySRC_NotT(
-		String source, String type, int start, int end,
+		String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return findBySRC_NotT(
@@ -1798,7 +1795,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findBySRC_NotT(
-		String source, String type, int start, int end,
+		String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -1818,7 +1815,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry findBySRC_NotT_First(
-			String source, String type,
+			String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws NoSuchEntryException {
 
@@ -1837,7 +1834,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry fetchBySRC_NotT_First(
-		String source, String type,
+		String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderBySRC_NotT.fetchFirst(
@@ -1857,7 +1854,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the matching segments entries
 	 */
 	@Override
-	public List<SegmentsEntry> findBySRC_NotT(String[] sources, String type) {
+	public List<SegmentsEntry> findBySRC_NotT(String[] sources, int type) {
 		return findBySRC_NotT(
 			sources, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
 	}
@@ -1877,7 +1874,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findBySRC_NotT(
-		String[] sources, String type, int start, int end) {
+		String[] sources, int type, int start, int end) {
 
 		return findBySRC_NotT(sources, type, start, end, null);
 	}
@@ -1898,7 +1895,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findBySRC_NotT(
-		String[] sources, String type, int start, int end,
+		String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return findBySRC_NotT(
@@ -1922,7 +1919,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findBySRC_NotT(
-		String[] sources, String type, int start, int end,
+		String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -1938,7 +1935,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @param type the type
 	 */
 	@Override
-	public void removeBySRC_NotT(String source, String type) {
+	public void removeBySRC_NotT(String source, int type) {
 		_collectionPersistenceFinderBySRC_NotT.remove(
 			finderCache, new Object[] {new String[] {source}, type});
 	}
@@ -1951,7 +1948,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countBySRC_NotT(String source, String type) {
+	public int countBySRC_NotT(String source, int type) {
 		return _collectionPersistenceFinderBySRC_NotT.count(
 			finderCache, new Object[] {new String[] {source}, type});
 	}
@@ -1964,7 +1961,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countBySRC_NotT(String[] sources, String type) {
+	public int countBySRC_NotT(String[] sources, int type) {
 		return _collectionPersistenceFinderBySRC_NotT.count(
 			finderCache, new Object[] {ArrayUtil.sortedUnique(sources), type});
 	}
@@ -2237,14 +2234,14 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_T(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
 		return _collectionPersistenceFinderByG_SRC_T.find(
 			finderCache,
 			new Object[] {
-				new long[] {groupId}, new String[] {source}, new String[] {type}
+				new long[] {groupId}, new String[] {source}, new int[] {type}
 			},
 			start, end, orderByComparator, useFinderCache);
 	}
@@ -2261,14 +2258,14 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry findByG_SRC_T_First(
-			long groupId, String source, String type,
+			long groupId, String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws NoSuchEntryException {
 
 		return _collectionPersistenceFinderByG_SRC_T.findFirst(
 			finderCache,
 			new Object[] {
-				new long[] {groupId}, new String[] {source}, new String[] {type}
+				new long[] {groupId}, new String[] {source}, new int[] {type}
 			},
 			orderByComparator);
 	}
@@ -2284,13 +2281,13 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry fetchByG_SRC_T_First(
-		long groupId, String source, String type,
+		long groupId, String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderByG_SRC_T.fetchFirst(
 			finderCache,
 			new Object[] {
-				new long[] {groupId}, new String[] {source}, new String[] {type}
+				new long[] {groupId}, new String[] {source}, new int[] {type}
 			},
 			orderByComparator);
 	}
@@ -2312,13 +2309,13 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> filterFindByG_SRC_T(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderByG_SRC_T.filterFind(
 			finderCache,
 			new Object[] {
-				new long[] {groupId}, new String[] {source}, new String[] {type}
+				new long[] {groupId}, new String[] {source}, new int[] {type}
 			},
 			start, end, orderByComparator, groupId);
 	}
@@ -2340,7 +2337,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> filterFindByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types, int start, int end,
+		long[] groupIds, String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		groupIds = ArrayUtil.sortedUnique(groupIds);
@@ -2372,7 +2369,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types, int start, int end,
+		long[] groupIds, String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2393,11 +2390,11 @@ public class SegmentsEntryPersistenceImpl
 	 * @param type the type
 	 */
 	@Override
-	public void removeByG_SRC_T(long groupId, String source, String type) {
+	public void removeByG_SRC_T(long groupId, String source, int type) {
 		_collectionPersistenceFinderByG_SRC_T.remove(
 			finderCache,
 			new Object[] {
-				new long[] {groupId}, new String[] {source}, new String[] {type}
+				new long[] {groupId}, new String[] {source}, new int[] {type}
 			});
 	}
 
@@ -2410,11 +2407,11 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByG_SRC_T(long groupId, String source, String type) {
+	public int countByG_SRC_T(long groupId, String source, int type) {
 		return _collectionPersistenceFinderByG_SRC_T.count(
 			finderCache,
 			new Object[] {
-				new long[] {groupId}, new String[] {source}, new String[] {type}
+				new long[] {groupId}, new String[] {source}, new int[] {type}
 			});
 	}
 
@@ -2427,9 +2424,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types) {
-
+	public int countByG_SRC_T(long[] groupIds, String[] sources, int[] types) {
 		return _collectionPersistenceFinderByG_SRC_T.count(
 			finderCache,
 			new Object[] {
@@ -2447,11 +2442,11 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries that the user has permission to view
 	 */
 	@Override
-	public int filterCountByG_SRC_T(long groupId, String source, String type) {
+	public int filterCountByG_SRC_T(long groupId, String source, int type) {
 		return _collectionPersistenceFinderByG_SRC_T.filterCount(
 			finderCache,
 			new Object[] {
-				new long[] {groupId}, new String[] {source}, new String[] {type}
+				new long[] {groupId}, new String[] {source}, new int[] {type}
 			},
 			groupId);
 	}
@@ -2466,7 +2461,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public int filterCountByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types) {
+		long[] groupIds, String[] sources, int[] types) {
 
 		groupIds = ArrayUtil.sortedUnique(groupIds);
 
@@ -2493,7 +2488,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_NotT(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		return findByG_SRC_NotT(
 			groupId, source, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
@@ -2515,7 +2510,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end) {
+		long groupId, String source, int type, int start, int end) {
 
 		return findByG_SRC_NotT(groupId, source, type, start, end, null);
 	}
@@ -2537,7 +2532,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return findByG_SRC_NotT(
@@ -2562,7 +2557,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2584,7 +2579,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry findByG_SRC_NotT_First(
-			long groupId, String source, String type,
+			long groupId, String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws NoSuchEntryException {
 
@@ -2605,7 +2600,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry fetchByG_SRC_NotT_First(
-		long groupId, String source, String type,
+		long groupId, String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderByG_SRC_NotT.fetchFirst(
@@ -2624,7 +2619,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		return filterFindByG_SRC_NotT(
 			groupId, source, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
@@ -2646,7 +2641,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end) {
+		long groupId, String source, int type, int start, int end) {
 
 		return filterFindByG_SRC_NotT(groupId, source, type, start, end, null);
 	}
@@ -2668,7 +2663,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderByG_SRC_NotT.filterFind(
@@ -2687,7 +2682,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type) {
+		long[] groupIds, String[] sources, int type) {
 
 		return filterFindByG_SRC_NotT(
 			groupIds, sources, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
@@ -2710,7 +2705,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end) {
+		long[] groupIds, String[] sources, int type, int start, int end) {
 
 		return filterFindByG_SRC_NotT(
 			groupIds, sources, type, start, end, null);
@@ -2733,7 +2728,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end,
+		long[] groupIds, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		groupIds = ArrayUtil.sortedUnique(groupIds);
@@ -2758,7 +2753,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type) {
+		long[] groupIds, String[] sources, int type) {
 
 		return findByG_SRC_NotT(
 			groupIds, sources, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
@@ -2781,7 +2776,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end) {
+		long[] groupIds, String[] sources, int type, int start, int end) {
 
 		return findByG_SRC_NotT(groupIds, sources, type, start, end, null);
 	}
@@ -2803,7 +2798,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end,
+		long[] groupIds, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return findByG_SRC_NotT(
@@ -2828,7 +2823,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end,
+		long[] groupIds, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2849,7 +2844,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @param type the type
 	 */
 	@Override
-	public void removeByG_SRC_NotT(long groupId, String source, String type) {
+	public void removeByG_SRC_NotT(long groupId, String source, int type) {
 		_collectionPersistenceFinderByG_SRC_NotT.remove(
 			finderCache,
 			new Object[] {new long[] {groupId}, new String[] {source}, type});
@@ -2864,7 +2859,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByG_SRC_NotT(long groupId, String source, String type) {
+	public int countByG_SRC_NotT(long groupId, String source, int type) {
 		return _collectionPersistenceFinderByG_SRC_NotT.count(
 			finderCache,
 			new Object[] {new long[] {groupId}, new String[] {source}, type});
@@ -2879,9 +2874,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type) {
-
+	public int countByG_SRC_NotT(long[] groupIds, String[] sources, int type) {
 		return _collectionPersistenceFinderByG_SRC_NotT.count(
 			finderCache,
 			new Object[] {
@@ -2899,9 +2892,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries that the user has permission to view
 	 */
 	@Override
-	public int filterCountByG_SRC_NotT(
-		long groupId, String source, String type) {
-
+	public int filterCountByG_SRC_NotT(long groupId, String source, int type) {
 		return _collectionPersistenceFinderByG_SRC_NotT.filterCount(
 			finderCache,
 			new Object[] {new long[] {groupId}, new String[] {source}, type},
@@ -2918,7 +2909,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public int filterCountByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type) {
+		long[] groupIds, String[] sources, int type) {
 
 		groupIds = ArrayUtil.sortedUnique(groupIds);
 
@@ -2949,15 +2940,13 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String source, String type, int start, int end,
+		long companyId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
 		return _collectionPersistenceFinderByC_SRC_T.find(
 			finderCache,
-			new Object[] {
-				companyId, new String[] {source}, new String[] {type}
-			},
+			new Object[] {companyId, new String[] {source}, new int[] {type}},
 			start, end, orderByComparator, useFinderCache);
 	}
 
@@ -2973,15 +2962,13 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry findByC_SRC_T_First(
-			long companyId, String source, String type,
+			long companyId, String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws NoSuchEntryException {
 
 		return _collectionPersistenceFinderByC_SRC_T.findFirst(
 			finderCache,
-			new Object[] {
-				companyId, new String[] {source}, new String[] {type}
-			},
+			new Object[] {companyId, new String[] {source}, new int[] {type}},
 			orderByComparator);
 	}
 
@@ -2996,14 +2983,12 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry fetchByC_SRC_T_First(
-		long companyId, String source, String type,
+		long companyId, String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderByC_SRC_T.fetchFirst(
 			finderCache,
-			new Object[] {
-				companyId, new String[] {source}, new String[] {type}
-			},
+			new Object[] {companyId, new String[] {source}, new int[] {type}},
 			orderByComparator);
 	}
 
@@ -3025,7 +3010,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String[] sources, String[] types, int start, int end,
+		long companyId, String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -3046,12 +3031,10 @@ public class SegmentsEntryPersistenceImpl
 	 * @param type the type
 	 */
 	@Override
-	public void removeByC_SRC_T(long companyId, String source, String type) {
+	public void removeByC_SRC_T(long companyId, String source, int type) {
 		_collectionPersistenceFinderByC_SRC_T.remove(
 			finderCache,
-			new Object[] {
-				companyId, new String[] {source}, new String[] {type}
-			});
+			new Object[] {companyId, new String[] {source}, new int[] {type}});
 	}
 
 	/**
@@ -3063,12 +3046,10 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByC_SRC_T(long companyId, String source, String type) {
+	public int countByC_SRC_T(long companyId, String source, int type) {
 		return _collectionPersistenceFinderByC_SRC_T.count(
 			finderCache,
-			new Object[] {
-				companyId, new String[] {source}, new String[] {type}
-			});
+			new Object[] {companyId, new String[] {source}, new int[] {type}});
 	}
 
 	/**
@@ -3080,9 +3061,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByC_SRC_T(
-		long companyId, String[] sources, String[] types) {
-
+	public int countByC_SRC_T(long companyId, String[] sources, int[] types) {
 		return _collectionPersistenceFinderByC_SRC_T.count(
 			finderCache,
 			new Object[] {
@@ -3104,7 +3083,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String source, String type) {
+		long companyId, String source, int type) {
 
 		return findByC_SRC_NotT(
 			companyId, source, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
@@ -3127,7 +3106,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String source, String type, int start, int end) {
+		long companyId, String source, int type, int start, int end) {
 
 		return findByC_SRC_NotT(companyId, source, type, start, end, null);
 	}
@@ -3149,7 +3128,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String source, String type, int start, int end,
+		long companyId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return findByC_SRC_NotT(
@@ -3174,7 +3153,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String source, String type, int start, int end,
+		long companyId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -3195,7 +3174,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry findByC_SRC_NotT_First(
-			long companyId, String source, String type,
+			long companyId, String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws NoSuchEntryException {
 
@@ -3215,7 +3194,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public SegmentsEntry fetchByC_SRC_NotT_First(
-		long companyId, String source, String type,
+		long companyId, String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return _collectionPersistenceFinderByC_SRC_NotT.fetchFirst(
@@ -3237,7 +3216,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String[] sources, String type) {
+		long companyId, String[] sources, int type) {
 
 		return findByC_SRC_NotT(
 			companyId, sources, type, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
@@ -3260,7 +3239,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String[] sources, String type, int start, int end) {
+		long companyId, String[] sources, int type, int start, int end) {
 
 		return findByC_SRC_NotT(companyId, sources, type, start, end, null);
 	}
@@ -3282,7 +3261,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String[] sources, String type, int start, int end,
+		long companyId, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return findByC_SRC_NotT(
@@ -3307,7 +3286,7 @@ public class SegmentsEntryPersistenceImpl
 	 */
 	@Override
 	public List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String[] sources, String type, int start, int end,
+		long companyId, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -3325,7 +3304,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @param type the type
 	 */
 	@Override
-	public void removeByC_SRC_NotT(long companyId, String source, String type) {
+	public void removeByC_SRC_NotT(long companyId, String source, int type) {
 		_collectionPersistenceFinderByC_SRC_NotT.remove(
 			finderCache, new Object[] {companyId, new String[] {source}, type});
 	}
@@ -3339,7 +3318,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByC_SRC_NotT(long companyId, String source, String type) {
+	public int countByC_SRC_NotT(long companyId, String source, int type) {
 		return _collectionPersistenceFinderByC_SRC_NotT.count(
 			finderCache, new Object[] {companyId, new String[] {source}, type});
 	}
@@ -3353,9 +3332,7 @@ public class SegmentsEntryPersistenceImpl
 	 * @return the number of matching segments entries
 	 */
 	@Override
-	public int countByC_SRC_NotT(
-		long companyId, String[] sources, String type) {
-
+	public int countByC_SRC_NotT(long companyId, String[] sources, int type) {
 		return _collectionPersistenceFinderByC_SRC_NotT.count(
 			finderCache,
 			new Object[] {companyId, ArrayUtil.sortedUnique(sources), type});
@@ -3984,23 +3961,23 @@ public class SegmentsEntryPersistenceImpl
 			new FinderPath(
 				FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByType",
 				new String[] {
-					String.class.getName(), Integer.class.getName(),
+					Integer.class.getName(), Integer.class.getName(),
 					Integer.class.getName(), OrderByComparator.class.getName()
 				},
 				new String[] {"type_"}, true),
 			new FinderPath(
 				FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "findByType",
-				new String[] {String.class.getName()}, new String[] {"type_"},
-				0, 1, true, null),
+				new String[] {Integer.class.getName()}, new String[] {"type_"},
+				true),
 			new FinderPath(
 				FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByType",
-				new String[] {String.class.getName()}, new String[] {"type_"},
-				0, 1, false, null),
+				new String[] {Integer.class.getName()}, new String[] {"type_"},
+				false),
 			_SQL_SELECT_SEGMENTSENTRY_WHERE, _SQL_COUNT_SEGMENTSENTRY_WHERE,
 			SegmentsEntryModelImpl.ORDER_BY_JPQL, _ENTITY_ALIAS_PREFIX, "", "",
 			null,
 			new ArrayableFinderColumn<>(
-				"segmentsEntry.", "type", "type_", FinderColumn.Type.STRING,
+				"segmentsEntry.", "type", "type_", FinderColumn.Type.INTEGER,
 				"=", false, true, true, SegmentsEntry::getType));
 
 		_uniquePersistenceFinderByG_S = new UniquePersistenceFinder<>(
@@ -4115,19 +4092,19 @@ public class SegmentsEntryPersistenceImpl
 			new FinderPath(
 				FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findBySRC_T",
 				new String[] {
-					String.class.getName(), String.class.getName(),
+					String.class.getName(), Integer.class.getName(),
 					Integer.class.getName(), Integer.class.getName(),
 					OrderByComparator.class.getName()
 				},
 				new String[] {"source", "type_"}, true),
 			new FinderPath(
 				FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "findBySRC_T",
-				new String[] {String.class.getName(), String.class.getName()},
-				new String[] {"source", "type_"}, 0, 3, true, null),
+				new String[] {String.class.getName(), Integer.class.getName()},
+				new String[] {"source", "type_"}, 0, 1, true, null),
 			new FinderPath(
 				FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countBySRC_T",
-				new String[] {String.class.getName(), String.class.getName()},
-				new String[] {"source", "type_"}, 0, 3, false, null),
+				new String[] {String.class.getName(), Integer.class.getName()},
+				new String[] {"source", "type_"}, 0, 1, false, null),
 			_SQL_SELECT_SEGMENTSENTRY_WHERE, _SQL_COUNT_SEGMENTSENTRY_WHERE,
 			SegmentsEntryModelImpl.ORDER_BY_JPQL, _ENTITY_ALIAS_PREFIX, "", "",
 			null,
@@ -4135,7 +4112,7 @@ public class SegmentsEntryPersistenceImpl
 				"segmentsEntry.", "source", FinderColumn.Type.STRING, "=",
 				false, true, true, SegmentsEntry::getSource),
 			new ArrayableFinderColumn<>(
-				"segmentsEntry.", "type", "type_", FinderColumn.Type.STRING,
+				"segmentsEntry.", "type", "type_", FinderColumn.Type.INTEGER,
 				"=", false, true, true, SegmentsEntry::getType));
 
 		_collectionPersistenceFinderBySRC_NotT =
@@ -4144,7 +4121,7 @@ public class SegmentsEntryPersistenceImpl
 				new FinderPath(
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findBySRC_NotT",
 					new String[] {
-						String.class.getName(), String.class.getName(),
+						String.class.getName(), Integer.class.getName(),
 						Integer.class.getName(), Integer.class.getName(),
 						OrderByComparator.class.getName()
 					},
@@ -4153,7 +4130,7 @@ public class SegmentsEntryPersistenceImpl
 				new FinderPath(
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countBySRC_NotT",
 					new String[] {
-						String.class.getName(), String.class.getName()
+						String.class.getName(), Integer.class.getName()
 					},
 					new String[] {"source", "type_"}, false),
 				_SQL_SELECT_SEGMENTSENTRY_WHERE, _SQL_COUNT_SEGMENTSENTRY_WHERE,
@@ -4163,8 +4140,9 @@ public class SegmentsEntryPersistenceImpl
 					"segmentsEntry.", "source", FinderColumn.Type.STRING, "=",
 					false, true, true, SegmentsEntry::getSource),
 				new FinderColumn<>(
-					"segmentsEntry.", "type", "type_", FinderColumn.Type.STRING,
-					"!=", true, true, SegmentsEntry::getType));
+					"segmentsEntry.", "type", "type_",
+					FinderColumn.Type.INTEGER, "!=", true, true,
+					SegmentsEntry::getType));
 
 		_collectionPersistenceFinderByG_A_SRC =
 			new FilterCollectionPersistenceFinder<>(
@@ -4215,7 +4193,7 @@ public class SegmentsEntryPersistenceImpl
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_SRC_T",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName(), Integer.class.getName(),
+						Integer.class.getName(), Integer.class.getName(),
 						Integer.class.getName(),
 						OrderByComparator.class.getName()
 					},
@@ -4224,17 +4202,17 @@ public class SegmentsEntryPersistenceImpl
 					FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "findByG_SRC_T",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName()
+						Integer.class.getName()
 					},
-					new String[] {"groupId", "source", "type_"}, 0, 6, true,
+					new String[] {"groupId", "source", "type_"}, 0, 2, true,
 					null),
 				new FinderPath(
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByG_SRC_T",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName()
+						Integer.class.getName()
 					},
-					new String[] {"groupId", "source", "type_"}, 0, 6, false,
+					new String[] {"groupId", "source", "type_"}, 0, 2, false,
 					null),
 				_SQL_SELECT_SEGMENTSENTRY_WHERE, _SQL_COUNT_SEGMENTSENTRY_WHERE,
 				SegmentsEntryModelImpl.ORDER_BY_JPQL, _ENTITY_ALIAS_PREFIX, "",
@@ -4246,8 +4224,9 @@ public class SegmentsEntryPersistenceImpl
 					"segmentsEntry.", "source", FinderColumn.Type.STRING, "=",
 					false, true, true, SegmentsEntry::getSource),
 				new ArrayableFinderColumn<>(
-					"segmentsEntry.", "type", "type_", FinderColumn.Type.STRING,
-					"=", false, true, true, SegmentsEntry::getType));
+					"segmentsEntry.", "type", "type_",
+					FinderColumn.Type.INTEGER, "=", false, true, true,
+					SegmentsEntry::getType));
 
 		_collectionPersistenceFinderByG_SRC_NotT =
 			new FilterCollectionPersistenceFinder<>(
@@ -4256,7 +4235,7 @@ public class SegmentsEntryPersistenceImpl
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_SRC_NotT",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName(), Integer.class.getName(),
+						Integer.class.getName(), Integer.class.getName(),
 						Integer.class.getName(),
 						OrderByComparator.class.getName()
 					},
@@ -4266,7 +4245,7 @@ public class SegmentsEntryPersistenceImpl
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByG_SRC_NotT",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName()
+						Integer.class.getName()
 					},
 					new String[] {"groupId", "source", "type_"}, false),
 				_SQL_SELECT_SEGMENTSENTRY_WHERE, _SQL_COUNT_SEGMENTSENTRY_WHERE,
@@ -4279,8 +4258,9 @@ public class SegmentsEntryPersistenceImpl
 					"segmentsEntry.", "source", FinderColumn.Type.STRING, "=",
 					false, true, true, SegmentsEntry::getSource),
 				new FinderColumn<>(
-					"segmentsEntry.", "type", "type_", FinderColumn.Type.STRING,
-					"!=", true, true, SegmentsEntry::getType));
+					"segmentsEntry.", "type", "type_",
+					FinderColumn.Type.INTEGER, "!=", true, true,
+					SegmentsEntry::getType));
 
 		_collectionPersistenceFinderByC_SRC_T =
 			new CollectionPersistenceFinder<>(
@@ -4289,7 +4269,7 @@ public class SegmentsEntryPersistenceImpl
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_SRC_T",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName(), Integer.class.getName(),
+						Integer.class.getName(), Integer.class.getName(),
 						Integer.class.getName(),
 						OrderByComparator.class.getName()
 					},
@@ -4298,17 +4278,17 @@ public class SegmentsEntryPersistenceImpl
 					FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "findByC_SRC_T",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName()
+						Integer.class.getName()
 					},
-					new String[] {"companyId", "source", "type_"}, 0, 6, true,
+					new String[] {"companyId", "source", "type_"}, 0, 2, true,
 					null),
 				new FinderPath(
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByC_SRC_T",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName()
+						Integer.class.getName()
 					},
-					new String[] {"companyId", "source", "type_"}, 0, 6, false,
+					new String[] {"companyId", "source", "type_"}, 0, 2, false,
 					null),
 				_SQL_SELECT_SEGMENTSENTRY_WHERE, _SQL_COUNT_SEGMENTSENTRY_WHERE,
 				SegmentsEntryModelImpl.ORDER_BY_JPQL, _ENTITY_ALIAS_PREFIX, "",
@@ -4320,8 +4300,9 @@ public class SegmentsEntryPersistenceImpl
 					"segmentsEntry.", "source", FinderColumn.Type.STRING, "=",
 					false, true, true, SegmentsEntry::getSource),
 				new ArrayableFinderColumn<>(
-					"segmentsEntry.", "type", "type_", FinderColumn.Type.STRING,
-					"=", false, true, true, SegmentsEntry::getType));
+					"segmentsEntry.", "type", "type_",
+					FinderColumn.Type.INTEGER, "=", false, true, true,
+					SegmentsEntry::getType));
 
 		_collectionPersistenceFinderByC_SRC_NotT =
 			new CollectionPersistenceFinder<>(
@@ -4330,7 +4311,7 @@ public class SegmentsEntryPersistenceImpl
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByC_SRC_NotT",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName(), Integer.class.getName(),
+						Integer.class.getName(), Integer.class.getName(),
 						Integer.class.getName(),
 						OrderByComparator.class.getName()
 					},
@@ -4340,7 +4321,7 @@ public class SegmentsEntryPersistenceImpl
 					FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "countByC_SRC_NotT",
 					new String[] {
 						Long.class.getName(), String.class.getName(),
-						String.class.getName()
+						Integer.class.getName()
 					},
 					new String[] {"companyId", "source", "type_"}, false),
 				_SQL_SELECT_SEGMENTSENTRY_WHERE, _SQL_COUNT_SEGMENTSENTRY_WHERE,
@@ -4353,8 +4334,9 @@ public class SegmentsEntryPersistenceImpl
 					"segmentsEntry.", "source", FinderColumn.Type.STRING, "=",
 					false, true, true, SegmentsEntry::getSource),
 				new FinderColumn<>(
-					"segmentsEntry.", "type", "type_", FinderColumn.Type.STRING,
-					"!=", true, true, SegmentsEntry::getType));
+					"segmentsEntry.", "type", "type_",
+					FinderColumn.Type.INTEGER, "!=", true, true,
+					SegmentsEntry::getType));
 
 		_uniquePersistenceFinderByERC_G = new UniquePersistenceFinder<>(
 			this,
@@ -4439,4 +4421,4 @@ public class SegmentsEntryPersistenceImpl
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:401460242
+// LIFERAY-SERVICE-BUILDER-HASH:-399448161

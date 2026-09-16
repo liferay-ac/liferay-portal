@@ -92,12 +92,12 @@ public interface SegmentsEntryService extends BaseService {
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<SegmentsEntry> getSegmentsEntries(
-		long groupId, String[] sources, int start, int end,
+		long groupId, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<SegmentsEntry> getSegmentsEntries(
-		long groupId, String[] sources, String type, int start, int end,
+		long groupId, String[] sources, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
@@ -108,7 +108,7 @@ public interface SegmentsEntryService extends BaseService {
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getSegmentsEntriesCount(
-		long groupId, String[] sources, String type);
+		long groupId, String[] sources, int type);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public SegmentsEntry getSegmentsEntry(long segmentsEntryId)
@@ -133,4 +133,4 @@ public interface SegmentsEntryService extends BaseService {
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1149284460
+// LIFERAY-SERVICE-BUILDER-HASH:-1996409796

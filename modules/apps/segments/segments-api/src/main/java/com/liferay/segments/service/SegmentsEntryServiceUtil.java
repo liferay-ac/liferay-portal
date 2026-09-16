@@ -97,19 +97,19 @@ public class SegmentsEntryServiceUtil {
 	}
 
 	public static List<SegmentsEntry> getSegmentsEntries(
+		long groupId, String[] sources, int type, int start, int end,
+		OrderByComparator<SegmentsEntry> orderByComparator) {
+
+		return getService().getSegmentsEntries(
+			groupId, sources, type, start, end, orderByComparator);
+	}
+
+	public static List<SegmentsEntry> getSegmentsEntries(
 		long groupId, String[] sources, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getService().getSegmentsEntries(
 			groupId, sources, start, end, orderByComparator);
-	}
-
-	public static List<SegmentsEntry> getSegmentsEntries(
-		long groupId, String[] sources, String type, int start, int end,
-		OrderByComparator<SegmentsEntry> orderByComparator) {
-
-		return getService().getSegmentsEntries(
-			groupId, sources, type, start, end, orderByComparator);
 	}
 
 	public static int getSegmentsEntriesCount(long groupId) {
@@ -121,7 +121,7 @@ public class SegmentsEntryServiceUtil {
 	}
 
 	public static int getSegmentsEntriesCount(
-		long groupId, String[] sources, String type) {
+		long groupId, String[] sources, int type) {
 
 		return getService().getSegmentsEntriesCount(groupId, sources, type);
 	}
@@ -173,4 +173,4 @@ public class SegmentsEntryServiceUtil {
 			SegmentsEntryServiceUtil.class, SegmentsEntryService.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-994542173
+// LIFERAY-SERVICE-BUILDER-HASH:874904043

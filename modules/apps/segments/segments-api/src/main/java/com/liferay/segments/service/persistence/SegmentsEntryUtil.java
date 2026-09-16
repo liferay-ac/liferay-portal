@@ -753,7 +753,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByType(
-		String type, int start, int end,
+		int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -770,7 +770,7 @@ public class SegmentsEntryUtil {
 	 * @throws NoSuchEntryException if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry findByType_First(
-			String type, OrderByComparator<SegmentsEntry> orderByComparator)
+			int type, OrderByComparator<SegmentsEntry> orderByComparator)
 		throws com.liferay.segments.exception.NoSuchEntryException {
 
 		return getPersistence().findByType_First(type, orderByComparator);
@@ -784,7 +784,7 @@ public class SegmentsEntryUtil {
 	 * @return the first matching segments entry, or <code>null</code> if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry fetchByType_First(
-		String type, OrderByComparator<SegmentsEntry> orderByComparator) {
+		int type, OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().fetchByType_First(type, orderByComparator);
 	}
@@ -804,7 +804,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByType(
-		String[] types, int start, int end,
+		int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -817,7 +817,7 @@ public class SegmentsEntryUtil {
 	 *
 	 * @param type the type
 	 */
-	public static void removeByType(String type) {
+	public static void removeByType(int type) {
 		getPersistence().removeByType(type);
 	}
 
@@ -827,7 +827,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the number of matching segments entries
 	 */
-	public static int countByType(String type) {
+	public static int countByType(int type) {
 		return getPersistence().countByType(type);
 	}
 
@@ -837,7 +837,7 @@ public class SegmentsEntryUtil {
 	 * @param types the types
 	 * @return the number of matching segments entries
 	 */
-	public static int countByType(String[] types) {
+	public static int countByType(int[] types) {
 		return getPersistence().countByType(types);
 	}
 
@@ -1385,7 +1385,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_T(
-		String source, String type, int start, int end,
+		String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -1403,7 +1403,7 @@ public class SegmentsEntryUtil {
 	 * @throws NoSuchEntryException if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry findBySRC_T_First(
-			String source, String type,
+			String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws com.liferay.segments.exception.NoSuchEntryException {
 
@@ -1420,7 +1420,7 @@ public class SegmentsEntryUtil {
 	 * @return the first matching segments entry, or <code>null</code> if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry fetchBySRC_T_First(
-		String source, String type,
+		String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().fetchBySRC_T_First(
@@ -1443,7 +1443,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_T(
-		String[] sources, String[] types, int start, int end,
+		String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -1457,7 +1457,7 @@ public class SegmentsEntryUtil {
 	 * @param source the source
 	 * @param type the type
 	 */
-	public static void removeBySRC_T(String source, String type) {
+	public static void removeBySRC_T(String source, int type) {
 		getPersistence().removeBySRC_T(source, type);
 	}
 
@@ -1468,7 +1468,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the number of matching segments entries
 	 */
-	public static int countBySRC_T(String source, String type) {
+	public static int countBySRC_T(String source, int type) {
 		return getPersistence().countBySRC_T(source, type);
 	}
 
@@ -1479,7 +1479,7 @@ public class SegmentsEntryUtil {
 	 * @param types the types
 	 * @return the number of matching segments entries
 	 */
-	public static int countBySRC_T(String[] sources, String[] types) {
+	public static int countBySRC_T(String[] sources, int[] types) {
 		return getPersistence().countBySRC_T(sources, types);
 	}
 
@@ -1490,9 +1490,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the matching segments entries
 	 */
-	public static List<SegmentsEntry> findBySRC_NotT(
-		String source, String type) {
-
+	public static List<SegmentsEntry> findBySRC_NotT(String source, int type) {
 		return getPersistence().findBySRC_NotT(source, type);
 	}
 
@@ -1510,7 +1508,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_NotT(
-		String source, String type, int start, int end) {
+		String source, int type, int start, int end) {
 
 		return getPersistence().findBySRC_NotT(source, type, start, end);
 	}
@@ -1530,7 +1528,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_NotT(
-		String source, String type, int start, int end,
+		String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findBySRC_NotT(
@@ -1553,7 +1551,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_NotT(
-		String source, String type, int start, int end,
+		String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -1571,7 +1569,7 @@ public class SegmentsEntryUtil {
 	 * @throws NoSuchEntryException if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry findBySRC_NotT_First(
-			String source, String type,
+			String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws com.liferay.segments.exception.NoSuchEntryException {
 
@@ -1588,7 +1586,7 @@ public class SegmentsEntryUtil {
 	 * @return the first matching segments entry, or <code>null</code> if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry fetchBySRC_NotT_First(
-		String source, String type,
+		String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().fetchBySRC_NotT_First(
@@ -1607,7 +1605,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_NotT(
-		String[] sources, String type) {
+		String[] sources, int type) {
 
 		return getPersistence().findBySRC_NotT(sources, type);
 	}
@@ -1626,7 +1624,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_NotT(
-		String[] sources, String type, int start, int end) {
+		String[] sources, int type, int start, int end) {
 
 		return getPersistence().findBySRC_NotT(sources, type, start, end);
 	}
@@ -1646,7 +1644,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_NotT(
-		String[] sources, String type, int start, int end,
+		String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findBySRC_NotT(
@@ -1669,7 +1667,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_NotT(
-		String[] sources, String type, int start, int end,
+		String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -1683,7 +1681,7 @@ public class SegmentsEntryUtil {
 	 * @param source the source
 	 * @param type the type
 	 */
-	public static void removeBySRC_NotT(String source, String type) {
+	public static void removeBySRC_NotT(String source, int type) {
 		getPersistence().removeBySRC_NotT(source, type);
 	}
 
@@ -1694,7 +1692,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the number of matching segments entries
 	 */
-	public static int countBySRC_NotT(String source, String type) {
+	public static int countBySRC_NotT(String source, int type) {
 		return getPersistence().countBySRC_NotT(source, type);
 	}
 
@@ -1705,7 +1703,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the number of matching segments entries
 	 */
-	public static int countBySRC_NotT(String[] sources, String type) {
+	public static int countBySRC_NotT(String[] sources, int type) {
 		return getPersistence().countBySRC_NotT(sources, type);
 	}
 
@@ -1929,7 +1927,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_T(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -1949,7 +1947,7 @@ public class SegmentsEntryUtil {
 	 * @throws NoSuchEntryException if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry findByG_SRC_T_First(
-			long groupId, String source, String type,
+			long groupId, String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws com.liferay.segments.exception.NoSuchEntryException {
 
@@ -1967,7 +1965,7 @@ public class SegmentsEntryUtil {
 	 * @return the first matching segments entry, or <code>null</code> if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry fetchByG_SRC_T_First(
-		long groupId, String source, String type,
+		long groupId, String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().fetchByG_SRC_T_First(
@@ -1990,7 +1988,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_T(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().filterFindByG_SRC_T(
@@ -2013,7 +2011,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types, int start, int end,
+		long[] groupIds, String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().filterFindByG_SRC_T(
@@ -2037,7 +2035,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types, int start, int end,
+		long[] groupIds, String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2053,9 +2051,7 @@ public class SegmentsEntryUtil {
 	 * @param source the source
 	 * @param type the type
 	 */
-	public static void removeByG_SRC_T(
-		long groupId, String source, String type) {
-
+	public static void removeByG_SRC_T(long groupId, String source, int type) {
 		getPersistence().removeByG_SRC_T(groupId, source, type);
 	}
 
@@ -2067,7 +2063,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the number of matching segments entries
 	 */
-	public static int countByG_SRC_T(long groupId, String source, String type) {
+	public static int countByG_SRC_T(long groupId, String source, int type) {
 		return getPersistence().countByG_SRC_T(groupId, source, type);
 	}
 
@@ -2080,7 +2076,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries
 	 */
 	public static int countByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types) {
+		long[] groupIds, String[] sources, int[] types) {
 
 		return getPersistence().countByG_SRC_T(groupIds, sources, types);
 	}
@@ -2094,7 +2090,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries that the user has permission to view
 	 */
 	public static int filterCountByG_SRC_T(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		return getPersistence().filterCountByG_SRC_T(groupId, source, type);
 	}
@@ -2108,7 +2104,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries that the user has permission to view
 	 */
 	public static int filterCountByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types) {
+		long[] groupIds, String[] sources, int[] types) {
 
 		return getPersistence().filterCountByG_SRC_T(groupIds, sources, types);
 	}
@@ -2122,7 +2118,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_NotT(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		return getPersistence().findByG_SRC_NotT(groupId, source, type);
 	}
@@ -2142,7 +2138,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end) {
+		long groupId, String source, int type, int start, int end) {
 
 		return getPersistence().findByG_SRC_NotT(
 			groupId, source, type, start, end);
@@ -2164,7 +2160,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByG_SRC_NotT(
@@ -2188,7 +2184,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2208,7 +2204,7 @@ public class SegmentsEntryUtil {
 	 * @throws NoSuchEntryException if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry findByG_SRC_NotT_First(
-			long groupId, String source, String type,
+			long groupId, String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws com.liferay.segments.exception.NoSuchEntryException {
 
@@ -2226,7 +2222,7 @@ public class SegmentsEntryUtil {
 	 * @return the first matching segments entry, or <code>null</code> if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry fetchByG_SRC_NotT_First(
-		long groupId, String source, String type,
+		long groupId, String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().fetchByG_SRC_NotT_First(
@@ -2242,7 +2238,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		return getPersistence().filterFindByG_SRC_NotT(groupId, source, type);
 	}
@@ -2262,7 +2258,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end) {
+		long groupId, String source, int type, int start, int end) {
 
 		return getPersistence().filterFindByG_SRC_NotT(
 			groupId, source, type, start, end);
@@ -2284,7 +2280,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().filterFindByG_SRC_NotT(
@@ -2300,7 +2296,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type) {
+		long[] groupIds, String[] sources, int type) {
 
 		return getPersistence().filterFindByG_SRC_NotT(groupIds, sources, type);
 	}
@@ -2320,7 +2316,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end) {
+		long[] groupIds, String[] sources, int type, int start, int end) {
 
 		return getPersistence().filterFindByG_SRC_NotT(
 			groupIds, sources, type, start, end);
@@ -2342,7 +2338,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end,
+		long[] groupIds, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().filterFindByG_SRC_NotT(
@@ -2362,7 +2358,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type) {
+		long[] groupIds, String[] sources, int type) {
 
 		return getPersistence().findByG_SRC_NotT(groupIds, sources, type);
 	}
@@ -2382,7 +2378,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end) {
+		long[] groupIds, String[] sources, int type, int start, int end) {
 
 		return getPersistence().findByG_SRC_NotT(
 			groupIds, sources, type, start, end);
@@ -2404,7 +2400,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end,
+		long[] groupIds, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByG_SRC_NotT(
@@ -2428,7 +2424,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type, int start, int end,
+		long[] groupIds, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2445,7 +2441,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 */
 	public static void removeByG_SRC_NotT(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		getPersistence().removeByG_SRC_NotT(groupId, source, type);
 	}
@@ -2458,9 +2454,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the number of matching segments entries
 	 */
-	public static int countByG_SRC_NotT(
-		long groupId, String source, String type) {
-
+	public static int countByG_SRC_NotT(long groupId, String source, int type) {
 		return getPersistence().countByG_SRC_NotT(groupId, source, type);
 	}
 
@@ -2473,7 +2467,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries
 	 */
 	public static int countByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type) {
+		long[] groupIds, String[] sources, int type) {
 
 		return getPersistence().countByG_SRC_NotT(groupIds, sources, type);
 	}
@@ -2487,7 +2481,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries that the user has permission to view
 	 */
 	public static int filterCountByG_SRC_NotT(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		return getPersistence().filterCountByG_SRC_NotT(groupId, source, type);
 	}
@@ -2501,7 +2495,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries that the user has permission to view
 	 */
 	public static int filterCountByG_SRC_NotT(
-		long[] groupIds, String[] sources, String type) {
+		long[] groupIds, String[] sources, int type) {
 
 		return getPersistence().filterCountByG_SRC_NotT(
 			groupIds, sources, type);
@@ -2524,7 +2518,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String source, String type, int start, int end,
+		long companyId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2544,7 +2538,7 @@ public class SegmentsEntryUtil {
 	 * @throws NoSuchEntryException if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry findByC_SRC_T_First(
-			long companyId, String source, String type,
+			long companyId, String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws com.liferay.segments.exception.NoSuchEntryException {
 
@@ -2562,7 +2556,7 @@ public class SegmentsEntryUtil {
 	 * @return the first matching segments entry, or <code>null</code> if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry fetchByC_SRC_T_First(
-		long companyId, String source, String type,
+		long companyId, String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().fetchByC_SRC_T_First(
@@ -2586,7 +2580,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String[] sources, String[] types, int start, int end,
+		long companyId, String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2603,7 +2597,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 */
 	public static void removeByC_SRC_T(
-		long companyId, String source, String type) {
+		long companyId, String source, int type) {
 
 		getPersistence().removeByC_SRC_T(companyId, source, type);
 	}
@@ -2616,9 +2610,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the number of matching segments entries
 	 */
-	public static int countByC_SRC_T(
-		long companyId, String source, String type) {
-
+	public static int countByC_SRC_T(long companyId, String source, int type) {
 		return getPersistence().countByC_SRC_T(companyId, source, type);
 	}
 
@@ -2631,7 +2623,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries
 	 */
 	public static int countByC_SRC_T(
-		long companyId, String[] sources, String[] types) {
+		long companyId, String[] sources, int[] types) {
 
 		return getPersistence().countByC_SRC_T(companyId, sources, types);
 	}
@@ -2645,7 +2637,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String source, String type) {
+		long companyId, String source, int type) {
 
 		return getPersistence().findByC_SRC_NotT(companyId, source, type);
 	}
@@ -2665,7 +2657,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String source, String type, int start, int end) {
+		long companyId, String source, int type, int start, int end) {
 
 		return getPersistence().findByC_SRC_NotT(
 			companyId, source, type, start, end);
@@ -2687,7 +2679,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String source, String type, int start, int end,
+		long companyId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByC_SRC_NotT(
@@ -2711,7 +2703,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String source, String type, int start, int end,
+		long companyId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2731,7 +2723,7 @@ public class SegmentsEntryUtil {
 	 * @throws NoSuchEntryException if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry findByC_SRC_NotT_First(
-			long companyId, String source, String type,
+			long companyId, String source, int type,
 			OrderByComparator<SegmentsEntry> orderByComparator)
 		throws com.liferay.segments.exception.NoSuchEntryException {
 
@@ -2749,7 +2741,7 @@ public class SegmentsEntryUtil {
 	 * @return the first matching segments entry, or <code>null</code> if a matching segments entry could not be found
 	 */
 	public static SegmentsEntry fetchByC_SRC_NotT_First(
-		long companyId, String source, String type,
+		long companyId, String source, int type,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().fetchByC_SRC_NotT_First(
@@ -2769,7 +2761,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String[] sources, String type) {
+		long companyId, String[] sources, int type) {
 
 		return getPersistence().findByC_SRC_NotT(companyId, sources, type);
 	}
@@ -2789,7 +2781,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String[] sources, String type, int start, int end) {
+		long companyId, String[] sources, int type, int start, int end) {
 
 		return getPersistence().findByC_SRC_NotT(
 			companyId, sources, type, start, end);
@@ -2811,7 +2803,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String[] sources, String type, int start, int end,
+		long companyId, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByC_SRC_NotT(
@@ -2835,7 +2827,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_NotT(
-		long companyId, String[] sources, String type, int start, int end,
+		long companyId, String[] sources, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator,
 		boolean useFinderCache) {
 
@@ -2852,7 +2844,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 */
 	public static void removeByC_SRC_NotT(
-		long companyId, String source, String type) {
+		long companyId, String source, int type) {
 
 		getPersistence().removeByC_SRC_NotT(companyId, source, type);
 	}
@@ -2866,7 +2858,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries
 	 */
 	public static int countByC_SRC_NotT(
-		long companyId, String source, String type) {
+		long companyId, String source, int type) {
 
 		return getPersistence().countByC_SRC_NotT(companyId, source, type);
 	}
@@ -2880,7 +2872,7 @@ public class SegmentsEntryUtil {
 	 * @return the number of matching segments entries
 	 */
 	public static int countByC_SRC_NotT(
-		long companyId, String[] sources, String type) {
+		long companyId, String[] sources, int type) {
 
 		return getPersistence().countByC_SRC_NotT(companyId, sources, type);
 	}
@@ -3491,7 +3483,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the matching segments entries
 	 */
-	public static List<SegmentsEntry> findByType(String type) {
+	public static List<SegmentsEntry> findByType(int type) {
 		return getPersistence().findByType(type);
 	}
 
@@ -3507,9 +3499,7 @@ public class SegmentsEntryUtil {
 	 * @param end the upper bound of the range of segments entries (not inclusive)
 	 * @return the range of matching segments entries
 	 */
-	public static List<SegmentsEntry> findByType(
-		String type, int start, int end) {
-
+	public static List<SegmentsEntry> findByType(int type, int start, int end) {
 		return getPersistence().findByType(type, start, end);
 	}
 
@@ -3527,7 +3517,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByType(
-		String type, int start, int end,
+		int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByType(type, start, end, orderByComparator);
@@ -3539,7 +3529,7 @@ public class SegmentsEntryUtil {
 	 * @param types the types
 	 * @return the matching segments entries
 	 */
-	public static List<SegmentsEntry> findByType(String[] types) {
+	public static List<SegmentsEntry> findByType(int[] types) {
 		return getPersistence().findByType(types);
 	}
 
@@ -3556,7 +3546,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByType(
-		String[] types, int start, int end) {
+		int[] types, int start, int end) {
 
 		return getPersistence().findByType(types, start, end);
 	}
@@ -3575,7 +3565,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByType(
-		String[] types, int start, int end,
+		int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByType(
@@ -4038,7 +4028,7 @@ public class SegmentsEntryUtil {
 	 * @param type the type
 	 * @return the matching segments entries
 	 */
-	public static List<SegmentsEntry> findBySRC_T(String source, String type) {
+	public static List<SegmentsEntry> findBySRC_T(String source, int type) {
 		return getPersistence().findBySRC_T(source, type);
 	}
 
@@ -4056,7 +4046,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_T(
-		String source, String type, int start, int end) {
+		String source, int type, int start, int end) {
 
 		return getPersistence().findBySRC_T(source, type, start, end);
 	}
@@ -4076,7 +4066,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_T(
-		String source, String type, int start, int end,
+		String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findBySRC_T(
@@ -4091,7 +4081,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_T(
-		String[] sources, String[] types) {
+		String[] sources, int[] types) {
 
 		return getPersistence().findBySRC_T(sources, types);
 	}
@@ -4110,7 +4100,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_T(
-		String[] sources, String[] types, int start, int end) {
+		String[] sources, int[] types, int start, int end) {
 
 		return getPersistence().findBySRC_T(sources, types, start, end);
 	}
@@ -4130,7 +4120,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findBySRC_T(
-		String[] sources, String[] types, int start, int end,
+		String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findBySRC_T(
@@ -4332,7 +4322,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_T(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		return getPersistence().findByG_SRC_T(groupId, source, type);
 	}
@@ -4352,7 +4342,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_T(
-		long groupId, String source, String type, int start, int end) {
+		long groupId, String source, int type, int start, int end) {
 
 		return getPersistence().findByG_SRC_T(
 			groupId, source, type, start, end);
@@ -4374,7 +4364,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_T(
-		long groupId, String source, String type, int start, int end,
+		long groupId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByG_SRC_T(
@@ -4390,7 +4380,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types) {
+		long[] groupIds, String[] sources, int[] types) {
 
 		return getPersistence().findByG_SRC_T(groupIds, sources, types);
 	}
@@ -4410,7 +4400,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types, int start, int end) {
+		long[] groupIds, String[] sources, int[] types, int start, int end) {
 
 		return getPersistence().findByG_SRC_T(
 			groupIds, sources, types, start, end);
@@ -4432,7 +4422,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types, int start, int end,
+		long[] groupIds, String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByG_SRC_T(
@@ -4448,7 +4438,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_T(
-		long groupId, String source, String type) {
+		long groupId, String source, int type) {
 
 		return getPersistence().filterFindByG_SRC_T(groupId, source, type);
 	}
@@ -4468,7 +4458,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_T(
-		long groupId, String source, String type, int start, int end) {
+		long groupId, String source, int type, int start, int end) {
 
 		return getPersistence().filterFindByG_SRC_T(
 			groupId, source, type, start, end);
@@ -4483,7 +4473,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types) {
+		long[] groupIds, String[] sources, int[] types) {
 
 		return getPersistence().filterFindByG_SRC_T(groupIds, sources, types);
 	}
@@ -4503,7 +4493,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries that the user has permission to view
 	 */
 	public static List<SegmentsEntry> filterFindByG_SRC_T(
-		long[] groupIds, String[] sources, String[] types, int start, int end) {
+		long[] groupIds, String[] sources, int[] types, int start, int end) {
 
 		return getPersistence().filterFindByG_SRC_T(
 			groupIds, sources, types, start, end);
@@ -4518,7 +4508,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String source, String type) {
+		long companyId, String source, int type) {
 
 		return getPersistence().findByC_SRC_T(companyId, source, type);
 	}
@@ -4538,7 +4528,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String source, String type, int start, int end) {
+		long companyId, String source, int type, int start, int end) {
 
 		return getPersistence().findByC_SRC_T(
 			companyId, source, type, start, end);
@@ -4560,7 +4550,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String source, String type, int start, int end,
+		long companyId, String source, int type, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByC_SRC_T(
@@ -4576,7 +4566,7 @@ public class SegmentsEntryUtil {
 	 * @return the matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String[] sources, String[] types) {
+		long companyId, String[] sources, int[] types) {
 
 		return getPersistence().findByC_SRC_T(companyId, sources, types);
 	}
@@ -4596,7 +4586,7 @@ public class SegmentsEntryUtil {
 	 * @return the range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String[] sources, String[] types, int start, int end) {
+		long companyId, String[] sources, int[] types, int start, int end) {
 
 		return getPersistence().findByC_SRC_T(
 			companyId, sources, types, start, end);
@@ -4618,7 +4608,7 @@ public class SegmentsEntryUtil {
 	 * @return the ordered range of matching segments entries
 	 */
 	public static List<SegmentsEntry> findByC_SRC_T(
-		long companyId, String[] sources, String[] types, int start, int end,
+		long companyId, String[] sources, int[] types, int start, int end,
 		OrderByComparator<SegmentsEntry> orderByComparator) {
 
 		return getPersistence().findByC_SRC_T(
@@ -4636,4 +4626,4 @@ public class SegmentsEntryUtil {
 	private static volatile SegmentsEntryPersistence _persistence;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:2000866258
+// LIFERAY-SERVICE-BUILDER-HASH:-798218988

@@ -80,7 +80,7 @@ public class SegmentsEntryModelImpl
 		{"modifiedDate", Types.TIMESTAMP}, {"segmentsEntryKey", Types.VARCHAR},
 		{"name", Types.VARCHAR}, {"description", Types.VARCHAR},
 		{"active_", Types.BOOLEAN}, {"criteria", Types.CLOB},
-		{"source", Types.VARCHAR}, {"type_", Types.VARCHAR},
+		{"source", Types.VARCHAR}, {"type_", Types.INTEGER},
 		{"lastPublishDate", Types.TIMESTAMP}
 	};
 
@@ -105,12 +105,12 @@ public class SegmentsEntryModelImpl
 		TABLE_COLUMNS_MAP.put("active_", Types.BOOLEAN);
 		TABLE_COLUMNS_MAP.put("criteria", Types.CLOB);
 		TABLE_COLUMNS_MAP.put("source", Types.VARCHAR);
-		TABLE_COLUMNS_MAP.put("type_", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("type_", Types.INTEGER);
 		TABLE_COLUMNS_MAP.put("lastPublishDate", Types.TIMESTAMP);
 	}
 
 	public static final String TABLE_SQL_CREATE =
-		"create table SegmentsEntry (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,uuid_ VARCHAR(75) null,externalReferenceCode VARCHAR(75) null,segmentsEntryId LONG not null,groupId LONG,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,segmentsEntryKey VARCHAR(75) null,name STRING null,description STRING null,active_ BOOLEAN,criteria TEXT null,source VARCHAR(75) null,type_ VARCHAR(75) null,lastPublishDate DATE null,primary key (segmentsEntryId, ctCollectionId))";
+		"create table SegmentsEntry (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,uuid_ VARCHAR(75) null,externalReferenceCode VARCHAR(75) null,segmentsEntryId LONG not null,groupId LONG,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,segmentsEntryKey VARCHAR(75) null,name STRING null,description STRING null,active_ BOOLEAN,criteria TEXT null,source VARCHAR(75) null,type_ INTEGER,lastPublishDate DATE null,primary key (segmentsEntryId, ctCollectionId))";
 
 	public static final String TABLE_SQL_DROP = "drop table SegmentsEntry";
 
@@ -412,7 +412,7 @@ public class SegmentsEntryModelImpl
 				(BiConsumer<SegmentsEntry, String>)SegmentsEntry::setSource);
 			attributeSetterBiConsumers.put(
 				"type",
-				(BiConsumer<SegmentsEntry, String>)SegmentsEntry::setType);
+				(BiConsumer<SegmentsEntry, Integer>)SegmentsEntry::setType);
 			attributeSetterBiConsumers.put(
 				"lastPublishDate",
 				(BiConsumer<SegmentsEntry, Date>)
@@ -1003,17 +1003,12 @@ public class SegmentsEntryModelImpl
 
 	@JSON
 	@Override
-	public String getType() {
-		if (_type == null) {
-			return "";
-		}
-		else {
-			return _type;
-		}
+	public int getType() {
+		return _type;
 	}
 
 	@Override
-	public void setType(String type) {
+	public void setType(int type) {
 		if (_columnOriginalValues == Collections.EMPTY_MAP) {
 			_setColumnOriginalValues();
 		}
@@ -1026,8 +1021,9 @@ public class SegmentsEntryModelImpl
 	 *             #getColumnOriginalValue(String)}
 	 */
 	@Deprecated
-	public String getOriginalType() {
-		return getColumnOriginalValue("type_");
+	public int getOriginalType() {
+		return GetterUtil.getInteger(
+			this.<Integer>getColumnOriginalValue("type_"));
 	}
 
 	@JSON
@@ -1256,7 +1252,8 @@ public class SegmentsEntryModelImpl
 			this.<String>getColumnOriginalValue("criteria"));
 		segmentsEntryImpl.setSource(
 			this.<String>getColumnOriginalValue("source"));
-		segmentsEntryImpl.setType(this.<String>getColumnOriginalValue("type_"));
+		segmentsEntryImpl.setType(
+			this.<Integer>getColumnOriginalValue("type_"));
 		segmentsEntryImpl.setLastPublishDate(
 			this.<Date>getColumnOriginalValue("lastPublishDate"));
 
@@ -1440,12 +1437,6 @@ public class SegmentsEntryModelImpl
 
 		segmentsEntryCacheModel.type = getType();
 
-		String type = segmentsEntryCacheModel.type;
-
-		if ((type != null) && (type.length() == 0)) {
-			segmentsEntryCacheModel.type = null;
-		}
-
 		Date lastPublishDate = getLastPublishDate();
 
 		if (lastPublishDate != null) {
@@ -1536,7 +1527,7 @@ public class SegmentsEntryModelImpl
 	private boolean _active;
 	private String _criteria;
 	private String _source;
-	private String _type;
+	private int _type;
 	private Date _lastPublishDate;
 
 	public <T> T getColumnValue(String columnName) {
@@ -1659,4 +1650,4 @@ public class SegmentsEntryModelImpl
 	private SegmentsEntry _escapedModel;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-207100620
+// LIFERAY-SERVICE-BUILDER-HASH:-1810399795

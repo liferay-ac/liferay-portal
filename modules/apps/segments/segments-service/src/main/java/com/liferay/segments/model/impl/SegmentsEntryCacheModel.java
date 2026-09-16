@@ -197,12 +197,7 @@ public class SegmentsEntryCacheModel
 			segmentsEntryImpl.setSource(source);
 		}
 
-		if (type == null) {
-			segmentsEntryImpl.setType("");
-		}
-		else {
-			segmentsEntryImpl.setType(type);
-		}
+		segmentsEntryImpl.setType(type);
 
 		if (lastPublishDate == Long.MIN_VALUE) {
 			segmentsEntryImpl.setLastPublishDate(null);
@@ -243,7 +238,8 @@ public class SegmentsEntryCacheModel
 		active = objectInput.readBoolean();
 		criteria = (String)objectInput.readObject();
 		source = objectInput.readUTF();
-		type = objectInput.readUTF();
+
+		type = objectInput.readInt();
 		lastPublishDate = objectInput.readLong();
 	}
 
@@ -322,13 +318,7 @@ public class SegmentsEntryCacheModel
 			objectOutput.writeUTF(source);
 		}
 
-		if (type == null) {
-			objectOutput.writeUTF("");
-		}
-		else {
-			objectOutput.writeUTF(type);
-		}
-
+		objectOutput.writeInt(type);
 		objectOutput.writeLong(lastPublishDate);
 	}
 
@@ -349,8 +339,8 @@ public class SegmentsEntryCacheModel
 	public boolean active;
 	public String criteria;
 	public String source;
-	public String type;
+	public int type;
 	public long lastPublishDate;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1419744337
+// LIFERAY-SERVICE-BUILDER-HASH:-101241814

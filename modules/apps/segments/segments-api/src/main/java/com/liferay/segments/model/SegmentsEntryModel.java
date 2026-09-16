@@ -524,15 +524,14 @@ public interface SegmentsEntryModel
 	 *
 	 * @return the type of this segments entry
 	 */
-	@AutoEscape
-	public String getType();
+	public int getType();
 
 	/**
 	 * Sets the type of this segments entry.
 	 *
 	 * @param type the type of this segments entry
 	 */
-	public void setType(String type);
+	public void setType(int type);
 
 	/**
 	 * Returns the last publish date of this segments entry.
@@ -571,4 +570,4 @@ public interface SegmentsEntryModel
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1211724128
+// LIFERAY-SERVICE-BUILDER-HASH:-2110477517

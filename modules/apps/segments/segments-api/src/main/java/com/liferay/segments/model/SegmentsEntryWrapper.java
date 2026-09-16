@@ -164,7 +164,7 @@ public class SegmentsEntryWrapper
 			setSource(source);
 		}
 
-		String type = (String)attributes.get("type");
+		Integer type = (Integer)attributes.get("type");
 
 		if (type != null) {
 			setType(type);
@@ -500,7 +500,7 @@ public class SegmentsEntryWrapper
 	 * @return the type of this segments entry
 	 */
 	@Override
-	public String getType() {
+	public int getType() {
 		return model.getType();
 	}
 
@@ -850,7 +850,7 @@ public class SegmentsEntryWrapper
 	 * @param type the type of this segments entry
 	 */
 	@Override
-	public void setType(String type) {
+	public void setType(int type) {
 		model.setType(type);
 	}
 
@@ -924,4 +924,4 @@ public class SegmentsEntryWrapper
 	}
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1561994076
+// LIFERAY-SERVICE-BUILDER-HASH:417465346
