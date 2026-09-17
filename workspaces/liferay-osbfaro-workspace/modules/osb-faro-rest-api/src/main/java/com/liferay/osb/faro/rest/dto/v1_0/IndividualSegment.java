@@ -284,7 +284,7 @@ public class IndividualSegment implements Serializable {
 	private Supplier<Date> _dateModifiedSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "OData-style filter expression that defines segment membership."
+		description = "OData style filter expression that defines segment membership."
 	)
 	public String getFilter() {
 		if (_filterSupplier != null) {
@@ -320,7 +320,7 @@ public class IndividualSegment implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "OData-style filter expression that defines segment membership."
+		description = "OData style filter expression that defines segment membership."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String filter;
@@ -1214,4 +1214,4 @@ public class IndividualSegment implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
-// LIFERAY-REST-BUILDER-HASH:-1793603065
+// LIFERAY-REST-BUILDER-HASH:-286642259

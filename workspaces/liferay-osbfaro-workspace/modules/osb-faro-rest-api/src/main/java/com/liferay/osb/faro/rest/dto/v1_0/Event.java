@@ -40,11 +40,11 @@ import java.util.function.Supplier;
  */
 @Generated("")
 @GraphQLName(
-	description = "A single tracked analytics event captured — page views, custom events, form submissions, etc. Each event carries free-form `attributes` (a name-value map of contextual properties) plus any matching page metadata. Use `getWorkspaceGroupChannelEventsPage` to retrieve a list of analytics events.",
+	description = "A single tracked analytics event captured — page views, custom events, form submissions, etc. Each event carries free form `attributes` (a name value map of contextual properties) plus any matching page metadata. Use `getWorkspaceGroupChannelEventsPage` to retrieve a list of analytics events.",
 	value = "Event"
 )
 @io.swagger.v3.oas.annotations.media.Schema(
-	description = "A single tracked analytics event captured — page views, custom events, form submissions, etc. Each event carries free-form `attributes` (a name-value map of contextual properties) plus any matching page metadata. Use `getWorkspaceGroupChannelEventsPage` to retrieve a list of analytics events."
+	description = "A single tracked analytics event captured — page views, custom events, form submissions, etc. Each event carries free form `attributes` (a name value map of contextual properties) plus any matching page metadata. Use `getWorkspaceGroupChannelEventsPage` to retrieve a list of analytics events."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Event")
@@ -145,7 +145,7 @@ public class Event implements Serializable {
 	private Supplier<String> _assetTitleSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "Free-form event properties as a key-value map. Available keys depend on the event `name` (e.g. a `pageViewed` event carries different attributes than `formSubmitted`)."
+		description = "Free form event properties as a key value map. Available keys depend on the event `name` (e.g. a `pageViewed` event carries different attributes than `formSubmitted`)."
 	)
 	@Valid
 	public Map<String, String> getAttributes() {
@@ -183,7 +183,7 @@ public class Event implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "Free-form event properties as a key-value map. Available keys depend on the event `name` (e.g. a `pageViewed` event carries different attributes than `formSubmitted`)."
+		description = "Free form event properties as a key value map. Available keys depend on the event `name` (e.g. a `pageViewed` event carries different attributes than `formSubmitted`)."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, String> attributes;
@@ -413,7 +413,7 @@ public class Event implements Serializable {
 	private Supplier<String> _pageDescriptionSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "Meta keywords of the page that emitted the event. Comma-separated when there are multiple."
+		description = "Meta keywords of the page that emitted the event. Comma separated when there are multiple."
 	)
 	public String getPageKeywords() {
 		if (_pageKeywordsSupplier != null) {
@@ -449,7 +449,7 @@ public class Event implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "Meta keywords of the page that emitted the event. Comma-separated when there are multiple."
+		description = "Meta keywords of the page that emitted the event. Comma separated when there are multiple."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String pageKeywords;
@@ -905,4 +905,4 @@ public class Event implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
-// LIFERAY-REST-BUILDER-HASH:-202593843
+// LIFERAY-REST-BUILDER-HASH:460722023

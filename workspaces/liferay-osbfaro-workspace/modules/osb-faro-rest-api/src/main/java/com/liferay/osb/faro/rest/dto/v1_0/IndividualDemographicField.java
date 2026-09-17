@@ -118,7 +118,7 @@ public class IndividualDemographicField implements Serializable {
 	private Supplier<FieldType> _fieldTypeSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "Human-readable label for the attribute."
+		description = "Human readable label for the attribute."
 	)
 	public String getLabel() {
 		if (_labelSupplier != null) {
@@ -153,7 +153,7 @@ public class IndividualDemographicField implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Human-readable label for the attribute.")
+	@GraphQLField(description = "Human readable label for the attribute.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String label;
 
@@ -478,4 +478,4 @@ public class IndividualDemographicField implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
-// LIFERAY-REST-BUILDER-HASH:677295778
+// LIFERAY-REST-BUILDER-HASH:1475788808
