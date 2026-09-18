@@ -28,6 +28,26 @@ export function resolveLocale(languageId?: string | null): string {
 	return SUPPORTED_LOCALES[resolveLanguageId(languageId)];
 }
 
+export function getLanguageDisplayName(languageId?: string | null): string {
+	const locale = resolveLocale(languageId);
+
+	const [language] = locale.split('-');
+
+	const displayName = new Intl.DisplayNames([locale], {
+		type: 'language',
+	}).of(language) as string;
+
+	return (
+		displayName.charAt(0).toLocaleUpperCase(locale) + displayName.slice(1)
+	);
+}
+
+export function getLanguageLabel(languageId?: string | null): string {
+	const [language, country] = resolveLanguageId(languageId).split('_');
+
+	return `${language.toUpperCase()} (${country})`;
+}
+
 const LANGUAGE_IDS_BY_LOCALE: Record<string, LanguageIds> = Object.fromEntries(
 	Object.entries(SUPPORTED_LOCALES).map(
 		([languageId, locale]): [string, LanguageIds] => [

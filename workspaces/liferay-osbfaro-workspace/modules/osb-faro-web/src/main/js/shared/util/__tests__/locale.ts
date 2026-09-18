@@ -1,6 +1,8 @@
 import {
 	DEFAULT_LANGUAGE_ID,
 	DEFAULT_LOCALE,
+	getLanguageDisplayName,
+	getLanguageLabel,
 	getLocale,
 	resolveLanguageId,
 	resolveLocale,
@@ -61,5 +63,36 @@ describe('getLocale/setLocale', () => {
 		setLocale('ja-JP');
 
 		expect(getLocale()).toBe('ja-JP');
+	});
+});
+
+describe('getLanguageDisplayName', () => {
+	it.each([
+		[LanguageIds.English, 'English'],
+		[LanguageIds.Japanese, '日本語'],
+		[LanguageIds.Portuguese, 'Português'],
+		[LanguageIds.Spanish, 'Español'],
+	])('names %s in its own language', (languageId, displayName) => {
+		expect(getLanguageDisplayName(languageId)).toBe(displayName);
+	});
+
+	it.each([null, undefined, '', 'de_DE'])(
+		'falls back to the default language for %p',
+		(languageId) => {
+			expect(getLanguageDisplayName(languageId)).toBe(
+				getLanguageDisplayName(DEFAULT_LANGUAGE_ID)
+			);
+		}
+	);
+});
+
+describe('getLanguageLabel', () => {
+	it('compacts a portal languageId', () => {
+		expect(getLanguageLabel('en_US')).toBe('EN (US)');
+		expect(getLanguageLabel('pt_BR')).toBe('PT (BR)');
+	});
+
+	it('falls back to the default language when there is none', () => {
+		expect(getLanguageLabel(null)).toBe('EN (US)');
 	});
 });

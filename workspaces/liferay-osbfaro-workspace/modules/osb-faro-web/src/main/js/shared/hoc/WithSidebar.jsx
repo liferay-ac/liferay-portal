@@ -7,16 +7,18 @@ import getCN from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Sidebar from 'shared/components/sidebar';
+import TopBar from 'shared/components/top-bar';
 import withCurrentUser from './WithCurrentUser';
 import withDefaultChannelId from './WithDefaultChannelId';
 import withQuery from './WithQuery';
 import {ActionType, ChannelContext} from 'shared/context/channel';
-import {collapseSidebar} from 'shared/actions/sidebar';
+import {collapseSidebar, setSidebarSectionExpanded} from 'shared/actions/sidebar';
 import {compose} from 'redux';
 import {connect} from 'react-redux';
 import {get} from 'lodash';
 import {getDefaultChannel} from 'shared/components/channels-menu';
 import {hasChanges} from 'shared/util/react';
+import {Map} from 'immutable';
 import {updateDefaultChannelId} from 'shared/actions/preferences';
 import {User} from '../util/records';
 import {withError, withLoading} from './util';
@@ -36,9 +38,16 @@ export default compose(
 	withCurrentUser,
 	connect(
 		(store, {currentUser}) => ({
-			collapsed: store.getIn(['sidebar', String(currentUser.id)], false)
+			collapsed: store.getIn(
+				['sidebar', String(currentUser.id), 'collapsed'],
+				false
+			),
+			expandedSections: store.getIn(
+				['sidebar', String(currentUser.id), 'expandedSections'],
+				Map()
+			)
 		}),
-		{collapseSidebar, updateDefaultChannelId}
+		{collapseSidebar, setSidebarSectionExpanded, updateDefaultChannelId}
 	),
 	withQuery(
 		API.channels.fetchAll,
@@ -69,8 +78,10 @@ export default compose(
 				collapseSidebar: PropTypes.func.isRequired,
 				currentUser: PropTypes.instanceOf(User).isRequired,
 				defaultChannelId: PropTypes.string,
+				expandedSections: PropTypes.instanceOf(Map).isRequired,
 				groupId: PropTypes.string.isRequired,
-				location: PropTypes.object
+				location: PropTypes.object,
+				setSidebarSectionExpanded: PropTypes.func.isRequired
 			};
 
 			state = {
@@ -127,7 +138,7 @@ export default compose(
 				if (hasChanges(prevProps, this.props, 'collapsed')) {
 					setTimeout(
 						() => window.dispatchEvent(this._toggleSidebarEvent),
-						250
+						500
 					);
 				}
 
@@ -154,6 +165,17 @@ export default compose(
 				});
 			}
 
+			@autobind
+			handleSectionExpandedChange(sectionKey, expanded) {
+				const {currentUser, setSidebarSectionExpanded} = this.props;
+
+				setSidebarSectionExpanded({
+					currentUserId: currentUser.id,
+					expanded,
+					sectionKey
+				});
+			}
+
 			render() {
 				const {
 					context: {channels, selectedChannel},
@@ -161,6 +183,7 @@ export default compose(
 						className,
 						collapsed,
 						currentUser,
+						expandedSections,
 						groupId,
 						location,
 						...otherProps
@@ -175,14 +198,23 @@ export default compose(
 
 				return (
 					<div className={classes}>
+						<TopBar
+							collapsed={collapsed}
+							currentUser={currentUser}
+							groupId={groupId}
+							onToggle={this.handleSidebarToggle}
+						/>
+
 						<Sidebar
 							activePathname={location.pathname}
 							channelId={selectedChannel && selectedChannel.id}
 							channels={channels}
 							collapsed={collapsed}
-							currentUser={currentUser}
+							expandedSections={expandedSections}
 							groupId={groupId}
-							onToggle={this.handleSidebarToggle}
+							onSectionExpandedChange={
+								this.handleSectionExpandedChange
+							}
 						/>
 
 						<WrappedComponent

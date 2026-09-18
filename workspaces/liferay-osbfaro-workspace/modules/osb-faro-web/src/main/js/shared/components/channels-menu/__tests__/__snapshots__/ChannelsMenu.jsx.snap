@@ -2,9 +2,36 @@
 
 exports[`ChannelsMenu should render the first item as label 1`] = `
 <div>
-  <button
-    class="channels-menu button-root btn btn-unstyled"
+  <div
+    class="channels-menu-root"
   >
+    <div
+      class="channels-menu-label"
+    >
+      Property
+    </div>
+    <div
+      class="dropdown"
+    >
+      <button
+        aria-expanded="false"
+        aria-haspopup="true"
+        aria-label="Property"
+        class="rounded-lg channels-menu-trigger btn btn-sm btn-secondary"
+        role="combobox"
+        type="button"
+      >
+        Link 1
+        <svg
+          class="lexicon-icon lexicon-icon-caret-double inline-item inline-item-after"
+          role="presentation"
+        >
+          <use
+            href="#caret-double"
+          />
+        </svg>
+      </button>
+    </div>
     <div
       class="channels-menu-icon"
     >
@@ -17,23 +44,6 @@ exports[`ChannelsMenu should render the first item as label 1`] = `
         />
       </svg>
     </div>
-    <div
-      class="channels-menu-label"
-    >
-      Link 1
-    </div>
-    <div
-      class="channels-menu-caret"
-    >
-      <svg
-        class="lexicon-icon lexicon-icon-caret-right icon-root"
-        role="presentation"
-      >
-        <use
-          href="#caret-right"
-        />
-      </svg>
-    </div>
-  </button>
+  </div>
 </div>
 `;
