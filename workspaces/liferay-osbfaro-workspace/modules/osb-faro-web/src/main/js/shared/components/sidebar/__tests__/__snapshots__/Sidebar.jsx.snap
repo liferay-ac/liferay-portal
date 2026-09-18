@@ -15,13 +15,42 @@ exports[`Sidebar should render 1`] = `
       >
         <svg
           class="lexicon-icon lexicon-icon-ldp_logo icon-root icon-size-md logo"
-          data-file="ldp_logo.svg"
           role="presentation"
-        />
+        >
+          <use
+            href="#ldp_logo"
+          />
+        </svg>
       </a>
-      <button
-        class="channels-menu button-root btn btn-unstyled"
+      <div
+        class="channels-menu-root"
       >
+        <div
+          class="channels-menu-label"
+        >
+          Property
+        </div>
+        <button
+          aria-activedescendant=""
+          aria-expanded="false"
+          aria-haspopup="listbox"
+          aria-label="Property"
+          class="rounded-lg d-flex justify-content-between align-items-center btn btn-block btn-secondary"
+          disabled=""
+          role="combobox"
+          tabindex="0"
+          type="button"
+        >
+          No Properties
+          <svg
+            class="lexicon-icon lexicon-icon-caret-double inline-item inline-item-after"
+            role="presentation"
+          >
+            <use
+              href="#caret-double"
+            />
+          </svg>
+        </button>
         <div
           class="channels-menu-icon"
         >
@@ -34,315 +63,403 @@ exports[`Sidebar should render 1`] = `
             />
           </svg>
         </div>
-        <div
-          class="channels-menu-label"
-        >
-          No Properties
-        </div>
-        <div
-          class="channels-menu-caret"
-        >
-          <svg
-            class="lexicon-icon lexicon-icon-caret-right icon-root"
-            role="presentation"
-          >
-            <use
-              href="#caret-right"
-            />
-          </svg>
-        </div>
-      </button>
+      </div>
     </div>
     <div
       class="sidebar-body"
     >
       <div
-        class="section"
+        class="panel"
       >
+        <button
+          aria-controls="clay-id-3"
+          aria-expanded="true"
+          class="panel-header panel-header-link show btn btn-unstyled"
+          type="button"
+        >
+          <div
+            class="section-title"
+          >
+            <span>
+              Touchpoints
+            </span>
+            <svg
+              class="lexicon-icon lexicon-icon-angle-down icon-root"
+              role="presentation"
+            >
+              <use
+                href="#angle-down"
+              />
+            </svg>
+          </div>
+        </button>
         <div
-          class="h5 section-title"
+          aria-labelledby="clay-id-3"
+          class="panel-collapse"
+          id="clay-id-3"
+          role="region"
         >
-          Touchpoints
+          <div
+            class="panel-body"
+          >
+            <ul
+              class="nav-list"
+            >
+              <li
+                class="sidebar-item-root"
+              >
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/lifecycle"
+                >
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-plant icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#plant"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Lifecycles
+                    </span>
+                  </span>
+                </a>
+              </li>
+              <li
+                class="sidebar-item-root"
+              >
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/campaigns"
+                >
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-megaphone icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#megaphone"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Campaigns
+                    </span>
+                  </span>
+                </a>
+              </li>
+              <li
+                class="sidebar-item-root"
+              >
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/sites"
+                >
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-sites icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#sites"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Sites
+                    </span>
+                  </span>
+                </a>
+              </li>
+              <li
+                class="sidebar-item-root"
+              >
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/assets"
+                >
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-sheets icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#sheets"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Assets
+                    </span>
+                  </span>
+                </a>
+              </li>
+              <li
+                class="sidebar-item-root"
+              >
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/event-analysis"
+                >
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-click icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#click"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Events
+                    </span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <ul
-          class="nav-list"
-        >
-          <li
-            class="sidebar-item-root"
-          >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/lifecycle"
-            >
-              <span
-                class="link-content-wrapper"
-              >
-                <span
-                  class="icon-wrapper"
-                >
-                  <svg
-                    class="lexicon-icon lexicon-icon-polls icon-root"
-                    role="presentation"
-                  >
-                    <use
-                      href="#polls"
-                    />
-                  </svg>
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Lifecycles
-                </span>
-              </span>
-            </a>
-          </li>
-          <li
-            class="sidebar-item-root"
-          >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/campaigns"
-            >
-              <span
-                class="link-content-wrapper"
-              >
-                <span
-                  class="icon-wrapper"
-                >
-                  <svg
-                    class="lexicon-icon lexicon-icon-megaphone icon-root"
-                    role="presentation"
-                  >
-                    <use
-                      href="#megaphone"
-                    />
-                  </svg>
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Campaigns
-                </span>
-              </span>
-            </a>
-          </li>
-          <li
-            class="sidebar-item-root"
-          >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/sites"
-            >
-              <span
-                class="link-content-wrapper"
-              >
-                <span
-                  class="icon-wrapper"
-                >
-                  <svg
-                    class="lexicon-icon lexicon-icon-ac_page icon-root"
-                    data-file="ac_page.svg"
-                    role="presentation"
-                  />
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Sites
-                </span>
-              </span>
-            </a>
-          </li>
-          <li
-            class="sidebar-item-root"
-          >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/assets"
-            >
-              <span
-                class="link-content-wrapper"
-              >
-                <span
-                  class="icon-wrapper"
-                >
-                  <svg
-                    class="lexicon-icon lexicon-icon-ac_assets icon-root"
-                    data-file="ac_assets.svg"
-                    role="presentation"
-                  />
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Assets
-                </span>
-              </span>
-            </a>
-          </li>
-          <li
-            class="sidebar-item-root"
-          >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/event-analysis"
-            >
-              <span
-                class="link-content-wrapper"
-              >
-                <span
-                  class="icon-wrapper"
-                >
-                  <svg
-                    class="lexicon-icon lexicon-icon-ac_event_analysis icon-root"
-                    data-file="ac_event_analysis.svg"
-                    role="presentation"
-                  />
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Events
-                </span>
-              </span>
-            </a>
-          </li>
-        </ul>
       </div>
       <div
-        class="section"
+        class="panel"
       >
+        <button
+          aria-controls="clay-id-4"
+          aria-expanded="true"
+          class="panel-header panel-header-link show btn btn-unstyled"
+          type="button"
+        >
+          <div
+            class="section-title"
+          >
+            <span>
+              People
+            </span>
+            <svg
+              class="lexicon-icon lexicon-icon-angle-down icon-root"
+              role="presentation"
+            >
+              <use
+                href="#angle-down"
+              />
+            </svg>
+          </div>
+        </button>
         <div
-          class="h5 section-title"
+          aria-labelledby="clay-id-4"
+          class="panel-collapse"
+          id="clay-id-4"
+          role="region"
         >
-          People
+          <div
+            class="panel-body"
+          >
+            <ul
+              class="nav-list"
+            >
+              <li
+                class="sidebar-item-root"
+              >
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/contacts/segments"
+                >
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-box-squared icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#box-squared"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Segments
+                    </span>
+                  </span>
+                </a>
+              </li>
+              <li
+                class="sidebar-item-root"
+              >
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/contacts/accounts"
+                >
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-briefcase icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#briefcase"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Accounts
+                    </span>
+                  </span>
+                </a>
+              </li>
+              <li
+                class="sidebar-item-root"
+              >
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/contacts/individuals"
+                >
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-users icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#users"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Individuals
+                    </span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <ul
-          class="nav-list"
-        >
-          <li
-            class="sidebar-item-root"
-          >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/contacts/segments"
-            >
-              <span
-                class="link-content-wrapper"
-              >
-                <span
-                  class="icon-wrapper"
-                >
-                  <svg
-                    class="lexicon-icon lexicon-icon-ac_segment icon-root"
-                    data-file="ac_segment.svg"
-                    role="presentation"
-                  />
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Segments
-                </span>
-              </span>
-            </a>
-          </li>
-          <li
-            class="sidebar-item-root"
-          >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/contacts/accounts"
-            >
-              <span
-                class="link-content-wrapper"
-              >
-                <span
-                  class="icon-wrapper"
-                >
-                  <svg
-                    class="lexicon-icon lexicon-icon-ac_account icon-root"
-                    data-file="ac_account.svg"
-                    role="presentation"
-                  />
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Accounts
-                </span>
-              </span>
-            </a>
-          </li>
-          <li
-            class="sidebar-item-root"
-          >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/contacts/individuals"
-            >
-              <span
-                class="link-content-wrapper"
-              >
-                <span
-                  class="icon-wrapper"
-                >
-                  <svg
-                    class="lexicon-icon lexicon-icon-ac_individual icon-root"
-                    data-file="ac_individual.svg"
-                    role="presentation"
-                  />
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Individuals
-                </span>
-              </span>
-            </a>
-          </li>
-        </ul>
       </div>
       <div
-        class="section"
+        class="panel"
       >
-        <div
-          class="h5 section-title"
+        <button
+          aria-controls="clay-id-5"
+          aria-expanded="true"
+          class="panel-header panel-header-link show btn btn-unstyled"
+          type="button"
         >
-          Optimize
-        </div>
-        <ul
-          class="nav-list"
-        >
-          <li
-            class="sidebar-item-root"
+          <div
+            class="section-title"
           >
-            <a
-              class="link btn btn-unstyled"
-              href="/workspace/23/123/tests"
+            <span>
+              Optimize
+            </span>
+            <svg
+              class="lexicon-icon lexicon-icon-angle-down icon-root"
+              role="presentation"
             >
-              <span
-                class="link-content-wrapper"
+              <use
+                href="#angle-down"
+              />
+            </svg>
+          </div>
+        </button>
+        <div
+          aria-labelledby="clay-id-5"
+          class="panel-collapse"
+          id="clay-id-5"
+          role="region"
+        >
+          <div
+            class="panel-body"
+          >
+            <ul
+              class="nav-list"
+            >
+              <li
+                class="sidebar-item-root"
               >
-                <span
-                  class="icon-wrapper"
+                <a
+                  class="link btn btn-unstyled"
+                  href="/workspace/23/123/tests"
                 >
-                  <svg
-                    class="lexicon-icon lexicon-icon-ac_test icon-root"
-                    data-file="ac_test.svg"
-                    role="presentation"
-                  />
-                </span>
-                <span
-                  class="item-label"
-                >
-                  Tests
-                </span>
-              </span>
-            </a>
-          </li>
-        </ul>
+                  <span
+                    class="link-content-wrapper"
+                  >
+                    <span
+                      class="icon-wrapper"
+                    >
+                      <svg
+                        class="lexicon-icon lexicon-icon-test icon-root"
+                        role="presentation"
+                      >
+                        <use
+                          href="#test"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="item-label"
+                    >
+                      Tests
+                    </span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
     <div
