@@ -21,8 +21,7 @@
 		width: 0;
 	}
 
-	.link,
-	.trigger {
+	.link {
 		align-items: center;
 		border-radius: 0 !important;
 		border-width: 0;
@@ -44,10 +43,6 @@
 		&:active:focus {
 			color: $dark;
 			text-decoration: none;
-
-			.avatar {
-				background: $mainLighten65;
-			}
 		}
 
 		&:active,
@@ -63,11 +58,6 @@
 			background: $secondaryHover;
 			color: $dark;
 			text-decoration: none;
-
-			.avatar {
-				background: $mainLighten65;
-				color: $mainLighten8;
-			}
 		}
 	}
 
