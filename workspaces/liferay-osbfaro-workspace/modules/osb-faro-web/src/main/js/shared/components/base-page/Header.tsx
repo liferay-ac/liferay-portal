@@ -81,13 +81,20 @@ const NavBar: React.FC<INavBarProps> = ({
 
 interface Action extends React.HTMLAttributes<HTMLElement> {
 	deprecated?: boolean;
-	disabled: boolean;
+	disabled?: boolean;
 	label: string;
-	href: string;
+	href?: string;
 	icon?: {
 		symbol: string;
 	};
 	external?: boolean;
+
+	/**
+	 * Wraps the rendered dropdown item, so an action can drive its own
+	 * trigger-and-modal component (e.g. a download action that opens a
+	 * confirmation modal) instead of a plain click handler.
+	 */
+	renderItem?: (item: React.ReactElement) => React.ReactElement;
 }
 
 interface IPageActionsProps {
@@ -132,11 +139,16 @@ const PageActions: React.FC<IPageActionsProps> = ({
 		{actions.length > actionsDisplayLimit && (
 			<ClayDropDown
 				alignmentPosition={Align.BottomRight}
+				closeOnClick
 				trigger={
 					<ClayButton
-						aria-label={label && Liferay.Language.get('menu')}
+						aria-label={
+							label ? undefined : Liferay.Language.get('menu')
+						}
+						borderless={!label}
 						disabled={disabled}
-						displayType={label.length ? 'primary' : 'unstyled'}
+						displayType={label.length ? 'primary' : 'secondary'}
+						size={label ? undefined : 'sm'}
 					>
 						{label ? (
 							<>
@@ -156,22 +168,39 @@ const PageActions: React.FC<IPageActionsProps> = ({
 					</ClayButton>
 				}
 			>
-				{actions.map(({deprecated, label, ...props}) => (
-					<ClayDropDown.Item key={label} {...props}>
-						{label}
+				{actions.map(
+					({deprecated, icon, label, renderItem, ...props}) => {
+						const item = (
+							<ClayDropDown.Item {...props}>
+								{icon && (
+									<ClayIcon
+										className="icon-root mr-2"
+										symbol={icon.symbol}
+									/>
+								)}
 
-						{deprecated && (
-							<ClayBadge
-								className="ml-1"
-								displayType="warning"
-								label={Liferay.Language.get(
-									'deprecated'
-								).toUpperCase()}
-								translucent
-							/>
-						)}
-					</ClayDropDown.Item>
-				))}
+								{label}
+
+								{deprecated && (
+									<ClayBadge
+										className="ml-1"
+										displayType="warning"
+										label={Liferay.Language.get(
+											'deprecated'
+										).toUpperCase()}
+										translucent
+									/>
+								)}
+							</ClayDropDown.Item>
+						);
+
+						return (
+							<React.Fragment key={label}>
+								{renderItem ? renderItem(item) : item}
+							</React.Fragment>
+						);
+					}
+				)}
 			</ClayDropDown>
 		)}
 	</>
