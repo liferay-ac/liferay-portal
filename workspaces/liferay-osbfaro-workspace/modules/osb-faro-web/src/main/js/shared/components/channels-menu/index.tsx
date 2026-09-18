@@ -6,9 +6,8 @@ import {ClayDropDownWithItems} from '@clayui/drop-down';
 import {connect} from 'react-redux';
 import {Routes, toRoute} from 'shared/util/router';
 import {truncateText} from 'shared/util/util';
+import {MAX_LABEL_LENGTH} from 'shared/util/constants';
 import {updateDefaultChannelId} from 'shared/actions/preferences';
-
-const MAX_LABEL_LENGTH = 35;
 
 const MENU_WIDTH = 280;
 
@@ -44,12 +43,6 @@ export const getDefaultChannel = (
 
 	return null;
 };
-
-/**
- * Built on `ClayDropDownWithItems` (`@clayui/drop-down`), Clay's own
- * ready-made searchable dropdown, rather than assembling `DropDown` +
- * `DropDown.Item` + a search input by hand.
- */
 
 export const ChannelsMenu: React.FC<IChannelsMenuProps> = ({
 	channels = [],
