@@ -42,7 +42,7 @@ import org.osgi.service.component.annotations.Reference;
 )
 @Generated("")
 @OpenAPIDefinition(
-	info = @Info(description = "Read-only headless REST API for Liferay Analytics Cloud. Exposes accounts, asset-summary metrics, events, individuals, individual segments, page metrics, properties, and search terms for use as MCP tools and external integrations. All endpoints are scoped to a provisioned Analytics Cloud workspace. A Java client JAR is available for use with the group ID 'com.liferay', artifact ID 'com.liferay.osb.faro.rest.client', and version '1.0.0'.", license = @License(name = "Apache 2.0", url = "http://www.apache.org/licenses/LICENSE-2.0.html"), title = "Liferay Analytics Cloud Headless REST API", version = "v1.0")
+	info = @Info(description = "Read only headless REST API for Liferay Analytics Cloud. Exposes accounts, asset summary metrics, events, individuals, individual segments, page metrics, properties, and search terms for use as MCP tools and external integrations. All endpoints are scoped to a provisioned Analytics Cloud workspace. A Java client JAR is available for use with the group ID 'com.liferay', artifact ID 'com.liferay.osb.faro.rest.client', and version '1.0.0'.", license = @License(name = "Apache 2.0", url = "http://www.apache.org/licenses/LICENSE-2.0.html"), title = "Liferay Analytics Cloud Headless REST API", version = "v1.0")
 )
 @Path("/v1.0")
 public class OpenAPIResourceImpl {
@@ -95,15 +95,23 @@ public class OpenAPIResourceImpl {
 
 			add(EventResourceImpl.class);
 
+			add(EventMetricResourceImpl.class);
+
 			add(IndividualResourceImpl.class);
 
 			add(IndividualSegmentResourceImpl.class);
 
 			add(IndividualSegmentMembershipResourceImpl.class);
 
+			add(IndividualSegmentMembershipChangeResourceImpl.class);
+
+			add(IndividualSegmentMembershipChangeMetricResourceImpl.class);
+
 			add(PageMetricResourceImpl.class);
 
 			add(SearchTermResourceImpl.class);
+
+			add(UserSessionResourceImpl.class);
 
 			add(WorkspaceResourceImpl.class);
 
@@ -112,4 +120,4 @@ public class OpenAPIResourceImpl {
 	};
 
 }
-// LIFERAY-REST-BUILDER-HASH:1734572985
+// LIFERAY-REST-BUILDER-HASH:-1547803548
