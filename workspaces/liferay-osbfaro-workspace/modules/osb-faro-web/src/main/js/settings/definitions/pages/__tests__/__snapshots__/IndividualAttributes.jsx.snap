@@ -488,7 +488,7 @@ exports[`IndividualAttributes should render 1`] = `
                           <td
                             class="pr-5"
                           >
-                            a few seconds ago
+                            now
                           </td>
                         </tr>
                         <tr
@@ -516,7 +516,7 @@ exports[`IndividualAttributes should render 1`] = `
                           <td
                             class="pr-5"
                           >
-                            a few seconds ago
+                            now
                           </td>
                         </tr>
                         <tr
@@ -544,7 +544,7 @@ exports[`IndividualAttributes should render 1`] = `
                           <td
                             class="pr-5"
                           >
-                            a few seconds ago
+                            now
                           </td>
                         </tr>
                         <tr
@@ -572,7 +572,7 @@ exports[`IndividualAttributes should render 1`] = `
                           <td
                             class="pr-5"
                           >
-                            a few seconds ago
+                            now
                           </td>
                         </tr>
                         <tr
@@ -600,7 +600,7 @@ exports[`IndividualAttributes should render 1`] = `
                           <td
                             class="pr-5"
                           >
-                            a few seconds ago
+                            now
                           </td>
                         </tr>
                       </tbody>
