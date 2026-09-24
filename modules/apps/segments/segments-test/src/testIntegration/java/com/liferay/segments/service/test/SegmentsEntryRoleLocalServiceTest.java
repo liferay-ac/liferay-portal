@@ -7,7 +7,6 @@ package com.liferay.segments.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.portal.kernel.exception.NoSuchRoleException;
-import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.RoleAssignmentException;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.role.RoleConstants;
@@ -23,7 +22,6 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.segments.exception.NoSuchEntryException;
 import com.liferay.segments.model.SegmentsEntry;
 import com.liferay.segments.model.SegmentsEntryRole;
-import com.liferay.segments.service.SegmentsEntryLocalService;
 import com.liferay.segments.service.SegmentsEntryRoleLocalService;
 import com.liferay.segments.test.util.SegmentsTestUtil;
 
@@ -50,17 +48,47 @@ public class SegmentsEntryRoleLocalServiceTest {
 
 	@Before
 	public void setUp() throws Exception {
-		_role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
-		_segmentsEntry = SegmentsTestUtil.addSegmentsEntry(
-			TestPropsValues.getGroupId());
 		_serviceContext = ServiceContextTestUtil.getServiceContext();
 	}
 
 	@Test
-	public void testAddSegmentsEntryRole() throws PortalException {
+	public void testSegmentsEntryRole() throws Exception {
+		_testAddSegmentsEntryRole();
+		_testAddSegmentsEntryRoleWithInvalidRoleId();
+		_testAddSegmentsEntryRoleWithInvalidSegmentsEntryId();
+		_testDeleteSegmentsEntryRole();
+		_testDeleteSegmentsEntryRolesByRoleId();
+		_testDeleteSegmentsEntryRolesBySegmentsEntryId();
+		_testGetSegmentsEntryRoles();
+		_testGetSegmentsEntryRolesByRoleId();
+		_testSetSegmentsEntrySiteRoles();
+		_testSetSegmentsEntrySiteRolesWithRegularRole();
+	}
+
+	private Role _addRole(int type) throws Exception {
+		Role role = RoleTestUtil.addRole(type);
+
+		_roles.add(role);
+
+		return role;
+	}
+
+	private SegmentsEntry _addSegmentsEntry() throws Exception {
+		SegmentsEntry segmentsEntry = SegmentsTestUtil.addSegmentsEntry(
+			TestPropsValues.getGroupId());
+
+		_segmentsEntries.add(segmentsEntry);
+
+		return segmentsEntry;
+	}
+
+	private void _testAddSegmentsEntryRole() throws Exception {
+		Role role = _addRole(RoleConstants.TYPE_REGULAR);
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
+
 		SegmentsEntryRole segmentsEntryRole =
 			_segmentsEntryRoleLocalService.addSegmentsEntryRole(
-				_segmentsEntry.getSegmentsEntryId(), _role.getRoleId(),
+				segmentsEntry.getSegmentsEntryId(), role.getRoleId(),
 				_serviceContext);
 
 		Assert.assertNotNull(segmentsEntryRole);
@@ -68,128 +96,157 @@ public class SegmentsEntryRoleLocalServiceTest {
 		Assert.assertEquals(
 			1,
 			_segmentsEntryRoleLocalService.getSegmentsEntryRolesCount(
-				_segmentsEntry.getSegmentsEntryId()));
-		Assert.assertEquals(_role.getRoleId(), segmentsEntryRole.getRoleId());
+				segmentsEntry.getSegmentsEntryId()));
+		Assert.assertEquals(role.getRoleId(), segmentsEntryRole.getRoleId());
 		Assert.assertEquals(
-			_segmentsEntry.getSegmentsEntryId(),
+			segmentsEntry.getSegmentsEntryId(),
 			segmentsEntryRole.getSegmentsEntryId());
 	}
 
-	@Test(expected = NoSuchRoleException.class)
-	public void testAddSegmentsEntryRoleWithInvalidRoleId() throws Exception {
-		_segmentsEntryRoleLocalService.addSegmentsEntryRole(
-			_segmentsEntry.getSegmentsEntryId(), 0L, _serviceContext);
+	private void _testAddSegmentsEntryRoleWithInvalidRoleId() throws Exception {
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
+
+		try {
+			_segmentsEntryRoleLocalService.addSegmentsEntryRole(
+				segmentsEntry.getSegmentsEntryId(), 0L, _serviceContext);
+
+			Assert.fail();
+		}
+		catch (NoSuchRoleException noSuchRoleException) {
+			Assert.assertNotNull(noSuchRoleException);
+		}
 	}
 
-	@Test(expected = NoSuchEntryException.class)
-	public void testAddSegmentsEntryRoleWithInvalidSegmentsEntryId()
+	private void _testAddSegmentsEntryRoleWithInvalidSegmentsEntryId()
 		throws Exception {
 
-		_segmentsEntryRoleLocalService.addSegmentsEntryRole(
-			0L, _role.getRoleId(), _serviceContext);
+		Role role = _addRole(RoleConstants.TYPE_REGULAR);
+
+		try {
+			_segmentsEntryRoleLocalService.addSegmentsEntryRole(
+				0L, role.getRoleId(), _serviceContext);
+
+			Assert.fail();
+		}
+		catch (NoSuchEntryException noSuchEntryException) {
+			Assert.assertNotNull(noSuchEntryException);
+		}
 	}
 
-	@Test
-	public void testDeleteSegmentsEntryRole() throws PortalException {
+	private void _testDeleteSegmentsEntryRole() throws Exception {
+		Role role = _addRole(RoleConstants.TYPE_REGULAR);
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
+
 		_segmentsEntryRoleLocalService.addSegmentsEntryRole(
-			_segmentsEntry.getSegmentsEntryId(), _role.getRoleId(),
+			segmentsEntry.getSegmentsEntryId(), role.getRoleId(),
 			_serviceContext);
 
 		_segmentsEntryRoleLocalService.deleteSegmentsEntryRole(
-			_segmentsEntry.getSegmentsEntryId(), _role.getRoleId());
+			segmentsEntry.getSegmentsEntryId(), role.getRoleId());
 
 		Assert.assertEquals(
 			0,
 			_segmentsEntryRoleLocalService.getSegmentsEntryRolesCount(
-				_segmentsEntry.getSegmentsEntryId()));
+				segmentsEntry.getSegmentsEntryId()));
 	}
 
-	@Test
-	public void testDeleteSegmentsEntryRolesByRoleId() throws PortalException {
+	private void _testDeleteSegmentsEntryRolesByRoleId() throws Exception {
+		Role role = _addRole(RoleConstants.TYPE_REGULAR);
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
+
 		_segmentsEntryRoleLocalService.addSegmentsEntryRole(
-			_segmentsEntry.getSegmentsEntryId(), _role.getRoleId(),
+			segmentsEntry.getSegmentsEntryId(), role.getRoleId(),
 			_serviceContext);
 
 		_segmentsEntryRoleLocalService.deleteSegmentsEntryRolesByRoleId(
-			_role.getRoleId());
+			role.getRoleId());
 
 		Assert.assertEquals(
 			0,
 			_segmentsEntryRoleLocalService.getSegmentsEntryRolesCountByRoleId(
-				_role.getRoleId()));
+				role.getRoleId()));
 	}
 
-	@Test
-	public void testDeleteSegmentsEntryRolesBySegmentsEntryId()
-		throws PortalException {
+	private void _testDeleteSegmentsEntryRolesBySegmentsEntryId()
+		throws Exception {
+
+		Role role = _addRole(RoleConstants.TYPE_REGULAR);
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
 
 		_segmentsEntryRoleLocalService.addSegmentsEntryRole(
-			_segmentsEntry.getSegmentsEntryId(), _role.getRoleId(),
+			segmentsEntry.getSegmentsEntryId(), role.getRoleId(),
 			_serviceContext);
 
 		_segmentsEntryRoleLocalService.deleteSegmentsEntryRoles(
-			_segmentsEntry.getSegmentsEntryId());
+			segmentsEntry.getSegmentsEntryId());
 
 		Assert.assertEquals(
 			0,
 			_segmentsEntryRoleLocalService.getSegmentsEntryRolesCount(
-				_segmentsEntry.getSegmentsEntryId()));
+				segmentsEntry.getSegmentsEntryId()));
 	}
 
-	@Test
-	public void testGetSegmentsEntryRoles() throws PortalException {
+	private void _testGetSegmentsEntryRoles() throws Exception {
+		Role role = _addRole(RoleConstants.TYPE_REGULAR);
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
+
 		SegmentsEntryRole segmentsEntryRole =
 			_segmentsEntryRoleLocalService.addSegmentsEntryRole(
-				_segmentsEntry.getSegmentsEntryId(), _role.getRoleId(),
+				segmentsEntry.getSegmentsEntryId(), role.getRoleId(),
 				_serviceContext);
 
 		List<SegmentsEntryRole> segmentsEntryRoles =
 			_segmentsEntryRoleLocalService.getSegmentsEntryRoles(
-				_segmentsEntry.getSegmentsEntryId());
+				segmentsEntry.getSegmentsEntryId());
 
 		Assert.assertEquals(
 			segmentsEntryRoles.toString(), 1, segmentsEntryRoles.size());
 		Assert.assertEquals(segmentsEntryRole, segmentsEntryRoles.get(0));
 	}
 
-	@Test
-	public void testGetSegmentsEntryRolesByRoleId() throws PortalException {
+	private void _testGetSegmentsEntryRolesByRoleId() throws Exception {
+		Role role = _addRole(RoleConstants.TYPE_REGULAR);
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
+
 		SegmentsEntryRole segmentsEntryRole =
 			_segmentsEntryRoleLocalService.addSegmentsEntryRole(
-				_segmentsEntry.getSegmentsEntryId(), _role.getRoleId(),
+				segmentsEntry.getSegmentsEntryId(), role.getRoleId(),
 				_serviceContext);
 
 		List<SegmentsEntryRole> segmentsEntryRoles =
 			_segmentsEntryRoleLocalService.getSegmentsEntryRolesByRoleId(
-				_role.getRoleId());
+				role.getRoleId());
 
 		Assert.assertEquals(
 			segmentsEntryRoles.toString(), 1, segmentsEntryRoles.size());
 		Assert.assertEquals(segmentsEntryRole, segmentsEntryRoles.get(0));
 	}
 
-	@Test
-	public void testSetSegmentsEntrySiteRoles() throws Exception {
+	private void _testSetSegmentsEntrySiteRoles() throws Exception {
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
+
 		List<Long> actualRoleIdsList = ListUtil.fromArray(
-			_segmentsEntry.getRoleIds());
+			segmentsEntry.getRoleIds());
 
 		Assert.assertEquals(
 			actualRoleIdsList.toString(), 0, actualRoleIdsList.size());
 
+		List<Role> siteRoles = new ArrayList<>();
+
 		for (int i = 0; i < 5; i++) {
-			_roles.add(RoleTestUtil.addRole(RoleConstants.TYPE_SITE));
+			siteRoles.add(_addRole(RoleConstants.TYPE_SITE));
 		}
 
 		long[] expectedRoleIds = ListUtil.toLongArray(
-			_roles, Role.ROLE_ID_ACCESSOR);
+			siteRoles, Role.ROLE_ID_ACCESSOR);
 
 		_segmentsEntryRoleLocalService.setSegmentsEntrySiteRoles(
-			_segmentsEntry.getSegmentsEntryId(), expectedRoleIds,
+			segmentsEntry.getSegmentsEntryId(), expectedRoleIds,
 			_serviceContext);
 
 		List<Long> expectedRoleIdsList = ListUtil.fromArray(expectedRoleIds);
 
-		actualRoleIdsList = ListUtil.fromArray(_segmentsEntry.getRoleIds());
+		actualRoleIdsList = ListUtil.fromArray(segmentsEntry.getRoleIds());
 
 		Assert.assertEquals(
 			actualRoleIdsList.toString(), expectedRoleIdsList.size(),
@@ -198,26 +255,25 @@ public class SegmentsEntryRoleLocalServiceTest {
 		Assert.assertTrue(expectedRoleIdsList.containsAll(actualRoleIdsList));
 
 		_segmentsEntryRoleLocalService.setSegmentsEntrySiteRoles(
-			_segmentsEntry.getSegmentsEntryId(), new long[0], _serviceContext);
+			segmentsEntry.getSegmentsEntryId(), new long[0], _serviceContext);
 
-		actualRoleIdsList = ListUtil.fromArray(_segmentsEntry.getRoleIds());
+		actualRoleIdsList = ListUtil.fromArray(segmentsEntry.getRoleIds());
 
 		Assert.assertEquals(
 			actualRoleIdsList.toString(), 0, actualRoleIdsList.size());
 	}
 
-	@Test
-	public void testSetSegmentsEntrySiteRolesWithRegularRole()
+	private void _testSetSegmentsEntrySiteRolesWithRegularRole()
 		throws Exception {
 
-		Role siteRole = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
-
-		_roles.add(siteRole);
+		Role regularRole = _addRole(RoleConstants.TYPE_REGULAR);
+		SegmentsEntry segmentsEntry = _addSegmentsEntry();
+		Role siteRole = _addRole(RoleConstants.TYPE_SITE);
 
 		try {
 			_segmentsEntryRoleLocalService.setSegmentsEntrySiteRoles(
-				_segmentsEntry.getSegmentsEntryId(),
-				new long[] {siteRole.getRoleId(), _role.getRoleId()},
+				segmentsEntry.getSegmentsEntryId(),
+				new long[] {siteRole.getRoleId(), regularRole.getRoleId()},
 				_serviceContext);
 
 			Assert.fail();
@@ -226,21 +282,15 @@ public class SegmentsEntryRoleLocalServiceTest {
 			Assert.assertEquals(
 				0,
 				_segmentsEntryRoleLocalService.getSegmentsEntryRolesCount(
-					_segmentsEntry.getSegmentsEntryId()));
+					segmentsEntry.getSegmentsEntryId()));
 		}
 	}
-
-	@DeleteAfterTestRun
-	private Role _role;
 
 	@DeleteAfterTestRun
 	private final List<Role> _roles = new ArrayList<>();
 
 	@DeleteAfterTestRun
-	private SegmentsEntry _segmentsEntry;
-
-	@Inject
-	private SegmentsEntryLocalService _segmentsEntryLocalService;
+	private final List<SegmentsEntry> _segmentsEntries = new ArrayList<>();
 
 	@Inject
 	private SegmentsEntryRoleLocalService _segmentsEntryRoleLocalService;
