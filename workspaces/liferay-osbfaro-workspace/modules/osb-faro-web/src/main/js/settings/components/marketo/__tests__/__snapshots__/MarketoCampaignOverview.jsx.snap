@@ -586,7 +586,7 @@ exports[`MarketoCampaignOverview should render an error when the count requests 
                   </div>
                 </div>
                 <div
-                  class="toolbar-root"
+                  class="search-toolbar-root"
                 >
                   <nav
                     class="navbar navbar-root management-bar management-bar-light navbar-expand"
@@ -1436,7 +1436,7 @@ exports[`MarketoCampaignOverview should render the connected data source with th
                   </div>
                 </div>
                 <div
-                  class="toolbar-root"
+                  class="search-toolbar-root"
                 >
                   <nav
                     class="navbar navbar-root management-bar management-bar-light navbar-expand"
@@ -2399,7 +2399,7 @@ exports[`MarketoCampaignOverview should render the reconnect view when the data 
                   </div>
                 </div>
                 <div
-                  class="toolbar-root"
+                  class="search-toolbar-root"
                 >
                   <nav
                     class="navbar navbar-root management-bar management-bar-light navbar-expand"
