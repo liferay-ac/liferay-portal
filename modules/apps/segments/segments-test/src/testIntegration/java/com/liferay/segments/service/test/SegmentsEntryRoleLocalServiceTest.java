@@ -8,6 +8,7 @@ package com.liferay.segments.service.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.portal.kernel.exception.NoSuchRoleException;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.exception.RoleAssignmentException;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -203,6 +204,30 @@ public class SegmentsEntryRoleLocalServiceTest {
 
 		Assert.assertEquals(
 			actualRoleIdsList.toString(), 0, actualRoleIdsList.size());
+	}
+
+	@Test
+	public void testSetSegmentsEntrySiteRolesWithRegularRole()
+		throws Exception {
+
+		Role siteRole = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_roles.add(siteRole);
+
+		try {
+			_segmentsEntryRoleLocalService.setSegmentsEntrySiteRoles(
+				_segmentsEntry.getSegmentsEntryId(),
+				new long[] {siteRole.getRoleId(), _role.getRoleId()},
+				_serviceContext);
+
+			Assert.fail();
+		}
+		catch (RoleAssignmentException roleAssignmentException) {
+			Assert.assertEquals(
+				0,
+				_segmentsEntryRoleLocalService.getSegmentsEntryRolesCount(
+					_segmentsEntry.getSegmentsEntryId()));
+		}
 	}
 
 	@DeleteAfterTestRun
