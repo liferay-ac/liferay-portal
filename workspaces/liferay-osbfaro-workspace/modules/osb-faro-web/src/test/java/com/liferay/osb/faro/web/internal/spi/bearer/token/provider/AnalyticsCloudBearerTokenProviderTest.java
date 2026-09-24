@@ -10,6 +10,10 @@ import com.liferay.oauth2.provider.rest.spi.bearer.token.provider.BearerTokenPro
 import com.liferay.osb.faro.web.internal.util.AccessTokenExpiresInUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -63,10 +67,14 @@ public class AnalyticsCloudBearerTokenProviderTest {
 		_analyticsCloudBearerTokenProvider.onBeforeCreate(accessToken);
 
 		Assert.assertEquals(0, accessToken.getExpiresIn());
+
+		String tokenKey = accessToken.getTokenKey();
+
+		Assert.assertTrue(tokenKey, tokenKey.matches(_TOKEN_KEY_REGEX));
 	}
 
 	@Test
-	public void testOnBeforeCreateWithApplicationAIHubCell() {
+	public void testOnBeforeCreateWithApplicationAIHubCell() throws Exception {
 		BearerTokenProvider.AccessToken accessToken = _createAccessToken(
 			_EXTERNAL_REFERENCE_CODE_AI_HUB_CELL);
 
@@ -76,6 +84,22 @@ public class AnalyticsCloudBearerTokenProviderTest {
 			_EXPIRATION_AI_HUB_CELL_IN_SECONDS, accessToken.getExpiresIn());
 		Assert.assertTrue(
 			_analyticsCloudBearerTokenProvider.isValid(accessToken));
+
+		SignedJWT signedJWT = SignedJWT.parse(accessToken.getTokenKey());
+
+		JWTClaimsSet jwtClaimsSet = signedJWT.getJWTClaimsSet();
+
+		long issuedAt = accessToken.getIssuedAt();
+
+		Assert.assertEquals(
+			new Date((issuedAt + _EXPIRATION_AI_HUB_CELL_IN_SECONDS) * 1000),
+			jwtClaimsSet.getExpirationTime());
+		Assert.assertEquals(
+			new Date(issuedAt * 1000), jwtClaimsSet.getIssueTime());
+
+		String jwtID = jwtClaimsSet.getJWTID();
+
+		Assert.assertTrue(jwtID, jwtID.matches(_TOKEN_KEY_REGEX));
 	}
 
 	@Test
@@ -125,6 +149,8 @@ public class AnalyticsCloudBearerTokenProviderTest {
 		"AI-HUB-CELL";
 
 	private static final long _HOUR_IN_SECONDS = TimeUnit.HOURS.toSeconds(1);
+
+	private static final String _TOKEN_KEY_REGEX = "[0-9a-f]+";
 
 	private final AnalyticsCloudBearerTokenProvider
 		_analyticsCloudBearerTokenProvider =

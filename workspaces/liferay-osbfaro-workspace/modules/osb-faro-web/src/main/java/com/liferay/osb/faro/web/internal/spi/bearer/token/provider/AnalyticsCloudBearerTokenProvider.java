@@ -9,9 +9,20 @@ import com.liferay.oauth2.provider.model.OAuth2Application;
 import com.liferay.oauth2.provider.rest.spi.bearer.token.provider.BearerTokenProvider;
 import com.liferay.osb.faro.web.internal.util.AccessTokenExpiresInUtil;
 import com.liferay.petra.io.BigEndianCodec;
+import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.security.SecureRandomUtil;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+
+import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -33,7 +44,20 @@ public class AnalyticsCloudBearerTokenProvider implements BearerTokenProvider {
 
 	@Override
 	public void onBeforeCreate(AccessToken accessToken) {
-		accessToken.setExpiresIn(_getExpiresIn(accessToken));
+		OAuth2Application oAuth2Application =
+			accessToken.getOAuth2Application();
+
+		if ((oAuth2Application != null) &&
+			Objects.equals(
+				oAuth2Application.getExternalReferenceCode(), "AI-HUB-CELL")) {
+
+			accessToken.setExpiresIn(TimeUnit.DAYS.toSeconds(30));
+			accessToken.setTokenKey(_generateJWTTokenKey(accessToken));
+
+			return;
+		}
+
+		accessToken.setExpiresIn(AccessTokenExpiresInUtil.getExpiresIn());
 		accessToken.setTokenKey(generateTokenKey(32));
 	}
 
@@ -77,18 +101,45 @@ public class AnalyticsCloudBearerTokenProvider implements BearerTokenProvider {
 		return true;
 	}
 
-	private long _getExpiresIn(AccessToken accessToken) {
-		OAuth2Application oAuth2Application =
-			accessToken.getOAuth2Application();
+	private static JWSSigner _createJWSSigner() {
+		byte[] secret = new byte[32];
 
-		if ((oAuth2Application != null) &&
-			Objects.equals(
-				oAuth2Application.getExternalReferenceCode(), "AI-HUB-CELL")) {
-
-			return TimeUnit.DAYS.toSeconds(30);
+		for (int i = 0; i < 4; i++) {
+			BigEndianCodec.putLong(secret, i * 8, SecureRandomUtil.nextLong());
 		}
 
-		return AccessTokenExpiresInUtil.getExpiresIn();
+		try {
+			return new MACSigner(secret);
+		}
+		catch (KeyLengthException keyLengthException) {
+			return ReflectionUtil.throwException(keyLengthException);
+		}
 	}
+
+	private String _generateJWTTokenKey(AccessToken accessToken) {
+		long issuedAt = accessToken.getIssuedAt();
+
+		SignedJWT signedJWT = new SignedJWT(
+			new JWSHeader(JWSAlgorithm.HS256),
+			new JWTClaimsSet.Builder(
+			).expirationTime(
+				new Date((issuedAt + accessToken.getExpiresIn()) * 1000)
+			).issueTime(
+				new Date(issuedAt * 1000)
+			).jwtID(
+				generateTokenKey(32)
+			).build());
+
+		try {
+			signedJWT.sign(_jwsSigner);
+		}
+		catch (JOSEException joseException) {
+			return ReflectionUtil.throwException(joseException);
+		}
+
+		return signedJWT.serialize();
+	}
+
+	private static final JWSSigner _jwsSigner = _createJWSSigner();
 
 }
