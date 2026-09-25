@@ -7,6 +7,7 @@ package com.liferay.segments.service.impl;
 
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.exception.RoleAssignmentException;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.SystemEventConstants;
 import com.liferay.portal.kernel.model.User;
@@ -168,6 +169,15 @@ public class SegmentsEntryRoleLocalServiceImpl
 			long segmentsEntryId, long[] siteRoleIds,
 			ServiceContext serviceContext)
 		throws PortalException {
+
+		for (long siteRoleId : siteRoleIds) {
+			Role role = _roleLocalService.getRole(siteRoleId);
+
+			if (role.getType() != RoleConstants.TYPE_SITE) {
+				throw new RoleAssignmentException(
+					"Role " + siteRoleId + " is not a site role");
+			}
+		}
 
 		Set<Long> newSiteRoleIdsSet = SetUtil.fromArray(siteRoleIds);
 
