@@ -9,11 +9,14 @@ import {Pendo, TrackingConsentValues} from 'shared/util/pendo';
 import {Project} from 'shared/util/records';
 import {syncAIHubChatbot} from 'shared/util/ai-hub-chatbot';
 import {useFetchCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useScrollToTopOnNavigation} from 'shared/hooks/useScrollToTopOnNavigation';
 import {useSelector} from 'react-redux';
 
 const RootLayout = () => {
 	const match = useMatch('/workspace/:groupId/*');
 	const groupId = match?.params.groupId ?? '0';
+
+	useScrollToTopOnNavigation();
 
 	const project: Project = useSelector<any, any>((state) =>
 		state.getIn(['projects', groupId, 'data'])
