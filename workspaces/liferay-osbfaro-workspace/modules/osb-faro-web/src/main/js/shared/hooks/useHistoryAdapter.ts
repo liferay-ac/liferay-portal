@@ -1,5 +1,6 @@
-import {useNavigate} from 'react-router-dom';
+import {isSamePathname} from 'shared/util/router';
 import {useMemo} from 'react';
+import {useNavigate} from 'react-router-dom';
 
 export interface IHistoryAdapter {
 	goBack: () => void;
@@ -11,14 +12,37 @@ function toNavigateArgs(
 	to: any,
 	state: unknown,
 	replace: boolean
-): [any, {replace: boolean; state?: unknown}] {
+): [any, {preventScrollReset: boolean; replace: boolean; state?: unknown}] {
+
+	// `<ScrollRestoration />` starts every navigation at the top. A query only
+	// change, such as a filter or a page of results, keeps the reader where
+	// they are. `window.location` is read at call time, so the adapter still
+	// does not subscribe to the location.
+
 	if (to && typeof to === 'object') {
 		const {state: locationState, ...path} = to;
 
-		return [path, {replace, state: locationState ?? state}];
+		return [
+			path,
+			{
+				preventScrollReset: isSamePathname(
+					path,
+					window.location.pathname
+				),
+				replace,
+				state: locationState ?? state,
+			},
+		];
 	}
 
-	return [to, {replace, state}];
+	return [
+		to,
+		{
+			preventScrollReset: isSamePathname(to, window.location.pathname),
+			replace,
+			state,
+		},
+	];
 }
 
 /**

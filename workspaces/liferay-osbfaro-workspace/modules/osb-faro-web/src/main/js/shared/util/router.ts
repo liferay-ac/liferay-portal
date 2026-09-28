@@ -1,7 +1,7 @@
 import Constants, {DataSourceTypes, EntityTypes} from '../util/constants';
 import {compile} from 'shared/util/path-to-regexp';
 import {invert, isString, memoize} from 'lodash';
-import {matchPath} from 'react-router-dom';
+import {matchPath, To} from 'react-router-dom';
 
 function createURL(href: string): URL {
 	try {
@@ -492,6 +492,30 @@ export function setUriQueryValues(
 	}
 
 	return `${uri.pathname}${uri.search}`;
+}
+
+function decodePathname(pathname: string) {
+	try {
+		return decodeURI(pathname);
+	}
+	catch {
+		return pathname;
+	}
+}
+
+/**
+ * Tells whether navigating to `to` keeps the pathname, as filters, pagination,
+ * and sorting do by changing only the query. Both sides are decoded, because
+ * some paths carry encoded segments, such as a page URL, and the router and the
+ * browser do not always agree on how those segments are encoded.
+ */
+export function isSamePathname(to: To, pathname: string) {
+	const targetPathname =
+		typeof to === 'string'
+			? new URL(to, `${window.location.origin}${pathname}`).pathname
+			: to.pathname ?? pathname;
+
+	return decodePathname(targetPathname) === decodePathname(pathname);
 }
 
 /**

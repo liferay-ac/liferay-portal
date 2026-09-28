@@ -301,6 +301,7 @@ export const List: React.FC<IListProps> = ({
 				[
 					<Link
 						key="DISABLED_SEGMENTS"
+						preventScrollReset
 						to={setUriQueryValue(
 							window.location.href,
 							SEGMENT_STATE,
