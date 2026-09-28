@@ -6,6 +6,7 @@ import {
 	getRouteName,
 	getType,
 	INDIVIDUALS,
+	isSamePathname,
 	LIFERAY,
 	removePageParam,
 	removeUriQueryParam,
@@ -52,6 +53,41 @@ describe('setUriQueryValues', () => {
 		expect(setUriQueryValues({baz: 'qux', foo: 'bar'}, url)).toBe(
 			'/?baz=qux&foo=bar'
 		);
+	});
+});
+
+describe('isSamePathname', () => {
+	it('matches a query only change', () => {
+		expect(isSamePathname('/sites?rangeKey=7', '/sites')).toBe(true);
+	});
+
+	it('matches a relative query', () => {
+		expect(isSamePathname('?page=2', '/sites')).toBe(true);
+	});
+
+	it('does not match another pathname', () => {
+		expect(isSamePathname('/sites/pages', '/sites')).toBe(false);
+	});
+
+	it('matches encoded and decoded forms of the same pathname', () => {
+		expect(
+			isSamePathname(
+				'/sites/pages/overview/https%3A%2F%2Fwww.liferay.com%2Fpt?page=2',
+				'/sites/pages/overview/https%3A%2F%2Fwww.liferay.com%2Fpt'
+			)
+		).toBe(true);
+
+		expect(
+			isSamePathname(
+				'/sites/pages/overview/Digital%20Experience',
+				'/sites/pages/overview/Digital Experience'
+			)
+		).toBe(true);
+	});
+
+	it('reads the pathname of a location object', () => {
+		expect(isSamePathname({search: '?page=2'}, '/sites')).toBe(true);
+		expect(isSamePathname({pathname: '/assets'}, '/sites')).toBe(false);
 	});
 });
 
