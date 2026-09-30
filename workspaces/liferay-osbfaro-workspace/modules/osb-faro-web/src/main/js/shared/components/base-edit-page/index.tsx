@@ -9,7 +9,7 @@ interface IBaseEditPageProps {
 	documentTitle: string;
 }
 
-export const BaseEditPage: React.FC<IBaseEditPageProps> & {
+const BaseEditPage: React.FC<IBaseEditPageProps> & {
 	Title: typeof Title;
 	Toolbar: typeof Toolbar;
 } = ({children, className, documentTitle}) => (

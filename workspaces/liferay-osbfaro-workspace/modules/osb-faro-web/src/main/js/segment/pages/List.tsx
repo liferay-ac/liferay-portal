@@ -57,6 +57,10 @@ import {
 	NAME,
 	paginationDefaults,
 } from 'shared/util/pagination';
+import {
+	getSegmentCategoryLabel,
+	getSegmentTypeLabel,
+} from 'segment/utils/labels';
 import {isNil} from 'lodash';
 import {Link} from 'react-router-dom';
 import {OrderedMap} from 'immutable';
@@ -110,16 +114,6 @@ interface IListProps extends PropsFromRedux {
 	history: any;
 }
 
-const SEGMENT_CATEGORIES_LABEL_MAP = {
-	[SegmentCategories.Account]: Liferay.Language.get('account'),
-	[SegmentCategories.Individual]: Liferay.Language.get('individual'),
-};
-
-const SEGMENT_TYPES_LABEL_MAP = {
-	[SegmentTypes.Batch]: Liferay.Language.get('batch'),
-	[SegmentTypes.RealTime]: Liferay.Language.get('real-time'),
-};
-
 /**
  * A membership count always arrives as a number, because the engine flattens a
  * count it has not computed yet to zero, so a zero count cannot tell a segment
@@ -148,13 +142,11 @@ const FILTER_BY_OPTIONS = [
 		label: Liferay.Language.get('type'),
 		values: [
 			{
-				label: SEGMENT_CATEGORIES_LABEL_MAP[SegmentCategories.Account],
+				label: getSegmentCategoryLabel(SegmentCategories.Account),
 				value: SegmentCategories.Account,
 			},
 			{
-				label: SEGMENT_CATEGORIES_LABEL_MAP[
-					SegmentCategories.Individual
-				],
+				label: getSegmentCategoryLabel(SegmentCategories.Individual),
 				value: SegmentCategories.Individual,
 			},
 		],
@@ -164,11 +156,11 @@ const FILTER_BY_OPTIONS = [
 		label: Liferay.Language.get('sync-frequency'),
 		values: [
 			{
-				label: SEGMENT_TYPES_LABEL_MAP[SegmentTypes.Batch],
+				label: getSegmentTypeLabel(SegmentTypes.Batch),
 				value: SegmentTypes.Batch,
 			},
 			{
-				label: SEGMENT_TYPES_LABEL_MAP[SegmentTypes.RealTime],
+				label: getSegmentTypeLabel(SegmentTypes.RealTime),
 				value: SegmentTypes.RealTime,
 			},
 		],
@@ -691,11 +683,9 @@ export const List: React.FC<IListProps> = ({
 										};
 									}) => (
 										<td>
-											{
-												SEGMENT_CATEGORIES_LABEL_MAP[
-													item.data.segmentCategory
-												]
-											}
+											{getSegmentCategoryLabel(
+												item.data.segmentCategory
+											)}
 										</td>
 									),
 									label: Liferay.Language.get('type'),

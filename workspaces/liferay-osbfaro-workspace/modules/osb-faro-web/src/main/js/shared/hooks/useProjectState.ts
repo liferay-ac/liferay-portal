@@ -18,11 +18,10 @@ export const useProjectState = ({groupId}: {groupId: string}) => {
 			state.getIn(['projects', groupId]) || new RemoteData()
 	);
 
-	const {data, error, errorStatus, loading} = remoteData.toObject();
+	const {data, error, loading} = remoteData.toObject();
 
 	return {
 		error: !!error,
-		errorStatus,
 		loading: !data && loading,
 		project: data,
 	};

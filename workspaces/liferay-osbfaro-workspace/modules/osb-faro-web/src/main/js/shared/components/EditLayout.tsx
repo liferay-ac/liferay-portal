@@ -17,10 +17,7 @@ import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useProjectState} from 'shared/hooks/useProjectState';
 
-export const isValidChannel = (
-	channelId: string | undefined,
-	channels: Channel[]
-) =>
+const isValidChannel = (channelId: string | undefined, channels: Channel[]) =>
 	!channelId || !channels.length || channels.some(({id}) => id === channelId);
 
 const EditContent: React.FC<{groupId: string}> = ({groupId}) => {

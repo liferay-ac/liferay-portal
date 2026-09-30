@@ -35,7 +35,7 @@ type MembersParams = {
 	segmentCategory: SegmentCategories;
 };
 
-export const fetchMembers = ({
+const fetchMembers = ({
 	channelId,
 	criteriaString,
 	delta,
