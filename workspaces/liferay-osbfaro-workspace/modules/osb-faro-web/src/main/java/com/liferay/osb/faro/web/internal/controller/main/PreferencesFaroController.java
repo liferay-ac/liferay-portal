@@ -10,6 +10,7 @@ import com.liferay.osb.faro.service.FaroPreferencesLocalService;
 import com.liferay.osb.faro.web.internal.constants.FaroPreferencesConstants;
 import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
 import com.liferay.osb.faro.web.internal.controller.FaroController;
+import com.liferay.osb.faro.web.internal.exception.FaroException;
 import com.liferay.osb.faro.web.internal.helper.EmailReportHelper;
 import com.liferay.osb.faro.web.internal.model.display.contacts.FaroPreferencesDisplay;
 import com.liferay.osb.faro.web.internal.model.preferences.DistributionCardTabPreferences;
@@ -17,6 +18,8 @@ import com.liferay.osb.faro.web.internal.model.preferences.DistributionCardTabsP
 import com.liferay.osb.faro.web.internal.model.preferences.EmailReportPreferences;
 import com.liferay.osb.faro.web.internal.model.preferences.IndividualDashboardPreferences;
 import com.liferay.osb.faro.web.internal.model.preferences.IndividualSegmentPreferences;
+import com.liferay.osb.faro.web.internal.model.preferences.LifecycleNotificationPreferences;
+import com.liferay.osb.faro.web.internal.model.preferences.SegmentNotificationPreferences;
 import com.liferay.osb.faro.web.internal.model.preferences.WorkspacePreferences;
 import com.liferay.osb.faro.web.internal.param.FaroParam;
 import com.liferay.osb.faro.web.internal.util.JSONUtil;
@@ -40,6 +43,7 @@ import jakarta.ws.rs.core.MediaType;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -112,6 +116,73 @@ public class PreferencesFaroController extends BaseFaroController {
 			JSONUtil.writeValueAsString(workspacePreferences));
 
 		return emailReportPreferences.get(channelId);
+	}
+
+	@Path("/lifecycle_notification")
+	@POST
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public LifecycleNotificationPreferences addLifecycleNotificationPreference(
+			@PathParam("groupId") long groupId,
+			@FormParam("accountStageChanges") Boolean accountStageChanges,
+			@FormParam("emailFrequency") String emailFrequency,
+			@FormParam("lifecycleId") String lifecycleId,
+			@FormParam("netNewPipelineAccounts") Boolean netNewPipelineAccounts,
+			@FormParam("newAccounts") Boolean newAccounts,
+			@FormParam("newAtRiskAccounts") Boolean newAtRiskAccounts,
+			@FormParam("newStalledAccounts") Boolean newStalledAccounts)
+		throws Exception {
+
+		_validateNotificationPreference(
+			emailFrequency, lifecycleId, "lifecycleId");
+
+		long ownerId = _getOwnerId(
+			groupId, FaroPreferencesConstants.SCOPE_USER);
+
+		WorkspacePreferences workspacePreferences = _getWorkspacePreferences(
+			groupId, ownerId);
+
+		Map<String, LifecycleNotificationPreferences>
+			lifecycleNotificationPreferences =
+				workspacePreferences.addLifecycleNotificationPreference(
+					accountStageChanges, emailFrequency, lifecycleId,
+					netNewPipelineAccounts, newAccounts, newAtRiskAccounts,
+					newStalledAccounts);
+
+		_faroPreferencesLocalService.savePreferences(
+			getUserId(), groupId, ownerId,
+			JSONUtil.writeValueAsString(workspacePreferences));
+
+		return lifecycleNotificationPreferences.get(lifecycleId);
+	}
+
+	@Path("/segment_notification")
+	@POST
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public SegmentNotificationPreferences addSegmentNotificationPreference(
+			@PathParam("groupId") long groupId,
+			@FormParam("emailFrequency") String emailFrequency,
+			@FormParam("newMemberAdded") Boolean newMemberAdded,
+			@FormParam("segmentId") String segmentId)
+		throws Exception {
+
+		_validateNotificationPreference(emailFrequency, segmentId, "segmentId");
+
+		long ownerId = _getOwnerId(
+			groupId, FaroPreferencesConstants.SCOPE_USER);
+
+		WorkspacePreferences workspacePreferences = _getWorkspacePreferences(
+			groupId, ownerId);
+
+		Map<String, SegmentNotificationPreferences>
+			segmentNotificationPreferences =
+				workspacePreferences.addSegmentNotificationPreference(
+					emailFrequency, newMemberAdded, segmentId);
+
+		_faroPreferencesLocalService.savePreferences(
+			getUserId(), groupId, ownerId,
+			JSONUtil.writeValueAsString(workspacePreferences));
+
+		return segmentNotificationPreferences.get(segmentId);
 	}
 
 	@GET
@@ -200,6 +271,38 @@ public class PreferencesFaroController extends BaseFaroController {
 		}
 
 		return new FaroPreferencesDisplay(faroPreferences);
+	}
+
+	@GET
+	@Path("/lifecycle_notification")
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public Map<String, LifecycleNotificationPreferences>
+			getLifecycleNotificationPreferences(
+				@PathParam("groupId") long groupId,
+				@QueryParam("lifecycleId") String lifecycleId)
+		throws Exception {
+
+		WorkspacePreferences workspacePreferences = _getWorkspacePreferences(
+			groupId, _getOwnerId(groupId, FaroPreferencesConstants.SCOPE_USER));
+
+		return workspacePreferences.getLifecycleNotificationPreferences(
+			lifecycleId);
+	}
+
+	@GET
+	@Path("/segment_notification")
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public Map<String, SegmentNotificationPreferences>
+			getSegmentNotificationPreferences(
+				@PathParam("groupId") long groupId,
+				@QueryParam("segmentId") String segmentId)
+		throws Exception {
+
+		WorkspacePreferences workspacePreferences = _getWorkspacePreferences(
+			groupId, _getOwnerId(groupId, FaroPreferencesConstants.SCOPE_USER));
+
+		return workspacePreferences.getSegmentNotificationPreferences(
+			segmentId);
 	}
 
 	@GET
@@ -372,6 +475,22 @@ public class PreferencesFaroController extends BaseFaroController {
 		return JSONUtil.readValue(
 			faroPreferences.getPreferences(), WorkspacePreferences.class);
 	}
+
+	private void _validateNotificationPreference(
+		String emailFrequency, String id, String idName) {
+
+		if (Validator.isNull(id)) {
+			throw new FaroException(idName + " is required");
+		}
+
+		if (!_notificationFrequencies.contains(emailFrequency)) {
+			throw new FaroException(
+				"emailFrequency must be one of daily, weekly, or monthly");
+		}
+	}
+
+	private static final Set<String> _notificationFrequencies = Set.of(
+		"daily", "monthly", "weekly");
 
 	@Reference
 	private EmailReportHelper _emailReportHelper;

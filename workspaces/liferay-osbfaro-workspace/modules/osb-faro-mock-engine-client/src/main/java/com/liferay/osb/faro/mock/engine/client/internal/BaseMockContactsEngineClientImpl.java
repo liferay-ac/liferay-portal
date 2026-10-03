@@ -57,6 +57,7 @@ import com.liferay.osb.faro.engine.client.model.IndividualSegmentMembershipChang
 import com.liferay.osb.faro.engine.client.model.IndividualSegmentMembershipChangeAggregation;
 import com.liferay.osb.faro.engine.client.model.IndividualTransformation;
 import com.liferay.osb.faro.engine.client.model.Interest;
+import com.liferay.osb.faro.engine.client.model.LifecycleTriggerResult;
 import com.liferay.osb.faro.engine.client.model.Metric;
 import com.liferay.osb.faro.engine.client.model.PageExperience;
 import com.liferay.osb.faro.engine.client.model.PageVisited;
@@ -1245,6 +1246,15 @@ public abstract class BaseMockContactsEngineClientImpl
 	}
 
 	@Override
+	public LifecycleTriggerResult getNewAccountsLifecycleTriggerResult(
+			FaroProject faroProject, String id, int rangeKey)
+		throws Exception {
+
+		return contactsEngineClient.getNewAccountsLifecycleTriggerResult(
+			faroProject, id, rangeKey);
+	}
+
+	@Override
 	public List<PageExperience> getPageExperiences(
 			FaroProject faroProject, String canonicalUrl, String channelId,
 			String pageTitle)
@@ -1282,6 +1292,15 @@ public abstract class BaseMockContactsEngineClientImpl
 	}
 
 	@Override
+	public long getSegmentNewMembersCount(
+			FaroProject faroProject, String id, int rangeKey)
+		throws Exception {
+
+		return contactsEngineClient.getSegmentNewMembersCount(
+			faroProject, id, rangeKey);
+	}
+
+	@Override
 	public Results<String> getSessionValues(
 		FaroProject faroProject, String channelId, String fieldName,
 		String filterString, String query, int cur, int delta) {
@@ -1299,6 +1318,15 @@ public abstract class BaseMockContactsEngineClientImpl
 		return contactsEngineClient.getSimilarIndividuals(
 			faroProject, individualId, query, fields, cur, delta,
 			orderByFields);
+	}
+
+	@Override
+	public LifecycleTriggerResult getStalledAccountsLifecycleTriggerResult(
+			FaroProject faroProject, String id, int rangeKey)
+		throws Exception {
+
+		return contactsEngineClient.getStalledAccountsLifecycleTriggerResult(
+			faroProject, id, rangeKey);
 	}
 
 	@Override
