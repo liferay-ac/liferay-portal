@@ -57,18 +57,15 @@ public class AnalyticsCloudBearerTokenProviderTest {
 
 	@Test
 	public void testOnBeforeCreate() {
-		BearerTokenProvider.AccessToken accessToken = _createAccessToken(
-			RandomTestUtil.randomString());
-
-		_analyticsCloudBearerTokenProvider.onBeforeCreate(accessToken);
-
-		Assert.assertEquals(0, accessToken.getExpiresIn());
+		_testOnBeforeCreateWithApplicationCreatedByFaro();
+		_testOnBeforeCreateWithApplicationCreatedOutsideFaro();
 	}
 
 	@Test
 	public void testOnBeforeCreateWithApplicationAIHubCell() {
 		BearerTokenProvider.AccessToken accessToken = _createAccessToken(
-			_EXTERNAL_REFERENCE_CODE_AI_HUB_CELL);
+			_EXTERNAL_REFERENCE_CODE_AI_HUB_CELL,
+			RandomTestUtil.randomString());
 
 		_analyticsCloudBearerTokenProvider.onBeforeCreate(accessToken);
 
@@ -83,13 +80,15 @@ public class AnalyticsCloudBearerTokenProviderTest {
 		AccessTokenExpiresInUtil.setExpiresIn(_HOUR_IN_SECONDS);
 
 		BearerTokenProvider.AccessToken accessToken = _createAccessToken(
-			RandomTestUtil.randomString());
+			RandomTestUtil.randomString(), RandomTestUtil.randomString());
 
 		_analyticsCloudBearerTokenProvider.onBeforeCreate(accessToken);
 
 		Assert.assertEquals(_HOUR_IN_SECONDS, accessToken.getExpiresIn());
 
-		accessToken = _createAccessToken(_EXTERNAL_REFERENCE_CODE_AI_HUB_CELL);
+		accessToken = _createAccessToken(
+			_EXTERNAL_REFERENCE_CODE_AI_HUB_CELL,
+			RandomTestUtil.randomString());
 
 		_analyticsCloudBearerTokenProvider.onBeforeCreate(accessToken);
 
@@ -98,7 +97,7 @@ public class AnalyticsCloudBearerTokenProviderTest {
 	}
 
 	private BearerTokenProvider.AccessToken _createAccessToken(
-		String externalReferenceCode) {
+		String externalReferenceCode, String name) {
 
 		OAuth2Application oAuth2Application = Mockito.mock(
 			OAuth2Application.class);
@@ -109,6 +108,12 @@ public class AnalyticsCloudBearerTokenProviderTest {
 			externalReferenceCode
 		);
 
+		Mockito.when(
+			oAuth2Application.getName()
+		).thenReturn(
+			name
+		);
+
 		return new BearerTokenProvider.AccessToken(
 			oAuth2Application, null, null, 0, null, null, null, _nowInSeconds(),
 			null, null, null, null, null, null, null, null, 0, null);
@@ -116,6 +121,28 @@ public class AnalyticsCloudBearerTokenProviderTest {
 
 	private long _nowInSeconds() {
 		return System.currentTimeMillis() / 1000;
+	}
+
+	private void _testOnBeforeCreateWithApplicationCreatedByFaro() {
+		BearerTokenProvider.AccessToken accessToken = _createAccessToken(
+			RandomTestUtil.randomString(),
+			"app-" + RandomTestUtil.randomString());
+
+		_analyticsCloudBearerTokenProvider.onBeforeCreate(accessToken);
+
+		Assert.assertEquals(0, accessToken.getExpiresIn());
+	}
+
+	private void _testOnBeforeCreateWithApplicationCreatedOutsideFaro() {
+		BearerTokenProvider.AccessToken accessToken = _createAccessToken(
+			RandomTestUtil.randomString(), RandomTestUtil.randomString());
+
+		_analyticsCloudBearerTokenProvider.onBeforeCreate(accessToken);
+
+		Assert.assertEquals(
+			TimeUnit.MINUTES.toSeconds(10), accessToken.getExpiresIn());
+		Assert.assertTrue(
+			_analyticsCloudBearerTokenProvider.isValid(accessToken));
 	}
 
 	private static final long _EXPIRATION_AI_HUB_CELL_IN_SECONDS =
