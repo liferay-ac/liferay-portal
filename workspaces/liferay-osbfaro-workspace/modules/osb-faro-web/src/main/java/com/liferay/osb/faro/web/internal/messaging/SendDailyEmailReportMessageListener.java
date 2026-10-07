@@ -45,7 +45,7 @@ public class SendDailyEmailReportMessageListener
 
 			_trigger = triggerFactory.createTrigger(
 				clazz.getName(), clazz.getName(), new Date(), null,
-				"0 0 0 * * ?");
+				"0 0/15 * * * ?");
 
 			schedulerEngineHelper.schedule(
 				_trigger, StorageType.PERSISTED, null,

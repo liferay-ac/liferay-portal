@@ -62,6 +62,14 @@ public class NotificationHelper {
 		Group group = _groupLocalService.fetchGroup(groupId);
 
 		if ((faroProject == null) || (group == null)) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					String.format(
+						"Unable to build the notification context of group " +
+							"ID %s: Faro project found: %s, group found: %s",
+						groupId, faroProject != null, group != null));
+			}
+
 			return null;
 		}
 
@@ -80,6 +88,15 @@ public class NotificationHelper {
 
 		Map<Long, User> users = _resolveUsers(
 			group.getGroupId(), lifecycleTriggerTypesByUserId.keySet());
+
+		if (_log.isInfoEnabled()) {
+			_log.info(
+				String.format(
+					"Sending %s notifications of lifecycle ID %s in group " +
+						"ID %s: %s of %s user(s) are eligible",
+					frequency, lifecycleId, group.getGroupId(), users.size(),
+					lifecycleTriggerTypesByUserId.size()));
+		}
 
 		if (users.isEmpty()) {
 			return;
@@ -107,6 +124,13 @@ public class NotificationHelper {
 
 				long count = lifecycleTriggerResult.getCount();
 
+				if (_log.isInfoEnabled()) {
+					_log.info(
+						String.format(
+							"Lifecycle ID %s trigger %s count: %s",
+							lifecycleId, lifecycleTriggerType.getKey(), count));
+				}
+
 				if (count == 0) {
 					continue;
 				}
@@ -117,6 +141,12 @@ public class NotificationHelper {
 							faroProject, lifecycleId);
 
 					if (accountLifecycle == null) {
+						if (_log.isWarnEnabled()) {
+							_log.warn(
+								"Skipping lifecycle ID " + lifecycleId +
+									" because it was not found");
+						}
+
 						return;
 					}
 				}
@@ -160,6 +190,13 @@ public class NotificationHelper {
 					notificationTemplate.getSubjectMap(), tokens,
 					lifecycleTriggerType, false);
 
+				if (_log.isInfoEnabled()) {
+					_log.info(
+						String.format(
+							"Sending the %s notification of lifecycle ID %s",
+							lifecycleTriggerType.getKey(), lifecycleId));
+				}
+
 				for (Map.Entry<Long, User> entry : users.entrySet()) {
 					List<LifecycleTriggerType> userLifecycleTriggerTypes =
 						lifecycleTriggerTypesByUserId.get(entry.getKey());
@@ -195,6 +232,15 @@ public class NotificationHelper {
 		long groupId = group.getGroupId();
 
 		Map<Long, User> users = _resolveUsers(groupId, userIds);
+
+		if (_log.isInfoEnabled()) {
+			_log.info(
+				String.format(
+					"Sending %s notifications of segment ID %s in group ID " +
+						"%s: %s of %s user(s) are eligible",
+					frequency, segmentId, groupId, users.size(),
+					userIds.size()));
+		}
 
 		if (users.isEmpty()) {
 			return;
@@ -233,6 +279,12 @@ public class NotificationHelper {
 				groupId, Collections.singleton(segmentId));
 
 			return;
+		}
+
+		if (_log.isInfoEnabled()) {
+			_log.info(
+				String.format(
+					"Segment ID %s new members count: %s", segmentId, count));
 		}
 
 		if (count == 0) {
@@ -514,6 +566,14 @@ public class NotificationHelper {
 			if ((faroUser == null) ||
 				(faroUser.getStatus() != FaroUserConstants.STATUS_APPROVED)) {
 
+				if (_log.isInfoEnabled()) {
+					_log.info(
+						String.format(
+							"User ID %s is not an approved member of group " +
+								"ID %s, Faro user found: %s",
+							userId, groupId, faroUser != null));
+				}
+
 				continue;
 			}
 
@@ -521,6 +581,11 @@ public class NotificationHelper {
 
 			if ((user != null) && user.isActive()) {
 				users.put(userId, user);
+			}
+			else if (_log.isInfoEnabled()) {
+				_log.info(
+					String.format(
+						"User ID %s was not found or is not active", userId));
 			}
 		}
 
@@ -539,6 +604,13 @@ public class NotificationHelper {
 
 			_flushSubscriptionSender(
 				subscriptionSender, faroProject, group, user);
+
+			if (_log.isInfoEnabled()) {
+				_log.info(
+					String.format(
+						"Sent the notification to user ID %s in group ID %s",
+						user.getUserId(), group.getGroupId()));
+			}
 		}
 		catch (Exception exception) {
 			_log.error(

@@ -52,9 +52,19 @@ public abstract class BaseEmailReportMessageListener
 		Map<Long, Map<String, List<Long>>> segmentUserIdsMap =
 			new LinkedHashMap<>();
 
-		for (FaroPreferences faroPreferences :
-				faroPreferencesLocalService.getFaroPreferenceses(-1, -1)) {
+		List<FaroPreferences> faroPreferenceses =
+			faroPreferencesLocalService.getFaroPreferenceses(-1, -1);
 
+		if (_log.isInfoEnabled()) {
+			_log.info(
+				String.format(
+					"Starting the %s message listener %s over %s Faro " +
+						"preferences row(s)",
+					getFrequency(), getClass().getSimpleName(),
+					faroPreferenceses.size()));
+		}
+
+		for (FaroPreferences faroPreferences : faroPreferenceses) {
 			WorkspacePreferences workspacePreferences = null;
 
 			try {
@@ -111,6 +121,14 @@ public abstract class BaseEmailReportMessageListener
 				lifecycleTriggerTypesMap);
 			_collectSegmentNotifications(
 				faroPreferences, workspacePreferences, segmentUserIdsMap);
+		}
+
+		if (_log.isInfoEnabled()) {
+			_log.info(
+				String.format(
+					"Collected %s lifecycle group(s) and %s segment group(s) " +
+						"to notify",
+					lifecycleTriggerTypesMap.size(), segmentUserIdsMap.size()));
 		}
 
 		_sendNotifications(lifecycleTriggerTypesMap, segmentUserIdsMap);
@@ -318,6 +336,20 @@ public abstract class BaseEmailReportMessageListener
 
 			if (notificationContext == null) {
 				continue;
+			}
+
+			if (_log.isInfoEnabled()) {
+				_log.info(
+					String.format(
+						"Sending notifications of group ID %s: %s lifecycle " +
+							"ID(s), %s segment ID(s)",
+						groupId,
+						lifecycleTriggerTypesMap.getOrDefault(
+							groupId, Collections.emptyMap()
+						).size(),
+						segmentUserIdsMap.getOrDefault(
+							groupId, Collections.emptyMap()
+						).size()));
 			}
 
 			_sendLifecycleNotifications(
