@@ -1,0 +1,171 @@
+name: osb-faro-web ac:forward
+
+on:
+    issue_comment:
+        types:
+            -   created
+
+concurrency:
+    cancel-in-progress: false
+    group: osb-faro-web-ac-forward-${{github.event.issue.number}}
+
+jobs:
+    ac-forward:
+        if: |
+            github.event.issue.pull_request != null &&
+            github.event.comment.user.login == github.repository_owner &&
+            (github.event.comment.body == 'ac:forward' || startsWith(github.event.comment.body, 'ac:forward '))
+        permissions:
+            pull-requests: write
+        runs-on: ubuntu-latest
+        steps:
+            -   env:
+                    COMMENT_BODY: ${{github.event.comment.body}}
+                    FORK_TOKEN: ${{secrets.GITHUB_TOKEN}}
+                    OWNER: ${{github.repository_owner}}
+                    PR: ${{github.event.issue.number}}
+                    REPO: ${{github.repository}}
+                    UPSTREAM_REPO: liferay-ac/liferay-portal
+                    UPSTREAM_TOKEN: ${{secrets.LIFERAY_AC_PR_TOKEN}}
+                name: Forward to liferay-ac
+                run: |
+                    set -uo pipefail
+
+                    export GH_TOKEN="${FORK_TOKEN}"
+
+                    function comment {
+                    	gh pr comment "${PR}" --body "$1" --repo "${REPO}"
+                    }
+
+                    function refuse {
+                    	comment "$(printf '> [!WARNING]\n> Cannot forward: %s' "$1")"
+
+                    	exit 1
+                    }
+
+                    force=false
+
+                    set -f
+
+                    for token in ${COMMENT_BODY#ac:forward}; do
+                    	case "${token}" in
+                    		--force) force=true ;;
+                    		*) refuse "unknown option \`${token}\`. The only option is \`--force\`." ;;
+                    	esac
+                    done
+
+                    if [ -z "${UPSTREAM_TOKEN}" ]; then
+                    	refuse "the \`LIFERAY_AC_PR_TOKEN\` secret is not set on ${REPO}."
+                    fi
+
+                    gh pr view "${PR}" --json author,baseRefName,body,comments,headRefName,headRefOid,labels,state,title --repo "${REPO}" > "${RUNNER_TEMP}/pr.json"
+
+                    base=$(jq -r '.baseRefName' "${RUNNER_TEMP}/pr.json")
+                    branch=$(jq -r '.headRefName' "${RUNNER_TEMP}/pr.json")
+                    sha=$(jq -r '.headRefOid' "${RUNNER_TEMP}/pr.json")
+                    state=$(jq -r '.state' "${RUNNER_TEMP}/pr.json")
+
+                    if [ "${state}" != "OPEN" ]; then
+                    	refuse "the PR is ${state}."
+                    fi
+
+                    if [ "${base}" != "master" ]; then
+                    	refuse "the PR base is \`${base}\`, expected \`master\`."
+                    fi
+
+                    if jq -e '.labels[] | select(.name == "forwarded to liferay-ac")' "${RUNNER_TEMP}/pr.json" > /dev/null; then
+                    	refuse "this PR was already forwarded."
+                    fi
+
+                    if [ "${force}" != "true" ] && ! jq -e '.labels[] | select(.name == "unit tests passed")' "${RUNNER_TEMP}/pr.json" > /dev/null; then
+                    	refuse "the \`unit tests passed\` label is missing. Wait for the unit tests, or comment \`ac:forward --force\` to skip them."
+                    fi
+
+                    jq --arg owner "${OWNER}" --arg sha "${sha}" '
+                    	[
+                    		{author: .author.login, body: .body, source: "body"},
+                    		(.comments[] | {author: .author.login, body: .body, source: "comment"})
+                    	]
+                    	| map(select(.author == $owner))
+                    	| map(. + {marker: ([.body | match("<!-- pr-check (\\{[^\\n]*?\\}) -->"; "g") | .captures[0].string] | last | if . then (try fromjson catch null) else null end)})
+                    	| map(select(.marker != null and .marker.sha == $sha))
+                    	| last // {}
+                    ' "${RUNNER_TEMP}/pr.json" > "${RUNNER_TEMP}/pr-check.json"
+
+                    result=$(jq -r '.marker.result // ""' "${RUNNER_TEMP}/pr-check.json")
+                    source=$(jq -r '.source // ""' "${RUNNER_TEMP}/pr-check.json")
+
+                    if [ "${force}" != "true" ]; then
+                    	if [ -z "${result}" ]; then
+                    		refuse "no pr-check result covers the head commit \`${sha}\`. Rerun \`pr-check\`, publish it here with \`/pr-check-publish\`, or comment \`ac:forward --force\`."
+                    	fi
+
+                    	if [ "${result}" = "failure" ]; then
+                    		refuse "the pr-check result for \`${sha}\` is a failure. Fix it and publish a new run, or comment \`ac:forward --force\`."
+                    	fi
+                    fi
+
+                    if [ "${source}" = "comment" ]; then
+                    	jq -r --slurpfile check "${RUNNER_TEMP}/pr-check.json" '
+                    		(.body | index("\n## PR Check")) as $index
+                    		| (if $index then .body[:$index] else .body end)
+                    			+ "\n\n## PR Check\n\n" + $check[0].body
+                    	' "${RUNNER_TEMP}/pr.json" > "${RUNNER_TEMP}/body.md"
+                    else
+                    	jq -r '.body' "${RUNNER_TEMP}/pr.json" > "${RUNNER_TEMP}/body.md"
+                    fi
+
+                    jq -c --arg sha "${sha}" '
+                    	[.comments[] | select(.author.login == "github-actions") | [.body | match("<!-- unit-tests (\\{[^\\n]*?\\}) -->"; "g") | .captures[0].string] | last | if . then (try fromjson catch null) else null end]
+                    	| map(select(. != null and .result == "success" and .sha == $sha))
+                    	| last // empty
+                    ' "${RUNNER_TEMP}/pr.json" > "${RUNNER_TEMP}/unit-tests.json"
+
+                    if [ -s "${RUNNER_TEMP}/unit-tests.json" ] && grep -q '^## PR Check$' "${RUNNER_TEMP}/body.md" && ! grep -q '^| Workspace Unit Tests' "${RUNNER_TEMP}/body.md"; then
+                    	note=$(jq -r '"Workspace Unit Tests ran the full osb-faro-web Jest suite on the same SHA in [fork CI](\(.run)): `Test Suites: \(.suites)`, `Tests: \(.tests)`, `Snapshots: \(.snapshots)`. The workspace'"'"'s Java unit tests (`gradlew test`) were not run."' "${RUNNER_TEMP}/unit-tests.json")
+                    	row="| Workspace Unit Tests (liferay-osbfaro-workspace) | PASS (Jest only, via fork CI) |"
+
+                    	last_row=$(awk '/^## PR Check$/ {check = 1; next} check && /^## / {check = 0} check && /^\|/ {line = NR} END {print line + 0}' "${RUNNER_TEMP}/body.md")
+
+                    	awk -v last_row="${last_row}" -v note="${note}" -v row="${row}" '
+                    		/^## PR Check$/ {check = 1}
+                    		check && /^<!-- pr-check / && !noted {print note; print ""; noted = 1}
+                    		{print}
+                    		NR == last_row {print row}
+                    		END {if (!noted) {print ""; print note}}
+                    	' "${RUNNER_TEMP}/body.md" > "${RUNNER_TEMP}/body-with-unit-tests.md"
+
+                    	mv "${RUNNER_TEMP}/body-with-unit-tests.md" "${RUNNER_TEMP}/body.md"
+                    fi
+
+                    title=$(jq -r '.title' "${RUNNER_TEMP}/pr.json")
+
+                    export GH_TOKEN="${UPSTREAM_TOKEN}"
+
+                    existing=$(gh pr list --base master --head "${branch}" --json url,headRepositoryOwner --jq "map(select(.headRepositoryOwner.login == \"${OWNER}\")) | .[0].url // \"\"" --repo "${UPSTREAM_REPO}" --state open)
+
+                    if [ -n "${existing}" ]; then
+                    	export GH_TOKEN="${FORK_TOKEN}"
+
+                    	refuse "${UPSTREAM_REPO} already has an open PR for this branch: ${existing}"
+                    fi
+
+                    if ! url=$(gh pr create --base master --body-file "${RUNNER_TEMP}/body.md" --head "${OWNER}:${branch}" --repo "${UPSTREAM_REPO}" --title "${title}" 2> "${RUNNER_TEMP}/error.log"); then
+                    	export GH_TOKEN="${FORK_TOKEN}"
+
+                    	comment "$(printf '> [!CAUTION]\n> Could not open the PR on %s:\n\n```text\n%s\n```' "${UPSTREAM_REPO}" "$(cat "${RUNNER_TEMP}/error.log")")"
+
+                    	exit 1
+                    fi
+
+                    label_note=""
+
+                    if ! gh api --method POST "repos/${UPSTREAM_REPO}/issues/${url##*/}/labels" --raw-field "labels[]=Frontend Team" > /dev/null 2> "${RUNNER_TEMP}/error.log"; then
+                    	label_note=$(printf '\n>\n> Adding the `Frontend Team` label failed, so add it by hand: %s' "$(head -1 "${RUNNER_TEMP}/error.log")")
+                    fi
+
+                    export GH_TOKEN="${FORK_TOKEN}"
+
+                    gh pr edit "${PR}" --add-label "forwarded to liferay-ac" --repo "${REPO}"
+
+                    comment "$(printf '> [!IMPORTANT]\n> Forwarded to %s. Wait for a review there before forwarding to Brian. This PR stays open so the unit tests keep running on new pushes.%s\n\n<!-- ac-forward {"url": "%s"} -->' "${url}" "${label_note}" "${url}")"
