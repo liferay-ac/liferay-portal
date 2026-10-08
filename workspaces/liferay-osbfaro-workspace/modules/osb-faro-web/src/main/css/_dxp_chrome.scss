@@ -1,7 +1,10 @@
 // Faro renders as a full page application, so hide the DXP chrome (control
-// menu, product menu, and portlet decoration) while the app is on the page.
+// menu, product menu, theme header and footer, and portlet decoration) while
+// the app is on the page.
 
 body:has(#faroApp) {
+	#banner,
+	#footer,
 	.cadmin.control-menu-container,
 	.lfr-product-menu-panel,
 	#portlet_faro_portlet .portlet-header,
