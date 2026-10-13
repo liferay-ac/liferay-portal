@@ -92,9 +92,12 @@ public class AccountResourceImpl extends BaseAccountResourceImpl {
 			return null;
 		}
 
-		List<AccountLifecycle> accountLifecycles =
+		Results<AccountLifecycle> results =
 			_contactsEngineClient.getAccountLifecycles(
-				faroProject, GetterUtil.getLong(channelId));
+				faroProject, GetterUtil.getLong(channelId), null, 1, 10000,
+				null);
+
+		List<AccountLifecycle> accountLifecycles = results.getItems();
 
 		if (ListUtil.isEmpty(accountLifecycles)) {
 			throw new IllegalArgumentException(
