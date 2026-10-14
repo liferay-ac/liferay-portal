@@ -118,7 +118,7 @@ const useRequestImpl =
 		totalCount = 1,
 	}: {
 		lifecycle?: {
-			default?: boolean;
+			isDefault?: boolean;
 			id: string;
 			name?: string;
 			processedDate?: number | null;
@@ -429,7 +429,7 @@ describe('BaseLifecycle', () => {
 	describe('the default lifecycle', () => {
 		it('pins the title of the default lifecycle', () => {
 			mockedUseRequest.mockImplementation(
-				useRequestImpl({lifecycle: {default: true, id: '1'}})
+				useRequestImpl({lifecycle: {id: '1', isDefault: true}})
 			);
 
 			renderPage();
@@ -441,7 +441,7 @@ describe('BaseLifecycle', () => {
 
 		it('shows no sticker beside another lifecycle', () => {
 			mockedUseRequest.mockImplementation(
-				useRequestImpl({lifecycle: {default: false, id: '1'}})
+				useRequestImpl({lifecycle: {id: '1', isDefault: false}})
 			);
 
 			const {container} = renderPage();
@@ -454,7 +454,7 @@ describe('BaseLifecycle', () => {
 
 		it('hides Set Default on the default lifecycle', () => {
 			mockedUseRequest.mockImplementation(
-				useRequestImpl({lifecycle: {default: true, id: '1'}})
+				useRequestImpl({lifecycle: {id: '1', isDefault: true}})
 			);
 
 			renderPage();
@@ -468,7 +468,7 @@ describe('BaseLifecycle', () => {
 
 		it('pins the title once the lifecycle is set as default', async () => {
 			mockedUseRequest.mockImplementation(
-				useRequestImpl({lifecycle: {default: false, id: '1'}})
+				useRequestImpl({lifecycle: {id: '1', isDefault: false}})
 			);
 
 			renderPage();

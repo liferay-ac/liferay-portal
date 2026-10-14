@@ -166,9 +166,9 @@ const BaseLifecycle = () => {
 
 	const isDefault = defaultLifecycleId
 		? defaultLifecycleId === lifecycleId
-		: lifecycle?.default;
+		: lifecycle?.isDefault;
 
-	const openLifecycle = lifecycle && {...lifecycle, default: isDefault};
+	const openLifecycle = lifecycle && {...lifecycle, isDefault};
 
 	const actions = useLifecycleActions({
 		lifecycle: openLifecycle,

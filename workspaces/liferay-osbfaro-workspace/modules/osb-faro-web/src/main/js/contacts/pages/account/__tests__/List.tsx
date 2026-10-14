@@ -197,6 +197,20 @@ describe('List', () => {
 			expect(screen.getByTestId('fds-component')).toBeInTheDocument();
 		});
 
+		it('should request the default lifecycle of the channel', () => {
+			renderList();
+
+			expect(mockedUseRequest).toHaveBeenCalledWith(
+				expect.objectContaining({
+					variables: {
+						channelId: '123',
+						groupId: '23',
+						isDefault: true,
+					},
+				})
+			);
+		});
+
 		it('should render the FrontendDataSet with id "accounts-list-dataset"', () => {
 			renderList();
 

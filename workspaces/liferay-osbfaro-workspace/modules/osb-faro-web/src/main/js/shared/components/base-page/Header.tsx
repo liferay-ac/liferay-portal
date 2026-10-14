@@ -103,6 +103,7 @@ interface IPageActionsProps {
 	actionsDisplayLimit?: number;
 	disabled?: boolean;
 	label?: string;
+	triggerAriaLabel?: string;
 }
 
 const renderActionItems = (actions: Action[]) =>
@@ -138,6 +139,7 @@ const PageActions: React.FC<IPageActionsProps> = ({
 	actionsDisplayLimit = 1,
 	disabled = false,
 	label = '',
+	triggerAriaLabel,
 }) => (
 	<>
 		{actions.length <= actionsDisplayLimit &&
@@ -172,7 +174,8 @@ const PageActions: React.FC<IPageActionsProps> = ({
 				trigger={
 					<ClayButton
 						aria-label={
-							label ? undefined : Liferay.Language.get('menu')
+							triggerAriaLabel ??
+							(label ? undefined : Liferay.Language.get('menu'))
 						}
 						borderless={!label}
 						disabled={disabled}
