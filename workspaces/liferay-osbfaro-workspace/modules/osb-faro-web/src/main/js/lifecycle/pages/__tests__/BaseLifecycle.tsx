@@ -29,18 +29,18 @@ jest.mock('shared/hooks/useCurrentUser', () => ({
 }));
 
 jest.mock('shared/util/breadcrumbs', () => ({
+	...jest.requireActual('shared/util/breadcrumbs'),
 	getHome: jest.fn(({label}: {label?: string} = {}) => ({
 		active: false,
 		label: label || 'Home',
 	})),
 }));
 
+const mockUseParams = jest.fn();
+
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
-	useParams: () => ({
-		channelId: '123',
-		groupId: '23',
-	}),
+	useParams: () => mockUseParams(),
 }));
 
 jest.mock('lifecycle/components/FilterPicker', () => ({
@@ -104,35 +104,47 @@ const buildAccountMetrics = (totalCount: number) =>
 
 const useRequestImpl =
 	({
-		lifecycles = [{id: '1'}],
+		lifecycle = {id: '1'},
+		lifecycleError = false,
 		metricsLoading = false,
 		processedDate = 1700000000000,
 		totalCount = 1,
 	}: {
-		lifecycles?: {
+		lifecycle?: {
 			id: string;
 			name?: string;
 			processedDate?: number | null;
-		}[];
+		} | null;
+		lifecycleError?: boolean;
 		metricsLoading?: boolean;
 		processedDate?: number | null;
 		totalCount?: number;
 	} = {}) =>
-	({dataSourceFn}: {dataSourceFn?: unknown} = {}) =>
-		dataSourceFn === API.lifecycle.fetchLifecycles
-			? {
-					data: lifecycles.map((lifecycle) => ({
-						processedDate,
-						...lifecycle,
-					})),
-					error: false,
-					loading: false,
-				}
-			: {
-					data: buildAccountMetrics(totalCount),
-					error: false,
-					loading: metricsLoading,
-				};
+	({
+		dataSourceFn,
+		skipRequest,
+	}: {
+		dataSourceFn?: unknown;
+		skipRequest?: boolean;
+	} = {}) => {
+		if (skipRequest) {
+			return {data: null, error: false, loading: true};
+		}
+
+		if (dataSourceFn === API.accounts.fetchMetrics) {
+			return {
+				data: buildAccountMetrics(totalCount),
+				error: false,
+				loading: metricsLoading,
+			};
+		}
+
+		return {
+			data: lifecycle && {processedDate, ...lifecycle},
+			error: lifecycleError,
+			loading: false,
+		};
+	};
 
 const store = mockStore();
 
@@ -140,7 +152,7 @@ const LocationProbe = () => (
 	<div data-testid="location">{useLocation().pathname}</div>
 );
 
-const renderPage = (initialEntries = ['/workspace/23/123/lifecycles']) =>
+const renderPage = (initialEntries = ['/workspace/23/123/lifecycle/1']) =>
 	render(
 		<Provider store={store}>
 			<ModalRenderer />
@@ -160,7 +172,15 @@ describe('BaseLifecycle', () => {
 		jest.clearAllMocks();
 
 		(API as any).accounts = {fetchMetrics: jest.fn()};
-		(API as any).lifecycle = {fetchLifecycles: jest.fn()};
+		(API as any).lifecycle = {
+			fetchLifecycle: jest.fn(),
+		};
+
+		mockUseParams.mockReturnValue({
+			channelId: '123',
+			groupId: '23',
+			lifecycleId: '1',
+		});
 
 		mockedUseCurrentUser.mockReturnValue({isAdmin: () => true});
 		mockedUseDataSources.mockReturnValue({empty: false, loading: false});
@@ -172,35 +192,69 @@ describe('BaseLifecycle', () => {
 	it('titles the page with the lifecycle name', () => {
 		mockedUseRequest.mockImplementation(
 			useRequestImpl({
-				lifecycles: [{id: '1', name: "Tiago's Lifecycle"}],
+				lifecycle: {id: '1', name: "Tiago's Lifecycle"},
 				totalCount: 5,
 			})
 		);
 
 		renderPage();
 
-		expect(screen.getByText("Tiago's Lifecycle")).toBeInTheDocument();
-		expect(screen.queryByText('Lifecycles')).toBeNull();
-	});
-
-	it('titles the page generically when no lifecycle exists', () => {
-		mockedUseRequest.mockImplementation(
-			useRequestImpl({lifecycles: [], totalCount: 5})
-		);
-
-		renderPage();
-
-		expect(screen.getByText('Lifecycles')).toBeInTheDocument();
+		expect(
+			screen.getByRole('heading', {name: "Tiago's Lifecycle"})
+		).toBeInTheDocument();
 	});
 
 	it('titles the page generically when the lifecycle is unnamed', () => {
+		renderPage();
+
+		expect(
+			screen.getByRole('heading', {name: /^lifecycles$/i})
+		).toBeInTheDocument();
+	});
+
+	it('shows the lifecycle in the breadcrumb under a link to the lifecycles', () => {
 		mockedUseRequest.mockImplementation(
-			useRequestImpl({lifecycles: [{id: '1'}], totalCount: 5})
+			useRequestImpl({
+				lifecycle: {id: '1', name: 'Growth Hub'},
+				totalCount: 5,
+			})
 		);
 
 		renderPage();
 
-		expect(screen.getByText('Lifecycles')).toBeInTheDocument();
+		expect(
+			screen.getByRole('link', {name: /^lifecycles$/i})
+		).toHaveAttribute(
+			'href',
+			toRoute(Routes.LIFECYCLE, {channelId: '123', groupId: '23'})
+		);
+		expect(screen.getAllByText('Growth Hub').length).toBeGreaterThan(1);
+	});
+
+	describe('when the lifecycle does not exist', () => {
+		beforeEach(() => {
+			mockedUseRequest.mockImplementation(
+				useRequestImpl({lifecycle: null, lifecycleError: true})
+			);
+		});
+
+		it('renders the not found page', () => {
+			renderPage();
+
+			expect(screen.getByText(/lifecycle not found/i)).toBeInTheDocument();
+			expect(screen.queryByTestId('overview-section')).toBeNull();
+		});
+
+		it('links back to the lifecycles', () => {
+			renderPage();
+
+			expect(
+				screen.getByRole('link', {name: /go to lifecycles/i})
+			).toHaveAttribute(
+				'href',
+				toRoute(Routes.LIFECYCLE, {channelId: '123', groupId: '23'})
+			);
+		});
 	});
 
 	it('renders neither an empty state nor content while loading', () => {
@@ -307,43 +361,6 @@ describe('BaseLifecycle', () => {
 				)
 			).toBeInTheDocument();
 			expect(screen.queryByText('Connect Data Source')).toBeNull();
-		});
-	});
-
-	describe('when no lifecycles are configured', () => {
-		beforeEach(() => {
-			mockedUseRequest.mockImplementation(
-				useRequestImpl({lifecycles: []})
-			);
-		});
-
-		it('renders the "Configure a New Lifecycle" empty state', () => {
-			renderPage();
-
-			expect(
-				screen.getByText('Configure a New Lifecycle')
-			).toBeInTheDocument();
-			expect(
-				screen.getByText(
-					'Complete the configuration to start seeing insights.'
-				)
-			).toBeInTheDocument();
-			expect(screen.queryByTestId('overview-section')).toBeNull();
-			expect(screen.queryByTestId('filter-industryFilter')).toBeNull();
-		});
-
-		it('renders the New Lifecycle action linking to the create route', () => {
-			renderPage();
-
-			expect(
-				screen.getByRole('link', {name: 'New Lifecycle'})
-			).toHaveAttribute(
-				'href',
-				toRoute(Routes.LIFECYCLE_CREATE, {
-					channelId: '123',
-					groupId: '23',
-				})
-			);
 		});
 	});
 
