@@ -781,7 +781,7 @@ exports[`View should render a Liferay data-source page 1`] = `
               class="mb-5"
             >
               <span
-                class="label mb-2 label-success"
+                class="label mb-2 label-inverse-success"
               >
                 <span
                   class="label-item label-item-expand"
@@ -1027,7 +1027,7 @@ exports[`View should render a Liferay data-source page 1`] = `
                       class="justify-content-center autofit-col"
                     >
                       <span
-                        class="label label-secondary"
+                        class="label label-inverse-secondary"
                       >
                         <span
                           class="label-item label-item-expand"
@@ -1083,7 +1083,7 @@ exports[`View should render a Liferay data-source page 1`] = `
                       class="justify-content-center autofit-col"
                     >
                       <span
-                        class="label label-secondary"
+                        class="label label-inverse-secondary"
                       >
                         <span
                           class="label-item label-item-expand"
@@ -1139,7 +1139,7 @@ exports[`View should render a Liferay data-source page 1`] = `
                       class="justify-content-center autofit-col"
                     >
                       <span
-                        class="label label-secondary"
+                        class="label label-inverse-secondary"
                       >
                         <span
                           class="label-item label-item-expand"
@@ -1691,7 +1691,7 @@ exports[`View should render a Salesforce data-source page 1`] = `
               class="mb-5"
             >
               <span
-                class="label mb-2 label-success"
+                class="label mb-2 label-inverse-success"
               >
                 <span
                   class="label-item label-item-expand"
