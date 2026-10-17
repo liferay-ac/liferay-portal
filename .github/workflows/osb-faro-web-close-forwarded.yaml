@@ -1,0 +1,35 @@
+name: osb-faro-web close forwarded PRs
+
+on:
+    schedule:
+        -   cron: "0 11 * * *"
+    workflow_dispatch:
+
+jobs:
+    close-forwarded:
+        permissions:
+            pull-requests: write
+        runs-on: ubuntu-latest
+        steps:
+            -   env:
+                    GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+                    REPO: ${{github.repository}}
+                name: Close fork PRs whose liferay-ac PR is closed
+                run: |
+                    set -uo pipefail
+
+                    gh pr list --json number --jq '.[].number' --label "forwarded to liferay-ac" --limit 100 --repo "${REPO}" --state open | while read -r pr; do
+                    	url=$(gh pr view "${pr}" --json comments --jq '[.comments[].body | capture("<!-- ac-forward \\{\"url\": \"(?<url>[^\"]+)\"\\} -->").url] | last // ""' --repo "${REPO}")
+
+                    	if [ -z "${url}" ]; then
+                    		continue
+                    	fi
+
+                    	state=$(gh pr view "${url}" --json state --jq '.state')
+
+                    	if [ "${state}" = "CLOSED" ] || [ "${state}" = "MERGED" ]; then
+                    		echo "Closing #${pr}: ${url} is ${state}"
+
+                    		gh pr close "${pr}" --comment "Closing: ${url} is ${state}." --repo "${REPO}"
+                    	fi
+                    done

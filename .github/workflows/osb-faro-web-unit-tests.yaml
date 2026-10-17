@@ -1,0 +1,208 @@
+name: osb-faro-web unit tests
+
+on:
+    pull_request:
+        branches:
+            -   master
+        paths:
+            -   workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/**
+
+concurrency:
+    cancel-in-progress: true
+    group: osb-faro-web-unit-tests-${{github.event.pull_request.number}}
+
+jobs:
+    unit-tests:
+        if: ${{github.event.pull_request.head.repo.full_name == github.repository}}
+        permissions:
+            contents: read
+            pull-requests: write
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v4
+                with:
+                    ref: ${{github.event.pull_request.head.sha}}
+                    sparse-checkout: |
+                        /modules/apps/commerce/commerce-frontend-js/src/main/resources/META-INF/resources/liferay.d.ts
+                        /modules/apps/frontend-data-set/frontend-data-set-web/
+                        /modules/apps/frontend-icons/frontend-icons-web/src/main/resources/META-INF/resources/js/liferay.d.ts
+                        /modules/apps/frontend-js/frontend-js-bootstrap-support-web/src/main/resources/META-INF/resources/liferay.d.ts
+                        /modules/apps/frontend-js/frontend-js-web/src/main/resources/META-INF/resources/liferay/liferay.d.ts
+                        /modules/apps/oauth2-provider/oauth2-provider-web/src/main/resources/META-INF/resources/js/liferay.d.ts
+                        /modules/apps/portal-language/portal-language-lang/src/main/resources/content/Language.properties
+                        /modules/global.d.ts
+                        /workspaces/liferay-osbfaro-workspace/
+                    sparse-checkout-cone-mode: false
+            -   uses: actions/setup-node@v4
+                with:
+                    cache: yarn
+                    cache-dependency-path: workspaces/liferay-osbfaro-workspace/yarn.lock
+                    node-version: 22
+            -   name: Install
+                run: yarn install --frozen-lockfile
+                working-directory: workspaces/liferay-osbfaro-workspace
+            -   name: Test
+                run: |
+                    set -o pipefail
+
+                    yarn workspace osb-faro-web test 2>&1 | tee "${RUNNER_TEMP}/jest.log"
+                working-directory: workspaces/liferay-osbfaro-workspace
+            -   env:
+                    GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+                    PR: ${{github.event.pull_request.number}}
+                    REPO: ${{github.repository}}
+                    RUN_URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+                    SHA: ${{github.event.pull_request.head.sha}}
+                if: ${{success()}}
+                name: Report success
+                run: |
+                    gh pr edit "${PR}" --remove-label "unit tests failed" --repo "${REPO}" || true
+                    gh pr edit "${PR}" --add-label "unit tests passed" --repo "${REPO}"
+
+                    function summary_line {
+                    	sed 's/\x1b\[[0-9;]*m//g' "${RUNNER_TEMP}/jest.log" | grep -E "^$1:" | tail -1 | sed -E "s/^$1:[[:space:]]+//"
+                    }
+
+                    snapshots=$(summary_line "Snapshots")
+                    suites=$(summary_line "Test Suites")
+                    tests=$(summary_line "Tests")
+
+                    marker=$(jq -cn --arg run "${RUN_URL}" --arg sha "${SHA}" --arg snapshots "${snapshots}" --arg suites "${suites}" --arg tests "${tests}" '{result: "success", run: $run, sha: $sha, snapshots: $snapshots, suites: $suites, tests: $tests}')
+
+                    gh pr comment "${PR}" --repo "${REPO}" --body "$(cat <<EOF
+                    > [!TIP]
+                    > **Unit tests passed** on \`${SHA}\` ([run](${RUN_URL})). Comment \`ac:forward\` to send this PR to liferay-ac/liferay-portal.
+                    >
+                    > - Test Suites: ${suites}
+                    > - Tests: ${tests}
+                    > - Snapshots: ${snapshots}
+
+                    <!-- unit-tests ${marker} -->
+                    EOF
+                    )"
+            -   env:
+                    GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+                    PR: ${{github.event.pull_request.number}}
+                    REPO: ${{github.repository}}
+                    SHA: ${{github.event.pull_request.head.sha}}
+                    XML_PATH: workspaces/liferay-osbfaro-workspace/modules/osb-faro-web/TEST-frontend-js.xml
+                if: ${{failure()}}
+                name: Report failure
+                run: |
+                    cat > "${RUNNER_TEMP}/parse.mjs" <<'PARSER'
+                    import {readFileSync} from 'fs';
+
+                    const MAX_COMMENT = 60000;
+                    const MAX_DETAIL = 2000;
+                    const MAX_SUMMARY = 300;
+
+                    function decodeEntities(value) {
+                    	return value
+                    		.replace(/&lt;/g, '<')
+                    		.replace(/&gt;/g, '>')
+                    		.replace(/&quot;/g, '"')
+                    		.replace(/&apos;/g, "'")
+                    		.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(code))
+                    		.replace(/&amp;/g, '&');
+                    }
+
+                    function trimStack(detail) {
+                    	return detail
+                    		.split('\n')
+                    		.filter((line) => !/^\s*at .*\/node_modules\//.test(line))
+                    		.join('\n')
+                    		.trim();
+                    }
+
+                    let xml = '';
+
+                    try {
+                    	xml = readFileSync(process.env.XML_PATH, 'utf8');
+                    }
+                    catch {}
+
+                    const failures = [];
+                    const testcaseRegExp = /<testcase\b([^>]*)>([\s\S]*?)<\/testcase>/g;
+
+                    let match;
+
+                    while ((match = testcaseRegExp.exec(xml)) !== null) {
+                    	const failureMatch = match[2].match(
+                    		/<(?:failure|error)\b([^>]*)>([\s\S]*?)<\/(?:failure|error)>/
+                    	);
+
+                    	if (!failureMatch) {
+                    		continue;
+                    	}
+
+                    	const messageMatch = failureMatch[1].match(/\bmessage="([^"]*)"/);
+                    	const nameMatch = match[1].match(/\bname="([^"]*)"/);
+
+                    	const name = nameMatch ? decodeEntities(nameMatch[1]) : '(unknown test)';
+
+                    	if (failures.some((failure) => failure.name === name)) {
+                    		continue;
+                    	}
+
+                    	failures.push({
+                    		detail: trimStack(decodeEntities(failureMatch[2])),
+                    		message: messageMatch ? decodeEntities(messageMatch[1]) : '',
+                    		name,
+                    	});
+                    }
+
+                    const sha = process.env.SHA;
+
+                    if (!failures.length) {
+                    	process.stdout.write(
+                    		`> [!CAUTION]\n> **Unit tests failed** on \`${sha}\`, but no failing test could be parsed. The run may have crashed before producing a report; check the workflow logs.\n`
+                    	);
+
+                    	process.exit(0);
+                    }
+
+                    const plural = failures.length === 1 ? '' : 's';
+                    const lines = [
+                    	'> [!CAUTION]',
+                    	`> **Unit tests failed** on \`${sha}\`: ${failures.length} failing test${plural}.`,
+                    	'',
+                    ];
+
+                    for (const failure of failures) {
+                    	const summary = failure.message.split('\n')[0].slice(0, MAX_SUMMARY);
+
+                    	lines.push(`- **${failure.name}**${summary ? ` — \`${summary}\`` : ''}`);
+                    }
+
+                    let body = lines.join('\n');
+                    let remaining = MAX_COMMENT - body.length - 100;
+
+                    const chunks = [];
+
+                    for (const failure of failures) {
+                    	const chunk = `${failure.name}\n\n${failure.detail.slice(0, MAX_DETAIL)}`;
+
+                    	if (chunk.length > remaining) {
+                    		chunks.push('... (remaining failure details truncated)');
+
+                    		break;
+                    	}
+
+                    	remaining -= chunk.length;
+
+                    	chunks.push(chunk);
+                    }
+
+                    body +=
+                    	'\n\n<details><summary>Failure details</summary>\n\n```text\n' +
+                    	chunks.join('\n\n') +
+                    	'\n```\n\n</details>';
+
+                    process.stdout.write(body + '\n');
+                    PARSER
+
+                    node "${RUNNER_TEMP}/parse.mjs" > "${RUNNER_TEMP}/comment.md"
+
+                    gh pr edit "${PR}" --remove-label "unit tests passed" --repo "${REPO}" || true
+                    gh pr edit "${PR}" --add-label "unit tests failed" --repo "${REPO}"
+                    gh pr comment "${PR}" --body-file "${RUNNER_TEMP}/comment.md" --repo "${REPO}"

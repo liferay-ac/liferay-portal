@@ -3,66 +3,40 @@ import * as breadcrumbs from 'shared/util/breadcrumbs';
 import AccountsDataSet from 'shared/components/accounts-data-set/AccountsDataSet';
 import BasePage from 'shared/components/base-page';
 import DataSourceEmptyState from 'shared/components/DataSourceEmptyState';
-import ClayLink from '@clayui/link';
+import ErrorPage from 'shared/pages/ErrorPage';
 import FilterPicker from '../components/FilterPicker';
+import getCN from 'classnames';
+import LifecycleSwitchPanel, {
+	LifecyclePanelView,
+} from 'lifecycle/components/LifecycleSwitchPanel';
 import LifecycleChart from 'lifecycle/components/LifecycleChart';
+import LifecycleSticker from 'lifecycle/components/LifecycleSticker';
 import TrailingNinetyDayRange from 'shared/components/TrailingNinetyDayRange';
 import Loading from 'shared/components/Loading';
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import OverviewSection from '../components/OverviewSection';
-import React, {useContext} from 'react';
+import React, {useContext, useRef, useState} from 'react';
 import SegmentDropdown from 'shared/components/SegmentDropdown';
 import {
 	AccountMetricType,
 	IAccountMetric,
 } from 'contacts/pages/account/utils/types';
 import {ChannelContext} from 'shared/context/channel';
-import {close, modalTypes, open} from 'shared/actions/modals';
-import {connect, ConnectedProps} from 'react-redux';
+import {ClayButtonWithIcon} from '@clayui/button';
 import {
 	LifecycleContextProvider,
 	useLifecycle,
 } from '../context/LifecycleContext';
+import {NoDataSourcesEmptyState} from 'lifecycle/components/LifecycleEmptyStates';
+import {useParams} from 'react-router-dom';
 import {RangeKeyTimeRanges, Sizes} from 'shared/util/constants';
 import {Routes, toRoute} from 'shared/util/router';
 import {SectionHeader} from 'shared/components/SectionHeader';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
-import {useHistoryAdapter} from 'shared/hooks/useHistoryAdapter';
-import {useParams} from 'react-router-dom';
+import {useLifecycleActions} from 'lifecycle/hooks/useLifecycleActions';
 import {useRequest} from 'shared/hooks/useRequest';
 import {useSegmentFilter} from 'shared/hooks/useSegmentFilter';
-
-const ConfigureLifecycleEmptyState = ({
-	channelId,
-	groupId,
-}: {
-	channelId: string;
-	groupId: string;
-}) => (
-	<NoResultsDisplay
-		description={Liferay.Language.get(
-			'complete-the-configuration-to-start-seeing-insights'
-		)}
-		displayCard
-		icon={{
-			border: false,
-			size: Sizes.XXXLarge,
-			symbol: 'ac_lifecycle_empty',
-		}}
-		spacer
-		title={Liferay.Language.get('configure-a-new-lifecycle')}
-	>
-		<ClayLink
-			button
-			className="button-root mt-1"
-			displayType="primary"
-			href={toRoute(Routes.LIFECYCLE_CREATE, {channelId, groupId})}
-		>
-			{Liferay.Language.get('new-lifecycle')}
-		</ClayLink>
-	</NoResultsDisplay>
-);
 
 const ProcessingLifecycleEmptyState = () => (
 	<NoResultsDisplay
@@ -160,35 +134,50 @@ const LifecycleAccounts = () => {
 	);
 };
 
-const connector = connect(null, {close, open});
-
-type PropsFromRedux = ConnectedProps<typeof connector>;
-
-const BaseLifecycle: React.FC<PropsFromRedux> = ({close, open}) => {
+const BaseLifecycle = () => {
 	const currentUser = useCurrentUser();
 	const {selectedChannel} = useContext(ChannelContext);
 
-	const history = useHistoryAdapter();
-
-	const {channelId, groupId} = useParams();
+	const {channelId, groupId, lifecycleId} = useParams();
 
 	const {empty: noDataSources, loading: dataSourcesLoading} =
 		useDataSources();
 
 	const {segmentId, segmentName, setSegment} = useSegmentFilter();
 
-	const {data: lifecycles, loading: lifecyclesLoading} = useRequest({
-		dataSourceFn: API.lifecycle.fetchLifecycles,
-		variables: {channelId, groupId: groupId!},
+	const {
+		data: lifecycle,
+		error: lifecycleError,
+		loading: lifecycleLoading,
+	} = useRequest({
+		dataSourceFn: API.lifecycle.fetchLifecycle,
+		variables: {groupId: groupId!, lifecycleId: lifecycleId!},
 	});
 
-	const lifecycle = lifecycles?.[0];
+	const containerRef = useRef<HTMLDivElement>(null);
 
-	const lifecycleId = lifecycle?.id;
+	const switchButtonRef = useRef<HTMLButtonElement>(null);
 
-	const hasLifecycles = !!lifecycles?.length;
+	const [panelView, setPanelView] = useState<LifecyclePanelView | null>(null);
 
-	const processing = hasLifecycles && lifecycle?.processedDate == null;
+	const [defaultLifecycleId, setDefaultLifecycleId] = useState<string | null>(
+		null
+	);
+
+	const isDefault = defaultLifecycleId
+		? defaultLifecycleId === lifecycleId
+		: lifecycle?.isDefault;
+
+	const openLifecycle = lifecycle && {...lifecycle, isDefault};
+
+	const actions = useLifecycleActions({
+		lifecycle: openLifecycle,
+		onDefaultChange: () => setDefaultLifecycleId(lifecycleId!),
+		onShowDetails: () =>
+			setPanelView({lifecycleId: lifecycleId!, type: 'details'}),
+	});
+
+	const processing = lifecycle?.processedDate == null;
 
 	const {data: accountMetrics, loading: accountMetricsLoading} = useRequest({
 		dataSourceFn: API.accounts.fetchMetrics,
@@ -203,14 +192,13 @@ const BaseLifecycle: React.FC<PropsFromRedux> = ({close, open}) => {
 
 	const authorized = currentUser.isAdmin();
 
-	const loading = dataSourcesLoading || lifecyclesLoading;
+	const loading = dataSourcesLoading || lifecycleLoading;
 
 	const title = lifecycle?.name || Liferay.Language.get('lifecycles');
 
 	const hasContent =
 		!loading &&
 		!noDataSources &&
-		hasLifecycles &&
 		!processing &&
 		!accountMetricsLoading &&
 		!!totalAccounts;
@@ -222,27 +210,8 @@ const BaseLifecycle: React.FC<PropsFromRedux> = ({close, open}) => {
 
 		if (noDataSources) {
 			return (
-				<DataSourceEmptyState
+				<NoDataSourcesEmptyState
 					authorized={authorized}
-					description={
-						authorized
-							? Liferay.Language.get(
-									'connect-a-data-source-to-sync-lifecycle-stages'
-								)
-							: Liferay.Language.get(
-									'please-contact-your-workspace-administrator-to-add-data-sources'
-								)
-					}
-					groupId={groupId!}
-					title={Liferay.Language.get('no-data-sources-connected')}
-				/>
-			);
-		}
-
-		if (!hasLifecycles) {
-			return (
-				<ConfigureLifecycleEmptyState
-					channelId={channelId!}
 					groupId={groupId!}
 				/>
 			);
@@ -286,106 +255,150 @@ const BaseLifecycle: React.FC<PropsFromRedux> = ({close, open}) => {
 		);
 	};
 
-	return (
-		<LifecycleContextProvider lifecycleId={lifecycleId ?? ''}>
-			<BasePage documentTitle={title}>
-				<BasePage.Header
-					breadcrumbs={[
-						breadcrumbs.getHome({
-							channelId: channelId!,
-							groupId: groupId!,
-							label: selectedChannel?.name,
-						}),
-					]}
-					groupId={groupId!}
-				>
-					<BasePage.Row>
-						<BasePage.Header.TitleSection
-							className="mb-3"
-							title={title}
-						>
-							{hasLifecycles && (
-								<BasePage.Header.PageActionsToolbar
-									actions={[
-										...(authorized
-											? [
-													{
-														icon: {symbol: 'cog'},
-														label: Liferay.Language.get(
-															'lifecycle-configuration'
-														),
-														onClick: () =>
-															history.push(
-																toRoute(
-																	Routes.LIFECYCLE_EDIT,
-																	{
-																		channelId,
-																		groupId,
-																		lifecycleId,
-																	}
-																)
-															),
-													},
-												]
-											: []),
-										{
-											icon: {symbol: 'bell-on'},
-											label: Liferay.Language.get(
-												'manage-notifications'
-											),
-											onClick: () =>
-												open(
-													modalTypes.MANAGE_LIFECYCLE_NOTIFICATIONS_MODAL,
-													{
-														groupId,
-														lifecycleId,
-														onClose: close,
-													}
-												),
-										},
-									]}
-								/>
-							)}
-						</BasePage.Header.TitleSection>
-					</BasePage.Row>
-				</BasePage.Header>
-				{hasContent && (
-					<BasePage.SubHeader>
-						<div className="d-flex justify-content-between w-100">
-							<div className="d-flex">
-								<FilterPicker
-									className="mr-3"
-									entityLabel={Liferay.Language.get(
-										'industries'
-									)}
-									fieldMappingFieldName="industry"
-									filterKey="industryFilter"
-								/>
-
-								<FilterPicker
-									className="mr-3"
-									entityLabel={Liferay.Language.get(
-										'countries'
-									)}
-									fieldMappingFieldName="country"
-									filterKey="countryFilter"
-								/>
-
-								<SegmentDropdown
-									initialSegmentId={segmentId}
-									initialSegmentName={segmentName}
-									onFilterChange={setSegment}
-								/>
-							</div>
-
-							<TrailingNinetyDayRange />
-						</div>
-					</BasePage.SubHeader>
+	if (!lifecycleLoading && (lifecycleError || !lifecycle)) {
+		return (
+			<ErrorPage
+				href={toRoute(Routes.LIFECYCLE, {channelId, groupId})}
+				linkLabel={Liferay.Language.get('go-to-lifecycles')}
+				message={Liferay.Language.get(
+					'the-lifecycle-you-are-looking-for-does-not-exist'
 				)}
-				<BasePage.Body>{renderBody()}</BasePage.Body>
-			</BasePage>
-		</LifecycleContextProvider>
+				subtitle={Liferay.Language.get('lifecycle-not-found')}
+			/>
+		);
+	}
+
+	return (
+		<>
+			<div className="lifecycle-dashboard" ref={containerRef}>
+				<LifecycleContextProvider
+					key={lifecycleId}
+					lifecycleId={lifecycleId}
+				>
+					<BasePage documentTitle={title}>
+						<BasePage.Header
+							breadcrumbs={[
+								breadcrumbs.getHome({
+									channelId: channelId!,
+									groupId: groupId!,
+									label: selectedChannel?.name,
+								}),
+								breadcrumbs.getLifecycles({
+									channelId: channelId!,
+									groupId: groupId!,
+								}),
+								...(lifecycle?.name
+									? [
+											breadcrumbs.getEntityName({
+												label: lifecycle.name,
+											}),
+										]
+									: []),
+							]}
+							fluid
+							groupId={groupId!}
+						>
+							<BasePage.Row>
+								<BasePage.Header.TitleSection
+									className="mb-3"
+									sticker={
+										isDefault && (
+											<LifecycleSticker
+												className="mr-2"
+												pinned
+											/>
+										)
+									}
+									title={title}
+								>
+									{!!actions.length && (
+										<BasePage.Header.PageActionsToolbar
+											actions={actions}
+										/>
+									)}
+
+									<ClayButtonWithIcon
+										aria-expanded={!!panelView}
+										aria-label={Liferay.Language.get(
+											'switch-dashboard'
+										)}
+										borderless
+										className={getCN(
+											'ml-2 rounded text-secondary',
+											{active: !!panelView}
+										)}
+										data-tooltip-align="top"
+										displayType="secondary"
+										onClick={() =>
+											setPanelView(
+												panelView
+													? null
+													: {type: 'switch'}
+											)
+										}
+										ref={switchButtonRef}
+										size="sm"
+										symbol="change"
+										title={Liferay.Language.get(
+											'switch-dashboard'
+										)}
+									/>
+								</BasePage.Header.TitleSection>
+							</BasePage.Row>
+						</BasePage.Header>
+						{hasContent && (
+							<BasePage.SubHeader fluid>
+								<div className="d-flex justify-content-between w-100">
+									<div className="d-flex">
+										<FilterPicker
+											className="mr-3"
+											entityLabel={Liferay.Language.get(
+												'industries'
+											)}
+											fieldMappingFieldName="industry"
+											filterKey="industryFilter"
+										/>
+
+										<FilterPicker
+											className="mr-3"
+											entityLabel={Liferay.Language.get(
+												'countries'
+											)}
+											fieldMappingFieldName="country"
+											filterKey="countryFilter"
+										/>
+
+										<SegmentDropdown
+											initialSegmentId={segmentId}
+											initialSegmentName={segmentName}
+											onFilterChange={setSegment}
+										/>
+									</div>
+
+									<TrailingNinetyDayRange />
+								</div>
+							</BasePage.SubHeader>
+						)}
+						<BasePage.Body
+							className="pt-3 px-5"
+							pageContainer={false}
+						>
+							{renderBody()}
+						</BasePage.Body>
+					</BasePage>
+				</LifecycleContextProvider>
+			</div>
+
+			<LifecycleSwitchPanel
+				containerRef={containerRef}
+				onDefaultChange={setDefaultLifecycleId}
+				onViewChange={setPanelView}
+				openLifecycle={openLifecycle}
+				triggerRef={switchButtonRef}
+				view={panelView}
+			/>
+		</>
 	);
 };
 
-export default connector(BaseLifecycle);
+export default BaseLifecycle;

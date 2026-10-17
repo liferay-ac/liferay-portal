@@ -1,0 +1,30 @@
+name: osb-faro-web cancel runs on PR close
+
+on:
+    pull_request:
+        types:
+            -   closed
+
+jobs:
+    cancel:
+        if: ${{github.event.pull_request.head.repo.full_name == github.repository}}
+        permissions:
+            actions: write
+        runs-on: ubuntu-latest
+        steps:
+            -   env:
+                    BRANCH: ${{github.event.pull_request.head.ref}}
+                    CURRENT_RUN: ${{github.run_id}}
+                    GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+                    REPO: ${{github.repository}}
+                name: Cancel in progress and queued runs for the PR branch
+                run: |
+                    set -uo pipefail
+
+                    for status in in_progress queued; do
+                    	gh run list --branch "${BRANCH}" --json databaseId --jq '.[].databaseId' --repo "${REPO}" --status "${status}" | while read -r run_id; do
+                    		if [ -n "${run_id}" ] && [ "${run_id}" != "${CURRENT_RUN}" ]; then
+                    			gh run cancel "${run_id}" --repo "${REPO}" || true
+                    		fi
+                    	done
+                    done
