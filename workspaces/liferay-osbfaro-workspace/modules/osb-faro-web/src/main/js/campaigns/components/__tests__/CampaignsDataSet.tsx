@@ -1,6 +1,10 @@
 import CampaignsDataSet from '../CampaignsDataSet';
 import React from 'react';
 import {cleanup, render, screen} from '@testing-library/react';
+import {
+	EMPTY_STATE_IMAGE,
+	EMPTY_STATE_REDUCED_MOTION_IMAGE,
+} from 'shared/components/FrontendDataSet';
 import {warmFrontendDataSet} from 'test/warm-frontend-data-set';
 
 jest.unmock('react-dom');
@@ -161,12 +165,12 @@ describe('CampaignsDataSet', () => {
 		);
 	});
 
-	it('should illustrate the empty state with the satellite', () => {
+	it('should illustrate the empty state with the theme empty state image', () => {
 		renderDataSet();
 
-		expect(lastFDSProps.emptyState.image).toBe('/states/satellite.svg');
+		expect(lastFDSProps.emptyState.image).toBe(EMPTY_STATE_IMAGE);
 		expect(lastFDSProps.emptyState.imageReducedMotion).toBe(
-			'/states/satellite.svg'
+			EMPTY_STATE_REDUCED_MOTION_IMAGE
 		);
 	});
 

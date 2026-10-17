@@ -2,6 +2,8 @@ import Card from 'shared/components/Card';
 import React from 'react';
 import {
 	columns,
+	EMPTY_STATE_IMAGE,
+	EMPTY_STATE_REDUCED_MOTION_IMAGE,
 	FrontendDataSet,
 	pagination,
 } from 'shared/components/FrontendDataSet';
@@ -73,8 +75,8 @@ const CampaignsDataSet: React.FC<ICampaignsDataSetProps> = ({
 				description: Liferay.Language.get(
 					'no-campaigns-were-synced-from-the-connected-data-sources'
 				),
-				image: '/states/satellite.svg',
-				imageReducedMotion: '/states/satellite.svg',
+				image: EMPTY_STATE_IMAGE,
+				imageReducedMotion: EMPTY_STATE_REDUCED_MOTION_IMAGE,
 				title: Liferay.Language.get('no-campaigns-found'),
 			}}
 			id="campaigns-list-dataset"
