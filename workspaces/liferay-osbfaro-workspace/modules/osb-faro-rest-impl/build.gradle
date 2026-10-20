@@ -11,6 +11,7 @@ dependencies {
 	testImplementation group: "junit", name: "junit", version: "4.13.1"
 	testImplementation group: "org.apache.logging.log4j", name: "log4j-api", version: "2.20.0"
 	testImplementation group: "org.apache.logging.log4j", name: "log4j-core", version: "2.20.0"
+	testImplementation project(":modules:osb-faro-api")
 	testImplementation project(":modules:osb-faro-engine-client")
 	testImplementation project(":modules:osb-faro-rest-api")
 }
