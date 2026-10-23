@@ -181,20 +181,29 @@ exports[`AssignSegments should render 1`] = `
       class="modal-footer d-flex justify-content-end"
       data-aria-hidden="true"
     >
-      <button
-        class="btn btn-secondary"
-        type="button"
+      <div
+        class="modal-item-last"
       >
-        Skip for Now
-      </button>
-      <button
-        class="btn btn-primary"
-        data-testid="submit-button"
-        disabled=""
-        type="button"
-      >
-        Done
-      </button>
+        <div
+          class="btn-group-spaced"
+          role="group"
+        >
+          <button
+            class="btn btn-secondary"
+            type="button"
+          >
+            Skip for Now
+          </button>
+          <button
+            class="btn btn-primary"
+            data-testid="submit-button"
+            disabled=""
+            type="button"
+          >
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
