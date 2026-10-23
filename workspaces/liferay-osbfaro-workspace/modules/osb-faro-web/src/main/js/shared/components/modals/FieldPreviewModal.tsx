@@ -1,14 +1,15 @@
+import ClayModal from '@clayui/modal';
 import getCN from 'classnames';
 import ListGroup from 'shared/components/list-group';
-import Modal from 'shared/components/modal';
 import React, {useEffect, useState} from 'react';
-import {get, noop} from 'lodash';
+import type {Observer} from '@clayui/modal/lib/types';
+import {get} from 'lodash';
 import {sub} from 'shared/util/lang';
 
 interface IFieldPreviewModalProps extends React.HTMLAttributes<HTMLDivElement> {
 	dataSourceFn: () => Promise<any>;
 	fieldName?: string;
-	onClose: () => void;
+	observer: Observer;
 	sourceName: string;
 }
 
@@ -16,7 +17,7 @@ const FieldPreviewModal: React.FC<IFieldPreviewModalProps> = ({
 	className,
 	dataSourceFn,
 	fieldName,
-	onClose = noop,
+	observer,
 	sourceName,
 	...otherProps
 }) => {
@@ -32,17 +33,15 @@ const FieldPreviewModal: React.FC<IFieldPreviewModalProps> = ({
 		});
 
 	return (
-		<Modal
+		<ClayModal
+			observer={observer}
 			{...otherProps}
 			className={getCN('field-preview-modal-root', className)}
 			size="lg"
 		>
-			<Modal.Header
-				onClose={onClose}
-				title={sub(Liferay.Language.get('field-preview-x'), [
-					sourceName,
-				])}
-			/>
+			<ClayModal.Header>
+				{sub(Liferay.Language.get('field-preview-x'), [sourceName])}
+			</ClayModal.Header>
 
 			<ListGroup>
 				<ListGroup.Item flex header>
@@ -55,7 +54,7 @@ const FieldPreviewModal: React.FC<IFieldPreviewModalProps> = ({
 					</ListGroup.Item>
 				))}
 			</ListGroup>
-		</Modal>
+		</ClayModal>
 	);
 };
 
