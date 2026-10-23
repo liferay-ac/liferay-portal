@@ -1,3 +1,11 @@
+// Clay's modal body sets no font size, so it inherits the 14px of the page.
+// Clay's modal spec asks for 16px. `.modal` also matches the container the
+// ModalRenderer draws, so the Clay modals portaled elsewhere follow it too.
+
+.modal .modal-body {
+	font-size: 1rem;
+}
+
 .modal-container {
 	.modal-body {
 		border-top: none;
