@@ -1,19 +1,22 @@
 import ClayButton from '@clayui/button';
+import ClayModal from '@clayui/modal';
 import getCN from 'classnames';
 import Input from 'shared/components/Input';
 import InputList from 'shared/components/InputList';
-import Modal from 'shared/components/modal';
 import React, {useState} from 'react';
+import type {Observer} from '@clayui/modal/lib/types';
 import {validateEmail} from 'shared/util/email-validators';
 
 interface IInviteUsersModalProps {
-	className: string;
+	className?: string;
+	observer: Observer;
 	onClose: () => void;
 	onSubmit: (emails: string[]) => Promise<any>;
 }
 
 const InviteUsersModal: React.FC<IInviteUsersModalProps> = ({
 	className,
+	observer,
 	onClose,
 	onSubmit,
 	...otherProps
@@ -31,17 +34,17 @@ const InviteUsersModal: React.FC<IInviteUsersModalProps> = ({
 	};
 
 	return (
-		<Modal
+		<ClayModal
+			observer={observer}
 			{...otherProps}
 			className={getCN('invite-users-modal-root', className)}
 			size="lg"
 		>
-			<Modal.Header
-				onClose={onClose}
-				title={Liferay.Language.get('invite-users')}
-			/>
+			<ClayModal.Header>
+				{Liferay.Language.get('invite-users')}
+			</ClayModal.Header>
 
-			<Modal.Body>
+			<ClayModal.Body>
 				<div className="description form-text">
 					{Liferay.Language.get(
 						'enter-the-email-addresses-of-the-people-you-would-like-to-invite-to-analytics-cloud.-separate-each-address-by-space-or-comma'
@@ -66,30 +69,34 @@ const InviteUsersModal: React.FC<IInviteUsersModalProps> = ({
 						}
 					/>
 				</Input.Group>
-			</Modal.Body>
+			</ClayModal.Body>
 
-			<Modal.Footer>
-				<ClayButton
-					className="button-root"
-					displayType="secondary"
-					onClick={onClose}
-				>
-					{Liferay.Language.get('cancel')}
-				</ClayButton>
+			<ClayModal.Footer
+				last={
+					<ClayButton.Group spaced>
+						<ClayButton
+							className="button-root"
+							displayType="secondary"
+							onClick={onClose}
+						>
+							{Liferay.Language.get('cancel')}
+						</ClayButton>
 
-				<ClayButton
-					className="button-root"
-					disabled={
-						(!inputValue && !emails.length) ||
-						(!!inputValue && !validateEmail(inputValue))
-					}
-					displayType="primary"
-					onClick={handleSubmit}
-				>
-					{Liferay.Language.get('send')}
-				</ClayButton>
-			</Modal.Footer>
-		</Modal>
+						<ClayButton
+							className="button-root"
+							disabled={
+								(!inputValue && !emails.length) ||
+								(!!inputValue && !validateEmail(inputValue))
+							}
+							displayType="primary"
+							onClick={handleSubmit}
+						>
+							{Liferay.Language.get('send')}
+						</ClayButton>
+					</ClayButton.Group>
+				}
+			/>
+		</ClayModal>
 	);
 };
 
