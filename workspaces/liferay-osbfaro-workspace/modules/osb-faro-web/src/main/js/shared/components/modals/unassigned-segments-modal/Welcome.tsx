@@ -1,5 +1,5 @@
 import ClayButton from '@clayui/button';
-import Modal from 'shared/components/modal';
+import ClayModal from '@clayui/modal';
 import React from 'react';
 
 interface IWelcomeProps {
@@ -9,7 +9,7 @@ interface IWelcomeProps {
 
 const Welcome: React.FC<IWelcomeProps> = ({onNext}) => (
 	<div className="welcome">
-		<Modal.Body className="d-flex flex-column align-items-center">
+		<ClayModal.Body className="d-flex flex-column align-items-center">
 
 			{/* TODO: LRAC-7427 Adjust SVGs with Linear Gradients */}
 			<div className="ac-property-buildings" />
@@ -53,18 +53,23 @@ const Welcome: React.FC<IWelcomeProps> = ({onNext}) => (
 					</p>
 				</li>
 			</ul>
-		</Modal.Body>
+		</ClayModal.Body>
 
-		<Modal.Footer className="d-flex justify-content-end">
-			<ClayButton
-				autoFocus
-				className="button-root wide"
-				displayType="secondary"
-				onClick={() => onNext()}
-			>
-				{Liferay.Language.get('next')}
-			</ClayButton>
-		</Modal.Footer>
+		<ClayModal.Footer
+			className="d-flex justify-content-end"
+			last={
+				<ClayButton.Group spaced>
+					<ClayButton
+						autoFocus
+						className="button-root wide"
+						displayType="secondary"
+						onClick={() => onNext()}
+					>
+						{Liferay.Language.get('next')}
+					</ClayButton>
+				</ClayButton.Group>
+			}
+		/>
 	</div>
 );
 
