@@ -1,5 +1,6 @@
 import * as API from 'shared/api';
 import ClayButton from '@clayui/button';
+import ClayModal from '@clayui/modal';
 import ClayIcon from 'shared/components/Icon';
 import ClayLabel from '@clayui/label';
 import ClayLink from '@clayui/link';
@@ -14,7 +15,6 @@ import getCN from 'classnames';
 import InfoPopover from 'shared/components/InfoPopover';
 import Input from 'shared/components/Input';
 import Label from 'shared/components/form/Label';
-import Modal from 'shared/components/modal';
 import React, {FC, useEffect, useRef, useState} from 'react';
 import Select from 'shared/components/Select';
 import URLConstants from 'shared/util/url-constants';
@@ -199,9 +199,9 @@ const ConnectDXP: React.FC<IConnectDXPWrapperProps & IConnectDXPProps> = ({
 
 	return (
 		<>
-			<Modal.Header onClose={onClose} />
+			<ClayModal.Header />
 
-			<Modal.Body>
+			<ClayModal.Body>
 				<div className="analytics-to-dxp-container">
 					<ClayIcon
 						className="icon-root icon-size-xl"
@@ -224,7 +224,7 @@ const ConnectDXP: React.FC<IConnectDXPWrapperProps & IConnectDXPProps> = ({
 				</div>
 
 				<div className="text-center mb-4">
-					<Text size={10} weight="bold">
+					<Text size={6} weight="bold">
 						{dxpConnected
 							? Liferay.Language.get(
 									'your-dxp-instance-is-connected-to-analytics-cloud'
@@ -244,36 +244,44 @@ const ConnectDXP: React.FC<IConnectDXPWrapperProps & IConnectDXPProps> = ({
 				)}
 
 				{dxpConnected && <DxpSyncTable />}
-			</Modal.Body>
+			</ClayModal.Body>
 
-			<Modal.Footer>
-				<div>
-					{!(dxpConnected && onboarding) && (
-						<ClayButton
-							className="button-root"
-							disabled={dxpConnected}
-							displayType="secondary"
-							onClick={onboarding ? () => onNext?.() : onClose}
-						>
-							{onboarding
-								? Liferay.Language.get('skip')
-								: Liferay.Language.get('cancel')}
-						</ClayButton>
-					)}
+			<ClayModal.Footer
+				last={
+					<ClayButton.Group spaced>
+						<div>
+							{!(dxpConnected && onboarding) && (
+								<ClayButton
+									className="button-root"
+									disabled={dxpConnected}
+									displayType="secondary"
+									onClick={
+										onboarding ? () => onNext?.() : onClose
+									}
+								>
+									{onboarding
+										? Liferay.Language.get('skip')
+										: Liferay.Language.get('cancel')}
+								</ClayButton>
+							)}
 
-					<ClayLink
-						button
-						className="button-root ml-2"
-						displayType="primary"
-						href={getNavHref()}
-						onClick={() => (onboarding ? onNext?.() : onClose())}
-					>
-						{onboarding
-							? Liferay.Language.get('next')
-							: Liferay.Language.get('done')}
-					</ClayLink>
-				</div>
-			</Modal.Footer>
+							<ClayLink
+								button
+								className="button-root ml-2"
+								displayType="primary"
+								href={getNavHref()}
+								onClick={() =>
+									onboarding ? onNext?.() : onClose()
+								}
+							>
+								{onboarding
+									? Liferay.Language.get('next')
+									: Liferay.Language.get('done')}
+							</ClayLink>
+						</div>
+					</ClayButton.Group>
+				}
+			/>
 		</>
 	);
 };
@@ -324,7 +332,7 @@ const DxpSyncTable: FC<React.HTMLAttributes<HTMLElement>> = () => {
 			<ClayList>
 				<ClayList.Item flex>
 					<ClayList.ItemField expand>
-						<Text size={3} weight="bold">
+						<Text size={4} weight="bold">
 							{Liferay.Language.get('sites')}
 						</Text>
 					</ClayList.ItemField>
@@ -342,7 +350,7 @@ const DxpSyncTable: FC<React.HTMLAttributes<HTMLElement>> = () => {
 
 				<ClayList.Item flex>
 					<ClayList.ItemField expand>
-						<Text size={3} weight="bold">
+						<Text size={4} weight="bold">
 							{Liferay.Language.get('contacts')}
 						</Text>
 					</ClayList.ItemField>
@@ -360,7 +368,7 @@ const DxpSyncTable: FC<React.HTMLAttributes<HTMLElement>> = () => {
 			</ClayList>
 
 			<div className="mt-2">
-				<Text color="secondary" size={3}>
+				<Text color="secondary" size={4}>
 					{Liferay.Language.get(
 						'you-can-check-your-data-source-syncing-status-under-settings-in-data-sources,-or-continue-configuring-your-data-source-on-your-dxp-instance'
 					)}
@@ -377,7 +385,7 @@ const FixPackSelect: FC<React.HTMLAttributes<HTMLElement>> = () => {
 	return (
 		<>
 			<div className="mt-1">
-				<Text color="secondary" size={3}>
+				<Text color="secondary" size={4}>
 					{sub(
 						Liferay.Language.get(
 							'x-to-learn-how-to-connect-liferay-dxp-to-analytics-cloud'
