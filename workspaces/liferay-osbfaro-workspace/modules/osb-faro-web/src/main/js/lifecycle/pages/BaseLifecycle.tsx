@@ -177,7 +177,7 @@ const BaseLifecycle = () => {
 
 	const openLifecycle = lifecycle && {...lifecycle, defaultAccountLifecycle};
 
-	const actions = useLifecycleActions({
+	const {actions, manageNotificationsModal} = useLifecycleActions({
 		lifecycle: openLifecycle,
 		onDefaultChange: () => changeDefault(lifecycleId!),
 		onShowDetails: () =>
@@ -388,6 +388,8 @@ const BaseLifecycle = () => {
 				triggerRef={switchButtonRef}
 				view={panelView}
 			/>
+
+			{manageNotificationsModal}
 		</BasePage>
 	);
 };
