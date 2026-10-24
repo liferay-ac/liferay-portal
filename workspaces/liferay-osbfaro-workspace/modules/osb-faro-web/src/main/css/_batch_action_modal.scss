@@ -1,4 +1,12 @@
 .batch-action-modal-root {
+	// Edit Permissions keeps its layout without dividers until its UX review.
+
+	.modal-body,
+	.modal-footer,
+	.modal-header {
+		border-width: 0;
+	}
+
 	.dropdown-root .dropdown-toggle {
 		width: auto;
 	}

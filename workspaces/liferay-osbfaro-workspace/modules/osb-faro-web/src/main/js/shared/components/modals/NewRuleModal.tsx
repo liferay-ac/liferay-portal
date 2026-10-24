@@ -1,8 +1,9 @@
 import ClayButton from '@clayui/button';
+import ClayModal from '@clayui/modal';
 import Constants from 'shared/util/constants';
-import Modal from 'shared/components/modal';
 import RadioGroup from 'shared/components/RadioGroup';
 import React, {useEffect, useState} from 'react';
+import type {Observer} from '@clayui/modal/lib/types';
 import RecommendationPageAssetsQuery from 'settings/recommendations/queries/RecommendationPageAssetsQuery';
 import StringMatchInput from 'settings/recommendations/components/StringMatchInput';
 import Table from 'shared/components/table';
@@ -23,11 +24,16 @@ const {
 } = Constants;
 
 interface INewRuleModalProps {
+	observer: Observer;
 	onClose: () => void;
 	onSubmit: (value: {id: string; name: string; value: string}) => void;
 }
 
-const NewRuleModal: React.FC<INewRuleModalProps> = ({onClose, onSubmit}) => {
+const NewRuleModal: React.FC<INewRuleModalProps> = ({
+	observer,
+	onClose,
+	onSubmit,
+}) => {
 	const {
 		delta,
 		onDeltaChange,
@@ -99,13 +105,16 @@ const NewRuleModal: React.FC<INewRuleModalProps> = ({onClose, onSubmit}) => {
 	)(Table);
 
 	return (
-		<Modal className="new-rule-modal-root" size="lg">
-			<Modal.Header
-				onClose={onClose}
-				title={Liferay.Language.get('new-rule')}
-			/>
+		<ClayModal
+			className="new-rule-modal-root"
+			observer={observer}
+			size="lg"
+		>
+			<ClayModal.Header>
+				{Liferay.Language.get('new-rule')}
+			</ClayModal.Header>
 
-			<Modal.Body>
+			<ClayModal.Body>
 				<div>
 					<RadioGroup
 						checked={includeExclude}
@@ -237,32 +246,36 @@ const NewRuleModal: React.FC<INewRuleModalProps> = ({onClose, onSubmit}) => {
 						/>
 					</div>
 				)}
-			</Modal.Body>
+			</ClayModal.Body>
 
-			<Modal.Footer>
-				<ClayButton
-					className="button-root"
-					displayType="secondary"
-					onClick={onClose}
-				>
-					{Liferay.Language.get('cancel')}
-				</ClayButton>
+			<ClayModal.Footer
+				last={
+					<ClayButton.Group spaced>
+						<ClayButton
+							className="button-root"
+							displayType="secondary"
+							onClick={onClose}
+						>
+							{Liferay.Language.get('cancel')}
+						</ClayButton>
 
-				<ClayButton
-					className="button-root"
-					disabled={!stringMatch || !metadata}
-					onClick={() =>
-						onSubmit({
-							id: `${includeExclude} - ${filter}`,
-							name: includeExclude,
-							value: filter,
-						})
-					}
-				>
-					{Liferay.Language.get('add-rule')}
-				</ClayButton>
-			</Modal.Footer>
-		</Modal>
+						<ClayButton
+							className="button-root"
+							disabled={!stringMatch || !metadata}
+							onClick={() =>
+								onSubmit({
+									id: `${includeExclude} - ${filter}`,
+									name: includeExclude,
+									value: filter,
+								})
+							}
+						>
+							{Liferay.Language.get('add-rule')}
+						</ClayButton>
+					</ClayButton.Group>
+				}
+			/>
+		</ClayModal>
 	);
 };
 

@@ -1,5 +1,6 @@
 import * as API from 'shared/api';
 import ClayButton from '@clayui/button';
+import ClayModal from '@clayui/modal';
 import ClayLink from '@clayui/link';
 import ClayMultiSelect from '@clayui/multi-select';
 import FileDropTarget from 'shared/components/FileDropTarget';
@@ -7,8 +8,9 @@ import Form from 'shared/components/form';
 import getCN from 'classnames';
 import Input from 'shared/components/Input';
 import Loading, {Align} from 'shared/components/Loading';
-import Modal from 'shared/components/modal';
+import ModalAutoFocus from 'shared/components/ModalAutoFocus';
 import React, {useEffect, useRef, useState} from 'react';
+import type {Observer} from '@clayui/modal/lib/types';
 import {FormikValues} from 'formik';
 import {NetworkStatus} from '@clayui/data-provider';
 import {paginationDefaults} from 'shared/util/pagination';
@@ -36,6 +38,7 @@ const getCheckboxLabel = (title: string, subtitle: string): React.ReactNode => (
 
 interface INewRequestModalProps {
 	groupId: string;
+	observer: Observer;
 	onClose: () => void;
 	onSubmit: (value: {
 		emailAddresses?: string[];
@@ -46,6 +49,7 @@ interface INewRequestModalProps {
 
 const NewRequestModal: React.FC<INewRequestModalProps> = ({
 	groupId,
+	observer,
 	onClose,
 	onSubmit,
 }) => {
@@ -202,11 +206,10 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 	};
 
 	return (
-		<Modal className="new-request-modal-root">
-			<Modal.Header
-				onClose={onClose}
-				title={Liferay.Language.get('new-request')}
-			/>
+		<ClayModal className="new-request-modal-root" observer={observer}>
+			<ClayModal.Header>
+				{Liferay.Language.get('new-request')}
+			</ClayModal.Header>
 
 			<Form
 				initialValues={{
@@ -220,7 +223,7 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 			>
 				{({handleSubmit, isSubmitting, values}) => (
 					<Form.Form onSubmit={handleSubmit}>
-						<Modal.Body>
+						<ClayModal.Body>
 							<p className="text-secondary">
 								{Liferay.Language.get(
 									'new-requests-will-be-added-to-the-queue-and-you-will-be-notified-once-the-job-has-completed-running'
@@ -233,8 +236,9 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 								</div>
 
 								<Form.GroupItem>
+									<ModalAutoFocus selector="input[name=accessRequest]" />
+
 									<Form.Checkbox
-										autoFocus
 										label={getCheckboxLabel(
 											Liferay.Language.get('access'),
 											Liferay.Language.get(
@@ -361,32 +365,38 @@ const NewRequestModal: React.FC<INewRequestModalProps> = ({
 									</Form.RadioGroup>
 								</Form.GroupItem>
 							</Form.Group>
-						</Modal.Body>
+						</ClayModal.Body>
 
-						<Modal.Footer>
-							<ClayButton
-								className="button-root"
-								displayType="secondary"
-								onClick={onClose}
-							>
-								{Liferay.Language.get('cancel')}
-							</ClayButton>
+						<ClayModal.Footer
+							last={
+								<ClayButton.Group spaced>
+									<ClayButton
+										className="button-root"
+										displayType="secondary"
+										onClick={onClose}
+									>
+										{Liferay.Language.get('cancel')}
+									</ClayButton>
 
-							<ClayButton
-								className="button-root"
-								disabled={!isValid(values)}
-								displayType="primary"
-								type="submit"
-							>
-								{isSubmitting && <Loading align={Align.Left} />}
+									<ClayButton
+										className="button-root"
+										disabled={!isValid(values)}
+										displayType="primary"
+										type="submit"
+									>
+										{isSubmitting && (
+											<Loading align={Align.Left} />
+										)}
 
-								{Liferay.Language.get('save')}
-							</ClayButton>
-						</Modal.Footer>
+										{Liferay.Language.get('save')}
+									</ClayButton>
+								</ClayButton.Group>
+							}
+						/>
 					</Form.Form>
 				)}
 			</Form>
-		</Modal>
+		</ClayModal>
 	);
 };
 

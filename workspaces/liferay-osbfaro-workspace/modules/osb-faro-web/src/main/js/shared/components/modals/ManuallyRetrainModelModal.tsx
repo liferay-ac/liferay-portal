@@ -1,9 +1,10 @@
 import ClayButton from '@clayui/button';
+import ClayModal from '@clayui/modal';
 import client from 'shared/apollo/client';
 import Form from 'shared/components/form';
 import Loading, {Align} from 'shared/components/Loading';
-import Modal from 'shared/components/modal';
 import React from 'react';
+import type {Observer} from '@clayui/modal/lib/types';
 import RecommendationActivitiesQuery from 'settings/recommendations/queries/RecommendationActivitiesQuery';
 import RecommendationJobRunsMonthlyStatisticsQuery from 'settings/recommendations/queries/RecommendationJobRunsMonthlyStatisticsQuery';
 import {
@@ -23,12 +24,14 @@ const ACTIVITIES_THRESHOLD = 1000;
 
 interface IManuallyRetrainModelModalProps {
 	job: Job;
+	observer: Observer;
 	onClose: () => void;
-	onSubmit: () => void;
+	onSubmit: (values: {runDataPeriod: string}) => void;
 }
 
 const ManuallyRetrainModelModal: React.FC<IManuallyRetrainModelModalProps> = ({
 	job,
+	observer,
 	onClose,
 	onSubmit,
 }) => {
@@ -91,11 +94,13 @@ const ManuallyRetrainModelModal: React.FC<IManuallyRetrainModelModalProps> = ({
 	);
 
 	return (
-		<Modal className="manually-retrain-model-modal-root">
-			<Modal.Header
-				onClose={onClose}
-				title={Liferay.Language.get('manually-retrain-model')}
-			/>
+		<ClayModal
+			className="manually-retrain-model-modal-root"
+			observer={observer}
+		>
+			<ClayModal.Header>
+				{Liferay.Language.get('manually-retrain-model')}
+			</ClayModal.Header>
 
 			<Form
 				initialValues={{runDataPeriod: get(job, 'runDataPeriod')}}
@@ -103,7 +108,7 @@ const ManuallyRetrainModelModal: React.FC<IManuallyRetrainModelModalProps> = ({
 			>
 				{({handleSubmit}) => (
 					<Form.Form>
-						<Modal.Body>
+						<ClayModal.Body>
 							<div className="description">
 								{Liferay.Language.get(
 									'select-an-interaction-period-for-the-selected-items'
@@ -171,30 +176,34 @@ const ManuallyRetrainModelModal: React.FC<IManuallyRetrainModelModalProps> = ({
 									</span>
 								</div>
 							</div>
-						</Modal.Body>
+						</ClayModal.Body>
 
-						<Modal.Footer>
-							<ClayButton
-								className="button-root"
-								displayType="secondary"
-								onClick={() => onClose()}
-							>
-								{Liferay.Language.get('cancel')}
-							</ClayButton>
+						<ClayModal.Footer
+							last={
+								<ClayButton.Group spaced>
+									<ClayButton
+										className="button-root"
+										displayType="secondary"
+										onClick={() => onClose()}
+									>
+										{Liferay.Language.get('cancel')}
+									</ClayButton>
 
-							<ClayButton
-								className="button-root"
-								disabled={availableJobRuns <= 0}
-								displayType="primary"
-								onClick={() => handleSubmit()}
-							>
-								{Liferay.Language.get('retrain')}
-							</ClayButton>
-						</Modal.Footer>
+									<ClayButton
+										className="button-root"
+										disabled={availableJobRuns <= 0}
+										displayType="primary"
+										onClick={() => handleSubmit()}
+									>
+										{Liferay.Language.get('retrain')}
+									</ClayButton>
+								</ClayButton.Group>
+							}
+						/>
 					</Form.Form>
 				)}
 			</Form>
-		</Modal>
+		</ClayModal>
 	);
 };
 

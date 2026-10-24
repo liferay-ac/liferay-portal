@@ -13,28 +13,20 @@
 		}
 
 		h2 {
-			font-size: 40px;
+			font-size: 1.25rem;
 			font-weight: $fontWeightBold;
 		}
 
 		.subtitle {
 			color: $mainLighten28;
-			font-size: 18px;
+			font-size: 1rem;
 			margin-bottom: 34px;
 		}
 	}
 
-	.modal-content {
-		width: 988px;
-
-		.btn.wide {
-			padding-left: 26px;
-			padding-right: 26px;
-		}
-
-		.modal-footer {
-			padding-bottom: 18px;
-		}
+	.btn.wide {
+		padding-left: 26px;
+		padding-right: 26px;
 	}
 
 	.welcome {
@@ -52,13 +44,13 @@
 
 		.description {
 			color: $mainLighten28;
-			font-size: 14px;
+			font-size: 1rem;
 			margin-bottom: 0;
 			max-width: 588px;
 
 			.description-title {
 				color: $mainLighten4;
-				font-size: 18px;
+				font-size: 1rem;
 				font-weight: $fontWeightSemiBold;
 				margin-bottom: 12px;
 			}
@@ -69,12 +61,12 @@
 		}
 
 		h2 {
-			font-size: 32px;
+			font-size: 1.25rem;
 		}
 
 		.subtitle {
 			color: $mainLighten28;
-			font-size: 18px;
+			font-size: 1rem;
 			margin-bottom: 32px;
 		}
 	}
