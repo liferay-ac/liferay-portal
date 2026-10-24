@@ -72,7 +72,15 @@ const LifecycleOverview = () => {
 	return <OverviewSection loading={overviewLoading} metrics={overviewData} />;
 };
 
-const LifecycleStagesSection = () => {
+interface ILifecycleStagesSectionProps {
+	description?: string;
+	name?: string;
+}
+
+const LifecycleStagesSection = ({
+	description,
+	name,
+}: ILifecycleStagesSectionProps) => {
 	const {filters, lifecycleId} = useLifecycle();
 
 	const {groupId} = useParams();
@@ -96,8 +104,10 @@ const LifecycleStagesSection = () => {
 
 	return (
 		<LifecycleChart
+			description={description}
 			error={!!stagesError}
 			loading={stagesLoading}
+			name={name}
 			stages={stagesData}
 		/>
 	);
@@ -201,7 +211,7 @@ const BaseLifecycle = () => {
 
 	const loading = dataSourcesLoading || lifecycleLoading;
 
-	const title = lifecycle?.name || Liferay.Language.get('lifecycles');
+	const title = lifecycle?.name ?? '';
 
 	const hasContent =
 		!loading &&
@@ -255,7 +265,10 @@ const BaseLifecycle = () => {
 			<>
 				<LifecycleOverview />
 
-				<LifecycleStagesSection />
+				<LifecycleStagesSection
+					description={lifecycle?.description}
+					name={lifecycle?.name}
+				/>
 
 				<LifecycleAccounts />
 			</>
@@ -276,7 +289,7 @@ const BaseLifecycle = () => {
 	}
 
 	return (
-		<BasePage documentTitle={title}>
+		<BasePage documentTitle={title || Liferay.Language.get('lifecycles')}>
 			<LifecycleContextProvider
 				key={lifecycleId}
 				lifecycleId={lifecycleId}

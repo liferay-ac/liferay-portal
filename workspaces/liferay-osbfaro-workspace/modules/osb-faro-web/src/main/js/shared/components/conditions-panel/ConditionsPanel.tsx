@@ -1,21 +1,24 @@
 import DndProvider from 'shared/components/DndProvider';
-import EventAnalysisBuilder from './index';
 import React, {useEffect, useRef} from 'react';
 import {AnnounceProvider} from 'shared/components/condition-chip/AnnounceContext';
-import {Event} from 'event-analysis/utils/types';
 import {Heading} from '@clayui/core';
 import {HTML5Backend} from 'react-dnd-html5-backend';
-import {SortableChipTypes} from './SortableChipTypes';
-import {useDragLayer, useDrop} from 'react-dnd';
 import {mergeRef} from 'shared/util/util';
+import {useDragLayer, useDrop} from 'react-dnd';
 
-const ConditionsDropArea: React.FC<{children: React.ReactNode}> = ({
+interface IConditionsDropAreaProps {
+	children: React.ReactNode;
+	dragTypes: string[];
+}
+
+const ConditionsDropArea: React.FC<IConditionsDropAreaProps> = ({
 	children,
+	dragTypes,
 }) => {
 	const panelRef = useRef<HTMLDivElement>(null);
 
 	const [, drop] = useDrop({
-		accept: [SortableChipTypes.Breakdown, SortableChipTypes.Filter],
+		accept: dragTypes,
 	});
 
 	const dragging = useDragLayer((monitor) => monitor.isDragging());
@@ -44,43 +47,37 @@ const ConditionsDropArea: React.FC<{children: React.ReactNode}> = ({
 	}, [dragging]);
 
 	return (
-		<div
-			className="event-analysis-conditions-panel h-100"
-			ref={mergeRef(drop, panelRef)}
-		>
+		<div className="conditions-panel h-100" ref={mergeRef(drop, panelRef)}>
 			{children}
 		</div>
 	);
 };
 
 interface IConditionsPanelProps {
-	event?: Event;
-	onEventChange: (event: Event | null) => void;
+	children: React.ReactNode;
+	dragTypes: string[];
+	title: string;
 }
 
 const ConditionsPanel: React.FC<IConditionsPanelProps> = ({
-	event,
-	onEventChange,
+	children,
+	dragTypes,
+	title,
 }) => (
 	<DndProvider backend={HTML5Backend}>
-		<ConditionsDropArea>
+		<ConditionsDropArea dragTypes={dragTypes}>
 			<div
-				className="d-flex event-analysis-conditions-panel-content flex-column"
+				className="conditions-panel-content d-flex flex-column"
 				data-report-expand
 			>
 				<div className="flex-shrink-0 px-4 py-3">
 					<Heading fontSize={6} level={2} weight="semi-bold">
-						{Liferay.Language.get('conditions-library')}
+						{title}
 					</Heading>
 				</div>
 
 				<div className="flex-grow-1 overflow-auto" data-report-expand>
-					<AnnounceProvider>
-						<EventAnalysisBuilder
-							event={event}
-							onEventChange={onEventChange}
-						/>
-					</AnnounceProvider>
+					<AnnounceProvider>{children}</AnnounceProvider>
 				</div>
 			</div>
 		</ConditionsDropArea>
