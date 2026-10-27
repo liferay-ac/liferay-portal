@@ -54,12 +54,21 @@ exports[`Welcome should render 1`] = `
     <div
       class="modal-footer d-flex justify-content-end"
     >
-      <button
-        class="button-root wide btn btn-secondary"
-        type="button"
+      <div
+        class="modal-item-last"
       >
-        Next
-      </button>
+        <div
+          class="btn-group-spaced"
+          role="group"
+        >
+          <button
+            class="button-root wide btn btn-secondary"
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

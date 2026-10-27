@@ -13,13 +13,17 @@ exports[`ConnectDXPModal renders 1`] = `
       <div
         class="modal-header"
       >
+        <h1
+          class="modal-title"
+          tabindex="-1"
+        />
         <button
           aria-label="Close"
-          class="button-root close btn btn-secondary"
+          class="close btn btn-unstyled"
           type="button"
         >
           <svg
-            class="lexicon-icon lexicon-icon-times icon-root"
+            class="lexicon-icon lexicon-icon-times"
             role="presentation"
           >
             <use
@@ -54,7 +58,7 @@ exports[`ConnectDXPModal renders 1`] = `
           class="text-center mb-4"
         >
           <span
-            class="text-10 font-weight-bold"
+            class="text-6 font-weight-bold"
           >
             Connect Your Liferay DXP
           </span>
@@ -105,7 +109,7 @@ exports[`ConnectDXPModal renders 1`] = `
           class="mt-1"
         >
           <span
-            class="text-3 text-secondary"
+            class="text-4 text-secondary"
           >
             <a
               class=""
@@ -204,19 +208,28 @@ exports[`ConnectDXPModal renders 1`] = `
       <div
         class="modal-footer"
       >
-        <div>
-          <button
-            class="button-root btn btn-secondary"
-            type="button"
+        <div
+          class="modal-item-last"
+        >
+          <div
+            class="btn-group-spaced"
+            role="group"
           >
-            Cancel
-          </button>
-          <a
-            class="button-root ml-2 btn btn-primary"
-            href="/workspace/123/settings/data-source"
-          >
-            Done
-          </a>
+            <div>
+              <button
+                class="button-root btn btn-secondary"
+                type="button"
+              >
+                Cancel
+              </button>
+              <a
+                class="button-root ml-2 btn btn-primary"
+                href="/workspace/123/settings/data-source"
+              >
+                Done
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
