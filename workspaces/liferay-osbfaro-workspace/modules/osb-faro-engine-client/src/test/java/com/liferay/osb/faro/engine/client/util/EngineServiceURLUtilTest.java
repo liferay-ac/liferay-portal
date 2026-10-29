@@ -42,12 +42,11 @@ public class EngineServiceURLUtilTest {
 					return;
 				}
 
-				byte[] bytes = String.format(
+				String json = String.format(
 					"{\"environment\": {\"EXTERNAL_URL\": \"%s\"}}",
-					_EXTERNAL_URL
-				).getBytes(
-					StandardCharsets.UTF_8
-				);
+					_EXTERNAL_URL);
+
+				byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
 
 				httpExchange.sendResponseHeaders(200, bytes.length);
 

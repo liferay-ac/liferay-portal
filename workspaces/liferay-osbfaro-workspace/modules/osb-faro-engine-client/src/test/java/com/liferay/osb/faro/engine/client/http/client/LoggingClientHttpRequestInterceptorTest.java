@@ -43,7 +43,6 @@ public class LoggingClientHttpRequestInterceptorTest {
 	public void testInterceptWithDebugEnabled() throws Exception {
 		ClientHttpRequestExecution clientHttpRequestExecution = Mockito.mock(
 			ClientHttpRequestExecution.class);
-
 		ClientHttpResponse clientHttpResponse = Mockito.mock(
 			ClientHttpResponse.class);
 
