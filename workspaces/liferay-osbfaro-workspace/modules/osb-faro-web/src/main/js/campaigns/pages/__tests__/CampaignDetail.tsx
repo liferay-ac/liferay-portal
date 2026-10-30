@@ -128,6 +128,27 @@ describe('CampaignDetail', () => {
 		);
 	});
 
+	it('should head the body with Details, then Membership above its card', () => {
+		const {container, getByTestId, getByText} = renderCampaignDetail();
+
+		const details = getByText('DETAILS');
+		const membership = getByText('MEMBERSHIP');
+
+		expect(
+			details.compareDocumentPosition(membership) &
+				Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+		expect(
+			membership.compareDocumentPosition(
+				getByTestId('memberships-card')
+			) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+		expect(
+			container.querySelector('.lexicon-icon-info-circle')
+		).toBeTruthy();
+		expect(container.querySelector('.lexicon-icon-users')).toBeTruthy();
+	});
+
 	it('should render no name while the campaign is still in flight', () => {
 		const {queryByText} = renderCampaignDetail();
 
