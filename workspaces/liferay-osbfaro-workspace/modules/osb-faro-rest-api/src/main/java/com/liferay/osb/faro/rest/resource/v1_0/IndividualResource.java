@@ -144,4 +144,4 @@ public interface IndividualResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-187450540
+// LIFERAY-REST-BUILDER-HASH:-2058797308
