@@ -40,13 +40,14 @@ const LifecycleRowActions: React.FC<ILifecycleRowActionsProps> = ({
 	onShowDetails,
 	onView,
 }) => {
-	const {actions, manageNotificationsModal} = useLifecycleActions({
-		lifecycle,
-		onDefaultChange,
-		onDelete,
-		onShowDetails,
-		onView,
-	});
+	const {actions, deleteModal, manageNotificationsModal} =
+		useLifecycleActions({
+			lifecycle,
+			onDefaultChange,
+			onDelete,
+			onShowDetails,
+			onView,
+		});
 
 	return (
 		<>
@@ -59,6 +60,8 @@ const LifecycleRowActions: React.FC<ILifecycleRowActionsProps> = ({
 					]) as string
 				}
 			/>
+
+			{deleteModal}
 
 			{manageNotificationsModal}
 		</>
