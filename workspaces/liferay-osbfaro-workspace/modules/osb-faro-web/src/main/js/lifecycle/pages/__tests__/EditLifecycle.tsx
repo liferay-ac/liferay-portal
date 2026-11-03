@@ -35,6 +35,7 @@ jest.mock('shared/hooks/useCurrentUser', () => ({
 }));
 
 jest.mock('shared/actions/alerts', () => ({
+	...jest.requireActual('shared/actions/alerts'),
 	addAlert: jest.fn((alert) => alert),
 }));
 
