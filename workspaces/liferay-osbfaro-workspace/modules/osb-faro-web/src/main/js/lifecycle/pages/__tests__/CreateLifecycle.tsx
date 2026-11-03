@@ -769,7 +769,9 @@ describe('CreateLifecycle', () => {
 
 		expect(mockPush).not.toHaveBeenCalled();
 		expect(mockReplace).not.toHaveBeenCalled();
-		expect(screen.getByLabelText(/^name/i)).toHaveValue('My Lifecycle');
+		expect(
+			screen.getByRole('button', {name: /create lifecycle/i})
+		).toBeInTheDocument();
 	});
 
 	describe('when the name is already used in the channel', () => {
@@ -777,7 +779,13 @@ describe('CreateLifecycle', () => {
 			mockedCreateStageConfig.mockReturnValue(buildStage(true));
 
 			(API.lifecycle.fetchLifecyclesPage as jest.Mock).mockResolvedValue({
-				items: [{id: '5', name: '  my LIFECYCLE '}],
+				items: [
+					{
+						externalReferenceCode: 'erc-5',
+						id: '5',
+						name: '  my LIFECYCLE ',
+					},
+				],
 			});
 		});
 
