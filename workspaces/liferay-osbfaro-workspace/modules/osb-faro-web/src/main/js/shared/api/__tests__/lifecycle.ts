@@ -268,10 +268,27 @@ describe('Lifecycle API', () => {
 				{id: '9', name: 'Partner Lifecycle'},
 			];
 
+			const toPage = (items: unknown[]) => ({
+				items,
+				lastPage: 1,
+				page: 1,
+				pageSize: 20,
+				totalCount: items.length,
+			});
+
 			beforeEach(() => {
 				featureFlags.ENABLE_LIFECYCLE_DELETE_MOCK_DATA = true;
 
-				(sendRequest as jest.Mock).mockResolvedValue(lifecycles);
+				(sendRequest as jest.Mock).mockImplementation(
+					({path}: {path: string}) =>
+						Promise.resolve(
+							path.endsWith('/account-lifecycle')
+								? toPage(lifecycles)
+								: lifecycles.find(({id}) =>
+										path.endsWith(`/${id}`)
+									)
+						)
+				);
 			});
 
 			afterEach(() => (sendRequest as jest.Mock).mockReset());
@@ -340,7 +357,7 @@ describe('Lifecycle API', () => {
 						({path}: {path: string}) =>
 							Promise.resolve(
 								path.endsWith('/account-lifecycle')
-									? withDefault
+									? toPage(withDefault)
 									: withDefault.find(({id}) =>
 											path.endsWith(`/${id}`)
 										)
