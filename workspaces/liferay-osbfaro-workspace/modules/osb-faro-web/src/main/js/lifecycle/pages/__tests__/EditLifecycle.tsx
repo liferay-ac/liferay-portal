@@ -110,9 +110,11 @@ const mockCatalog =
 
 const renderPage = () =>
 	render(
-		<MemoryRouter>
-			<EditLifecycle />
-		</MemoryRouter>
+		<Provider store={mockStore()}>
+			<MemoryRouter>
+				<EditLifecycle />
+			</MemoryRouter>
+		</Provider>
 	);
 
 const lifecycleURL = toRoute(Routes.LIFECYCLE_DASHBOARD, {
