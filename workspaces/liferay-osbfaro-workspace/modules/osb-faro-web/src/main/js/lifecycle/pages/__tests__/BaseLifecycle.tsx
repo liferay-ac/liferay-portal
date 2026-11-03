@@ -1,7 +1,6 @@
 import * as API from 'shared/api';
 import BaseLifecycle from '../BaseLifecycle';
 import mockStore from 'test/mock-store';
-import ModalRenderer from 'shared/components/ModalRenderer';
 import React from 'react';
 import URLConstants from 'shared/util/url-constants';
 import {ChannelContext} from 'shared/context/channel';
@@ -199,8 +198,6 @@ const LocationProbe = () => (
 const renderPage = (initialEntries = ['/workspace/23/123/lifecycle/erc-1']) =>
 	render(
 		<Provider store={mockStore()}>
-			<ModalRenderer />
-
 			<ChannelContext.Provider value={mockChannelContext() as any}>
 				<MemoryRouter initialEntries={initialEntries}>
 					<BaseLifecycle />
@@ -768,11 +765,12 @@ describe('BaseLifecycle', () => {
 	});
 
 	describe('the Delete action', () => {
-		const confirmDelete = () =>
+		const confirmDelete = async () =>
 			fireEvent.click(
-				within(screen.getByRole('dialog')).getByRole('button', {
-					name: /^delete$/i,
-				})
+				await within(await screen.findByRole('dialog')).findByRole(
+					'button',
+					{name: /^delete$/i}
+				)
 			);
 
 		it('shows on the default lifecycle', () => {
@@ -824,7 +822,7 @@ describe('BaseLifecycle', () => {
 
 			fireEvent.click(screen.getByRole('menuitem', {name: /^delete$/i}));
 
-			confirmDelete();
+			await confirmDelete();
 
 			expect(API.lifecycle.deleteLifecycle).toHaveBeenCalledWith({
 				channelId: '123',
@@ -1076,9 +1074,10 @@ describe('BaseLifecycle', () => {
 			fireEvent.click(screen.getByRole('menuitem', {name: /^delete$/i}));
 
 			fireEvent.click(
-				within(screen.getByRole('dialog')).getByRole('button', {
-					name: /^delete$/i,
-				})
+				await within(await screen.findByRole('dialog')).findByRole(
+					'button',
+					{name: /^delete$/i}
+				)
 			);
 
 			await waitFor(() => expect(lastRefreshCount()).toBe(1));
@@ -1117,9 +1116,10 @@ describe('BaseLifecycle', () => {
 			fireEvent.click(screen.getByRole('menuitem', {name: /^delete$/i}));
 
 			fireEvent.click(
-				within(screen.getByRole('dialog')).getByRole('button', {
-					name: /^delete$/i,
-				})
+				await within(await screen.findByRole('dialog')).findByRole(
+					'button',
+					{name: /^delete$/i}
+				)
 			);
 
 			await waitFor(() =>
