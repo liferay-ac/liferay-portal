@@ -372,7 +372,7 @@ components:
                     type: string
                 accounts:
                     description:
-                        "Accounts this individual is associated with. Only returned by `getWorkspaceGroupIndividual`; null in list responses."
+                        "Accounts this individual is associated with. Only returned by `getWorkspaceGroupIndividual`; null in list responses. Each entry carries the account's `id`, `accountName`, `accountType`, `annualRevenue`, `country`, `industry`, `lastActivityDate`, and `numberOfEmployees`; use `getWorkspaceGroupAccount` with the `id` for the rest."
                     items:
                         $ref: "#/components/schemas/Account"
                     readOnly: true
