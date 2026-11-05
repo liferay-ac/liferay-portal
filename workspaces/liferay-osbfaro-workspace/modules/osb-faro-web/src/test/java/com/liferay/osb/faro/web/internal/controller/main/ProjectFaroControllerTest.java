@@ -342,6 +342,12 @@ public class ProjectFaroControllerTest {
 			new Date()
 		);
 
+		Mockito.when(
+			faroProject.getState()
+		).thenReturn(
+			FaroProjectConstants.STATE_UNAVAILABLE
+		);
+
 		OSBOfferingEntry osbOfferingEntry = new OSBOfferingEntry();
 
 		osbOfferingEntry.setProductEntryId(
@@ -393,6 +399,7 @@ public class ProjectFaroControllerTest {
 			ProductConstants.getProductName(
 				ProductConstants.PRODUCT_ENTRY_ID_ENTERPRISE),
 			projectUsageMetricDisplay.getProductName());
+		Assert.assertTrue(projectUsageMetricDisplay.isOffline());
 	}
 
 	@Test
