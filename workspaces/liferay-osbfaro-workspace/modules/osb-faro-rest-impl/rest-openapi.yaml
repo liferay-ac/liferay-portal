@@ -2073,7 +2073,7 @@ paths:
                         type: string
                 -   in: query
                     description:
-                        "Free-text keyword filter on the search terms. Empty or null returns all search terms."
+                        "Free text keyword filter on the search terms. Empty or null returns all search terms."
                     name: search
                     schema:
                         type: string

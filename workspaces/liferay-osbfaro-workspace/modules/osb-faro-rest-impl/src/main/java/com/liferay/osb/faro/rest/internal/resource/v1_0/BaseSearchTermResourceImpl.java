@@ -96,7 +96,7 @@ public abstract class BaseSearchTermResourceImpl implements SearchTermResource {
 				name = "rangeStart"
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
-				description = "Free-text keyword filter on the search terms. Empty or null returns all search terms.",
+				description = "Free text keyword filter on the search terms. Empty or null returns all search terms.",
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
 				name = "search"
 			),
@@ -594,4 +594,4 @@ public abstract class BaseSearchTermResourceImpl implements SearchTermResource {
 		LogFactoryUtil.getLog(BaseSearchTermResourceImpl.class);
 
 }
-// LIFERAY-REST-BUILDER-HASH:-1532283237
+// LIFERAY-REST-BUILDER-HASH:-779051960
