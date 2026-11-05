@@ -1685,6 +1685,9 @@ public class ProjectFaroController extends BaseFaroController {
 			offline = true;
 		}
 
+		FaroSubscriptionDisplay faroSubscriptionDisplay = JSONUtil.readValue(
+			faroProject.getSubscription(), FaroSubscriptionDisplay.class);
+
 		return new ProjectUsageMetricDisplay(
 			faroProject.getCorpProjectName(), faroProject.getCorpProjectUuid(),
 			DateUtil.formatDate(
@@ -1692,7 +1695,9 @@ public class ProjectFaroController extends BaseFaroController {
 				DateUtil.PATTERN_DATE),
 			DateUtil.formatDate(
 				faroProject.getLastAnniversaryDate(), DateUtil.PATTERN_DATE),
-			offline, faroProject.getSalesforceAccountId(), usageMetrics,
+			offline, faroSubscriptionDisplay.getProductEntryId(),
+			faroSubscriptionDisplay.getName(),
+			faroProject.getSalesforceAccountId(), usageMetrics,
 			faroProject.getWeDeployKey());
 	}
 
