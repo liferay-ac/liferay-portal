@@ -110,7 +110,7 @@ public class Individual implements Serializable {
 	private Supplier<String> _accountNameSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "Accounts this individual is associated with. Only returned by `getWorkspaceGroupIndividual`; null in list responses."
+		description = "Accounts this individual is associated with. Only returned by `getWorkspaceGroupIndividual`; null in list responses. Each entry carries the account's `id`, `accountName`, `accountType`, `annualRevenue`, `country`, `industry`, `lastActivityDate`, and `numberOfEmployees`; use `getWorkspaceGroupAccount` with the `id` for the rest."
 	)
 	@Valid
 	public Account[] getAccounts() {
@@ -147,7 +147,7 @@ public class Individual implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "Accounts this individual is associated with. Only returned by `getWorkspaceGroupIndividual`; null in list responses."
+		description = "Accounts this individual is associated with. Only returned by `getWorkspaceGroupIndividual`; null in list responses. Each entry carries the account's `id`, `accountName`, `accountType`, `annualRevenue`, `country`, `industry`, `lastActivityDate`, and `numberOfEmployees`; use `getWorkspaceGroupAccount` with the `id` for the rest."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Account[] accounts;
@@ -1290,4 +1290,4 @@ public class Individual implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
-// LIFERAY-REST-BUILDER-HASH:1101949795
+// LIFERAY-REST-BUILDER-HASH:67951351
