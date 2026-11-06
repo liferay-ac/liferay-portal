@@ -5,39 +5,46 @@
 
 package com.liferay.osb.faro.engine.client.model;
 
-import java.util.List;
-
 /**
  * @author Drew Hoffer
  */
 public class CampaignAcquisitionProperty {
 
+	public String getFieldName() {
+		return _fieldName;
+	}
+
 	public String getName() {
 		return _name;
 	}
 
-	public List<String> getValues() {
-		return _values;
+	public Boolean getStandard() {
+		return _standard;
 	}
 
-	public boolean isCustom() {
-		return _custom;
+	public String getValue() {
+		return _value;
 	}
 
-	public void setCustom(boolean custom) {
-		_custom = custom;
+	public void setFieldName(String fieldName) {
+		_fieldName = fieldName;
 	}
 
 	public void setName(String name) {
 		_name = name;
 	}
 
-	public void setValues(List<String> values) {
-		_values = values;
+	public void setStandard(Boolean standard) {
+		_standard = standard;
 	}
 
-	private boolean _custom;
+	public void setValue(String value) {
+		_value = value;
+	}
+
+	private String _fieldName;
 	private String _name;
-	private List<String> _values;
+	private Boolean _standard;
+	private String _value;
 
 }
