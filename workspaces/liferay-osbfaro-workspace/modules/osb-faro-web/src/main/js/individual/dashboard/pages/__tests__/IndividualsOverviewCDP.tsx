@@ -8,6 +8,7 @@ import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
 import {useQuery} from '@apollo/client';
 import {useRequest} from 'shared/hooks/useRequest';
+import {CampaignFilterProvider} from 'shared/context/campaignFilter';
 
 jest.unmock('react-dom');
 
@@ -81,7 +82,9 @@ const renderIndividualsOverviewCDP = () =>
 	render(
 		<Provider store={mockStore()}>
 			<BrowserRouter>
-				<IndividualsOverviewCDP />
+				<CampaignFilterProvider>
+					<IndividualsOverviewCDP />
+				</CampaignFilterProvider>
 			</BrowserRouter>
 		</Provider>
 	);

@@ -8,6 +8,7 @@ import {MemoryRouter, useNavigate} from 'react-router-dom';
 import {Provider} from 'react-redux';
 import {useRequest} from 'shared/hooks/useRequest';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
+import {CampaignFilterProvider} from 'shared/context/campaignFilter';
 
 jest.unmock('react-dom');
 
@@ -148,7 +149,9 @@ const renderList = ({queryString = ''}: {queryString?: string} = {}) =>
 						`/workspace/23/123/accounts${queryString}`
 					)}
 				>
-					<List channelId="123" groupId="23" />
+					<CampaignFilterProvider>
+						<List channelId="123" groupId="23" />
+					</CampaignFilterProvider>
 				</MemoryRouter>
 			</ChannelContext.Provider>
 		</Provider>
