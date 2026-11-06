@@ -24,6 +24,8 @@ import {useRequest} from 'shared/hooks/useRequest';
 interface IAccountsDataSetProps {
 	accountLifecycleId?: string;
 	apiURL: string;
+	campaignId?: string;
+	campaignName?: string;
 	channelId: string;
 	countryFilter?: string;
 	dataSetId?: string;
@@ -34,6 +36,7 @@ interface IAccountsDataSetProps {
 	rangeKeyFilter?: RangeKeyTimeRanges;
 	segmentFilter?: string;
 	segmentName?: string;
+	showCampaignFilter?: boolean;
 	stageSelectionNonce?: number;
 }
 
@@ -55,6 +58,8 @@ export const buildSelectionPreloadedData = (value?: string, label?: string) =>
 const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 	accountLifecycleId,
 	apiURL,
+	campaignId,
+	campaignName,
 	channelId,
 	countryFilter,
 	dataSetId = 'accounts-list-dataset',
@@ -65,6 +70,7 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 	rangeKeyFilter,
 	segmentFilter,
 	segmentName,
+	showCampaignFilter = false,
 	stageSelectionNonce,
 }) => {
 	const {data: lifecycleStageFieldValues, loading: lifecycleStagesLoading} =
@@ -202,6 +208,23 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 								},
 							]
 						: []),
+					...(showCampaignFilter
+						? [
+								{
+									apiURL: `/o/faro/contacts/${groupId}/campaigns/campaign-names?channelId=${channelId}`,
+									entityFieldType: 'string',
+									id: 'campaignId',
+									itemKey: 'id',
+									itemLabel: 'name',
+									label: Liferay.Language.get('campaign'),
+									preloadedData: buildSelectionPreloadedData(
+										campaignId,
+										campaignName
+									),
+									type: 'selection' as const,
+								},
+							]
+						: []),
 					{
 						apiURL: `/o/faro/contacts/${groupId}/account/fds_field_values?channelId=${channelId}&fieldMappingFieldName=industry`,
 						entityFieldType: 'string',
@@ -242,6 +265,7 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 				]}
 				id={dataSetId}
 				key={[
+					campaignId,
 					countryFilter,
 					industryFilter,
 					lifecycleStageFilter,
