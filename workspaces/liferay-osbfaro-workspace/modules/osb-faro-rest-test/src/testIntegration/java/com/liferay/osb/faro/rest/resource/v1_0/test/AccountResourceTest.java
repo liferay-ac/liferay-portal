@@ -96,20 +96,6 @@ public class AccountResourceTest extends BaseAccountResourceTestCase {
 		super.testGetWorkspaceGroupChannelAccountsPageWithSortString();
 	}
 
-	@Ignore
-	@Override
-	@Test
-	public void testGraphQLGetWorkspaceGroupAccount() throws Exception {
-		super.testGraphQLGetWorkspaceGroupAccount();
-	}
-
-	@Ignore
-	@Override
-	@Test
-	public void testGraphQLGetWorkspaceGroupAccountNotFound() throws Exception {
-		super.testGraphQLGetWorkspaceGroupAccountNotFound();
-	}
-
 	private AccountLifecycle _addAccountLifecycle(
 		String accountLifecycleId,
 		Map<String, AccountLifecycle> accountLifecycles) {
@@ -234,7 +220,7 @@ public class AccountResourceTest extends BaseAccountResourceTestCase {
 		catch (BadRequestException badRequestException) {
 			Assert.assertEquals(
 				"No account lifecycle stage was found with the name " +
-					"\"PIPELINE\"",
+					"\"PIPELINE\". Valid stages: At Risk.",
 				badRequestException.getMessage());
 		}
 	}
