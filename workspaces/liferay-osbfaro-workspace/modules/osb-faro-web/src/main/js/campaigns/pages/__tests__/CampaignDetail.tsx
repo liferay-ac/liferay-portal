@@ -138,7 +138,7 @@ describe('CampaignDetail', () => {
 		);
 	});
 
-	it('should place the campaign UTM parameters under Details', () => {
+	it('should place the campaign UTM parameters under Details, below the memberships', () => {
 		const {getByTestId, getByText} = renderCampaignDetail();
 
 		const utmParameters = getByTestId('campaign-utm-parameters');
@@ -149,25 +149,26 @@ describe('CampaignDetail', () => {
 				Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 		expect(
-			utmParameters.compareDocumentPosition(getByText('MEMBERSHIP')) &
-				Node.DOCUMENT_POSITION_FOLLOWING
+			getByTestId('memberships-card').compareDocumentPosition(
+				getByText('DETAILS')
+			) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 	});
 
-	it('should head the body with Details, then Membership above its card', () => {
+	it('should head the body with Membership above its card, then Details', () => {
 		const {container, getByTestId, getByText} = renderCampaignDetail();
 
 		const details = getByText('DETAILS');
 		const membership = getByText('MEMBERSHIP');
+		const membershipsCard = getByTestId('memberships-card');
 
 		expect(
-			details.compareDocumentPosition(membership) &
+			membership.compareDocumentPosition(membershipsCard) &
 				Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 		expect(
-			membership.compareDocumentPosition(
-				getByTestId('memberships-card')
-			) & Node.DOCUMENT_POSITION_FOLLOWING
+			membershipsCard.compareDocumentPosition(details) &
+				Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 		expect(
 			container.querySelector('.lexicon-icon-info-circle')
