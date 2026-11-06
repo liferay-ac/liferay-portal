@@ -78,10 +78,9 @@ public class UpdateFaroProjectSubscriptionsMessageListenerTest {
 		_receive(faroProject1, faroProject2);
 
 		Mockito.verify(
-			_faroProjectLocalService
+			_faroProjectLocalService, Mockito.never()
 		).updateState(
-			faroProject1.getFaroProjectId(),
-			FaroProjectConstants.STATE_UNAVAILABLE
+			Mockito.eq(faroProject1.getFaroProjectId()), Mockito.anyString()
 		);
 
 		Mockito.verify(
@@ -175,6 +174,42 @@ public class UpdateFaroProjectSubscriptionsMessageListenerTest {
 			Mockito.eq(projectUsageMetric.getPageViewsCount()),
 			Mockito.eq(projectUsageMetric.getReservationSlotMs()),
 			Mockito.any(Date.class)
+		);
+	}
+
+	@Test
+	public void testDoReceiveWithUpdateSubscriptionException()
+		throws Exception {
+
+		FaroProject faroProject1 = _mockFaroProject(null);
+
+		_mockOSBAccountEntry(faroProject1, null);
+
+		Mockito.when(
+			_faroProjectLocalService.updateSubscription(
+				Mockito.eq(faroProject1.getFaroProjectId()),
+				Mockito.anyString())
+		).thenThrow(
+			new RuntimeException()
+		);
+
+		FaroProject faroProject2 = _mockFaroProject(null);
+
+		_mockOSBAccountEntry(faroProject2, null);
+
+		_receive(faroProject1, faroProject2);
+
+		Mockito.verify(
+			_faroProjectLocalService
+		).updateState(
+			faroProject1.getFaroProjectId(),
+			FaroProjectConstants.STATE_UNAVAILABLE
+		);
+
+		Mockito.verify(
+			_faroProjectLocalService
+		).updateSubscription(
+			Mockito.eq(faroProject2.getFaroProjectId()), Mockito.anyString()
 		);
 	}
 
