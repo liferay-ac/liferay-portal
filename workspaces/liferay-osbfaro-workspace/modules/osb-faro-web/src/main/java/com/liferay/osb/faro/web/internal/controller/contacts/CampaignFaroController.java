@@ -7,6 +7,7 @@ package com.liferay.osb.faro.web.internal.controller.contacts;
 
 import com.liferay.osb.faro.engine.client.model.Account;
 import com.liferay.osb.faro.engine.client.model.Campaign;
+import com.liferay.osb.faro.engine.client.model.CampaignAcquisitionProperty;
 import com.liferay.osb.faro.engine.client.model.CampaignMetric;
 import com.liferay.osb.faro.engine.client.model.Individual;
 import com.liferay.osb.faro.web.internal.controller.BaseFaroController;
@@ -65,6 +66,22 @@ public class CampaignFaroController extends BaseFaroController {
 				search, rangeEnd, rangeKey, rangeStart, sortString, page,
 				pageSize),
 			AccountDisplay::new, page, pageSize);
+	}
+
+	@GET
+	@Path("/{id}/acquisition-properties")
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public List<CampaignAcquisitionProperty> getCampaignAcquisitionProperties(
+			@PathParam("groupId") long groupId, @PathParam("id") String id,
+			@QueryParam("channelId") long channelId,
+			@QueryParam("rangeEnd") String rangeEnd,
+			@QueryParam("rangeKey") Integer rangeKey,
+			@QueryParam("rangeStart") String rangeStart)
+		throws Exception {
+
+		return contactsEngineClient.getCampaignAcquisitionProperties(
+			faroProjectLocalService.getFaroProjectByGroupId(groupId), channelId,
+			id, rangeEnd, rangeKey, rangeStart);
 	}
 
 	@GET

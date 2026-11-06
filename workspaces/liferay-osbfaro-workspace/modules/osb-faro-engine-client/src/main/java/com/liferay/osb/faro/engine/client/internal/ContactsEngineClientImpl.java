@@ -42,6 +42,7 @@ import com.liferay.osb.faro.engine.client.model.AssetSummaryVocabulary;
 import com.liferay.osb.faro.engine.client.model.Author;
 import com.liferay.osb.faro.engine.client.model.BlockedKeyword;
 import com.liferay.osb.faro.engine.client.model.Campaign;
+import com.liferay.osb.faro.engine.client.model.CampaignAcquisitionProperty;
 import com.liferay.osb.faro.engine.client.model.CampaignMetric;
 import com.liferay.osb.faro.engine.client.model.CatalogField;
 import com.liferay.osb.faro.engine.client.model.Channel;
@@ -1846,6 +1847,36 @@ public class ContactsEngineClientImpl
 			uriVariables);
 
 		return pagedModel.getResults();
+	}
+
+	@Override
+	public List<CampaignAcquisitionProperty> getCampaignAcquisitionProperties(
+			FaroProject faroProject, long channelId, String id, String rangeEnd,
+			Integer rangeKey, String rangeStart)
+		throws FaroEngineClientException {
+
+		Map<String, Object> uriVariables = getUriVariables(faroProject, id);
+
+		uriVariables.put("channelId", channelId);
+
+		if (Validator.isNotNull(rangeEnd)) {
+			uriVariables.put("rangeEnd", rangeEnd);
+		}
+
+		if (rangeKey != null) {
+			uriVariables.put("rangeKey", rangeKey);
+		}
+
+		if (Validator.isNotNull(rangeStart)) {
+			uriVariables.put("rangeStart", rangeStart);
+		}
+
+		return get(
+			faroProject, Rels.CAMPAIGN_ACQUISITION_PROPERTIES,
+			new ParameterizedTypeReference
+				<List<CampaignAcquisitionProperty>>() {
+			},
+			uriVariables);
 	}
 
 	@Override
