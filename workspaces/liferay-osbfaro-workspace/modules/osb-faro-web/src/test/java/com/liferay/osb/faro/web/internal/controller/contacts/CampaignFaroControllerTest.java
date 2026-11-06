@@ -8,6 +8,7 @@ package com.liferay.osb.faro.web.internal.controller.contacts;
 import com.liferay.osb.faro.engine.client.ContactsEngineClient;
 import com.liferay.osb.faro.engine.client.model.Account;
 import com.liferay.osb.faro.engine.client.model.Campaign;
+import com.liferay.osb.faro.engine.client.model.CampaignAcquisitionProperty;
 import com.liferay.osb.faro.engine.client.model.CampaignMetric;
 import com.liferay.osb.faro.engine.client.model.Individual;
 import com.liferay.osb.faro.engine.client.model.Results;
@@ -107,6 +108,37 @@ public class CampaignFaroControllerTest {
 			_faroProject, accountIds, accountLifecycleId, channelId,
 			filterString, id, search, rangeEnd, rangeKey, rangeStart,
 			sortString, page, pageSize
+		);
+	}
+
+	@Test
+	public void testGetCampaignAcquisitionProperties() throws Exception {
+		List<CampaignAcquisitionProperty> campaignAcquisitionProperties =
+			Collections.singletonList(new CampaignAcquisitionProperty());
+		long channelId = RandomTestUtil.randomLong();
+		String id = RandomTestUtil.randomString();
+		String rangeEnd = RandomTestUtil.randomString();
+		Integer rangeKey = RandomTestUtil.randomInt();
+		String rangeStart = RandomTestUtil.randomString();
+
+		Mockito.when(
+			_contactsEngineClient.getCampaignAcquisitionProperties(
+				_faroProject, channelId, id, rangeEnd, rangeKey, rangeStart)
+		).thenReturn(
+			campaignAcquisitionProperties
+		);
+
+		long groupId = RandomTestUtil.randomLong();
+
+		Assert.assertSame(
+			campaignAcquisitionProperties,
+			_campaignFaroController.getCampaignAcquisitionProperties(
+				groupId, id, channelId, rangeEnd, rangeKey, rangeStart));
+
+		Mockito.verify(
+			_faroProjectLocalService
+		).getFaroProjectByGroupId(
+			groupId
 		);
 	}
 

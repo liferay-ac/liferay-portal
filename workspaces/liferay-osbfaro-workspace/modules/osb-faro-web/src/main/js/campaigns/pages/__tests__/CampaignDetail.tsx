@@ -35,6 +35,16 @@ jest.mock('../../components/MembershipsCard', () => ({
 	default: () => <div data-testid="memberships-card" />,
 }));
 
+jest.mock('../../components/CampaignUtmParameters', () => ({
+	__esModule: true,
+	default: (props: any) => (
+		<div
+			data-campaign-id={props.campaignId}
+			data-testid="campaign-utm-parameters"
+		/>
+	),
+}));
+
 const fetchCampaign = API.campaigns.fetchCampaign as jest.Mock;
 
 const renderCampaignDetail = (initialEntry = '/') =>
@@ -126,6 +136,44 @@ describe('CampaignDetail', () => {
 		expect(hrefs).toContain(
 			'/workspace/23/123/campaigns?rangeEnd=2026-10-20&rangeKey=CUSTOM&rangeStart=2026-10-01'
 		);
+	});
+
+	it('should place the campaign UTM parameters under Details, below the memberships', () => {
+		const {getByTestId, getByText} = renderCampaignDetail();
+
+		const utmParameters = getByTestId('campaign-utm-parameters');
+
+		expect(utmParameters).toHaveAttribute('data-campaign-id', '7');
+		expect(
+			getByText('DETAILS').compareDocumentPosition(utmParameters) &
+				Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+		expect(
+			getByTestId('memberships-card').compareDocumentPosition(
+				getByText('DETAILS')
+			) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+	});
+
+	it('should head the body with Membership above its card, then Details', () => {
+		const {container, getByTestId, getByText} = renderCampaignDetail();
+
+		const details = getByText('DETAILS');
+		const membership = getByText('MEMBERSHIP');
+		const membershipsCard = getByTestId('memberships-card');
+
+		expect(
+			membership.compareDocumentPosition(membershipsCard) &
+				Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+		expect(
+			membershipsCard.compareDocumentPosition(details) &
+				Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+		expect(
+			container.querySelector('.lexicon-icon-info-circle')
+		).toBeTruthy();
+		expect(container.querySelector('.lexicon-icon-users')).toBeTruthy();
 	});
 
 	it('should render no name while the campaign is still in flight', () => {
