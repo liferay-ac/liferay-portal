@@ -1,6 +1,7 @@
 import * as API from 'shared/api';
 import * as breadcrumbs from 'shared/util/breadcrumbs';
 import BasePage from 'shared/components/base-page';
+import CampaignUtmParameters from '../components/CampaignUtmParameters';
 import MembershipsCard from '../components/MembershipsCard';
 import React, {useContext} from 'react';
 import {ChannelContext} from 'shared/context/channel';
@@ -91,6 +92,12 @@ const CampaignDetail: React.FC = () => {
 				<SectionHeader
 					icon="info-circle"
 					title={Liferay.Language.get('details')}
+				/>
+
+				<CampaignUtmParameters
+					campaignId={id!}
+					channelId={channelId!}
+					groupId={groupId!}
 				/>
 
 				<SectionHeader

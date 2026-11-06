@@ -18,6 +18,16 @@ export interface ICampaign {
 	status: string;
 }
 
+/**
+ * One UTM parameter seen on the campaign's tagged website sessions. `custom`
+ * marks any `utm_*` parameter beyond the five standard ones.
+ */
+export interface ICampaignAcquisitionProperty {
+	custom: boolean;
+	name: string;
+	values: string[];
+}
+
 export enum CampaignMetricType {
 	AccountsTouched = 'accountsTouched',
 	CampaignCount = 'campaignCount',
@@ -44,6 +54,32 @@ export async function fetchCampaign({
 		data: {channelId},
 		method: 'GET',
 		path: `contacts/${groupId}/campaigns/${id}`,
+	});
+}
+
+interface IFetchCampaignAcquisitionProperties {
+	channelId: string;
+	groupId: string;
+	id: string;
+	rangeQueryValues?: {[key: string]: any};
+}
+
+/**
+ * Without range values the API answers for all time, unlike the campaign's
+ * other endpoints, so the selected range is always passed through.
+ */
+export async function fetchCampaignAcquisitionProperties({
+	channelId,
+	groupId,
+	id,
+	rangeQueryValues,
+}: IFetchCampaignAcquisitionProperties): Promise<
+	ICampaignAcquisitionProperty[]
+> {
+	return sendRequest({
+		data: {channelId, ...rangeQueryValues},
+		method: 'GET',
+		path: `contacts/${groupId}/campaigns/${id}/acquisition-properties`,
 	});
 }
 

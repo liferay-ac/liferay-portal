@@ -35,6 +35,16 @@ jest.mock('../../components/MembershipsCard', () => ({
 	default: () => <div data-testid="memberships-card" />,
 }));
 
+jest.mock('../../components/CampaignUtmParameters', () => ({
+	__esModule: true,
+	default: (props: any) => (
+		<div
+			data-campaign-id={props.campaignId}
+			data-testid="campaign-utm-parameters"
+		/>
+	),
+}));
+
 const fetchCampaign = API.campaigns.fetchCampaign as jest.Mock;
 
 const renderCampaignDetail = (initialEntry = '/') =>
@@ -126,6 +136,22 @@ describe('CampaignDetail', () => {
 		expect(hrefs).toContain(
 			'/workspace/23/123/campaigns?rangeEnd=2026-10-20&rangeKey=CUSTOM&rangeStart=2026-10-01'
 		);
+	});
+
+	it('should place the campaign UTM parameters under Details', () => {
+		const {getByTestId, getByText} = renderCampaignDetail();
+
+		const utmParameters = getByTestId('campaign-utm-parameters');
+
+		expect(utmParameters).toHaveAttribute('data-campaign-id', '7');
+		expect(
+			getByText('DETAILS').compareDocumentPosition(utmParameters) &
+				Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+		expect(
+			utmParameters.compareDocumentPosition(getByText('MEMBERSHIP')) &
+				Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
 	});
 
 	it('should head the body with Details, then Membership above its card', () => {

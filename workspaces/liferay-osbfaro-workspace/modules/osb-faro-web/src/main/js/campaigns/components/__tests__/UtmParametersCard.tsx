@@ -79,6 +79,50 @@ describe('UtmParametersCard', () => {
 		expect(getValueCell('utmMedium')).toHaveTextContent(/^-$/);
 	});
 
+	it('should list custom parameters after the five standard ones', () => {
+		const {container} = render(
+			<UtmParametersCard
+				customParameters={[{name: 'utm_region', values: ['emea']}]}
+				utmParameters={UTM_PARAMETERS}
+			/>
+		);
+
+		expand();
+
+		const parameters = Array.from(
+			container.querySelectorAll('tbody tr'),
+			(row) => row.querySelector('th, td')!.textContent
+		);
+
+		expect(parameters).toEqual([
+			'utmSource',
+			'utmMedium',
+			'utmCampaign',
+			'utmContent',
+			'utmTerm',
+			'utm_region',
+		]);
+		expect(
+			within(getValueCell('utm_region')).getByText('emea')
+		).toBeInTheDocument();
+	});
+
+	it('should not render the empty state when only a custom parameter has a value', () => {
+		render(
+			<UtmParametersCard
+				customParameters={[{name: 'utm_region', values: ['emea']}]}
+				utmParameters={{}}
+			/>
+		);
+
+		expand();
+
+		expect(
+			screen.queryByText('No UTM Parameters Found')
+		).not.toBeInTheDocument();
+		expect(getValueCell('utmSource')).toHaveTextContent(/^-$/);
+	});
+
 	it('should render the empty state when no parameter has a value', () => {
 		const {container} = renderCard({utmSource: []});
 

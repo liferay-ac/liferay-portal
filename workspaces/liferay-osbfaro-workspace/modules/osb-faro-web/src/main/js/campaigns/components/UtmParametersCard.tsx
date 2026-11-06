@@ -30,16 +30,33 @@ export const UTM_PARAMETERS: UtmParameter[] = [
 
 const EMPTY_VALUE = '-';
 
+/**
+ * A `utm_*` parameter beyond the five standard ones, which the card lists
+ * after them under the name the URL carried.
+ */
+export interface ICustomUtmParameter {
+	name: string;
+	values: string[];
+}
+
 interface IUtmParametersCardProps {
+	customParameters?: ICustomUtmParameter[];
 	utmParameters: UtmParameters;
 }
 
 const UtmParametersCard: React.FC<IUtmParametersCardProps> = ({
+	customParameters = [],
 	utmParameters,
 }) => {
-	const isEmpty = UTM_PARAMETERS.every(
-		(parameter) => !utmParameters[parameter]?.length
-	);
+	const rows = [
+		...UTM_PARAMETERS.map((parameter) => ({
+			name: parameter as string,
+			values: utmParameters[parameter] ?? [],
+		})),
+		...customParameters,
+	];
+
+	const isEmpty = rows.every(({values}) => !values.length);
 
 	return (
 		<Card>
@@ -81,18 +98,16 @@ const UtmParametersCard: React.FC<IUtmParametersCardProps> = ({
 							</ClayTable.Head>
 
 							<ClayTable.Body>
-								{UTM_PARAMETERS.map((parameter) => {
-									const values = uniq(
-										utmParameters[parameter] ?? []
-									);
+								{rows.map(({name, values: allValues}) => {
+									const values = uniq(allValues);
 
 									return (
-										<ClayTable.Row key={parameter}>
+										<ClayTable.Row key={name}>
 											<ClayTable.Cell
 												className="text-dark"
 												headingCell
 											>
-												{parameter}
+												{name}
 											</ClayTable.Cell>
 
 											<ClayTable.Cell>
