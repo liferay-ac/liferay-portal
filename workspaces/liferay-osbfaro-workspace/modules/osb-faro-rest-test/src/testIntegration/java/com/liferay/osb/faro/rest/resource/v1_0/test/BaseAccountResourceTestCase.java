@@ -173,6 +173,7 @@ public abstract class BaseAccountResourceTestCase {
 
 		account.setAccountName(regex);
 		account.setAccountType(regex);
+		account.setActivityStatus(regex);
 		account.setCountry(regex);
 		account.setId(regex);
 		account.setIndustry(regex);
@@ -187,6 +188,7 @@ public abstract class BaseAccountResourceTestCase {
 
 		Assert.assertEquals(regex, account.getAccountName());
 		Assert.assertEquals(regex, account.getAccountType());
+		Assert.assertEquals(regex, account.getActivityStatus());
 		Assert.assertEquals(regex, account.getCountry());
 		Assert.assertEquals(regex, account.getId());
 		Assert.assertEquals(regex, account.getIndustry());
@@ -777,8 +779,24 @@ public abstract class BaseAccountResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals("activityStatus", additionalAssertFieldName)) {
+				if (account.getActivityStatus() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("annualRevenue", additionalAssertFieldName)) {
 				if (account.getAnnualRevenue() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("calculatedFields", additionalAssertFieldName)) {
+				if (account.getCalculatedFields() == null) {
 					valid = false;
 				}
 
@@ -993,10 +1011,32 @@ public abstract class BaseAccountResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals("activityStatus", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						account1.getActivityStatus(),
+						account2.getActivityStatus())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("annualRevenue", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						account1.getAnnualRevenue(),
 						account2.getAnnualRevenue())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("calculatedFields", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						account1.getCalculatedFields(),
+						account2.getCalculatedFields())) {
 
 					return false;
 				}
@@ -1305,10 +1345,61 @@ public abstract class BaseAccountResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("activityStatus")) {
+			Object object = account.getActivityStatus();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("annualRevenue")) {
 			sb.append(String.valueOf(account.getAnnualRevenue()));
 
 			return sb.toString();
+		}
+
+		if (entityFieldName.equals("calculatedFields")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
 		}
 
 		if (entityFieldName.equals("country")) {
@@ -1686,6 +1777,8 @@ public abstract class BaseAccountResourceTestCase {
 				accountType = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				activitiesCount = RandomTestUtil.randomLong();
+				activityStatus = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				annualRevenue = RandomTestUtil.randomDouble();
 				country = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				dateModified = RandomTestUtil.nextDate();
@@ -1922,4 +2015,4 @@ public abstract class BaseAccountResourceTestCase {
 		_accountResource;
 
 }
-// LIFERAY-REST-BUILDER-HASH:1202683741
+// LIFERAY-REST-BUILDER-HASH:-1172548132
