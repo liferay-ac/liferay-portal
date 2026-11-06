@@ -10,7 +10,13 @@ import WorkspaceGate from 'shared/components/WorkspaceGate';
 import WorkspaceHomeRedirect from 'shared/components/WorkspaceHomeRedirect';
 import {compose} from 'redux';
 import {connect} from 'react-redux';
-import {Route, Routes as RouterRoutes, useParams} from 'react-router-dom';
+import {CampaignFilterProvider} from 'shared/context/campaignFilter';
+import {
+	Outlet,
+	Route,
+	Routes as RouterRoutes,
+	useParams,
+} from 'react-router-dom';
 import {Project} from 'shared/util/records';
 import {RootState} from 'shared/store';
 import {useModalNotifications} from 'shared/hooks/useModalNotifications';
@@ -291,56 +297,76 @@ const WorkspaceLayer = ({groupId}: {groupId: string}) => {
 
 							<Route
 								element={
-									<LDPElement
-										fallback={
-											<BundleRouter
-												data={IndividualProfileRoutes}
-											/>
-										}
-									>
-										<BundleRouter
-											data={IndividualProfileRoutesCDP}
-										/>
-									</LDPElement>
+									<CampaignFilterProvider>
+										<Outlet />
+									</CampaignFilterProvider>
 								}
-								path=":channelId?/contacts/individuals/known-individuals/:id/*"
-							/>
-
-							<Route
-								element={
-									<LDPElement
-										fallback={
+							>
+								<Route
+									element={
+										<LDPElement
+											fallback={
+												<BundleRouter
+													data={
+														IndividualProfileRoutes
+													}
+												/>
+											}
+										>
 											<BundleRouter
-												data={IndividualsDashboard}
+												data={
+													IndividualProfileRoutesCDP
+												}
+											/>
+										</LDPElement>
+									}
+									path=":channelId?/contacts/individuals/known-individuals/:id/*"
+								/>
+
+								<Route
+									element={
+										<LDPElement
+											fallback={
+												<BundleRouter
+													data={IndividualsDashboard}
+													destructured={false}
+												/>
+											}
+										>
+											<BundleRouter
+												data={IndividualsDashboardCDP}
 												destructured={false}
 											/>
-										}
-									>
-										<BundleRouter
-											data={IndividualsDashboardCDP}
-											destructured={false}
-										/>
-									</LDPElement>
-								}
-								path=":channelId?/contacts/individuals/*"
-							/>
+										</LDPElement>
+									}
+									path=":channelId?/contacts/individuals/*"
+								/>
+							</Route>
 
 							<Route element={<LDPLayout />}>
 								<Route
 									element={
-										<BundleRouter data={AccountsList} />
+										<CampaignFilterProvider>
+											<Outlet />
+										</CampaignFilterProvider>
 									}
-									path=":channelId?/contacts/accounts"
-								/>
+								>
+									<Route
+										element={
+											<BundleRouter data={AccountsList} />
+										}
+										path=":channelId?/contacts/accounts"
+									/>
 
-								<Route
-									element={
-										<BundleRouter
-											data={AccountProfileRoutes}
-										/>
-									}
-									path=":channelId?/contacts/accounts/:id/*"
-								/>
+									<Route
+										element={
+											<BundleRouter
+												data={AccountProfileRoutes}
+											/>
+										}
+										path=":channelId?/contacts/accounts/:id/*"
+									/>
+								</Route>
 
 								<Route
 									element={
