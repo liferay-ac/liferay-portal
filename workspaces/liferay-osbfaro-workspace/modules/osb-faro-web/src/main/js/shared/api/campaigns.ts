@@ -19,13 +19,15 @@ export interface ICampaign {
 }
 
 /**
- * One UTM parameter seen on the campaign's tagged website sessions. `custom`
- * marks any `utm_*` parameter beyond the five standard ones.
+ * One value of one UTM parameter seen on the campaign's tagged website
+ * sessions. The API sends one item per value, ordered by name and then by
+ * usage, and `standard` marks the five standard `utm_*` parameters.
  */
 export interface ICampaignAcquisitionProperty {
-	custom: boolean;
+	fieldName: string | null;
 	name: string;
-	values: string[];
+	standard: boolean;
+	value: string;
 }
 
 export enum CampaignMetricType {

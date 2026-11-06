@@ -58,8 +58,18 @@ describe('CampaignUtmParameters', () => {
 
 	it('should render the fetched parameters in the card', async () => {
 		fetchCampaignAcquisitionProperties.mockResolvedValue([
-			{custom: true, name: 'utm_region', values: ['emea']},
-			{custom: false, name: 'utm_source', values: ['google']},
+			{
+				fieldName: null,
+				name: 'utm_region',
+				standard: false,
+				value: 'emea',
+			},
+			{
+				fieldName: null,
+				name: 'utm_source',
+				standard: true,
+				value: 'google',
+			},
 		]);
 
 		renderComponent();
@@ -75,12 +85,20 @@ describe('CampaignUtmParameters', () => {
 });
 
 describe('toCardProps', () => {
-	it('should key the standard parameters in camel case and keep the rest as custom', () => {
+	const property = (name: string, standard: boolean, value: string) => ({
+		fieldName: null,
+		name,
+		standard,
+		value,
+	});
+
+	it('should group the values by name in the order the API sends them', () => {
 		expect(
 			toCardProps([
-				{custom: false, name: 'utm_campaign', values: ['q3']},
-				{custom: true, name: 'utm_region', values: ['emea']},
-				{custom: false, name: 'utm_source', values: ['google', 'bing']},
+				property('utm_campaign', true, 'q3'),
+				property('utm_region', false, 'emea'),
+				property('utm_source', true, 'google'),
+				property('utm_source', true, 'bing'),
 			])
 		).toEqual({
 			customParameters: [{name: 'utm_region', values: ['emea']}],
@@ -88,6 +106,26 @@ describe('toCardProps', () => {
 				utmCampaign: ['q3'],
 				utmSource: ['google', 'bing'],
 			},
+		});
+	});
+
+	it('should group the values of a custom parameter under its own name', () => {
+		expect(
+			toCardProps([
+				property('utm_partner', false, 'acme'),
+				property('utm_partner', false, 'globex'),
+				property('utm_region', false, 'emea'),
+			]).customParameters
+		).toEqual([
+			{name: 'utm_partner', values: ['acme', 'globex']},
+			{name: 'utm_region', values: ['emea']},
+		]);
+	});
+
+	it('should return nothing to list for an empty response', () => {
+		expect(toCardProps([])).toEqual({
+			customParameters: [],
+			utmParameters: {},
 		});
 	});
 });

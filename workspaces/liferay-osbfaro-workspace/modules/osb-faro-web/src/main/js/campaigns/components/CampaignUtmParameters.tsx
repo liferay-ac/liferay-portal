@@ -15,9 +15,11 @@ import {useQueryRangeSelectors} from 'shared/hooks/useQueryRangeSelectors';
 import {useRequest} from 'shared/hooks/useRequest';
 
 /**
- * The API names parameters as the URL does (`utm_source`), while the card
- * keys the five standard ones in camel case. Anything else goes through as a
- * custom parameter under its own name.
+ * The API sends one item per value, ordered by name and then by usage, so
+ * grouping by name in arrival order keeps the most used value first. It names
+ * parameters as the URL does (`utm_source`), while the card keys the five
+ * standard ones in camel case. Anything else goes through as a custom
+ * parameter under its own name.
  */
 export function toCardProps(properties: ICampaignAcquisitionProperty[]): {
 	customParameters: ICustomUtmParameter[];
@@ -26,14 +28,26 @@ export function toCardProps(properties: ICampaignAcquisitionProperty[]): {
 	const customParameters: ICustomUtmParameter[] = [];
 	const utmParameters: UtmParameters = {};
 
-	properties.forEach(({custom, name, values}) => {
+	properties.forEach(({name, standard, value}) => {
 		const parameter = camelCase(name) as UtmParameter;
 
-		if (!custom && UTM_PARAMETERS.includes(parameter)) {
-			utmParameters[parameter] = values;
+		if (standard && UTM_PARAMETERS.includes(parameter)) {
+			utmParameters[parameter] = [
+				...(utmParameters[parameter] ?? []),
+				value,
+			];
 		}
 		else {
-			customParameters.push({name, values});
+			const customParameter = customParameters.find(
+				(customParameter) => customParameter.name === name
+			);
+
+			if (customParameter) {
+				customParameter.values.push(value);
+			}
+			else {
+				customParameters.push({name, values: [value]});
+			}
 		}
 	});
 
