@@ -9,7 +9,9 @@ import com.liferay.osb.faro.constants.FaroChannelConstants;
 import com.liferay.osb.faro.constants.FaroUserConstants;
 import com.liferay.osb.faro.model.FaroChannel;
 import com.liferay.osb.faro.model.FaroUser;
+import com.liferay.osb.faro.service.FaroChannelLocalService;
 import com.liferay.osb.faro.service.FaroUserLocalService;
+import com.liferay.petra.sql.dsl.query.DSLQuery;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.UserGroupRole;
 import com.liferay.portal.kernel.model.role.RoleConstants;
@@ -18,6 +20,7 @@ import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.UserGroupRoleLocalService;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,6 +58,9 @@ public class WorkspacePermissionTest {
 		);
 
 		ReflectionTestUtil.setFieldValue(
+			_workspacePermission, "_faroChannelLocalService",
+			_faroChannelLocalService);
+		ReflectionTestUtil.setFieldValue(
 			_workspacePermission, "_faroUserLocalService",
 			_faroUserLocalService);
 		ReflectionTestUtil.setFieldValue(
@@ -62,6 +68,65 @@ public class WorkspacePermissionTest {
 		ReflectionTestUtil.setFieldValue(
 			_workspacePermission, "_userGroupRoleLocalService",
 			_userGroupRoleLocalService);
+	}
+
+	@Test
+	public void testGetInaccessibleChannelIds() {
+		FaroChannel invitedFaroChannel = _mockFaroChannel(
+			FaroChannelConstants.PERMISSION_SELECT_USERS);
+
+		Mockito.when(
+			invitedFaroChannel.getChannelId()
+		).thenReturn(
+			"1001"
+		);
+
+		Mockito.when(
+			invitedFaroChannel.getGroupId()
+		).thenReturn(
+			_INVITED_CHANNEL_GROUP_ID
+		);
+
+		Mockito.when(
+			_userGroupRoleLocalService.getUserGroupRoles(
+				_MEMBER_USER_ID, _INVITED_CHANNEL_GROUP_ID)
+		).thenReturn(
+			Collections.singletonList(Mockito.mock(UserGroupRole.class))
+		);
+
+		FaroChannel uninvitedFaroChannel = _mockFaroChannel(
+			FaroChannelConstants.PERMISSION_SELECT_USERS);
+
+		Mockito.when(
+			uninvitedFaroChannel.getChannelId()
+		).thenReturn(
+			"1002"
+		);
+
+		Mockito.doReturn(
+			Arrays.asList(invitedFaroChannel, uninvitedFaroChannel)
+		).when(
+			_faroChannelLocalService
+		).dslQuery(
+			Mockito.any(DSLQuery.class)
+		);
+
+		Assert.assertEquals(
+			Collections.emptyList(),
+			_workspacePermission.getInaccessibleChannelIds(
+				_GROUP_ID, _mockPermissionChecker(_ADMINISTRATOR_USER_ID)));
+		Assert.assertEquals(
+			Collections.singletonList("1002"),
+			_workspacePermission.getInaccessibleChannelIds(
+				_GROUP_ID, _mockPermissionChecker(_MEMBER_USER_ID)));
+		Assert.assertEquals(
+			Collections.emptyList(),
+			_workspacePermission.getInaccessibleChannelIds(
+				_GROUP_ID, _mockPermissionChecker(_OMNIADMIN_USER_ID)));
+		Assert.assertEquals(
+			Collections.emptyList(),
+			_workspacePermission.getInaccessibleChannelIds(
+				_GROUP_ID, _mockPermissionChecker(_OWNER_USER_ID)));
 	}
 
 	@Test
@@ -219,6 +284,8 @@ public class WorkspacePermissionTest {
 
 	private static final long _GROUP_ID = 200L;
 
+	private static final long _INVITED_CHANNEL_GROUP_ID = 300L;
+
 	private static final long _MEMBER_USER_ID = 2L;
 
 	private static final long _OMNIADMIN_USER_ID = 3L;
@@ -229,6 +296,8 @@ public class WorkspacePermissionTest {
 
 	private static final long _PENDING_ADMINISTRATOR_USER_ID = 6L;
 
+	private final FaroChannelLocalService _faroChannelLocalService =
+		Mockito.mock(FaroChannelLocalService.class);
 	private final FaroUserLocalService _faroUserLocalService = Mockito.mock(
 		FaroUserLocalService.class);
 	private final RoleLocalService _roleLocalService = Mockito.mock(
