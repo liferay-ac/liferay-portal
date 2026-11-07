@@ -3,7 +3,11 @@ import ErrorPage from 'shared/pages/ErrorPage';
 import Loading from 'shared/components/Loading';
 import React, {lazy} from 'react';
 import RootLayout from './RootLayout';
-import {createBrowserRouter, RouteObject} from 'react-router-dom';
+import {
+	createBrowserRouter,
+	createMemoryRouter,
+	RouteObject,
+} from 'react-router-dom';
 import {ENABLE_ADD_TRIAL_WORKSPACE} from 'shared/util/constants';
 
 const AddWorkspace = lazy(
@@ -81,4 +85,32 @@ export function getRoutes(): RouteObject[] {
 	];
 }
 
-export const router = createBrowserRouter(getRoutes());
+const {initialRoute, sectionRoute} = window.faroConstants;
+
+export const router = initialRoute
+	? createMemoryRouter(getRoutes(), {initialEntries: [initialRoute]})
+	: createBrowserRouter(getRoutes());
+
+if (sectionRoute) {
+	router.subscribe(({location}) => {
+		if (
+			location.pathname !== sectionRoute &&
+			!location.pathname.startsWith(`${sectionRoute}/`)
+		) {
+			return;
+		}
+
+		const path = location.pathname.slice(sectionRoute.length);
+
+		const url = new URL(window.location.href);
+
+		if (path) {
+			url.searchParams.set('path', `${path}${location.search}`);
+		}
+		else {
+			url.searchParams.delete('path');
+		}
+
+		window.history.replaceState(window.history.state, '', url.toString());
+	});
+}
