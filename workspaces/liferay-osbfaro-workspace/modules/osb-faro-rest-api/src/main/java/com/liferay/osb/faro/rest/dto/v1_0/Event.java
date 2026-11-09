@@ -328,7 +328,7 @@ public class Event implements Serializable {
 	private Supplier<Date> _eventDateSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "ID of the individual that emitted the event. Null for anonymous individuals. Use with `getWorkspaceGroupIndividual` to fetch the individual."
+		description = "ID of the individual that emitted the event. Set only when the request is filtered by `individualId`; null otherwise. Use with `getWorkspaceGroupIndividual` to fetch the individual."
 	)
 	public String getIndividualId() {
 		if (_individualIdSupplier != null) {
@@ -364,7 +364,7 @@ public class Event implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "ID of the individual that emitted the event. Null for anonymous individuals. Use with `getWorkspaceGroupIndividual` to fetch the individual."
+		description = "ID of the individual that emitted the event. Set only when the request is filtered by `individualId`; null otherwise. Use with `getWorkspaceGroupIndividual` to fetch the individual."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String individualId;
@@ -1051,4 +1051,4 @@ public class Event implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
-// LIFERAY-REST-BUILDER-HASH:-148437437
+// LIFERAY-REST-BUILDER-HASH:-1098946943
