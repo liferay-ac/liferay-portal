@@ -294,6 +294,87 @@ describe('activities', () => {
 			);
 			expect(withoutDate[0].attributes).not.toHaveProperty('eventDate');
 		});
+
+		it('includes the page fields the event carries in attributes', () => {
+			const [{attributes}] = formatEvents([
+				{
+					applicationId: 'Page',
+					canonicalUrl: 'https://www.liferay.com/request-a-demo',
+					createDate: '2026-07-16T10:00:00.000Z',
+					eventId: 'pageViewed',
+					name: 'pageViewed',
+					pageDescription: 'Talk to our team',
+					pageKeywords: 'demo, dxp',
+					pageTitle: 'Request a Demo',
+					referrer: 'https://www.google.com/',
+					url: 'https://www.liferay.com/request-a-demo?utm_source=google'
+				}
+			]);
+
+			expect(attributes).toMatchObject({
+				canonicalUrl: 'https://www.liferay.com/request-a-demo',
+				pageDescription: 'Talk to our team',
+				pageKeywords: 'demo, dxp',
+				pageTitle: 'Request a Demo',
+				referrer: 'https://www.google.com/',
+				url: 'https://www.liferay.com/request-a-demo?utm_source=google'
+			});
+		});
+
+		it('includes a field the event carries that is not known in advance', () => {
+			const [{attributes}] = formatEvents([
+				{
+					applicationId: 'Page',
+					eventId: 'pageViewed',
+					name: 'pageViewed',
+					someNewField: 'someValue'
+				}
+			]);
+
+			expect(attributes.someNewField).toBe('someValue');
+		});
+
+		it('omits empty fields from attributes', () => {
+			const [{attributes}] = formatEvents([
+				{
+					applicationId: 'Page',
+					eventId: 'pageViewed',
+					name: 'pageViewed',
+					pageDescription: '',
+					pageKeywords: null,
+					referrer: undefined
+				}
+			]);
+
+			expect(attributes).not.toHaveProperty('pageDescription');
+			expect(attributes).not.toHaveProperty('pageKeywords');
+			expect(attributes).not.toHaveProperty('referrer');
+		});
+
+		it('leaves out of attributes the fields the row or a group of their own already shows', () => {
+			const [{attributes}] = formatEvents([
+				{
+					__typename: 'Event',
+					acquisitionProperties: [{name: 'utm_medium', value: 'ppc'}],
+					applicationId: 'Page',
+					assetTitle: 'Request a Demo',
+					campaignEntityId: '6beeaea355642c82e8bb7f9c049f58e8',
+					campaignId: '7013a000002QwErtAAG',
+					campaignName: 'Spring Compactor Promo 2026',
+					createDate: '2026-07-16T10:00:00.000Z',
+					eventId: 'pageViewed',
+					name: 'pageViewed',
+					pageGroupId: 'https://www.liferay.com/request-a-demo'
+				}
+			]);
+
+			expect(Object.keys(attributes)).toEqual([
+				'applicationId',
+				'eventId',
+				'acquisitionProperties',
+				'campaign'
+			]);
+		});
 	});
 
 	describe('getEventCampaign', () => {
