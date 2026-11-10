@@ -213,6 +213,46 @@ const toAttributeMap = (
 	Object.fromEntries(attributes.map(({name, value}) => [name, value]));
 
 /**
+ * Event fields left out of the event attributes because:
+ *
+ * - The row already shows them: `name`, `createDate`, `assetTitle`.
+ * - They get a table of their own: `properties`, `acquisitionProperties`,
+ *   `campaignName`.
+ * - They are internal: `campaignEntityId`, `campaignId`, `pageGroupId`.
+ *
+ * `canonicalUrl` and `pageTitle` stay in, even though the row shows them, so
+ * the details carry the whole page payload.
+ */
+const OMITTED_EVENT_FIELDS = new Set<string>([
+	'acquisitionProperties',
+	'assetTitle',
+	'campaignEntityId',
+	'campaignId',
+	'campaignName',
+	'createDate',
+	'name',
+	'pageGroupId',
+	'properties',
+]);
+
+/**
+ * Every other scalar field the event carries, in the order the API returned
+ * them, so a field added to the query reaches the details without a change
+ * here. Empty values are dropped, as is Apollo's `__typename`.
+ */
+const getEventFields = (event: UserSessionEvent): Record<string, unknown> =>
+	Object.fromEntries(
+		Object.entries(event).filter(
+			([key, value]) =>
+				!OMITTED_EVENT_FIELDS.has(key) &&
+				!key.startsWith('__') &&
+				value !== undefined &&
+				value !== '' &&
+				typeof value !== 'object'
+		)
+	);
+
+/**
  * How the timeline lays out the payload `formatEvents` builds when a row is
  * expanded. The event's own properties join its attributes, while the campaign
  * the touch carried and its acquisition parameters each get a table, with the
@@ -249,15 +289,10 @@ export const formatEvents = (
 	return events.map((event) => {
 		const {
 			acquisitionProperties,
-			applicationId,
 			assetTitle,
 			campaignEntityId,
 			canonicalUrl,
 			createDate,
-			eventDate,
-			eventId,
-			experienceId,
-			experienceName,
 			name,
 			pageTitle,
 			properties,
@@ -269,11 +304,7 @@ export const formatEvents = (
 
 		return {
 			attributes: {
-				applicationId,
-				...(eventDate && {eventDate}),
-				eventId,
-				...(experienceId && {experienceId}),
-				...(experienceName && {experienceName}),
+				...getEventFields(event),
 				...(properties?.length && {
 					properties: toAttributeMap(properties),
 				}),

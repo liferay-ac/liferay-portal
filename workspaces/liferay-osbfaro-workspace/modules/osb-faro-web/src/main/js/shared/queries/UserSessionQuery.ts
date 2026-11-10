@@ -17,6 +17,7 @@ export interface UserSessionEvent {
 	name: string;
 	pageDescription: string;
 	pageGroupId?: string | null;
+	pageKeywords?: string;
 	pageTitle: string;
 	properties: Array<{name: string; value: string}>;
 	referrer: string;
