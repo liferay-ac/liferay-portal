@@ -8,6 +8,7 @@ declare global {
 		faroConstants: {
 			channelPermissionTypes: {[key: string]: ChannelPermissionTypes};
 			faroURL: string;
+			initialRoute?: string;
 			pagination: {
 				cur: number;
 				delta: number;
@@ -17,6 +18,7 @@ declare global {
 				orderDescending: string;
 			};
 			projectLocations: {[key: string]: string};
+			sectionRoute?: string;
 		};
 		hbspt: {
 			forms: {
