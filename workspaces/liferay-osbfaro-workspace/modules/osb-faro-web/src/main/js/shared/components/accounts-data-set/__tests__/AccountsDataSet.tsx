@@ -158,6 +158,13 @@ type FakeCustomDataRenderers = {
 	}) => React.ReactElement;
 };
 
+type FakeSort = {
+	active: boolean;
+	direction: 'asc' | 'desc';
+	key: string;
+	label: string;
+};
+
 type FakeView = {
 	default?: boolean;
 	label: string;
@@ -168,6 +175,7 @@ type FakeView = {
 let lastApiURL: string | undefined;
 let lastCustomDataRenderers: FakeCustomDataRenderers | undefined;
 let lastFilters: FakeFilter[] | undefined;
+let lastSorts: FakeSort[] | undefined;
 let lastViews: FakeView[] | undefined;
 let mountCount = 0;
 
@@ -184,17 +192,20 @@ jest.mock('@liferay/frontend-data-set-web', () => ({
 		customDataRenderers,
 		filters,
 		id,
+		sorts,
 		views,
 	}: {
 		apiURL: string;
 		customDataRenderers: FakeCustomDataRenderers;
 		filters: FakeFilter[];
 		id: string;
+		sorts: FakeSort[];
 		views: FakeView[];
 	}) => {
 		lastApiURL = apiURL;
 		lastCustomDataRenderers = customDataRenderers;
 		lastFilters = filters;
+		lastSorts = sorts;
 		lastViews = views;
 
 		React.useEffect(() => {
@@ -222,6 +233,7 @@ describe('AccountsDataSet', () => {
 		lastApiURL = undefined;
 		lastCustomDataRenderers = undefined;
 		lastFilters = undefined;
+		lastSorts = undefined;
 		lastViews = undefined;
 		mountCount = 0;
 	});
@@ -1201,6 +1213,46 @@ describe('AccountsDataSet', () => {
 			).toHaveLength(1);
 
 			expect(byFieldName('lastEnriched')?.sortable).toBe(true);
+		});
+	});
+
+	describe('the Order menu', () => {
+		it('should offer every sortable column of the Default View, last active descending by default', async () => {
+			await renderAccountsDataSet(
+				<AccountsDataSet
+					apiURL="fake-url"
+					channelId="123"
+					groupId="23"
+				/>
+			);
+
+			expect(lastSorts!.map(({key}) => key)).toEqual(
+				DEFAULT_VIEW_FIELD_NAMES
+			);
+
+			expect(lastSorts!.filter(({active}) => active)).toEqual([
+				{
+					active: true,
+					direction: 'desc',
+					key: 'lastActive',
+					label: 'Last Active',
+				},
+			]);
+		});
+
+		it('should add Last Enriched but leave the unsortable catalog columns out when the All Attributes View exists', async () => {
+			await renderAccountsDataSet(
+				<AccountsDataSet
+					apiURL="fake-url"
+					channelId="123"
+					fieldCatalog={ALL_ATTRIBUTES_FIELD_CATALOG}
+					groupId="23"
+				/>
+			);
+
+			expect(lastSorts!.map(({key}) => key)).toEqual(
+				ALL_ATTRIBUTES_FIXED_FIELD_NAMES
+			);
 		});
 	});
 });
