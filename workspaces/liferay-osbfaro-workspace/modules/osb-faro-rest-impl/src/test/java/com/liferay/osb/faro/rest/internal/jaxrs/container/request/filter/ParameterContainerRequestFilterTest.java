@@ -7,6 +7,7 @@ package com.liferay.osb.faro.rest.internal.jaxrs.container.request.filter;
 
 import com.liferay.osb.faro.rest.resource.v1_0.AccountLifecycleStageTransitionResource;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.vulcan.jaxrs.exception.mapper.Problem;
 
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -58,6 +59,7 @@ public class ParameterContainerRequestFilterTest {
 
 	@Test
 	public void testFilter() {
+		Assert.assertNull(_filter("objectType", "FILE"));
 		Assert.assertNull(_filter("rangeKey", "LAST_30_DAYS"));
 		Assert.assertNull(_filter("sort", "transitionDate:desc"));
 		Assert.assertNull(_filter(null, null));
@@ -67,6 +69,9 @@ public class ParameterContainerRequestFilterTest {
 				"accountId, accountName, fromAccountLifecycleStageId, " +
 					"toAccountLifecycleStageId, transitionDate",
 			_filter("sort", "bogusColumn:desc"));
+		_assertTitle(
+			"\"objectType\" must be one of CONTENT, FILE",
+			_filter("objectType", RandomTestUtil.randomString()));
 		_assertTitle(
 			"\"pageSize\" must be a whole number from 1 to 500",
 			_filter("pageSize", "501"));
