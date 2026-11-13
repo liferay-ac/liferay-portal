@@ -221,7 +221,7 @@ const IndividualsList: React.FC<IIndividualsListProps> = ({
 						symbol: 'search',
 					}}
 					spacer
-					title={Liferay.Language.get('no-results-found')}
+					title={Liferay.Language.get('no-results-were-found')}
 				>
 					<ClayButton
 						displayType="secondary"
@@ -260,7 +260,7 @@ const IndividualsList: React.FC<IIndividualsListProps> = ({
 				}}
 				spacer
 				title={Liferay.Language.get(
-					'no-individuals-synced-from-data-sources'
+					'no-individuals-have-been-synced-from-data-sources'
 				)}
 			/>
 		);

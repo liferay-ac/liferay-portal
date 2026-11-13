@@ -132,7 +132,7 @@ describe('Individuals List', () => {
 		await waitForLoadingToBeRemoved(document.body);
 
 		expect(
-			getByText('No Individuals Synced from Data Sources')
+			getByText('No Individuals Have Been Synced from Data Sources')
 		).toBeInTheDocument();
 
 		expect(
@@ -179,7 +179,7 @@ describe('Individuals List', () => {
 
 		await waitForLoadingToBeRemoved(document.body);
 
-		expect(getByText('No Results Found')).toBeInTheDocument();
+		expect(getByText('No Results Were Found')).toBeInTheDocument();
 		expect(
 			getByText('Review your filters and try again.')
 		).toBeInTheDocument();
