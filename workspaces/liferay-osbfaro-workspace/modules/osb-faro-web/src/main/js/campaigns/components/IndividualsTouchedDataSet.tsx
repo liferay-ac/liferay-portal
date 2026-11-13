@@ -16,41 +16,51 @@ interface IIndividualsTouchedDataSetProps {
 	groupId: string;
 }
 
+const fields = [
+	{
+		contentRenderer: 'individualNameRenderer',
+		fieldName: 'name',
+		label: Liferay.Language.get('individual-name'),
+		sortable: true,
+		truncate: true,
+	},
+	{
+		fieldName: 'accountName',
+		label: Liferay.Language.get('account-name'),
+		sortable: true,
+		truncate: true,
+	},
+	{
+		contentRenderer: 'visitorTypeRenderer',
+		fieldName: 'sessionsCount',
+		label: Liferay.Language.get('visitor-type'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'lastActiveRenderer',
+		fieldName: 'lastActivityDate',
+		label: Liferay.Language.get('last-active'),
+		sortable: true,
+	},
+];
+
+const DEFAULT_SORT_KEY = 'lastActivityDate';
+
+const sorts = fields.map(({fieldName, label}) => ({
+	active: fieldName === DEFAULT_SORT_KEY,
+	default: fieldName === DEFAULT_SORT_KEY,
+	direction: 'desc' as const,
+	key: fieldName,
+	label,
+}));
+
 const views = [
 	{
 		contentRenderer: 'table',
 		default: true,
 		label: Liferay.Language.get('default-view'),
 		name: 'table',
-		schema: {
-			fields: [
-				{
-					contentRenderer: 'individualNameRenderer',
-					fieldName: 'name',
-					label: Liferay.Language.get('individual-name'),
-					sortable: true,
-					truncate: true,
-				},
-				{
-					fieldName: 'accountName',
-					label: Liferay.Language.get('account-name'),
-					sortable: true,
-					truncate: true,
-				},
-				{
-					contentRenderer: 'visitorTypeRenderer',
-					fieldName: 'sessionsCount',
-					label: Liferay.Language.get('visitor-type'),
-					sortable: true,
-				},
-				{
-					contentRenderer: 'lastActiveRenderer',
-					fieldName: 'lastActivityDate',
-					label: Liferay.Language.get('last-active'),
-					sortable: true,
-				},
-			],
-		},
+		schema: {fields},
 		thumbnail: 'table',
 	},
 ];
@@ -102,15 +112,7 @@ const IndividualsTouchedDataSet: React.FC<IIndividualsTouchedDataSetProps> = ({
 			id="campaign-individuals-dataset"
 			pagination={pagination}
 			showPagination
-			sorts={[
-				{
-					active: true,
-					default: true,
-					direction: 'desc',
-					key: 'lastActivityDate',
-					label: Liferay.Language.get('last-active'),
-				},
-			]}
+			sorts={sorts}
 			views={views}
 		/>
 	);

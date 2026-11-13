@@ -14,7 +14,7 @@ import {
 	isLifecycleStage,
 	lifecycleStagesLabelMap,
 } from 'contacts/pages/account/utils/constants';
-import {buildViews} from './utils';
+import {buildSorts, buildViews} from './utils';
 import {ICatalogField} from 'shared/api/catalog';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
 import {Routes} from 'shared/util/router';
@@ -272,14 +272,7 @@ const AccountsDataSet: React.FC<IAccountsDataSetProps> = ({
 				pagination={pagination}
 				showPagination
 				snapshotsEnabled
-				sorts={[
-					{
-						active: true,
-						direction: 'desc',
-						key: 'lastActive',
-						label: Liferay.Language.get('last-active'),
-					},
-				]}
+				sorts={buildSorts(fieldCatalog)}
 				views={buildViews(fieldCatalog)}
 			/>
 		</Card>

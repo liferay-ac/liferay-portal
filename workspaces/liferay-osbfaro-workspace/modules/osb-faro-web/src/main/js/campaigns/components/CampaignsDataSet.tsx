@@ -17,35 +17,45 @@ interface ICampaignsDataSetProps {
 	groupId: string;
 }
 
+const fields = [
+	{
+		contentRenderer: 'campaignNameRenderer',
+		fieldName: 'campaignName',
+		label: Liferay.Language.get('campaign-name'),
+		sortable: true,
+		truncate: true,
+	},
+	{
+		contentRenderer: 'countRenderer',
+		fieldName: 'accountsTouched',
+		label: Liferay.Language.get('accounts-touched'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'countRenderer',
+		fieldName: 'individualsTouched',
+		label: Liferay.Language.get('individuals-touched'),
+		sortable: true,
+	},
+];
+
+const DEFAULT_SORT_KEY = 'accountsTouched';
+
+const sorts = fields.map(({fieldName, label}) => ({
+	active: fieldName === DEFAULT_SORT_KEY,
+	default: fieldName === DEFAULT_SORT_KEY,
+	direction: 'desc' as const,
+	key: fieldName,
+	label,
+}));
+
 const views = [
 	{
 		contentRenderer: 'table',
 		default: true,
 		label: Liferay.Language.get('default-view'),
 		name: 'table',
-		schema: {
-			fields: [
-				{
-					contentRenderer: 'campaignNameRenderer',
-					fieldName: 'campaignName',
-					label: Liferay.Language.get('campaign-name'),
-					sortable: true,
-					truncate: true,
-				},
-				{
-					contentRenderer: 'countRenderer',
-					fieldName: 'accountsTouched',
-					label: Liferay.Language.get('accounts-touched'),
-					sortable: true,
-				},
-				{
-					contentRenderer: 'countRenderer',
-					fieldName: 'individualsTouched',
-					label: Liferay.Language.get('individuals-touched'),
-					sortable: true,
-				},
-			],
-		},
+		schema: {fields},
 		thumbnail: 'table',
 	},
 ];
@@ -115,15 +125,7 @@ const CampaignsDataSet: React.FC<ICampaignsDataSetProps> = ({
 				key={accountId}
 				pagination={pagination}
 				showPagination
-				sorts={[
-					{
-						active: true,
-						default: true,
-						direction: 'desc',
-						key: 'accountsTouched',
-						label: Liferay.Language.get('accounts-touched'),
-					},
-				]}
+				sorts={sorts}
 				views={views}
 			/>
 		</Card>
