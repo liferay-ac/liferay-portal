@@ -1,7 +1,8 @@
 import LifecycleSettingsForm from '../LifecycleSettingsForm';
 import React from 'react';
+import {createStageConfig} from 'lifecycle/utils/stageConfiguration';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
-import {render, screen} from '@testing-library/react';
 import {resetBodyWidth, setBodyWidth} from 'test/body-width';
 import {useLifecycleSettingsForm} from 'lifecycle/hooks/useLifecycleSettingsForm';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -33,11 +34,11 @@ jest.mock('shared/hooks/useHistoryAdapter', () => ({
 	useHistoryAdapter: () => ({push: jest.fn()}),
 }));
 
-const LifecycleSettingsFormHarness = () => {
+const LifecycleSettingsFormHarness = ({stageCount = 0}) => {
 	const form = useLifecycleSettingsForm({
 		description: '',
 		name: 'Customer Lifecycle',
-		stageConfigs: () => [],
+		stageConfigs: () => Array.from({length: stageCount}, createStageConfig),
 	});
 
 	return (
@@ -87,5 +88,28 @@ describe('LifecycleSettingsForm', () => {
 				.getByRole('heading', {name: /lifecycle conditions/i})
 				.closest('.base-edit-page-sidebar')
 		).not.toBeNull();
+	});
+
+	it('warns and disables adding stages once the limit of 20 is reached', () => {
+		const {container} = render(
+			<MemoryRouter>
+				<LifecycleSettingsFormHarness stageCount={19} />
+			</MemoryRouter>
+		);
+
+		const addButton = screen.getByRole('button', {name: /add.stage/i});
+
+		expect(addButton).toBeEnabled();
+		expect(
+			screen.queryByText(/reached.the.limit/i)
+		).not.toBeInTheDocument();
+
+		fireEvent.click(addButton);
+
+		expect(screen.getByText(/reached.the.limit/i)).toBeInTheDocument();
+		expect(addButton).toBeDisabled();
+		expect(
+			container.querySelectorAll('.lifecycle-stage-chip')
+		).toHaveLength(20);
 	});
 });
