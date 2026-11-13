@@ -25,41 +25,51 @@ interface IAccountsTouchedDataSetProps {
 	loading: boolean;
 }
 
+const fields = [
+	{
+		contentRenderer: 'accountNameRenderer',
+		fieldName: 'accountName',
+		label: Liferay.Language.get('account-name'),
+		sortable: true,
+		truncate: true,
+	},
+	{
+		contentRenderer: 'lifecycleStageRenderer',
+		fieldName: 'lifecycleStage',
+		label: Liferay.Language.get('lifecycle-stage'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'amountRenderer',
+		fieldName: 'salesforce/openPipelineAmount',
+		label: Liferay.Language.get('pipeline-value'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'amountRenderer',
+		fieldName: 'salesforce/closedWonAmount',
+		label: Liferay.Language.get('closed-won'),
+		sortable: true,
+	},
+];
+
+const DEFAULT_SORT_KEY = 'salesforce/openPipelineAmount';
+
+const sorts = fields.map(({fieldName, label}) => ({
+	active: fieldName === DEFAULT_SORT_KEY,
+	default: fieldName === DEFAULT_SORT_KEY,
+	direction: 'desc' as const,
+	key: fieldName,
+	label,
+}));
+
 const views = [
 	{
 		contentRenderer: 'table',
 		default: true,
 		label: Liferay.Language.get('default-view'),
 		name: 'table',
-		schema: {
-			fields: [
-				{
-					contentRenderer: 'accountNameRenderer',
-					fieldName: 'accountName',
-					label: Liferay.Language.get('account-name'),
-					sortable: true,
-					truncate: true,
-				},
-				{
-					contentRenderer: 'lifecycleStageRenderer',
-					fieldName: 'lifecycleStage',
-					label: Liferay.Language.get('lifecycle-stage'),
-					sortable: true,
-				},
-				{
-					contentRenderer: 'amountRenderer',
-					fieldName: 'salesforce/openPipelineAmount',
-					label: Liferay.Language.get('pipeline-value'),
-					sortable: true,
-				},
-				{
-					contentRenderer: 'amountRenderer',
-					fieldName: 'salesforce/closedWonAmount',
-					label: Liferay.Language.get('closed-won'),
-					sortable: true,
-				},
-			],
-		},
+		schema: {fields},
 		thumbnail: 'table',
 	},
 ];
@@ -133,15 +143,7 @@ const AccountsTouchedDataSet: React.FC<IAccountsTouchedDataSetProps> = ({
 			id="campaign-accounts-dataset"
 			pagination={pagination}
 			showPagination
-			sorts={[
-				{
-					active: true,
-					default: true,
-					direction: 'desc',
-					key: 'salesforce/openPipelineAmount',
-					label: Liferay.Language.get('pipeline-value'),
-				},
-			]}
+			sorts={sorts}
 			views={views}
 		/>
 	);

@@ -210,6 +210,18 @@ const TABLE_FIELDS = [
 	},
 ];
 
+// The API sorts by views when no sort is sent.
+
+const DEFAULT_SORT_KEY = 'viewsMetric';
+
+const TABLE_SORTS = TABLE_FIELDS.map(({fieldName, label}) => ({
+	active: fieldName === DEFAULT_SORT_KEY,
+	default: fieldName === DEFAULT_SORT_KEY,
+	direction: 'desc' as const,
+	key: fieldName,
+	label,
+}));
+
 const List = () => {
 	const history = useHistoryAdapter();
 	const {search} = useLocation();
@@ -229,16 +241,14 @@ const List = () => {
 		(value) => value === searchParams.get('objectType')
 	);
 
-	const sortableFields = TABLE_FIELDS.filter((field) => field.sortable);
+	const activeSortKey = TABLE_SORTS.some(({key}) => key === orderBy)
+		? orderBy
+		: DEFAULT_SORT_KEY;
 
-	const sorts = sortableFields.some((field) => field.fieldName === orderBy)
-		? sortableFields.map((field) => ({
-				active: field.fieldName === orderBy,
-				direction: 'desc' as const,
-				key: field.fieldName,
-				label: field.label,
-			}))
-		: undefined;
+	const sortsWithOrderBy = TABLE_SORTS.map((tableSort) => ({
+		...tableSort,
+		active: tableSort.key === activeSortKey,
+	}));
 
 	const [rangeSelectors, setRangeSelectors] = useState<RangeSelectors>(
 		initialRangeSelectors
@@ -574,7 +584,7 @@ const List = () => {
 						pagination={pagination}
 						showPagination
 						snapshotsEnabled
-						sorts={sorts}
+						sorts={sortsWithOrderBy}
 						views={[
 							{
 								contentRenderer: 'table',

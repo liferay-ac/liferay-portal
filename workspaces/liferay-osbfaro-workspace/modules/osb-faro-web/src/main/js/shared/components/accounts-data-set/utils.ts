@@ -1,5 +1,12 @@
 import {getCatalogFieldLabel, ICatalogField} from 'shared/api/catalog';
 
+export interface ISort {
+	active: boolean;
+	direction: 'asc' | 'desc';
+	key: string;
+	label: string;
+}
+
 export interface IViewField {
 	contentRenderer?: string;
 	fieldName: string;
@@ -131,4 +138,21 @@ export const buildViews = (fieldCatalog?: ICatalogField[]) => {
 			thumbnail: 'table',
 		},
 	];
+};
+
+const buildViewFieldSort = ({fieldName, label}: IViewField): ISort => ({
+	active: fieldName === 'lastActive',
+	direction: 'desc',
+	key: fieldName,
+	label,
+});
+
+export const buildSorts = (fieldCatalog?: ICatalogField[]) => {
+	const catalogFields = fieldCatalog ? buildCatalogFields(fieldCatalog) : [];
+
+	const viewFields = catalogFields.length
+		? ALL_ATTRIBUTES_VIEW_FIELDS
+		: DEFAULT_VIEW_FIELDS;
+
+	return viewFields.filter(({sortable}) => sortable).map(buildViewFieldSort);
 };

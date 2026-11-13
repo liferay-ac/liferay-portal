@@ -15,15 +15,56 @@ const PREVIEW_FDS_ID = 'most-engaged-individuals-dataset';
 
 const PREVIEW_DELTA = 5;
 
-const SORTS = [
+const FIELDS = [
 	{
-		active: true,
-		default: true,
-		direction: 'desc' as const,
-		key: 'activitiesCount',
+		contentRenderer: 'individualNameRenderer',
+		fieldName: 'name',
+		label: Liferay.Language.get('individual-name'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'jobTitleRenderer',
+		fieldName: 'jobTitle',
+		label: Liferay.Language.get('job-title'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'visitorTypeRenderer',
+		fieldName: 'sessionsCount',
+		label: Liferay.Language.get('visitor-type'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'totalEventsRenderer',
+		fieldName: 'activitiesCount',
 		label: Liferay.Language.get('total-events'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'avgSessionDurationRenderer',
+		fieldName: 'averageSessionDuration',
+		label: Liferay.Language.get('avg-session-duration'),
+		sortable: true,
+	},
+	{
+		contentRenderer: 'lastActiveRenderer',
+		fieldName: 'lastActivityDate',
+		label: Liferay.Language.get('last-active'),
+		sortable: true,
 	},
 ];
+
+const PREVIEW_FIELDS = FIELDS.map((field) => ({...field, sortable: false}));
+
+const DEFAULT_SORT_KEY = 'activitiesCount';
+
+const SORTS = FIELDS.map(({fieldName, label}) => ({
+	active: fieldName === DEFAULT_SORT_KEY,
+	default: fieldName === DEFAULT_SORT_KEY,
+	direction: 'desc' as const,
+	key: fieldName,
+	label,
+}));
 
 interface IIndividualItemData {
 	id: string | number;
@@ -145,48 +186,7 @@ const IndividualsDataSet: React.FC<IIndividualsDataSetProps> = ({
 					...(preview && {initialPaginationDelta: PREVIEW_DELTA}),
 					label: Liferay.Language.get('default-view'),
 					name: 'table',
-					schema: {
-						fields: [
-							{
-								contentRenderer: 'individualNameRenderer',
-								fieldName: 'name',
-								label: Liferay.Language.get('individual-name'),
-								sortable: !preview,
-							},
-							{
-								contentRenderer: 'jobTitleRenderer',
-								fieldName: 'jobTitle',
-								label: Liferay.Language.get('job-title'),
-								sortable: !preview,
-							},
-							{
-								contentRenderer: 'visitorTypeRenderer',
-								fieldName: 'sessionsCount',
-								label: Liferay.Language.get('visitor-type'),
-								sortable: !preview,
-							},
-							{
-								contentRenderer: 'totalEventsRenderer',
-								fieldName: 'activitiesCount',
-								label: Liferay.Language.get('total-events'),
-								sortable: !preview,
-							},
-							{
-								contentRenderer: 'avgSessionDurationRenderer',
-								fieldName: 'averageSessionDuration',
-								label: Liferay.Language.get(
-									'avg-session-duration'
-								),
-								sortable: !preview,
-							},
-							{
-								contentRenderer: 'lastActiveRenderer',
-								fieldName: 'lastActivityDate',
-								label: Liferay.Language.get('last-active'),
-								sortable: !preview,
-							},
-						],
-					},
+					schema: {fields: preview ? PREVIEW_FIELDS : FIELDS},
 					thumbnail: 'table',
 				},
 			]}
