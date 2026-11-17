@@ -7,6 +7,7 @@ import {
 } from 'shared/components/FrontendDataSet';
 import {MemoryRouter} from 'react-router-dom';
 import {warmFrontendDataSet} from 'test/warm-frontend-data-set';
+import {CampaignAccountFilterProvider} from 'campaigns/context/CampaignAccountFilterContext';
 
 jest.unmock('react-dom');
 
@@ -23,10 +24,12 @@ jest.mock('@liferay/frontend-data-set-web', () => ({
 
 const getFields = () => lastFDSProps.views[0].schema.fields;
 
-const renderDataSet = (initialEntry = '/') =>
+const renderDataSet = (initialEntry = '/', initialAccount = null) =>
 	render(
 		<MemoryRouter initialEntries={[initialEntry]}>
-			<CampaignsDataSet channelId="123" groupId="23" />
+			<CampaignAccountFilterProvider initialAccount={initialAccount}>
+				<CampaignsDataSet channelId="123" groupId="23" />
+			</CampaignAccountFilterProvider>
 		</MemoryRouter>
 	);
 
@@ -267,7 +270,7 @@ describe('CampaignsDataSet', () => {
 		});
 
 		it('should seed the filter with the account selected globally', () => {
-			renderDataSet('/?accountId=9&accountName=Acme');
+			renderDataSet('/', {id: '9', name: 'Acme'} as any);
 
 			expect(lastFDSProps.filters[0].preloadedData).toEqual({
 				exclude: false,
@@ -275,30 +278,21 @@ describe('CampaignsDataSet', () => {
 			});
 		});
 
-		it('should label the seeded account by its id when the name is missing', () => {
-			renderDataSet('/?accountId=9');
-
-			expect(lastFDSProps.filters[0].preloadedData).toEqual({
-				exclude: false,
-				selectedItems: [{label: '9', value: '9'}],
-			});
-		});
-
 		it('should leave the filtering of the table to its own filter', () => {
-			renderDataSet('/?accountId=9&accountName=Acme');
+			renderDataSet('/', {id: '9', name: 'Acme'} as any);
 
 			expect(lastFDSProps.apiURL).toBe(
 				'/o/faro/contacts/23/campaigns?channelId=123&rangeKey=30'
 			);
 		});
 
-		it('should carry the global account on the campaign link', () => {
-			renderDataSet('/?accountId=9&accountName=Acme&rangeKey=7');
+		it('should keep the global account off the campaign link', () => {
+			renderDataSet('/?rangeKey=7', {id: '9', name: 'Acme'} as any);
 
 			const params = getLinkParams();
 
-			expect(params.get('accountId')).toBe('9');
-			expect(params.get('accountName')).toBe('Acme');
+			expect(params.has('accountId')).toBe(false);
+			expect(params.has('accountName')).toBe(false);
 			expect(params.get('rangeKey')).toBe('7');
 		});
 

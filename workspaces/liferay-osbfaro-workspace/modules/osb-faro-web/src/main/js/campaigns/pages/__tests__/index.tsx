@@ -9,6 +9,7 @@ import {mockChannelContext} from 'test/mock-channel-context';
 import {Provider} from 'react-redux';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
+import {CampaignAccountFilterProvider} from 'campaigns/context/CampaignAccountFilterContext';
 
 jest.unmock('react-dom');
 
@@ -67,12 +68,16 @@ const fetchCampaignMetrics = API.campaigns.fetchCampaignMetrics as jest.Mock;
 const mockedUseCurrentUser = useCurrentUser as jest.Mock;
 const mockedUseDataSources = useDataSources as jest.Mock;
 
-const renderCampaigns = (initialEntry = '/') =>
+const renderCampaigns = (initialEntry = '/', initialAccount = null) =>
 	render(
 		<Provider store={mockStore()}>
 			<ChannelContext.Provider value={mockChannelContext() as any}>
 				<MemoryRouter initialEntries={[initialEntry]}>
-					<Campaigns />
+					<CampaignAccountFilterProvider
+						initialAccount={initialAccount}
+					>
+						<Campaigns />
+					</CampaignAccountFilterProvider>
 				</MemoryRouter>
 			</ChannelContext.Provider>
 		</Provider>
@@ -223,8 +228,8 @@ describe('Campaigns', () => {
 			expect(lastAccountDropdownProps.initialAccountName).toBeUndefined();
 		});
 
-		it('should read the account from the URL', async () => {
-			renderCampaigns('/?accountId=9&accountName=Acme');
+		it('should show the account already selected', async () => {
+			renderCampaigns('/', {id: '9', name: 'Acme'} as any);
 
 			expect(lastAccountDropdownProps.initialAccountId).toBe('9');
 			expect(lastAccountDropdownProps.initialAccountName).toBe('Acme');
@@ -266,7 +271,7 @@ describe('Campaigns', () => {
 		});
 
 		it('should ask for the metrics of every account again once it is cleared', async () => {
-			renderCampaigns('/?accountId=9&accountName=Acme');
+			renderCampaigns('/', {id: '9', name: 'Acme'} as any);
 
 			act(() => lastAccountDropdownProps.onFilterChange(null));
 
@@ -284,9 +289,9 @@ describe('Campaigns', () => {
 			// The range write builds on the browser location, which a
 			// memory router does not move, so line the two up.
 
-			window.history.pushState({}, '', '/?accountId=9&accountName=Acme');
+			window.history.pushState({}, '', '/');
 
-			renderCampaigns('/?accountId=9&accountName=Acme');
+			renderCampaigns('/', {id: '9', name: 'Acme'} as any);
 
 			act(() =>
 				lastDropdownRangeKeyProps.onRangeSelectorChange({

@@ -1,3 +1,4 @@
+import {CampaignAccountFilterProvider} from 'campaigns/context/CampaignAccountFilterContext';
 import MembershipsCard from '../MembershipsCard';
 import React from 'react';
 import {
@@ -34,7 +35,9 @@ const mockLifecycles = (data?: {id: string}[], loading = false) =>
 const renderCard = () =>
 	render(
 		<MemoryRouter>
-			<MembershipsCard campaignId="7" channelId="123" groupId="23" />
+			<CampaignAccountFilterProvider>
+				<MembershipsCard campaignId="7" channelId="123" groupId="23" />
+			</CampaignAccountFilterProvider>
 		</MemoryRouter>
 	);
 

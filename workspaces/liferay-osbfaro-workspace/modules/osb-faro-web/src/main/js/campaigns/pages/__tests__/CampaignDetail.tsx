@@ -7,6 +7,7 @@ import {MemoryRouter} from 'react-router-dom';
 import {mockChannelContext} from 'test/mock-channel-context';
 import {Provider} from 'react-redux';
 import {render, waitFor} from '@testing-library/react';
+import {CampaignAccountFilterProvider} from 'campaigns/context/CampaignAccountFilterContext';
 
 jest.unmock('react-dom');
 
@@ -52,12 +53,16 @@ jest.mock('../../components/CampaignUtmParameters', () => ({
 
 const fetchCampaign = API.campaigns.fetchCampaign as jest.Mock;
 
-const renderCampaignDetail = (initialEntry = '/') =>
+const renderCampaignDetail = (initialEntry = '/', initialAccount = null) =>
 	render(
 		<Provider store={mockStore()}>
 			<ChannelContext.Provider value={mockChannelContext() as any}>
 				<MemoryRouter initialEntries={[initialEntry]}>
-					<CampaignDetail />
+					<CampaignAccountFilterProvider
+						initialAccount={initialAccount}
+					>
+						<CampaignDetail />
+					</CampaignAccountFilterProvider>
 				</MemoryRouter>
 			</ChannelContext.Provider>
 		</Provider>
@@ -134,8 +139,8 @@ describe('CampaignDetail', () => {
 		expect(lastAccountDropdownProps.initialAccountId).toBeUndefined();
 	});
 
-	it('should show the account the URL carries in the selector', () => {
-		renderCampaignDetail('/?accountId=9&accountName=Acme');
+	it('should show the account selected in the selector', () => {
+		renderCampaignDetail('/', {id: '9', name: 'Acme'} as any);
 
 		expect(lastAccountDropdownProps.initialAccountId).toBe('9');
 		expect(lastAccountDropdownProps.initialAccountName).toBe('Acme');
@@ -162,10 +167,11 @@ describe('CampaignDetail', () => {
 		);
 	});
 
-	it('should keep the account on the way back to Campaigns', () => {
-		const {container} = renderCampaignDetail(
-			'/?accountId=9&accountName=Acme&rangeKey=7'
-		);
+	it('should keep the account out of the URL on the way back to Campaigns', () => {
+		const {container} = renderCampaignDetail('/?rangeKey=7', {
+			id: '9',
+			name: 'Acme',
+		} as any);
 
 		const href = Array.from(
 			container.querySelectorAll('.breadcrumb a'),
@@ -174,8 +180,8 @@ describe('CampaignDetail', () => {
 
 		const params = new URL(href, 'http://localhost').searchParams;
 
-		expect(params.get('accountId')).toBe('9');
-		expect(params.get('accountName')).toBe('Acme');
+		expect(params.has('accountId')).toBe(false);
+		expect(params.has('accountName')).toBe(false);
 		expect(params.get('rangeKey')).toBe('7');
 	});
 

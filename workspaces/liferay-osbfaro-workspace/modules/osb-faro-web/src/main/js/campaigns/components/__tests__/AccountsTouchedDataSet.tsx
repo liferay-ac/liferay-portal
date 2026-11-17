@@ -3,6 +3,7 @@ import React from 'react';
 import {cleanup, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {warmFrontendDataSet} from 'test/warm-frontend-data-set';
+import {CampaignAccountFilterProvider} from 'campaigns/context/CampaignAccountFilterContext';
 
 jest.unmock('react-dom');
 
@@ -19,17 +20,21 @@ jest.mock('@liferay/frontend-data-set-web', () => ({
 
 const getFields = () => lastFDSProps.views[0].schema.fields;
 
-const renderDataSet = (initialEntry = '/', props = {}) =>
+const renderDataSet = (initialEntry = '/', props = {}, initialAccount = null) =>
 	render(
 		<MemoryRouter initialEntries={[initialEntry]}>
-			<AccountsTouchedDataSet
-				campaignId="7"
-				channelId="123"
-				groupId="23"
-				lifecycles={[{externalReferenceCode: 'lifecycle-55', id: '55'}]}
-				loading={false}
-				{...props}
-			/>
+			<CampaignAccountFilterProvider initialAccount={initialAccount}>
+				<AccountsTouchedDataSet
+					campaignId="7"
+					channelId="123"
+					groupId="23"
+					lifecycles={[
+						{externalReferenceCode: 'lifecycle-55', id: '55'},
+					]}
+					loading={false}
+					{...props}
+				/>
+			</CampaignAccountFilterProvider>
 		</MemoryRouter>
 	);
 
@@ -60,7 +65,7 @@ describe('AccountsTouchedDataSet', () => {
 	});
 
 	it('should ask the endpoint for the account selected globally', () => {
-		renderDataSet('/?accountId=9&accountName=Acme');
+		renderDataSet('/', {}, {id: '9', name: 'Acme'} as any);
 
 		expect(lastFDSProps.apiURL).toBe(
 			'/o/faro/contacts/23/campaigns/7/accounts?accountIds=9&accountLifecycleId=55&channelId=123&rangeKey=30'
