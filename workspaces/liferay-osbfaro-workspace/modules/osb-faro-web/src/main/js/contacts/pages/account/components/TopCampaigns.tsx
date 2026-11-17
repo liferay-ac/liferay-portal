@@ -3,10 +3,11 @@ import ClayLink from '@clayui/link';
 import React from 'react';
 import {columns, FrontendDataSet} from 'shared/components/FrontendDataSet';
 import {DropdownRangeKey} from 'shared/components/dropdown-range-key/DropdownRangeKey';
-import {pickBy} from 'lodash';
 import {Routes, setUriQueryValues, toRoute} from 'shared/util/router';
 import {Text} from '@clayui/core';
 import {useParams} from 'react-router-dom';
+import {asRouterLinkProps} from 'shared/components/RouterLink';
+import {buildCampaignAccountState} from 'campaigns/context/CampaignAccountFilterContext';
 import {useRangeQueryValues} from 'shared/hooks/useRangeQueryValues';
 import {useRangeSelectorChange} from 'shared/hooks/useRangeSelectorChange';
 
@@ -27,10 +28,12 @@ const TopCampaigns: React.FC<ITopCampaignsProps> = ({accountName}) => {
 	const {apiRangeParams, rangeSelectors, routeRangeParams} =
 		useRangeQueryValues();
 
-	const linkQueryValues = {
-		...routeRangeParams,
-		...pickBy({accountId: id, accountName}),
-	};
+	// The account goes in the router state rather than in the URL, so Campaigns
+	// opens filtered by it without carrying it in the address.
+
+	const linkState = id
+		? buildCampaignAccountState({id, name: accountName || id})
+		: undefined;
 
 	const {handleRangeSelectorChange} = useRangeSelectorChange();
 
@@ -70,8 +73,9 @@ const TopCampaigns: React.FC<ITopCampaignsProps> = ({accountName}) => {
 									channelId,
 									groupId,
 									itemData,
-									queryValues: linkQueryValues,
+									queryValues: routeRangeParams,
 									route: Routes.CAMPAIGNS_DETAIL,
+									state: linkState,
 									value,
 								}),
 							countRenderer: columns.countRenderer,
@@ -149,10 +153,11 @@ const TopCampaigns: React.FC<ITopCampaignsProps> = ({accountName}) => {
 						className="button-root rounded-lg"
 						displayType="primary"
 						href={setUriQueryValues(
-							linkQueryValues,
+							routeRangeParams,
 							toRoute(Routes.CAMPAIGNS, {channelId, groupId})
 						)}
 						small
+						{...asRouterLinkProps({state: linkState})}
 					>
 						{Liferay.Language.get('view-all')}
 					</ClayLink>

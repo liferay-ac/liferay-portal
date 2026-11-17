@@ -30,3 +30,11 @@ const RouterLink = React.forwardRef<HTMLAnchorElement, IRouterLinkProps>(
 );
 
 export default RouterLink;
+
+/**
+ * `ClayLink` hands its extra props to the link it renders, which is a router
+ * `Link` here, so `state` reaches it even though the Clay types do not declare
+ * it. This keeps the cast in one place.
+ */
+
+export const asRouterLinkProps = (props: {state?: object}) => props as {};

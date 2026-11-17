@@ -1,4 +1,5 @@
 import ClayLink from '@clayui/link';
+import {asRouterLinkProps} from 'shared/components/RouterLink';
 import {ClayIconSpriteContext as PortalClayIconSpriteContext} from '@clayui/icon-runtime';
 import {CLAY_ICONS_SPRITEMAP} from 'shared/components/Icon';
 import FaroConstants, {RangeKeyTimeRanges} from 'shared/util/constants';
@@ -142,6 +143,7 @@ export const columns = {
 		itemData,
 		queryValues,
 		route,
+		state,
 		value,
 	}: {
 		channelId: string;
@@ -149,6 +151,7 @@ export const columns = {
 		itemData: {id: string | number};
 		queryValues?: {[key: string]: any};
 		route: string;
+		state?: object;
 		value: string;
 	}) => {
 		const itemTitle = value || itemData.id;
@@ -163,6 +166,7 @@ export const columns = {
 			<ClayLink
 				className="font-weight-semi-bold text-dark"
 				href={queryValues ? setUriQueryValues(queryValues, href) : href}
+				{...asRouterLinkProps({state})}
 			>
 				{itemTitle}
 			</ClayLink>
