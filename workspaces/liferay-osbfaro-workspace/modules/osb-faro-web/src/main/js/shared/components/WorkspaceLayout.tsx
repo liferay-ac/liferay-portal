@@ -10,7 +10,13 @@ import WorkspaceGate from 'shared/components/WorkspaceGate';
 import WorkspaceHomeRedirect from 'shared/components/WorkspaceHomeRedirect';
 import {compose} from 'redux';
 import {connect} from 'react-redux';
-import {Route, Routes as RouterRoutes, useParams} from 'react-router-dom';
+import {CampaignAccountFilterProvider} from 'campaigns/context/CampaignAccountFilterContext';
+import {
+	Outlet,
+	Route,
+	Routes as RouterRoutes,
+	useParams,
+} from 'react-router-dom';
 import {Project} from 'shared/util/records';
 import {RootState} from 'shared/store';
 import {useModalNotifications} from 'shared/hooks/useModalNotifications';
@@ -344,23 +350,31 @@ const WorkspaceLayer = ({groupId}: {groupId: string}) => {
 
 								<Route
 									element={
-										<BundleRouter
-											data={CampaignsDashboard}
-											destructured={false}
-										/>
+										<CampaignAccountFilterProvider>
+											<Outlet />
+										</CampaignAccountFilterProvider>
 									}
-									path=":channelId?/campaigns"
-								/>
+								>
+									<Route
+										element={
+											<BundleRouter
+												data={CampaignsDashboard}
+												destructured={false}
+											/>
+										}
+										path=":channelId?/campaigns"
+									/>
 
-								<Route
-									element={
-										<BundleRouter
-											data={CampaignDetail}
-											destructured={false}
-										/>
-									}
-									path=":channelId?/campaigns/:id"
-								/>
+									<Route
+										element={
+											<BundleRouter
+												data={CampaignDetail}
+												destructured={false}
+											/>
+										}
+										path=":channelId?/campaigns/:id"
+									/>
+								</Route>
 
 								<Route
 									element={

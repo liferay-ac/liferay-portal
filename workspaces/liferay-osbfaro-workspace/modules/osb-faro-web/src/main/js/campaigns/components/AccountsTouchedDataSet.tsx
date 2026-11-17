@@ -13,7 +13,7 @@ import {
 import {pickBy} from 'lodash';
 import {Routes, setUriQueryValues} from 'shared/util/router';
 import {toThousands} from 'shared/util/numbers';
-import {useAccountFilter} from 'shared/hooks/useAccountFilter';
+import {useCampaignAccountFilter} from 'campaigns/context/CampaignAccountFilterContext';
 import {useRangeQueryValues} from 'shared/hooks/useRangeQueryValues';
 import {ILifecycleDetail} from 'shared/api/lifecycle';
 
@@ -71,7 +71,7 @@ const AccountsTouchedDataSet: React.FC<IAccountsTouchedDataSetProps> = ({
 	lifecycles,
 	loading,
 }) => {
-	const {accountId} = useAccountFilter();
+	const {accountId} = useCampaignAccountFilter();
 	const {apiRangeParams} = useRangeQueryValues();
 
 	if (loading) {

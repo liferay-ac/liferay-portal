@@ -10,7 +10,7 @@ import React, {useContext} from 'react';
 import {ChannelContext} from 'shared/context/channel';
 import {DropdownRangeKey} from 'shared/components/dropdown-range-key/DropdownRangeKey';
 import {SectionHeader} from 'shared/components/SectionHeader';
-import {useAccountFilter} from 'shared/hooks/useAccountFilter';
+import {useCampaignAccountFilter} from 'campaigns/context/CampaignAccountFilterContext';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
 import {useParams} from 'react-router-dom';
@@ -19,7 +19,7 @@ import {useRangeSelectorChange} from 'shared/hooks/useRangeSelectorChange';
 import {useRequest} from 'shared/hooks/useRequest';
 
 const Campaigns: React.FC = () => {
-	const {accountId, accountName, setAccount} = useAccountFilter();
+	const {accountId, accountName, setAccount} = useCampaignAccountFilter();
 	const currentUser = useCurrentUser();
 	const {selectedChannel} = useContext(ChannelContext);
 

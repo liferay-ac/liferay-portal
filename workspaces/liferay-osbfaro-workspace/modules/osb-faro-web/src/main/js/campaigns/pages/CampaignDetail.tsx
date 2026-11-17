@@ -9,15 +9,14 @@ import {ChannelContext} from 'shared/context/channel';
 import {DropdownRangeKey} from 'shared/components/dropdown-range-key/DropdownRangeKey';
 import {pickBy} from 'lodash';
 import {SectionHeader} from 'shared/components/SectionHeader';
-import {useAccountFilter} from 'shared/hooks/useAccountFilter';
+import {useCampaignAccountFilter} from 'campaigns/context/CampaignAccountFilterContext';
 import {useParams} from 'react-router-dom';
 import {useQueryRangeSelectors} from 'shared/hooks/useQueryRangeSelectors';
 import {useRangeSelectorChange} from 'shared/hooks/useRangeSelectorChange';
 import {useRequest} from 'shared/hooks/useRequest';
 
 const CampaignDetail: React.FC = () => {
-	const {accountId, accountName, accountQueryValues, setAccount} =
-		useAccountFilter();
+	const {accountId, accountName, setAccount} = useCampaignAccountFilter();
 	const {selectedChannel} = useContext(ChannelContext);
 
 	const {channelId, groupId, id} = useParams();
@@ -48,10 +47,7 @@ const CampaignDetail: React.FC = () => {
 					breadcrumbs.getCampaigns({
 						channelId: channelId!,
 						groupId: groupId!,
-						queryValues: pickBy({
-							...rangeSelectors,
-							...accountQueryValues,
-						}),
+						queryValues: pickBy(rangeSelectors),
 					}),
 					breadcrumbs.getEntityName({label: title}),
 				]}
