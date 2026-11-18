@@ -14,6 +14,7 @@ ENV CATALINA_OPTS="-server -XX:NewSize=1024m -XX:MaxNewSize=1024m -Xms4096m -Xmx
 	JAVA_OPTS="-Djava.rmi.server.hostname=0.0.0.0 -Xdebug -Xrunjdwp:transport=dt_socket,address=*:8000,server=y,suspend=n -XX:+IgnoreUnrecognizedVMOptions --add-opens java.base/java.lang.invoke=ALL-UNNAMED" \
 	LABEL_BUILD_DATE=${LABEL_BUILD_DATE} \
 	LABEL_VCS_REF=${LABEL_VCS_REF} \
+	LIFERAY_JVM_OPTS="-XX:-UseBASE64Intrinsics" \
 	OSB_API_PORT=443 \
 	OSB_API_PROTOCOL=https \
 	OSB_API_URL=webserver-lrkoroneiki-uat.lfr.cloud \
