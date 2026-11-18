@@ -10,6 +10,7 @@ import com.liferay.osb.faro.internal.upgrade.v24_2_0.GroupFriendlyURLUpgradeProc
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.upgrade.DummyUpgradeStep;
 import com.liferay.portal.kernel.upgrade.MVCCVersionUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.UpgradeProcessFactory;
 import com.liferay.portal.kernel.util.PropsValues;
@@ -218,6 +219,8 @@ public class FaroServiceUpgradeStepRegistrator
 			UpgradeProcessFactory.addColumns(
 				"OSBFaro_FaroProjectUsage", "billableEventsCount LONG",
 				"experimentEventsCount LONG"));
+
+		registry.register("25.0.0", "25.1.0", new DummyUpgradeStep());
 	}
 
 	@Reference
