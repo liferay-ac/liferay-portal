@@ -44,8 +44,11 @@ import {formatUTCDateFromUnix, getCustomDateFormat} from 'shared/util/date';
 import {formatXAxisDate, getIntervals} from 'shared/util/charts';
 import {get, isNil} from 'lodash';
 import {getNetChange} from 'shared/util/change';
-import {INDIVIDUALS} from 'shared/util/router';
-import {OrderByDirections, RangeKeyTimeRanges} from 'shared/util/constants';
+import {
+	INDIVIDUALS,
+	OrderByDirections,
+	RangeKeyTimeRanges,
+} from 'shared/util/constants';
 import {OrderedMap} from 'immutable';
 import {OrderParams} from 'shared/util/records';
 import {IndividualTypes} from 'segment/segment-editor/dynamic/utils/constants';
@@ -643,7 +646,7 @@ const SegmentGrowthWithList: React.FC<ISegmentGrowthWithList> = ({
 	const getColumns = () => {
 		if (hasSelectedPoint) {
 			return [
-				changesListColumns.getIndividualName({channelId, groupId}),
+				changesListColumns.getIndividualName(),
 				changesListColumns.individualEmail,
 				changesListColumns.getDateFirst(timeZoneId),
 				changesListColumns.getOperation(timeZoneId),
@@ -651,7 +654,7 @@ const SegmentGrowthWithList: React.FC<ISegmentGrowthWithList> = ({
 		}
 
 		return [
-			individualsListColumns.getName({channelId, groupId}),
+			individualsListColumns.getName(),
 			individualsListColumns.email,
 			individualsListColumns.getDateCreated(timeZoneId),
 		];

@@ -7,14 +7,21 @@ package com.liferay.osb.faro.web.internal.fragment.renderer;
 
 import com.liferay.fragment.renderer.FragmentRenderer;
 import com.liferay.fragment.renderer.FragmentRendererContext;
+import com.liferay.frontend.taglib.clay.servlet.taglib.util.NavigationItemList;
 import com.liferay.frontend.taglib.react.servlet.taglib.ComponentTag;
 import com.liferay.osb.faro.web.internal.display.context.ChannelSelectorDisplayContext;
 import com.liferay.osb.faro.web.internal.util.FaroFragmentRendererUtil;
-import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.GroupConstants;
+import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.ParamUtil;
+import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.taglib.servlet.PageContextFactoryUtil;
 
@@ -23,6 +30,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.jsp.JspWriter;
 import jakarta.servlet.jsp.PageContext;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.osgi.service.component.annotations.Reference;
 
@@ -46,14 +56,6 @@ public abstract class BaseFragmentRenderer implements FragmentRenderer {
 				"window.faroConstants = " +
 					FaroFragmentRendererUtil.getFaroConstants() + ";",
 				null, null);
-			FaroFragmentRendererUtil.renderScriptTag(
-				httpServletRequest, httpServletResponse, null,
-				StringBundler.concat(
-					"document.addEventListener('DOMContentLoaded', () => {",
-					"for (const id of ['liferayAUICSS', 'liferayThemeCSS']) {",
-					"const element = document.getElementById(id);",
-					"if (element) {element.disabled = true;}}});"),
-				null, null);
 
 			PageContext pageContext = PageContextFactoryUtil.create(
 				httpServletRequest, httpServletResponse);
@@ -61,6 +63,10 @@ public abstract class BaseFragmentRenderer implements FragmentRenderer {
 			JspWriter jspWriter = pageContext.getOut();
 
 			jspWriter.write("<div>");
+
+			ThemeDisplay themeDisplay =
+				(ThemeDisplay)httpServletRequest.getAttribute(
+					WebKeys.THEME_DISPLAY);
 
 			ComponentTag componentTag = new ComponentTag();
 
@@ -78,14 +84,51 @@ public abstract class BaseFragmentRenderer implements FragmentRenderer {
 						return channelSelectorDisplayContext.getFaroChannelId();
 					}
 				).put(
-					"groupId",
+					"friendlyURL",
 					() -> {
-						ThemeDisplay themeDisplay =
-							(ThemeDisplay)httpServletRequest.getAttribute(
-								WebKeys.THEME_DISPLAY);
+						Layout layout = themeDisplay.getLayout();
 
-						return String.valueOf(themeDisplay.getScopeGroupId());
+						return layout.getFriendlyURL();
 					}
+				).put(
+					"groupId", String.valueOf(themeDisplay.getScopeGroupId())
+				).put(
+					"navigationItems",
+					() -> getNavigationItems(httpServletRequest)
+				).put(
+					"pageURLs",
+					() -> {
+						Map<String, String> pageURLs = new HashMap<>();
+
+						Group group = groupLocalService.getGroup(
+							themeDisplay.getCompanyId(), GroupConstants.GUEST);
+
+						for (long groupId :
+								new long[] {
+									group.getGroupId(),
+									themeDisplay.getScopeGroupId()
+								}) {
+
+							for (Layout layout :
+									layoutLocalService.getLayouts(
+										groupId, false)) {
+
+								pageURLs.put(
+									layout.getFriendlyURL(),
+									portal.getLayoutRelativeURL(
+										layout, themeDisplay));
+							}
+						}
+
+						return pageURLs;
+					}
+				).put(
+					"params", getParams(httpServletRequest)
+				).put(
+					"sidebarNavigationItems",
+					() -> getSidebarNavigationItems(httpServletRequest)
+				).put(
+					"signOutURL", themeDisplay.getURLSignOut()
 				).build());
 			componentTag.setServletContext(servletContext);
 
@@ -102,6 +145,69 @@ public abstract class BaseFragmentRenderer implements FragmentRenderer {
 	}
 
 	protected abstract String getModule();
+
+	protected NavigationItemList getNavigationItems(
+			HttpServletRequest httpServletRequest)
+		throws Exception {
+
+		return null;
+	}
+
+	protected Map<String, String> getParams(
+		HttpServletRequest httpServletRequest) {
+
+		return HashMapBuilder.put(
+			"accountId", ParamUtil.getString(httpServletRequest, "accountId")
+		).put(
+			"accountName",
+			ParamUtil.getString(httpServletRequest, "accountName")
+		).put(
+			"campaignId", ParamUtil.getString(httpServletRequest, "campaignId")
+		).put(
+			"campaignName",
+			ParamUtil.getString(httpServletRequest, "campaignName")
+		).put(
+			"delta", ParamUtil.getString(httpServletRequest, "delta")
+		).put(
+			"downloadReport",
+			ParamUtil.getString(httpServletRequest, "downloadReport")
+		).put(
+			"field", ParamUtil.getString(httpServletRequest, "field")
+		).put(
+			"page", ParamUtil.getString(httpServletRequest, "page")
+		).put(
+			"query", ParamUtil.getString(httpServletRequest, "query")
+		).put(
+			"rangeEnd", ParamUtil.getString(httpServletRequest, "rangeEnd")
+		).put(
+			"rangeKey", ParamUtil.getString(httpServletRequest, "rangeKey")
+		).put(
+			"rangeStart", ParamUtil.getString(httpServletRequest, "rangeStart")
+		).put(
+			"segmentId", ParamUtil.getString(httpServletRequest, "segmentId")
+		).put(
+			"segmentName",
+			ParamUtil.getString(httpServletRequest, "segmentName")
+		).put(
+			"sortOrder", ParamUtil.getString(httpServletRequest, "sortOrder")
+		).build();
+	}
+
+	protected NavigationItemList getSidebarNavigationItems(
+			HttpServletRequest httpServletRequest)
+		throws Exception {
+
+		return null;
+	}
+
+	@Reference
+	protected GroupLocalService groupLocalService;
+
+	@Reference
+	protected LayoutLocalService layoutLocalService;
+
+	@Reference
+	protected Portal portal;
 
 	@Reference(target = "(osgi.web.symbolicname=com.liferay.osb.faro.web)")
 	protected ServletContext servletContext;

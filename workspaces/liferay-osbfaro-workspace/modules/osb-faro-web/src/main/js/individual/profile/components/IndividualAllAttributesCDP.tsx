@@ -12,19 +12,18 @@ import {
 } from 'shared/components/table/cell-components';
 import {formatDateToTimeZone, getCustomDateFormat} from 'shared/util/date';
 import {SectionHeader} from 'shared/components/SectionHeader';
-import {useQueryParams} from 'shared/hooks/useQueryParams';
 import {useRequest} from 'shared/hooks/useRequest';
 import {withEmpty} from 'cerebro-shared/hocs/utils';
 import {withError, withLoading} from 'shared/hoc/util';
+import {config} from 'shared/util/config';
 
 /**
  * Details List Columns for CDP
  */
 export const detailsListCDPColumns = {
-	getDataSourceName: (groupId: string) => ({
+	getDataSourceName: () => ({
 		accessor: 'dataSourceName',
 		cellRenderer: SourceCell,
-		cellRendererProps: {groupId},
 		label: Liferay.Language.get('data-source'),
 		sortable: false,
 	}),
@@ -94,7 +93,7 @@ const IndividualDetailsCDP = ({
 	individualId: string;
 	showEmptyState: boolean;
 }) => {
-	const {query} = useQueryParams();
+	const {query} = config.params;
 
 	const response = useRequest({
 		dataSourceFn: API.individuals.fetchDetails,
@@ -220,9 +219,7 @@ const IndividualDetailsCDP = ({
 							columns={[
 								detailsListCDPColumns.name,
 								detailsListCDPColumns.sourceName,
-								detailsListCDPColumns.getDataSourceName(
-									groupId
-								),
+								detailsListCDPColumns.getDataSourceName(),
 								detailsListCDPColumns.getDateModified(),
 							]}
 							entityLabel={Liferay.Language.get('all-attributes')}

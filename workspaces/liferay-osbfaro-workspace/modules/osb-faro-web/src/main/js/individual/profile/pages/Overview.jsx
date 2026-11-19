@@ -9,11 +9,15 @@ import React from 'react';
 import URLConstants from 'shared/util/url-constants';
 import {connect} from 'react-redux';
 import {createOrderIOMap, INDIVIDUAL_COUNT} from 'shared/util/pagination';
-import {EntityTypes, OrderByDirections} from 'shared/util/constants';
+import {
+	EntityTypes,
+	INDIVIDUALS,
+	OrderByDirections,
+} from 'shared/util/constants';
 import {Individual} from 'shared/util/records';
-import {INDIVIDUALS} from 'shared/util/router';
 import {PropTypes} from 'prop-types';
-import {Routes, toRoute} from 'shared/util/router';
+import {config} from 'shared/util/config';
+import {setUriQueryValues} from 'shared/util/url';
 
 const ITEMS_PER_CARD = 5;
 
@@ -61,9 +65,7 @@ export class Overview extends React.Component {
 
 					<div className='overview-column-side'>
 						<DetailsCard
-							channelId={channelId}
 							entity={individual}
-							groupId={groupId}
 							timeZoneId={timeZoneId}
 						/>
 
@@ -109,14 +111,7 @@ export class Overview extends React.Component {
 									)}
 								/>
 							)}
-							pageUrl={toRoute(
-								Routes.CONTACTS_INDIVIDUAL_SEGMENTS,
-								{
-									channelId,
-									groupId,
-									id
-								}
-							)}
+							pageUrl={setUriQueryValues({id}, config.individualSegmentsURL)}
 						/>
 					</div>
 				</div>

@@ -1,30 +1,22 @@
-import BundleRouter from 'route-middleware/BundleRouter';
-import LDPLayout from 'shared/components/LDPLayout';
 import AccountsList from 'contacts/pages/account/List';
+import BundleRouter from 'route-middleware/BundleRouter';
+import ErrorPage from 'shared/pages/ErrorPage';
+import PageApp, {IPageAppProps} from '../PageApp';
 import React from 'react';
-import SectionApp from '../SectionApp';
+import {LDPElement} from 'shared/components/LDPElement';
 
-interface IAccountsAppProps {
-	channelId: string;
-	groupId: string;
+interface IAccountsParams {
+	[name: string]: string | undefined;
+	campaignId?: string;
+	campaignName?: string;
 }
 
-const AccountsApp: React.FC<IAccountsAppProps> = (props) => (
-	<SectionApp
-		{...props}
-		path="contacts/accounts"
-		routes={[
-			{
-				children: [
-					{
-						element: <BundleRouter data={AccountsList} />,
-						path: 'contacts/accounts',
-					},
-				],
-				element: <LDPLayout />,
-			},
-		]}
-	/>
+const AccountsApp: React.FC<IPageAppProps<IAccountsParams>> = (props) => (
+	<PageApp {...props}>
+		<LDPElement fallback={<ErrorPage />}>
+			<BundleRouter data={AccountsList} />
+		</LDPElement>
+	</PageApp>
 );
 
 export {AccountsApp as Accounts};

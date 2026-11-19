@@ -8,7 +8,7 @@ import React, {lazy, Suspense, useEffect, useState} from 'react';
 import {getCustomDateFormat} from 'shared/util/date';
 import DataValue from 'shared/components/DataValue';
 import {Text} from '@clayui/core';
-import {setUriQueryValues, toRoute} from 'shared/util/router';
+import {setUriQueryValues} from 'shared/util/url';
 
 import type {
 	EConfigInURLBehavior,
@@ -138,27 +138,19 @@ export const columns = {
 		</div>
 	),
 	nameAndLinkRenderer: ({
-		channelId,
-		groupId,
 		itemData,
 		queryValues,
-		route,
+		url,
 		value,
 	}: {
-		channelId: string;
-		groupId: string;
 		itemData: {id: string | number};
 		queryValues?: {[key: string]: any};
-		route: string;
+		url: string;
 		value: string;
 	}) => {
 		const itemTitle = value || itemData.id;
 
-		const href = toRoute(route, {
-			channelId,
-			groupId,
-			id: itemData.id,
-		});
+		const href = setUriQueryValues({id: itemData.id}, url);
 
 		return (
 			<ClayLink

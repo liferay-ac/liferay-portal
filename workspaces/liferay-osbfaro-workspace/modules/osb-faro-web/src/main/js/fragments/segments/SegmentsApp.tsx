@@ -1,24 +1,23 @@
 import BundleRouter from 'route-middleware/BundleRouter';
+import PageApp, {IPageAppProps} from '../PageApp';
 import React from 'react';
-import SectionApp from '../SectionApp';
 import SegmentsList from 'segment/pages/List';
 
-interface ISegmentsAppProps {
-	channelId: string;
-	groupId: string;
+interface ISegmentsParams {
+	[name: string]: string | undefined;
+	delta?: string;
+	field?: string;
+	page?: string;
+	query?: string;
+	segmentCategory?: string;
+	segmentType?: string;
+	sortOrder?: string;
 }
 
-const SegmentsApp: React.FC<ISegmentsAppProps> = (props) => (
-	<SectionApp
-		{...props}
-		path="contacts/segments"
-		routes={[
-			{
-				element: <BundleRouter data={SegmentsList} />,
-				path: 'contacts/segments',
-			},
-		]}
-	/>
+const SegmentsApp: React.FC<IPageAppProps<ISegmentsParams>> = (props) => (
+	<PageApp {...props}>
+		<BundleRouter data={SegmentsList} />
+	</PageApp>
 );
 
 export {SegmentsApp as Segments};

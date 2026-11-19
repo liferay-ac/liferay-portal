@@ -1,6 +1,11 @@
-import FaroConstants, {OrderByDirections} from 'shared/util/constants';
+import FaroConstants, {
+	ACCOUNTS,
+	INDIVIDUALS,
+	OrderByDirections,
+	SEGMENTS,
+	USERS,
+} from 'shared/util/constants';
 import PropTypes from 'prop-types';
-import {ACCOUNTS, INDIVIDUALS, SEGMENTS, USERS} from 'shared/util/router';
 import {get} from 'lodash';
 import {Map, OrderedMap} from 'immutable';
 import {OrderParams} from 'shared/util/records';

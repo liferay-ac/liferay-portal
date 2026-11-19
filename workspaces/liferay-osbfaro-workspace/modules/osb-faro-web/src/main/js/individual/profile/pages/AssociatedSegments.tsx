@@ -13,8 +13,8 @@ import {
 } from 'shared/util/pagination';
 import {EntityTypes, Sizes} from 'shared/util/constants';
 import {RootState} from 'shared/store';
-import {Routes, SEGMENTS, toRoute} from 'shared/util/router';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
+import {config} from 'shared/util/config';
 
 interface IFetchAssociatedSegmentsArgs {
 	[key: string]: unknown;
@@ -128,11 +128,7 @@ const AssociatedSegments: React.FC<IAssociatedSegmentsProps> = ({
 				button
 				className="button-root"
 				displayType="primary"
-				href={toRoute(Routes.CONTACTS_LIST_SEGMENT, {
-					channelId,
-					groupId,
-					type: SEGMENTS,
-				})}
+				href={config.segmentsURL}
 			>
 				{Liferay.Language.get('create-segment')}
 			</ClayLink>

@@ -1,42 +1,19 @@
-import AppProviders from '../../AppProviders';
 import BundleRouter from 'route-middleware/BundleRouter';
-import React, {useEffect, useState} from 'react';
-import RootLayout from '../../RootLayout';
+import GuestPageApp, {IGuestPageAppProps} from '../GuestPageApp';
+import React from 'react';
 import Workspaces from 'shared/pages/Workspaces';
-import {
-	createMemoryRouter,
-	RouterProvider,
-	useLocation,
-} from 'react-router-dom';
 
-const FullPageLoad = () => {
-	const {pathname, search} = useLocation();
+interface IWorkspacesParams {
+	[name: string]: string | undefined;
+	allBasicConfigured?: string;
+}
 
-	useEffect(() => {
-		window.location.assign(pathname + search);
-	}, [pathname, search]);
-
-	return null;
-};
-
-const WorkspacesApp = () => {
-	const [router] = useState(() =>
-		createMemoryRouter([
-			{
-				children: [
-					{element: <BundleRouter data={Workspaces} />, index: true},
-					{element: <FullPageLoad />, path: '*'},
-				],
-				element: <RootLayout />,
-			},
-		])
-	);
-
-	return (
-		<AppProviders>
-			<RouterProvider router={router} />
-		</AppProviders>
-	);
-};
+const WorkspacesApp: React.FC<IGuestPageAppProps<IWorkspacesParams>> = (
+	props
+) => (
+	<GuestPageApp {...props}>
+		<BundleRouter data={Workspaces} />
+	</GuestPageApp>
+);
 
 export {WorkspacesApp as Workspaces};

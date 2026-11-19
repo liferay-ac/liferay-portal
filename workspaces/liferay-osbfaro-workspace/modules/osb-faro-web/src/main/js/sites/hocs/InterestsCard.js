@@ -13,9 +13,9 @@ import {
 import {graphql} from '@apollo/client/react/hoc';
 import {pickBy} from 'lodash';
 import {ReportContainer} from 'shared/components/download-report/DownloadPDFReport';
-import {Routes, setUriQueryValues, toRoute} from 'shared/util/router';
-import {useParams} from 'react-router-dom';
 import {withTableData} from 'shared/hoc';
+import {setUriQueryValues} from 'shared/util/url';
+import {config} from 'shared/util/config';
 
 const withData = () =>
 	graphql(InterestsQuery, {
@@ -63,7 +63,7 @@ const TableWithData = withTableData(withData, {
 });
 
 const InterestsCard = ({minHeight}) => {
-	const {channelId, groupId} = useParams();
+	const {channelId} = config;
 
 	const {Last7Days, Last30Days, Last90Days, Yesterday} = RangeKeyTimeRanges;
 
@@ -103,10 +103,7 @@ const InterestsCard = ({minHeight}) => {
 									segmentId,
 									...rangeSelectors,
 								}),
-								toRoute(Routes.SITES_INTERESTS, {
-									channelId,
-									groupId,
-								})
+								config.siteInterestsURL
 							)}
 							small
 						>

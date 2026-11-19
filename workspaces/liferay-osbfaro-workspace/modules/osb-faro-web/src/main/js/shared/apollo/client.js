@@ -4,10 +4,8 @@ import {DEVELOPER_MODE} from 'shared/util/constants';
 import {get} from 'lodash';
 import {loadDevMessages, loadErrorMessages} from '@apollo/client/dev';
 import {onError} from '@apollo/client/link/error';
-import {reloadPage} from 'shared/util/router';
+import {reloadPage} from 'shared/util/url';
 import {resolvers} from './resolvers/resolvers';
-
-const groupIdRegex = /^\/workspace\/([a-z0-9._-]+)/;
 
 let defaultGroupId = null;
 
@@ -21,16 +19,11 @@ export function setDefaultGroupId(groupId) {
  * @param {object} options
  */
 const fetchWithGroupId = (uri, options) => {
-	const currentUri = new URL(window.location.href);
 	const {operationName} = JSON.parse(options.body);
-	const matches = currentUri.pathname.match(groupIdRegex);
 
-	const groupId =
-		matches !== null && matches.length > 1 ? matches[1] : defaultGroupId;
-
-	if (groupId) {
+	if (defaultGroupId) {
 		return fetch(
-			`${uri}?opname=${operationName}&projectGroupId=${groupId}`,
+			`${uri}?opname=${operationName}&projectGroupId=${defaultGroupId}`,
 			options
 		);
 	}

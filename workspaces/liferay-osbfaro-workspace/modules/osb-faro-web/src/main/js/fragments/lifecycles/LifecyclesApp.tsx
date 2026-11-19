@@ -1,35 +1,23 @@
 import BundleRouter from 'route-middleware/BundleRouter';
-import LDPLayout from 'shared/components/LDPLayout';
+import ErrorPage from 'shared/pages/ErrorPage';
 import LifecycleDashboard from 'lifecycle/pages/BaseLifecycle';
+import PageApp, {IPageAppProps} from '../PageApp';
 import React from 'react';
-import SectionApp from '../SectionApp';
+import {LDPElement} from 'shared/components/LDPElement';
 
-interface ILifecyclesAppProps {
-	channelId: string;
-	groupId: string;
+interface ILifecyclesParams {
+	[name: string]: string | undefined;
+	lifecycleId?: string;
+	segmentId?: string;
+	segmentName?: string;
 }
 
-const LifecyclesApp: React.FC<ILifecyclesAppProps> = (props) => (
-	<SectionApp
-		{...props}
-		path="lifecycle"
-		routes={[
-			{
-				children: [
-					{
-						element: (
-							<BundleRouter
-								data={LifecycleDashboard}
-								destructured={false}
-							/>
-						),
-						path: 'lifecycle/:lifecycleId?',
-					},
-				],
-				element: <LDPLayout />,
-			},
-		]}
-	/>
+const LifecyclesApp: React.FC<IPageAppProps<ILifecyclesParams>> = (props) => (
+	<PageApp {...props}>
+		<LDPElement fallback={<ErrorPage />}>
+			<BundleRouter data={LifecycleDashboard} destructured={false} />
+		</LDPElement>
+	</PageApp>
 );
 
-export {LifecyclesApp as Lifecycles};
+export default LifecyclesApp;

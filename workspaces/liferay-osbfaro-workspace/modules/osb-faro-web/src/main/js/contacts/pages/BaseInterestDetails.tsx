@@ -7,21 +7,14 @@ import InterestPagesList from 'contacts/components/InterestPagesList';
 import React from 'react';
 import SearchableEntityTable from 'shared/components/SearchableEntityTable';
 import {Account, Segment} from 'shared/util/records';
-import {
-	ACCOUNTS,
-	INDIVIDUALS,
-	PAGES,
-	Routes,
-	SEGMENTS,
-	setUriQueryValue,
-	toRoute,
-} from 'shared/util/router';
+import {ACCOUNTS, INDIVIDUALS, PAGES, SEGMENTS} from 'shared/util/constants';
 import {createOrderIOMap, NAME} from 'shared/util/pagination';
 import {formatUTCDateFromUnix} from 'shared/util/date';
 import {getSafeDecodedURIComponent} from 'shared/util/util';
 import {individualsListColumns} from 'shared/util/table-columns';
 import {sub} from 'shared/util/lang';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
+import {setUriQueryValues} from 'shared/util/url';
 
 const tabIds = {
 	INDIVIDUALS,
@@ -33,20 +26,16 @@ interface IIndividualListProps {
 	groupId: string;
 }
 
-const IndividualsList: React.FC<IIndividualListProps> = ({
-	channelId,
-	groupId,
-	...otherProps
-}) => {
+const IndividualsList: React.FC<IIndividualListProps> = (props) => {
 	const {delta, orderIOMap, page, query} = useQueryPagination({
 		initialOrderIOMap: createOrderIOMap(NAME),
 	});
 
 	return (
 		<SearchableEntityTable
-			{...otherProps}
+			{...props}
 			columns={[
-				individualsListColumns.getName({channelId, groupId}),
+				individualsListColumns.getName(),
 				individualsListColumns.email,
 				individualsListColumns.accountName,
 			]}
@@ -91,8 +80,9 @@ interface IBaseInterestDetailsProps extends IInterestDetailsListProp {
 	active?: string;
 	entity: Account | Segment;
 	id: string;
-	interestDetailsRoute: string;
+	interestDetailsURL: string;
 	interestId: string;
+	interestsURL: string;
 	type: typeof ACCOUNTS | typeof SEGMENTS;
 }
 
@@ -102,8 +92,9 @@ const BaseInterestDetails: React.FC<IBaseInterestDetailsProps> = ({
 	entity,
 	groupId,
 	id,
-	interestDetailsRoute,
+	interestDetailsURL,
 	interestId,
+	interestsURL,
 	tabId,
 	type,
 }) => {
@@ -112,42 +103,39 @@ const BaseInterestDetails: React.FC<IBaseInterestDetailsProps> = ({
 	const navigationItems = [
 		{
 			active: tabIds.INDIVIDUALS === tabId,
-			href: toRoute(interestDetailsRoute, {
-				channelId,
-				groupId,
-				id,
-				interestId,
-				tabId: tabIds.INDIVIDUALS,
-			}),
+			href: setUriQueryValues(
+				{
+					id,
+					interestId,
+					tabId: tabIds.INDIVIDUALS,
+				},
+				interestDetailsURL
+			),
 			label: Liferay.Language.get('individuals'),
 		},
 		{
 			active: tabIds.PAGES === tabId && active,
-			href: setUriQueryValue(
-				toRoute(interestDetailsRoute, {
-					channelId,
-					groupId,
+			href: setUriQueryValues(
+				{
+					active: 'true',
 					id,
 					interestId,
 					tabId: PAGES,
-				}),
-				'active',
-				true
+				},
+				interestDetailsURL
 			),
 			label: Liferay.Language.get('active-pages'),
 		},
 		{
 			active: tabIds.PAGES === tabId && !active,
-			href: setUriQueryValue(
-				toRoute(interestDetailsRoute, {
-					channelId,
-					groupId,
+			href: setUriQueryValues(
+				{
+					active: 'false',
 					id,
 					interestId,
 					tabId: PAGES,
-				}),
-				'active',
-				false
+				},
+				interestDetailsURL
 			),
 			label: Liferay.Language.get('inactive-pages'),
 		},
@@ -181,12 +169,7 @@ const BaseInterestDetails: React.FC<IBaseInterestDetailsProps> = ({
 					borderless
 					button
 					displayType="secondary"
-					href={toRoute(Routes.CONTACTS_INTERESTS, {
-						channelId,
-						groupId,
-						id,
-						type,
-					})}
+					href={setUriQueryValues({id}, interestsURL)}
 					small
 				>
 					<ClayIcon
