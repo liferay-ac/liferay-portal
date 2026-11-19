@@ -14,6 +14,7 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 
@@ -38,6 +39,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ServiceScope;
@@ -167,6 +169,15 @@ public class ParameterContainerRequestFilter implements ContainerRequestFilter {
 	}
 
 	private void _validateRange(String rangeEnd, String rangeStart) {
+		if (((rangeEnd != null) || (rangeStart != null)) &&
+			_rangeKeyOnlyResourceMethodNames.contains(
+				_getResourceMethodName())) {
+
+			throw new BadRequestException(
+				"\"rangeEnd\" and \"rangeStart\" are not supported by this " +
+					"endpoint");
+		}
+
 		LocalDate rangeEndLocalDate = _toLocalDate("rangeEnd", rangeEnd);
 		LocalDate rangeStartLocalDate = _toLocalDate("rangeStart", rangeStart);
 
@@ -258,6 +269,8 @@ public class ParameterContainerRequestFilter implements ContainerRequestFilter {
 
 	private static final int _DATE_RANGE_LIMIT = 180;
 
+	private static final Set<String> _rangeKeyOnlyResourceMethodNames =
+		SetUtil.fromArray("getWorkspaceGroupChannelVisitorMetric");
 	private static final Map<String, String[]> _sortableFieldNames =
 		HashMapBuilder.put(
 			"getWorkspaceGroupAccountLifecycleStageTransitionsPage",
@@ -309,6 +322,8 @@ public class ParameterContainerRequestFilter implements ContainerRequestFilter {
 			"rangeKey", _getNames(TimeRange.values())
 		).put(
 			"status", new String[] {"ACTIVE", "INACTIVE"}
+		).put(
+			"type", new String[] {"CHANNEL", "REFERRER", "SOURCE_MEDIUM"}
 		).build();
 
 	@Context
