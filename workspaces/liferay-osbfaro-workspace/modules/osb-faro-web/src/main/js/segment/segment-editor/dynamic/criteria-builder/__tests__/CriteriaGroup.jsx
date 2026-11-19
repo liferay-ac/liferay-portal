@@ -1,6 +1,6 @@
 import CriteriaGroup from '../CriteriaGroup';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {cleanup, fireEvent, render, screen} from '@testing-library/react';
 import {Conjunctions} from '../../utils/constants';
 import {DndProvider} from 'react-dnd';
 import {HTML5Backend} from 'react-dnd-html5-backend';
@@ -114,6 +114,54 @@ describe('CriteriaGroup', () => {
 			).toBeTrue();
 		}
 	);
+
+	it('should render the group operator picker with the match of the conjunction when the group has more than one item', () => {
+		renderGroup({conjunction: Conjunctions.Or, count: 2, root: true});
+
+		expect(
+			screen.getByRole('combobox', {name: 'Match Logic'})
+		).toHaveTextContent('Any');
+	});
+
+	it('should not render the group operator picker when the group has a single item', () => {
+		renderGroup({conjunction: Conjunctions.And, count: 1, root: true});
+
+		expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+	});
+
+	it('should not render the group operator picker in a sequential group', () => {
+		renderGroup({
+			conjunction: Conjunctions.And,
+			count: 3,
+			root: true,
+			sequential: true
+		});
+
+		expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+	});
+
+	it('should change the conjunction of the group when another match is chosen', () => {
+		const onChange = jest.fn();
+
+		render(
+			<DndProvider backend={HTML5Backend}>
+				<CriteriaGroup
+					criteria={makeCriteria(Conjunctions.And, 2)}
+					criteriaGroupId='group'
+					onChange={onChange}
+					onMove={() => {}}
+					root
+				/>
+			</DndProvider>
+		);
+
+		fireEvent.click(screen.getByRole('combobox', {name: 'Match Logic'}));
+		fireEvent.click(screen.getByRole('option', {name: 'Any'}));
+
+		expect(onChange).toHaveBeenCalledWith(
+			expect.objectContaining({conjunctionName: Conjunctions.Or})
+		);
+	});
 
 	it('should render numbered step stickers on each top-level criterion when root and sequential', () => {
 		const {container} = render(
