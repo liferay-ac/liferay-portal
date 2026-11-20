@@ -3,7 +3,7 @@ import Card from 'shared/components/Card';
 import ClayButton from '@clayui/button';
 import ClayLink from '@clayui/link';
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
-import React, {useMemo} from 'react';
+import React, {useEffect, useMemo} from 'react';
 import SearchableEntityTable from 'shared/components/SearchableEntityTable';
 import URLConstants from 'shared/util/url-constants';
 import {
@@ -22,6 +22,7 @@ import {
 	RelationalOperators,
 } from 'segment/segment-editor/dynamic/utils/constants';
 import {FilterByType, FilterInputType, FilterOptionType} from 'shared/types';
+import {getPeriodFilterLabel} from 'shared/util/filter';
 import {IndividualsListCDPColumns} from 'shared/util/table-columns';
 import {Map, Set} from 'immutable';
 import {RangeKeyTimeRanges, Sizes} from 'shared/util/constants';
@@ -58,10 +59,10 @@ const ORDER_BY_OPTIONS = [
 	},
 ];
 
-const DEFAULT_FILTER_BY_OPTIONS: FilterOptionType[] = [
+const getDefaultFilterByOptions = (campaignId?: string): FilterOptionType[] => [
 	{
 		key: 'activeUsers',
-		label: Liferay.Language.get('active-individuals'),
+		label: getPeriodFilterLabel(campaignId),
 		type: 'radio' as FilterInputType,
 		values: [
 			{
@@ -144,11 +145,13 @@ function transformCountriesInQueryString(countries: string[]) {
 interface IIndividualsListProps {
 	campaignId?: string;
 	onClearFilters?: () => void;
+	onRangeKeyChange?: (rangeKey: number | null) => void;
 }
 
 const IndividualsList: React.FC<IIndividualsListProps> = ({
 	campaignId,
 	onClearFilters,
+	onRangeKeyChange,
 }) => {
 	const {channelId = '', groupId = ''} = useParams<{
 		channelId: string;
@@ -176,6 +179,8 @@ const IndividualsList: React.FC<IIndividualsListProps> = ({
 	const FILTER_BY_OPTIONS: FilterOptionType[] = useMemo(() => {
 		const countries = countriesData?.items;
 
+		const defaultFilterByOptions = getDefaultFilterByOptions(campaignId);
+
 		if (countries?.length) {
 			return [
 				{
@@ -186,17 +191,21 @@ const IndividualsList: React.FC<IIndividualsListProps> = ({
 						value: country,
 					})),
 				},
-				...DEFAULT_FILTER_BY_OPTIONS,
+				...defaultFilterByOptions,
 			];
 		}
 
-		return DEFAULT_FILTER_BY_OPTIONS;
-	}, [countriesData, countriesLoading]);
+		return defaultFilterByOptions;
+	}, [campaignId, countriesData, countriesLoading]);
 
 	const activeUsersValue =
 		paginationParams.filterBy.get('activeUsers')?.first() ?? null;
 
 	const rangeKey = activeUsersValue ? parseInt(activeUsersValue) : null;
+
+	useEffect(() => {
+		onRangeKeyChange?.(rangeKey);
+	}, [onRangeKeyChange, rangeKey]);
 
 	const selectedFilters = {
 		accountTypes:
