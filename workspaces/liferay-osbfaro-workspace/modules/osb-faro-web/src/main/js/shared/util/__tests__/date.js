@@ -56,22 +56,9 @@ describe('date', () => {
 	});
 
 	describe('getDate', () => {
-		const date1 = '2018-04-05T00:00';
-		const date2 = '2018-04-05T00:00';
-
-		xit('should return the date1 with timezone from Etc/GMT', () => {
-			const date = getDate(date1);
-
-			expect(date).toEqualWithoutType(
-				'Thu Apr 05 2018 00:00:00 GMT+0000 (GMT)'
-			);
-		});
-
-		xit('should return the date2 with timezone from Etc/GMT', () => {
-			const date = getDate(date2);
-
-			expect(date).toEqualWithoutType(
-				'Thu Apr 05 2018 00:00:00 GMT+0000 (GMT)'
+		it('should read the date as UTC', () => {
+			expect(getDate('2018-04-05T00:00').toISOString()).toBe(
+				'2018-04-05T00:00:00.000Z'
 			);
 		});
 	});
