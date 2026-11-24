@@ -12,7 +12,6 @@ describe('Sites Dashboard Interests', () => {
 			<Interests router={{params: {groupId: '23'}, query: {}}} />,
 			{
 				apolloMocks: [mockTimeRangeReq(), mockPreferenceReq()],
-				channel: {channels: [], selectedChannel: null},
 				path: `${Routes.SITES_INTERESTS}/*`,
 				route: '/workspace/23/sites/interests',
 				store: configureStore(),
