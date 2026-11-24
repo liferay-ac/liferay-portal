@@ -131,6 +131,7 @@ export default class Tabs extends React.Component<ITabsProps> {
 				</ScrollableSection>
 
 				<ClayButton
+					aria-expanded={showAddProperty}
 					aria-label={Liferay.Language.get('add')}
 					borderless
 					className={getCN('button-root add-tab', {
