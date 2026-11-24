@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import ActiveIndividualsChart from '../ActiveIndividualsChart';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render} from 'test/render';
 import {createDateKeysIMap} from 'shared/util/intervals';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
 
