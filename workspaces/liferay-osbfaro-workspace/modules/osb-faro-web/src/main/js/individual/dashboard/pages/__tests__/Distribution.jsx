@@ -1,12 +1,9 @@
 import {useDataSources} from 'shared/context/dataSources';
 import * as data from 'test/data';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render} from 'test/render';
 import {IndividualsDistribution} from '../Distribution';
 import {mockEmptyState, mockSuccessState} from 'test/__mocks__/mock-objects';
-import {Provider} from 'react-redux';
-import {MemoryRouter} from 'react-router-dom';
 import {User} from 'shared/util/records';
 
 jest.mock('react-router-dom', () => ({
@@ -26,21 +23,13 @@ const defaultProps = {
 	groupId: '123'
 };
 
-const WrappedComponent = () => (
-	<Provider store={mockStore()}>
-		<MemoryRouter>
-			<IndividualsDistribution {...defaultProps} />
-		</MemoryRouter>
-	</Provider>
-);
-
 describe('Individuals Dashboard Distribution', () => {
 	afterEach(cleanup);
 
 	it('renders', () => {
 		useDataSources.mockReturnValue(mockSuccessState);
 
-		const {container} = render(<WrappedComponent />);
+		const {container} = render(<IndividualsDistribution {...defaultProps} />);
 
 		expect(
 			container.querySelector('.individuals-dashboard-distribution-root')
@@ -50,7 +39,7 @@ describe('Individuals Dashboard Distribution', () => {
 	it('renders with data source empty state', () => {
 		useDataSources.mockReturnValue(mockEmptyState);
 
-		const {getByText} = render(<WrappedComponent />);
+		const {getByText} = render(<IndividualsDistribution {...defaultProps} />);
 
 		expect(getByText(/^no data sources are connected$/i)).toBeInTheDocument();
 	});
