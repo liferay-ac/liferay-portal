@@ -1,6 +1,6 @@
 import Edit from '../Edit';
 import React from 'react';
-import {render, screen} from '@testing-library/react';
+import {render, screen} from 'test/render';
 import {SegmentTypes} from 'shared/util/constants';
 
 jest.mock('../edit/Dynamic', () => ({
