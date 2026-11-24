@@ -13,8 +13,6 @@ import {range} from 'lodash';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {Routes} from 'shared/util/router';
 
-jest.unmock('react-dom');
-
 jest.mock('../components/attribute-conjunction-input', () => () => (
 	<div>{'AttributeConjunctionInput'}</div>
 ));
