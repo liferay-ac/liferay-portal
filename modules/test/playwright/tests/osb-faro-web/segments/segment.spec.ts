@@ -9,6 +9,7 @@ import {apiHelpersTest} from '../../../fixtures/apiHelpersTest';
 import {featureFlagsTest} from '../../../fixtures/featureFlagsTest';
 import {instanceSettingsPagesTest} from '../../../fixtures/instanceSettingsPagesTest';
 import {isolatedChannelTest} from '../../../fixtures/isolatedChannelTest';
+import {isolatedDXPSyncedChannelTest} from '../../../fixtures/isolatedDXPSyncedChannelTest';
 import {loginAnalyticsCloudTest} from '../../../fixtures/loginAnalyticsCloudTest';
 import {loginTest} from '../../../fixtures/loginTest';
 import {liferayConfig} from '../../../liferay.config';
@@ -2022,12 +2023,25 @@ test(
 	}
 );
 
-test(
+// The membership search only counts individuals that belong to a data source
+// of the channel, so this test needs a channel with a connected data source
+
+const dxpSyncedTest = mergeTests(test, isolatedDXPSyncedChannelTest);
+
+dxpSyncedTest(
 	'Preview the membership of a batch segment with a First Name criterion',
 	{
 		tag: '@LRAC-8490',
 	},
-	async ({analyticsChannel: channel, apiHelpers, page, project}) => {
+	async ({
+		analyticsChannel: channel,
+		apiHelpers,
+		dxpSyncedAnalyticsChannel,
+		page,
+		project,
+	}) => {
+		const {dataSourceId} = dxpSyncedAnalyticsChannel;
+
 		const runId = getRandomString();
 		const baseName = `user${runId}`;
 		const individualNames = [
@@ -2036,9 +2050,10 @@ test(
 			`${baseName}3`,
 		];
 
-		const individuals: Individual[] = individualNames.map((name) =>
-			generateIndividual({name})
-		);
+		const individuals: Individual[] = individualNames.map((name) => ({
+			...generateIndividual({name}),
+			dataSourceId,
+		}));
 
 		await createIndividuals({apiHelpers, individuals});
 
@@ -2070,15 +2085,28 @@ test(
 			page,
 		});
 
-		await editCriteriaAttributeValue({
-			attributeValue: runId,
-			page,
-		});
+		// The seeded individuals can take a few seconds to be searchable and the
+		// membership count is not refreshed on its own, so re-apply the value
+		// until the preview button is enabled
+
+		await expect(async () => {
+			await editCriteriaAttributeValue({attributeValue: '', page});
+
+			await editCriteriaAttributeValue({attributeValue: runId, page});
+
+			// Dismiss the value autocomplete so it does not hide the preview button
+
+			await page.keyboard.press('Escape');
+
+			await expect(
+				page.getByRole('button', {name: 'View Members'})
+			).toBeEnabled({timeout: 5000});
+		}).toPass({timeout: 60000});
 
 		// Open the in-editor View Members preview and assert the three seeded individuals appear
 
 		await clickAndExpectToBeVisible({
-			target: page.getByText('Known Segment Members'),
+			target: page.getByText('Segment Membership', {exact: true}),
 			trigger: page.getByRole('button', {name: 'View Members'}),
 		});
 
