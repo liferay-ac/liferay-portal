@@ -39,6 +39,10 @@ import {
 } from '@testing-library/react';
 import {Store} from 'redux';
 
+// `renderHook` comes straight from Testing Library, without the app providers.
+// When a hook test needs the store, Apollo, router or channel context, add a
+// `renderHook` here that reuses the same wrapper as `render`.
+
 export * from '@testing-library/react';
 
 export interface IRenderOptions extends RenderOptions {
