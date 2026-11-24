@@ -14,7 +14,7 @@ describe('BetweenNumberInput', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	fit('should render with error', () => {
+	it('should render with error', () => {
 		const {container, queryByTestId} = render(
 			<BetweenNumberInput
 				onChange={jest.fn()}
