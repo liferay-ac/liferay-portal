@@ -1,17 +1,13 @@
 import AcquisitionsCard from '../AcquisitionsCard';
 import BasePage from 'shared/components/base-page';
-import mockStore from 'test/mock-store';
 import React from 'react';
 import {CompositionTypes, RangeKeyTimeRanges} from 'shared/util/constants';
-import {MemoryRouter} from 'react-router-dom';
 import {
 	mockAcquisitionsReq,
 	mockPreferenceReq,
 	mockTimeRangeReq,
 } from 'test/graphql-data';
-import {MockedProvider} from '@apollo/client/testing';
-import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {render} from 'test/render';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 const MOCK_CONTEXT = {
@@ -27,31 +23,29 @@ const MOCK_CONTEXT = {
 	},
 };
 
-const DefaultComponent = () => (
-	<Provider store={mockStore()}>
-		<BasePage.Context.Provider value={MOCK_CONTEXT}>
-			<MemoryRouter>
-				<MockedProvider
-					addTypename={false}
-					mocks={[
-						mockTimeRangeReq(),
-						mockPreferenceReq(),
-						mockAcquisitionsReq(),
-					]}
-				>
-					<AcquisitionsCard
-						compositionBagName={CompositionTypes.Acquisitions}
-						label="card label"
-					/>
-				</MockedProvider>
-			</MemoryRouter>
-		</BasePage.Context.Provider>
-	</Provider>
+const BasePageContext = ({children}: {children: React.ReactNode}) => (
+	<BasePage.Context.Provider value={MOCK_CONTEXT}>
+		{children}
+	</BasePage.Context.Provider>
 );
 
 describe('AcquisitionsCard', () => {
 	it('renders', async () => {
-		const {container} = render(<DefaultComponent />);
+		const {container} = render(
+			<AcquisitionsCard
+				compositionBagName={CompositionTypes.Acquisitions}
+				label="card label"
+			/>,
+			{
+				addTypename: false,
+				apolloMocks: [
+					mockTimeRangeReq(),
+					mockPreferenceReq(),
+					mockAcquisitionsReq(),
+				],
+				wrapper: BasePageContext,
+			}
+		);
 
 		await waitForLoadingToBeRemoved(container);
 
