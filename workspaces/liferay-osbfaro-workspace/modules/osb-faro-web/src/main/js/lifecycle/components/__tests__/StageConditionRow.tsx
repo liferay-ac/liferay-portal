@@ -1,7 +1,7 @@
 import React from 'react';
 import StageConditionRow from '../StageConditionRow';
 import {createStageCondition} from 'lifecycle/utils/stageConfiguration';
-import {fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from 'test/render';
 import {ICatalogField} from 'shared/api/catalog';
 import {IStageCondition} from 'lifecycle/utils/stageConfiguration';
 
