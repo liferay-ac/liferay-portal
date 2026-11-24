@@ -15,10 +15,4 @@ describe('DistributionCard AddPropertyForm', () => {
 		).toBeInTheDocument();
 		expect(getByText(Liferay.Language.get('save'))).toBeInTheDocument();
 	});
-
-	it.skip('renders w/ context dropdown', () => {
-		const {container} = render(<AddPropertyForm showContext />);
-
-		expect(container.querySelector('.context-select')).toBeTruthy();
-	});
 });
