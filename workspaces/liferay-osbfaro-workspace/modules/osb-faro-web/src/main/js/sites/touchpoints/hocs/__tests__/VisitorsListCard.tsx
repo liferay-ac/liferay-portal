@@ -1,11 +1,6 @@
-import client from 'shared/apollo/client';
 import VisitorsListCard from '../VisitorsListCard';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {ApolloProvider} from '@apollo/client';
-import {fireEvent, render} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
+import {fireEvent, render} from 'test/render';
 
 const MOCK_ROUTER = {
 	params: {
@@ -18,13 +13,7 @@ const MOCK_ROUTER = {
 describe('VisitorsListCard', () => {
 	it('shows an Accounts tab active by default and switches to the Known Individuals tab on click', () => {
 		const {getByTestId, getByText} = render(
-			<Provider store={mockStore()}>
-				<ApolloProvider client={client}>
-					<MemoryRouter>
-						<VisitorsListCard router={MOCK_ROUTER} />
-					</MemoryRouter>
-				</ApolloProvider>
-			</Provider>
+			<VisitorsListCard router={MOCK_ROUTER} />
 		);
 
 		expect(getByText(/^accounts$/i)).toBeTruthy();
