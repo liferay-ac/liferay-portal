@@ -14,9 +14,9 @@
  *   uses a ready store.
  * - Apollo: `MockedProvider` with no responses; `apolloMocks` (and
  *   `addTypename`) configure it. Never the real client.
- * - Router: `MemoryRouter` at `/`; `route` sets the URL, and `path` renders
- *   the component as the element of a matching `Route`, so `useParams` reads
- *   the URL.
+ * - Router: `MemoryRouter` at `/`; `route` sets the URL (or a location with
+ *   `state`), and `path` renders the component as the element of a matching
+ *   `Route`, so `useParams` reads the URL.
  * - Channel: `mockChannelContext()`; `channel` provides another value.
  * - `wrapper` still works and sits innermost, for one-off contexts.
  *
@@ -29,7 +29,7 @@ import mockStore from 'test/mock-store';
 import React from 'react';
 import {MockedProvider, MockedResponse} from '@apollo/client/testing';
 import {ChannelContext} from 'shared/context/channel';
-import {MemoryRouter, Route, Routes} from 'react-router-dom';
+import {InitialEntry, MemoryRouter, Route, Routes} from 'react-router-dom';
 import {mockChannelContext} from 'test/mock-channel-context';
 import {Provider} from 'react-redux';
 import {
@@ -46,7 +46,7 @@ export interface IRenderOptions extends RenderOptions {
 	apolloMocks?: ReadonlyArray<MockedResponse>;
 	channel?: React.ContextType<typeof ChannelContext>;
 	path?: string;
-	route?: string;
+	route?: InitialEntry;
 	store?: Store;
 	storeData?: unknown;
 }
