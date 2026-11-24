@@ -20,8 +20,8 @@ describe('DistributionCard Tabs', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	it('renders w/ Add button as selected', () => {
-		const {container} = render(
+	it('renders w/ Add button expanded', () => {
+		const {getByRole} = render(
 			<Tabs
 				itemsIList={
 					new List([new DistributionTab({id: '123', title: 'Tab 1'})])
@@ -31,6 +31,9 @@ describe('DistributionCard Tabs', () => {
 			/>
 		);
 
-		expect(container.querySelector('.add-tab')).toHaveClass('active');
+		expect(getByRole('button', {name: /^add$/i})).toHaveAttribute(
+			'aria-expanded',
+			'true'
+		);
 	});
 });
