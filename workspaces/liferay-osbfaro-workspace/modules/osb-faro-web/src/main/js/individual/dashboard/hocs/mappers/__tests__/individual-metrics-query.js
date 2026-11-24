@@ -62,7 +62,9 @@ describe('Individual Metrics Query Mapper', () => {
 					change: 25.4,
 					id: 'anonymousIndividualsMetric',
 					info: {
-						content: expect.stringMatching(/anonymous individuals/i),
+						content: expect.stringMatching(
+							/anonymous individuals/i
+						),
 						title: 'Anonymous Individuals',
 					},
 					title: 'Anonymous',

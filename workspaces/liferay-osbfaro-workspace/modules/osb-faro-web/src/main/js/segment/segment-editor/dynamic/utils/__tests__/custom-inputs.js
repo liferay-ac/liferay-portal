@@ -84,7 +84,6 @@ jest.mock('uuid', () => ({v4: () => '01'}));
 
 describe('Custom Inputs Util', () => {
 	describe('createCustomValueMap', () => {
-
 		it('should create an immutable valueIMap from a given param array', () => {
 			expect(
 				createCustomValueMap([
