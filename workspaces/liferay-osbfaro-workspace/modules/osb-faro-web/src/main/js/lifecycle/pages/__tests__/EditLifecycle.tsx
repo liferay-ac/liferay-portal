@@ -1,12 +1,9 @@
 import * as API from 'shared/api';
 import EditLifecycle from '../EditLifecycle';
-import mockStore from 'test/mock-store';
 import React from 'react';
 import {Alert} from 'shared/types';
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {ILifecycleStage} from 'shared/api/lifecycle';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
+import {fireEvent, render, screen, waitFor} from 'test/render';
 import {Routes, toRoute} from 'shared/util/router';
 import {useLifecycleAccountData} from 'lifecycle/hooks/useLifecycleAccountData';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -98,15 +95,6 @@ const mockLifecycleRequest = (lifecycleRequest: object) =>
 			: lifecycleRequest
 	);
 
-const renderPage = () =>
-	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter>
-				<EditLifecycle />
-			</MemoryRouter>
-		</Provider>
-	);
-
 const lifecycleURL = toRoute(Routes.LIFECYCLE_DASHBOARD, {
 	channelId: '123',
 	groupId: '23',
@@ -142,7 +130,7 @@ describe('EditLifecycle', () => {
 				status: AccountDataStatus.NoAccountData,
 			});
 
-			renderPage();
+			render(<EditLifecycle />);
 
 			expect(
 				screen.getByText(/no account data available/i)
@@ -163,7 +151,7 @@ describe('EditLifecycle', () => {
 				status: AccountDataStatus.Error,
 			});
 
-			renderPage();
+			render(<EditLifecycle />);
 
 			fireEvent.click(screen.getByRole('button', {name: /reload/i}));
 
@@ -175,7 +163,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('opens on the configuration summary with the edit toolbar', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		expect(
 			screen.getByRole('heading', {level: 1, name: /edit lifecycle/i})
@@ -192,7 +180,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('lists one chip per stage, in display order and labelled by name', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		const chips = screen.getAllByRole('group', {
 			name: /^(aware|qualified|pipeline)$/i,
@@ -205,7 +193,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('shows the selected stage and keeps edits when switching items', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.change(screen.getByLabelText(/^name/i), {
 			target: {value: 'Renamed Hub'},
@@ -226,7 +214,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('summarizes the saved lifecycle with its author and modified date', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		expect(screen.getByLabelText(/^description/i)).toHaveValue(
 			'Lifecycle for qualified accounts'
@@ -243,7 +231,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('saves the edited description and stage name', async () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.change(screen.getByLabelText(/^description/i), {
 			target: {value: 'Renamed description'},
@@ -272,7 +260,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('moves the selection to the next stage when the selected one is removed', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('group', {name: /^qualified$/i}));
 
@@ -290,7 +278,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('moves the selection to the previous stage when the last one is removed', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('group', {name: /^pipeline$/i}));
 
@@ -302,7 +290,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('counts the stages left after removing one', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /remove.aware/i}));
 
@@ -312,7 +300,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('saves removed and reordered stages numbered in their new order', async () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /remove.aware/i}));
 
@@ -350,7 +338,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('adds a stage at the end and selects it', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /add.stage/i}));
 
@@ -363,7 +351,7 @@ describe('EditLifecycle', () => {
 	it('leaves directly without changes, even after switching items', () => {
 		const mockedPrompt = useUnsavedChangesPrompt as jest.Mock;
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('group', {name: /^qualified$/i}));
 
@@ -377,7 +365,7 @@ describe('EditLifecycle', () => {
 	it('warns about unsaved changes after editing a stage', () => {
 		const mockedPrompt = useUnsavedChangesPrompt as jest.Mock;
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('group', {name: /^qualified$/i}));
 
@@ -391,7 +379,7 @@ describe('EditLifecycle', () => {
 	it('warns about unsaved changes after reordering the stages', () => {
 		const mockedPrompt = useUnsavedChangesPrompt as jest.Mock;
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		const handle = screen.getByRole('button', {name: /drag.aware/i});
 
@@ -405,7 +393,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('blocks Save when the last stage is removed', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		['aware', 'qualified', 'pipeline'].forEach((name) =>
 			fireEvent.click(
@@ -426,7 +414,7 @@ describe('EditLifecycle', () => {
 			new Error('failed')
 		);
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
@@ -444,7 +432,7 @@ describe('EditLifecycle', () => {
 			Object.assign(new Error('Request error'), {status: 409})
 		);
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
@@ -463,7 +451,7 @@ describe('EditLifecycle', () => {
 	it('renders a loading state while the lifecycle is loading', () => {
 		mockedUseRequest.mockReturnValue({data: undefined, loading: true});
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		expect(screen.queryByText(/edit lifecycle/i)).toBeNull();
 	});
@@ -471,7 +459,7 @@ describe('EditLifecycle', () => {
 	it('shows the dashboard not found state when the lifecycle is missing', () => {
 		mockLifecycleRequest({data: null, error: true, loading: false});
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		expect(screen.queryByText(/edit lifecycle/i)).toBeNull();
 		expect(
@@ -486,7 +474,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('saves the loaded version by its id, alerts success, and navigates to the dashboard', async () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
@@ -553,7 +541,7 @@ describe('EditLifecycle', () => {
 			],
 		});
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
