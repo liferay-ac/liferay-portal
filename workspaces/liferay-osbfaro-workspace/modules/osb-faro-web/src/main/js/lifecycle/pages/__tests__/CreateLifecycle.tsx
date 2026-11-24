@@ -1,6 +1,5 @@
 import * as API from 'shared/api';
 import CreateLifecycle from '../CreateLifecycle';
-import mockStore from 'test/mock-store';
 import React from 'react';
 import {Alert} from 'shared/types';
 import {
@@ -10,15 +9,8 @@ import {
 	MatchLogic,
 } from 'lifecycle/utils/stageConfiguration';
 import {LIFECYCLE_STAGE_DEFAULT_MAX_DAYS} from 'lifecycle/utils/constants';
-import {
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-	within,
-} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
+import {fireEvent, render, screen, waitFor, within} from 'test/render';
+import {InitialEntry} from 'react-router-dom';
 import {CATALOG_FIELDS_MAX_PAGE_SIZE} from 'shared/api/catalog';
 import {Routes, toRoute} from 'shared/util/router';
 import {useLifecycleAccountData} from 'lifecycle/hooks/useLifecycleAccountData';
@@ -100,16 +92,8 @@ jest.mock('shared/hooks/useHistoryAdapter', () => ({
 
 const mockedUseRequest = useRequest as jest.Mock;
 
-const renderPage = (
-	initialEntries: React.ComponentProps<
-		typeof MemoryRouter
-	>['initialEntries'] = ['/workspace/23/123/lifecycle/new']
-) =>
-	render(
-		<MemoryRouter initialEntries={initialEntries}>
-			<CreateLifecycle />
-		</MemoryRouter>
-	);
+const renderPage = (route: InitialEntry = '/workspace/23/123/lifecycle/new') =>
+	render(<CreateLifecycle />, {route});
 
 const lifecycleURL = toRoute(Routes.LIFECYCLE, {
 	channelId: '123',
@@ -143,24 +127,13 @@ describe('CreateLifecycle', () => {
 	});
 
 	describe('when the channel has no account data', () => {
-		const renderWithStore = () =>
-			render(
-				<Provider store={mockStore()}>
-					<MemoryRouter
-						initialEntries={['/workspace/23/123/lifecycle/new']}
-					>
-						<CreateLifecycle />
-					</MemoryRouter>
-				</Provider>
-			);
-
 		it('shows the empty state instead of the editor', () => {
 			(useLifecycleAccountData as jest.Mock).mockReturnValue({
 				refetch: jest.fn(),
 				status: AccountDataStatus.NoAccountData,
 			});
 
-			renderWithStore();
+			renderPage();
 
 			expect(
 				screen.getByText(/no account data available/i)
@@ -181,7 +154,7 @@ describe('CreateLifecycle', () => {
 				status: AccountDataStatus.Error,
 			});
 
-			renderWithStore();
+			renderPage();
 
 			fireEvent.click(screen.getByRole('button', {name: /reload/i}));
 
@@ -310,12 +283,10 @@ describe('CreateLifecycle', () => {
 	});
 
 	it('links cancel and back to the dashboard it was opened from', () => {
-		renderPage([
-			{
-				pathname: '/workspace/23/123/lifecycle/new',
-				state: {lifecycleId: '7'},
-			},
-		]);
+		renderPage({
+			pathname: '/workspace/23/123/lifecycle/new',
+			state: {lifecycleId: '7'},
+		});
 
 		const dashboardURL = toRoute(Routes.LIFECYCLE_DASHBOARD, {
 			channelId: '123',

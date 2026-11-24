@@ -1,7 +1,6 @@
 import LifecycleSettingsForm from '../LifecycleSettingsForm';
 import React from 'react';
-import {MemoryRouter} from 'react-router-dom';
-import {render, screen} from '@testing-library/react';
+import {render, screen} from 'test/render';
 import {resetBodyWidth, setBodyWidth} from 'test/body-width';
 import {useLifecycleSettingsForm} from 'lifecycle/hooks/useLifecycleSettingsForm';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -11,6 +10,7 @@ jest.mock('shared/hooks/useRequest', () => ({
 }));
 
 jest.mock('react-redux', () => ({
+	...jest.requireActual('react-redux'),
 	useDispatch: () => jest.fn(),
 }));
 
@@ -59,11 +59,7 @@ describe('LifecycleSettingsForm', () => {
 	afterEach(() => resetBodyWidth());
 
 	it('places the form in the BaseEditPage main content region', () => {
-		render(
-			<MemoryRouter>
-				<LifecycleSettingsFormHarness />
-			</MemoryRouter>
-		);
+		render(<LifecycleSettingsFormHarness />);
 
 		const main = screen
 			.getByDisplayValue('Customer Lifecycle')
@@ -73,11 +69,7 @@ describe('LifecycleSettingsForm', () => {
 	});
 
 	it('places the lifecycle conditions panel in the sidebar', () => {
-		render(
-			<MemoryRouter>
-				<LifecycleSettingsFormHarness />
-			</MemoryRouter>
-		);
+		render(<LifecycleSettingsFormHarness />);
 
 		expect(
 			screen
