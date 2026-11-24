@@ -1,8 +1,6 @@
 import {mapPropsToOptions, mapResultToProps} from '../individual-metrics-query';
-import {range} from 'lodash';
 
 const mockMetric = {
-	histogram: {metrics: range(5).map((i) => ({value: i}))},
 	trend: {percentage: 25.4},
 	value: 10,
 };
@@ -41,23 +39,36 @@ describe('Individual Metrics Query Mapper', () => {
 	});
 
 	describe('mapResultToProps', () => {
-		xit('should map results to props', () => {
-			expect(mapResultToProps(mockData).items).toEqual(
-				expect.arrayContaining([
-					expect.objectContaining({
-						change: expect.any(Number),
-						data: expect.any(Array),
-						id: expect.any(String),
-						info:
-							expect.objectContaining({
-								content: expect.any(String),
-								title: expect.any(String),
-							}) || undefined,
-						title: expect.any(String),
-						total: expect.any(Number),
-					}),
-				])
-			);
+		it('should map each metric to its total and trend', () => {
+			expect(mapResultToProps(mockData).items).toEqual([
+				{
+					change: 25.4,
+					id: 'totalIndividuals',
+					info: undefined,
+					title: 'Total Individuals',
+					total: 10,
+				},
+				{
+					change: 25.4,
+					id: 'knownIndividualsMetric',
+					info: {
+						content: expect.stringMatching(/known individuals/i),
+						title: 'Known Individuals',
+					},
+					title: 'Known',
+					total: 10,
+				},
+				{
+					change: 25.4,
+					id: 'anonymousIndividualsMetric',
+					info: {
+						content: expect.stringMatching(/anonymous individuals/i),
+						title: 'Anonymous Individuals',
+					},
+					title: 'Anonymous',
+					total: 10,
+				},
+			]);
 		});
 	});
 });
