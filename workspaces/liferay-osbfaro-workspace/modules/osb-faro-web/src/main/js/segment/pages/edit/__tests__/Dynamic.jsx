@@ -1,10 +1,7 @@
 import DynamicSegmentEdit from '../Dynamic';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render} from 'test/render';
 import {List} from 'immutable';
-import {Provider} from 'react-redux';
-import {MemoryRouter} from 'react-router';
 
 jest.mock('contacts/hoc/segment/WithBaseEdit', () => Component => Component);
 jest.mock(
@@ -21,16 +18,13 @@ jest.mock('segment/segment-editor/dynamic', () => ({
 
 const renderEdit = ({location = '/', segment} = {}) =>
 	render(
-		<MemoryRouter initialEntries={[location]}>
-			<Provider store={mockStore()}>
-				<DynamicSegmentEdit
-					groupId='23'
-					id='123'
-					propertyGroupsIList={new List()}
-					segment={segment}
-				/>
-			</Provider>
-		</MemoryRouter>
+		<DynamicSegmentEdit
+			groupId='23'
+			id='123'
+			propertyGroupsIList={new List()}
+			segment={segment}
+		/>,
+		{route: location}
 	);
 
 describe('DynamicSegmentEdit', () => {

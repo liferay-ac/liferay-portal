@@ -1,13 +1,10 @@
 import * as data from 'test/data';
 import Growth from 'segment/components/Growth';
 import Membership, {MembershipChart} from '../Membership';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {Provider} from 'react-redux';
-import {render, screen} from '@testing-library/react';
+import {render, screen} from 'test/render';
 import {Segment} from 'shared/util/records';
 import {SegmentTypes} from 'shared/util/constants';
-import {MemoryRouter} from 'react-router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 const defaultProps = {
@@ -28,11 +25,7 @@ jest.mock('segment/components/Growth', () => {
 
 describe('Membership', () => {
 	const WrappedComponent = props => (
-		<Provider store={mockStore()}>
-			<MemoryRouter>
-				<Membership {...defaultProps} {...props} />
-			</MemoryRouter>
-		</Provider>
+		<Membership {...defaultProps} {...props} />
 	);
 
 	it('should render', async () => {
@@ -78,9 +71,7 @@ describe('Membership', () => {
 
 describe('MembershipChart', () => {
 	const WrappedComponent = props => (
-		<MemoryRouter>
-			<MembershipChart {...defaultProps} {...props} />
-		</MemoryRouter>
+		<MembershipChart {...defaultProps} {...props} />
 	);
 
 	it('should render', async () => {

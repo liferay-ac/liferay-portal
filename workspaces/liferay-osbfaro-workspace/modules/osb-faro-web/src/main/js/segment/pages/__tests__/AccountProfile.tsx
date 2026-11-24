@@ -1,16 +1,11 @@
 import * as API from 'shared/api';
 import AccountProfile from '../AccountProfile';
 import DataSourcesProvider from 'shared/context/dataSources';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {ChannelContext} from 'shared/context/channel';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
-import {mockChannelContext} from 'test/mock-channel-context';
+import {cleanup, fireEvent, render, screen} from 'test/render';
 import {mockSegment} from 'test/data';
-import {Provider} from 'react-redux';
 import {Segment} from 'shared/util/records';
 import {SegmentCategories, SegmentStates} from 'shared/util/constants';
-import {MemoryRouter} from 'react-router';
 
 type FakeFilter = {
 	id: string;
@@ -51,28 +46,21 @@ jest.mock('shared/hooks/useTimeZone', () => ({
 
 const renderAccountProfile = (data = {}) =>
 	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter>
-				<ChannelContext.Provider value={mockChannelContext() as any}>
-					<DataSourcesProvider groupId="23">
-						<AccountProfile
-							channelId="123"
-							groupId="23"
-							segment={
-								new Segment(
-									mockSegment(0, {
-										externalReferenceCode: 'my-erc',
-										segmentCategory:
-											SegmentCategories.Account,
-										...data,
-									})
-								)
-							}
-						/>
-					</DataSourcesProvider>
-				</ChannelContext.Provider>
-			</MemoryRouter>
-		</Provider>
+		<DataSourcesProvider groupId="23">
+			<AccountProfile
+				channelId="123"
+				groupId="23"
+				segment={
+					new Segment(
+						mockSegment(0, {
+							externalReferenceCode: 'my-erc',
+							segmentCategory: SegmentCategories.Account,
+							...data,
+						})
+					)
+				}
+			/>
+		</DataSourcesProvider>
 	);
 
 describe('AccountProfile', () => {
