@@ -2,7 +2,7 @@ import DatePicker from '../index';
 import mockCurrentDate from 'test/mock-date';
 import moment from 'moment';
 import React from 'react';
-import {fireEvent, render} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 
 describe('DatePicker', () => {
 	let currentDate;
@@ -16,32 +16,27 @@ describe('DatePicker', () => {
 		currentDate = mockCurrentDate();
 	});
 
-	it('should render', () => {
-		const {container} = render(
-			<DatePicker date={moment(0)} minDate={moment(0)} />
-		);
+	it('should open on the month and year of the given date', () => {
+		render(<DatePicker date={moment('1970-01-15')} minDate={moment(0)} />);
 
 		jest.runAllTimers();
 
-		expect(container).toMatchSnapshot();
+		expect(screen.getByDisplayValue('January')).toBeInTheDocument();
+		expect(screen.getByDisplayValue('1970')).toBeInTheDocument();
 	});
 
 	it('should render the next month', () => {
-		const {getByTestId, queryAllByText} = render(
-			<DatePicker date={moment(0)} minDate={moment(0)} />
-		);
+		render(<DatePicker date={moment('1970-01-15')} minDate={moment(0)} />);
 
-		expect(queryAllByText(/30/).length).toBe(2);
-
-		fireEvent.click(getByTestId('next-month'));
+		fireEvent.click(screen.getByRole('button', {name: /next month/i}));
 
 		jest.runAllTimers();
 
-		expect(queryAllByText(/30/).length).toBe(0);
+		expect(screen.getByDisplayValue('February')).toBeInTheDocument();
 	});
 
 	it('should render label when a range is passed', () => {
-		const {queryByText} = render(
+		render(
 			<DatePicker
 				date={{
 					end: null,
@@ -53,11 +48,11 @@ describe('DatePicker', () => {
 
 		jest.runAllTimers();
 
-		expect(queryByText(/^end date$/i)).toBeTruthy();
+		expect(screen.getByText(/^end date$/i)).toBeInTheDocument();
 	});
 
-	fit('should render max range error when range > maxRange', () => {
-		const {queryByText} = render(
+	it('should render max range error when range > maxRange', () => {
+		render(
 			<DatePicker
 				date={{
 					end: moment().add(13, 'months'),
@@ -70,7 +65,7 @@ describe('DatePicker', () => {
 		jest.runAllTimers();
 
 		expect(
-			queryByText('This exceeds the maximum range of 365 days.')
-		).toBeTruthy();
+			screen.getByText('This exceeds the maximum range of 365 days.')
+		).toBeInTheDocument();
 	});
 });
