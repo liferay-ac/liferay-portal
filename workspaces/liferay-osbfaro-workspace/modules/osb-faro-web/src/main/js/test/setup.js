@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import 'jest-canvas-mock';
 import 'jest-extended/all';
 import lang from './lang';
 import {TextDecoder, TextEncoder} from 'util';
@@ -12,10 +13,20 @@ import {TextDecoder, TextEncoder} from 'util';
 console.error = jest.fn(); // eslint-disable-line no-console
 console.warn = jest.fn(); // eslint-disable-line no-console
 
+// Every test runs against the mock API in shared/api/__mocks__; none unmock it.
+
 jest.mock('shared/api');
+
+// DocumentTitle swaps the favicon through the LDP check; three tests unmock it.
+
 jest.mock('shared/components/DocumentTitle');
 
+// The portal page puts this class on body, and popovers and tooltips portal
+// into `body.dxp`, so tests exercise the lookup the portal takes.
+
 document.body.className = 'dxp';
+
+// Browser APIs jsdom lacks.
 
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
 	disconnect: jest.fn(),
@@ -23,15 +34,11 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 	unobserve: jest.fn(),
 }));
 
-global.analytics = {
-	group: () => {},
-	identify: () => {},
-	track: () => {},
-};
+global.TextDecoder = TextDecoder;
+global.TextEncoder = TextEncoder;
 
-global.AUI = () => ({
-	use: (module, callback) => callback(),
-});
+// Globals the portal page provides. Almost every component calls
+// Liferay.Language.get, and shared/util/pendo.ts calls the Pendo agent.
 
 global.Liferay = {
 	FeatureFlags: {},
@@ -52,55 +59,6 @@ global.Liferay = {
 	},
 };
 
-global.localStorage = (() => {
-	let store = {};
-
-	return {
-
-		/**
-		 * Clear
-		 */
-		clear() {
-			store = {};
-		},
-
-		/**
-		 * Get Item
-		 * @param {string} key
-		 */
-		getItem(key) {
-			return store[key];
-		},
-
-		/**
-		 * Remove Item
-		 * @param {string} key
-		 */
-		removeItem(key) {
-			delete store[key];
-		},
-
-		/**
-		 * Set Item
-		 * @param {string} key
-		 * @param {string} value
-		 */
-		setItem(key, value) {
-			store[key] = value.toString();
-		},
-	};
-})();
-
 global.pendo = {
 	initialize: () => {},
 };
-
-global.TextDecoder = TextDecoder;
-global.TextEncoder = TextEncoder;
-
-// if (typeof queueMicrotask === 'undefined') {
-// 	global.queueMicrotask = cb => Promise.resolve().then(cb);
-// }
-
-require('jest-extended/all');
-require('jest-canvas-mock');
