@@ -38,10 +38,23 @@ const renderCard = () =>
 
 const getDataSet = (id: string) => document.getElementById(id) as HTMLElement;
 
-const expectActivePane = (id: string) =>
-	waitFor(() =>
-		expect(getDataSet(id).closest('.tab-pane')).toHaveClass('active')
+const getSelectedPanel = () =>
+	document.getElementById(
+		screen
+			.getByRole('tab', {selected: true})
+			.getAttribute('aria-controls') as string
 	);
+
+// Clay marks the shown pane only with its active class, so the selected tab's
+// pane must also have that class, or a pane that never switches would pass.
+
+const expectActivePane = (id: string) =>
+	waitFor(() => {
+		const panel = getSelectedPanel();
+
+		expect(panel).toContainElement(getDataSet(id));
+		expect(panel).toHaveClass('active');
+	});
 
 beforeAll(warmFrontendDataSet);
 
@@ -61,10 +74,12 @@ describe('MembershipsCard', () => {
 	it('should render both tabs with Accounts Touched active', () => {
 		renderCard();
 
-		expect(screen.getByText(/^accounts touched$/i)).toHaveClass('active');
-		expect(screen.getByText(/^individuals touched$/i)).not.toHaveClass(
-			'active'
-		);
+		expect(
+			screen.getByRole('tab', {name: /^accounts touched$/i})
+		).toHaveAttribute('aria-selected', 'true');
+		expect(
+			screen.getByRole('tab', {name: /^individuals touched$/i})
+		).toHaveAttribute('aria-selected', 'false');
 	});
 
 	// The lifecycle stage sort only applies when the endpoint knows which
@@ -108,9 +123,9 @@ describe('MembershipsCard', () => {
 
 		await expectActivePane('campaign-accounts-dataset');
 
-		expect(
-			getDataSet('campaign-individuals-dataset').closest('.tab-pane')
-		).not.toHaveClass('active');
+		expect(getSelectedPanel()).not.toContainElement(
+			getDataSet('campaign-individuals-dataset')
+		);
 	});
 
 	it('should select the Individuals Touched tab when it is clicked', () => {
@@ -118,12 +133,12 @@ describe('MembershipsCard', () => {
 
 		fireEvent.click(screen.getByText(/^individuals touched$/i));
 
-		expect(screen.getByText(/^individuals touched$/i)).toHaveClass(
-			'active'
-		);
-		expect(screen.getByText(/^accounts touched$/i)).not.toHaveClass(
-			'active'
-		);
+		expect(
+			screen.getByRole('tab', {name: /^individuals touched$/i})
+		).toHaveAttribute('aria-selected', 'true');
+		expect(
+			screen.getByRole('tab', {name: /^accounts touched$/i})
+		).toHaveAttribute('aria-selected', 'false');
 	});
 
 	it('should show the individuals table under Individuals Touched', async () => {
