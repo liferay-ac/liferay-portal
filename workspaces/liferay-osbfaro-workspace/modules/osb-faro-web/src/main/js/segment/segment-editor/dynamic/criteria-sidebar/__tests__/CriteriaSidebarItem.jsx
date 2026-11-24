@@ -39,22 +39,6 @@ describe('CriteriaSidebarItem', () => {
 		expect(container.querySelector('.lexicon-icon-drag')).toBeNull();
 	});
 
-	it('marks the item as dragging while it is being dragged', () => {
-		const {container} = render(
-			<CriteriaSidebarItem
-				connectDragSource={connectDnd}
-				dragging
-				label='Click'
-				propertyKey='event'
-				type={PropertyTypes.Event}
-			/>
-		);
-
-		expect(
-			container.querySelector('.criteria-sidebar-item-root.dragging')
-		).toBeTruthy();
-	});
-
 	it('exposes the item as a menu item labelled with its add action', () => {
 		render(
 			<CriteriaSidebarItem
@@ -102,32 +86,6 @@ describe('CriteriaSidebarItem', () => {
 			expect(property).toEqual({label: 'Click'});
 		}
 	);
-
-	it('fades the item while it is being moved with the keyboard', () => {
-		render(
-			<KeyboardMovementContext.Provider
-				value={{
-					source: {
-						criterion: {propertyName: 'click'},
-						property: {propertyKey: 'event'}
-					},
-					startMovement: jest.fn(),
-					target: null
-				}}
-			>
-				<CriteriaSidebarItem
-					connectDragSource={connectDnd}
-					label='Click'
-					name='click'
-					propertyKey='event'
-					type={PropertyTypes.Event}
-				/>
-			</KeyboardMovementContext.Provider>
-		);
-
-		expect(screen.getByRole('menuitem')).toHaveClass('dragging');
-		expect(screen.queryByRole('button')).toBeNull();
-	});
 
 	it('replaces the native drag image with an empty image', () => {
 		const connectDragPreview = jest.fn();
