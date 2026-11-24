@@ -3,8 +3,6 @@ import {MemoryRouter} from 'react-router-dom';
 import {render} from '@testing-library/react';
 import {useRangeQueryValues} from 'shared/hooks/useRangeQueryValues';
 
-jest.unmock('react-dom');
-
 const renderRangeQueryValues = (queryString = '') => {
 	let rangeQueryValues;
 

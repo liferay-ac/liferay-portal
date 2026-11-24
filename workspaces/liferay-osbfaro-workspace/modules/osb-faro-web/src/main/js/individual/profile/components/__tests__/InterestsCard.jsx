@@ -7,8 +7,6 @@ import {SEGMENTS} from 'shared/util/router';
 import {MemoryRouter} from 'react-router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
-jest.unmock('react-dom');
-
 describe('InterestsCard', () => {
 	afterEach(cleanup);
 

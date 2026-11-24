@@ -8,8 +8,6 @@ import {render} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
-jest.unmock('react-dom');
-
 describe('BaseInterestDetails', () => {
 	beforeAll(() => mockDate());
 
