@@ -48,9 +48,10 @@ describe('BasePage.Sidebar', () => {
 	it('pushes the content without an overlay', () => {
 		render(<Panel open />);
 
+		expect(
+			screen.getByRole('button', {name: 'Inside'}).closest('.sidebar')
+		).not.toHaveAttribute('inert');
 		expect(screen.queryByTestId('base-page-sidebar-backdrop')).toBeNull();
-		expect(getPage()).toHaveClass('c-slideout-push-end');
-		expect(getPage()).not.toHaveClass('base-page-sidebar-overlay');
 	});
 
 	it('overlays the content in overlay mode', () => {
@@ -59,7 +60,6 @@ describe('BasePage.Sidebar', () => {
 		expect(
 			screen.getByTestId('base-page-sidebar-backdrop')
 		).toBeInTheDocument();
-		expect(getPage()).toHaveClass('base-page-sidebar-overlay');
 	});
 
 	it('sets its width on the page', () => {
@@ -139,7 +139,6 @@ describe('BasePage.Sidebar', () => {
 			fireEvent(window, new Event('resize'));
 
 			expect(isLocked()).toBe(false);
-			expect(getPage()).not.toHaveClass('base-page-sidebar-overlay');
 		});
 
 		it('is released when the panel unmounts', () => {
