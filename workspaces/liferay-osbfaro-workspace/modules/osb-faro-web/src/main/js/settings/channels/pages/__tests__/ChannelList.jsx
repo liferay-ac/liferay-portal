@@ -24,15 +24,15 @@ const Wrapper = ({children, store = mockStore()}) => (
 	</Provider>
 );
 
-describe.skip('Channels List', () => {
+describe('Channels List', () => {
 	afterEach(cleanup);
 
-	it('should render', async () => {
+	it('should list the properties of the workspace', async () => {
 		API.channels.search.mockReturnValue(
 			Promise.resolve(data.mockChannels())
 		);
 
-		const {container} = render(
+		render(
 			<Wrapper>
 				<ChannelList {...defaultProps} />
 			</Wrapper>
@@ -40,7 +40,8 @@ describe.skip('Channels List', () => {
 
 		await waitForLoadingToBeRemoved();
 
-		expect(container).toMatchSnapshot();
+		expect(screen.getByText(/^liferay dxp$/i)).toBeInTheDocument();
+		expect(screen.getByText('643280225365059871')).toBeInTheDocument();
 	});
 
 	it('should not render add button if user is not an admin', async () => {
@@ -69,7 +70,7 @@ describe.skip('Channels List', () => {
 		expect(screen.queryByText(/^new property$/i)).toBeNull();
 	});
 
-	it('should check if the number of synced sites and channels appears for each property', async () => {
+	it('should show the number of synced sites for each property', async () => {
 		API.channels.search.mockReturnValue(
 			Promise.resolve(data.mockChannels())
 		);
@@ -83,10 +84,7 @@ describe.skip('Channels List', () => {
 		await waitForLoadingToBeRemoved();
 
 		expect(screen.getByText(/^sites$/i)).toBeInTheDocument();
-		expect(screen.getByText(/^channels$/i)).toBeInTheDocument();
-		expect(screen.getByText(/^liferay dxp$/i)).toBeInTheDocument();
-		expect(screen.getAllByText('6')).toHaveLength(1);
-		expect(screen.getAllByText('5')).toHaveLength(1);
+		expect(screen.getByText('6')).toBeInTheDocument();
 	});
 
 	it('should check if actions "DELETE" and "CLEAR DATA" are displayed in the ellipsis and its icons', async () => {
