@@ -1,14 +1,11 @@
 import InterestsCard from '../InterestsCard';
 import React from 'react';
-import {act, cleanup, render} from '@testing-library/react';
-import {BrowserRouter} from 'react-router-dom';
+import {act, cleanup, render, waitFor} from 'test/render';
 import {
 	mockCompositionBag,
 	mockIndividualInterestsReq
 } from 'test/graphql-data';
-import {MockedProvider} from '@apollo/client/testing';
 import {omit} from 'lodash';
-import {waitFor} from '@testing-library/react';
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
@@ -23,17 +20,13 @@ describe('InterestsCard', () => {
 
 	it('renders', async () => {
 		const {getByText} = render(
-			<MockedProvider
-				mocks={[
-					mockIndividualInterestsReq(variables =>
-						omit(variables, 'keywords')
-					)
-				]}
-			>
-				<BrowserRouter>
-					<InterestsCard />
-				</BrowserRouter>
-			</MockedProvider>
+			<InterestsCard />, {
+			apolloMocks: [
+				mockIndividualInterestsReq(variables =>
+					omit(variables, 'keywords')
+				)
+			]
+		}
 		);
 
 		await act(async () => {
@@ -49,23 +42,19 @@ describe('InterestsCard', () => {
 
 	it('renders with empty data', async () => {
 		const {getByText} = render(
-			<MockedProvider
-				mocks={[
-					mockIndividualInterestsReq(
-						variables => omit(variables, 'keywords'),
-						{
-							data: mockCompositionBag({
-								compositionBagName: 'individualInterests',
-								compositions: []
-							})
-						}
-					)
-				]}
-			>
-				<BrowserRouter>
-					<InterestsCard />
-				</BrowserRouter>
-			</MockedProvider>
+			<InterestsCard />, {
+			apolloMocks: [
+				mockIndividualInterestsReq(
+					variables => omit(variables, 'keywords'),
+					{
+						data: mockCompositionBag({
+							compositionBagName: 'individualInterests',
+							compositions: []
+						})
+					}
+				)
+			]
+		}
 		);
 
 		await act(async () => {

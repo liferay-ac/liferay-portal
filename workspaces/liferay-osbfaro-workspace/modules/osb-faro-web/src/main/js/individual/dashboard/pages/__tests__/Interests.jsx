@@ -1,13 +1,9 @@
 import {useDataSources} from 'shared/context/dataSources';
 import Interests from '../Interests';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
-import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
-import {MockedProvider} from '@apollo/client/testing';
+import {cleanup, render} from 'test/render';
 import {mockEmptyState, mockSuccessState} from 'test/__mocks__/mock-objects';
 import {mockIndividualInterestsReq} from 'test/graphql-data';
-import {Provider} from 'react-redux';
 import {Routes} from 'shared/util/router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
@@ -16,35 +12,19 @@ jest.mock('shared/context/dataSources', () => ({
 	useDataSources: jest.fn(),
 }));
 
-const WrappedComponent = () => (
-	<MockedProvider
-		mocks={[
+const renderInterests = () =>
+	render(<Interests />, {
+		apolloMocks: [
 			mockIndividualInterestsReq(defaultVars => ({
 				...defaultVars,
 				id: undefined,
 				keywords: '',
 				size: 2
 			}))
-		]}
-	>
-		<Provider store={mockStore()}>
-			<MemoryRouter
-				initialEntries={[
-					'/workspace/123/456/contacts/individuals/interests'
-				]}
-			>
-				<RouterRoutes>
-					<Route
-						element={
-							<Interests />
-						}
-						path={`${Routes.CONTACTS_INDIVIDUALS_INTERESTS}/*`}
-					/>
-				</RouterRoutes>
-			</MemoryRouter>
-		</Provider>
-	</MockedProvider>
-);
+		],
+		path: `${Routes.CONTACTS_INDIVIDUALS_INTERESTS}/*`,
+		route: '/workspace/123/456/contacts/individuals/interests'
+	});
 
 describe('Individuals Dashboard Individuals Interests', () => {
 	afterEach(cleanup);
@@ -52,7 +32,7 @@ describe('Individuals Dashboard Individuals Interests', () => {
 	it('renders', async () => {
 		useDataSources.mockReturnValue(mockSuccessState);
 
-		const {getByText} = render(<WrappedComponent />);
+		const {getByText} = renderInterests();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -64,7 +44,7 @@ describe('Individuals Dashboard Individuals Interests', () => {
 	it('renders with data source empty state', () => {
 		useDataSources.mockReturnValue(mockEmptyState);
 
-		const {getByText} = render(<WrappedComponent />);
+		const {getByText} = renderInterests();
 
 		expect(
 			getByText(/^no sites have been synced from data sources$/i)

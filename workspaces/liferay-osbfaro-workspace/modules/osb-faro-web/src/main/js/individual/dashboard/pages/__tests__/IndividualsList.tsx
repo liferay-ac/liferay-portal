@@ -7,8 +7,7 @@ import {AccountTypes} from 'segment/segment-editor/dynamic/utils/constants';
 import {createOrderIOMap, NAME} from 'shared/util/pagination';
 import {Map, Set} from 'immutable';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
-import {fireEvent, render} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import {fireEvent, render} from 'test/render';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 jest.mock('react-router-dom', () => ({
@@ -91,11 +90,7 @@ describe('Individuals List', () => {
 			})
 		);
 
-		const {getByText} = render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		const {getByText} = render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -110,11 +105,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -135,11 +126,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		const {getByText} = render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		const {getByText} = render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -163,11 +150,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		render(
-			<MemoryRouter>
-				<IndividualsList campaignId="7" />
-			</MemoryRouter>
-		);
+		render(<IndividualsList campaignId="7" />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -184,9 +167,7 @@ describe('Individuals List', () => {
 		);
 
 		const {getByText, queryByText} = render(
-			<MemoryRouter>
-				<IndividualsList campaignId="7" onClearFilters={jest.fn()} />
-			</MemoryRouter>
+			<IndividualsList campaignId="7" onClearFilters={jest.fn()} />
 		);
 
 		await waitForLoadingToBeRemoved(document.body);
@@ -210,12 +191,7 @@ describe('Individuals List', () => {
 		);
 
 		const {getByText} = render(
-			<MemoryRouter>
-				<IndividualsList
-					campaignId="7"
-					onClearFilters={onClearFilters}
-				/>
-			</MemoryRouter>
+			<IndividualsList campaignId="7" onClearFilters={onClearFilters} />
 		);
 
 		await waitForLoadingToBeRemoved(document.body);
@@ -232,11 +208,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -271,11 +243,7 @@ describe('Individuals List', () => {
 			resetPage: jest.fn(),
 		});
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -307,11 +275,7 @@ describe('Individuals List', () => {
 			resetPage: jest.fn(),
 		});
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -343,11 +307,7 @@ describe('Individuals List', () => {
 			resetPage: jest.fn(),
 		});
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -363,11 +323,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 

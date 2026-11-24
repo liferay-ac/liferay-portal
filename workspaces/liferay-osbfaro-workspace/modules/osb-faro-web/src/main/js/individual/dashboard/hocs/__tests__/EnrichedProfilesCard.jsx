@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import EnrichedProfilesCard from '../EnrichedProfilesCard';
 import React from 'react';
-import {cleanup, queryByText, render} from '@testing-library/react';
+import {cleanup, queryByText, render} from 'test/render';
 import {CredentialTypes} from 'shared/util/constants';
 import {DataSource} from 'shared/util/records';
 import {
@@ -10,7 +10,6 @@ import {
 	mockLiferayDataSource,
 	mockSalesforceDataSource
 } from 'test/data';
-import {MemoryRouter} from 'react-router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 jest.mock('react-router-dom', () => ({
@@ -21,9 +20,7 @@ jest.mock('react-router-dom', () => ({
 }));
 
 const DefaultComponent = props => (
-	<MemoryRouter>
-		<EnrichedProfilesCard {...props} />
-	</MemoryRouter>
+	<EnrichedProfilesCard {...props} />
 );
 
 describe('EnrichedProfilesCard', () => {
