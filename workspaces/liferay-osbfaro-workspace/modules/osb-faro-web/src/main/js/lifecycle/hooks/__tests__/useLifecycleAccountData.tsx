@@ -1,6 +1,6 @@
 import * as API from 'shared/api';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {cleanup, render, screen} from 'test/render';
 import {useDataSources} from 'shared/context/dataSources';
 import {useLifecycleAccountData} from '../useLifecycleAccountData';
 import {useRequest} from 'shared/hooks/useRequest';

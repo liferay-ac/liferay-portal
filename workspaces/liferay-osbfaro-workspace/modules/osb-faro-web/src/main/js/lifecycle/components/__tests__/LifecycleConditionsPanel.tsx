@@ -7,7 +7,7 @@ import {
 	MatchLogic,
 } from 'lifecycle/utils/stageConfiguration';
 import {LIFECYCLE_STAGE_DEFAULT_MAX_DAYS} from 'lifecycle/utils/constants';
-import {fireEvent, render, screen, within} from '@testing-library/react';
+import {fireEvent, render, screen, within} from 'test/render';
 
 const completeCondition: Partial<IStageCondition> = {
 	conditionValue: '1000',
