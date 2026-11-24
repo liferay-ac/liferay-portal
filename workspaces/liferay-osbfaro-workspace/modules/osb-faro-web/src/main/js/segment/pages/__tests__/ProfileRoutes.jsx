@@ -1,14 +1,9 @@
 import * as API from 'shared/api';
 import DataSourcesProvider from 'shared/context/dataSources';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {ChannelContext} from 'shared/context/channel';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
-import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
-import {mockChannelContext} from 'test/mock-channel-context';
+import {cleanup, fireEvent, render, screen} from 'test/render';
 import {mockSegment} from 'test/data';
 import {SegmentCategories, SegmentTypes} from 'shared/util/constants';
-import {Provider} from 'react-redux';
 import {Routes} from 'shared/util/router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 import SegmentProfileRoutes from '../ProfileRoutes';
@@ -41,20 +36,10 @@ const ENTITY_ROUTE = `${Routes.CONTACTS_SEGMENT}/*`;
 
 const renderProfileRoutes = () =>
 	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter initialEntries={[ENTITY_URL]}>
-				<ChannelContext.Provider value={mockChannelContext()}>
-					<DataSourcesProvider groupId='23'>
-						<RouterRoutes>
-							<Route
-								element={<SegmentProfileRoutes />}
-								path={ENTITY_ROUTE}
-							/>
-						</RouterRoutes>
-					</DataSourcesProvider>
-				</ChannelContext.Provider>
-			</MemoryRouter>
-		</Provider>
+		<DataSourcesProvider groupId='23'>
+			<SegmentProfileRoutes />
+		</DataSourcesProvider>,
+		{path: ENTITY_ROUTE, route: ENTITY_URL}
 	);
 
 describe('SegmentProfileRoutes', () => {
