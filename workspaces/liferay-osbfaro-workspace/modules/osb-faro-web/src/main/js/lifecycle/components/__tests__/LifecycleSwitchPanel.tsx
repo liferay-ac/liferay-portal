@@ -2,7 +2,6 @@ import * as API from 'shared/api';
 import LifecycleSwitchPanel, {
 	LifecyclePanelView,
 } from '../LifecycleSwitchPanel';
-import mockStore from 'test/mock-store';
 import BasePage from 'shared/components/base-page';
 import React, {useState} from 'react';
 import {
@@ -13,10 +12,8 @@ import {
 	screen,
 	waitFor,
 	within,
-} from '@testing-library/react';
+} from 'test/render';
 import {ILifecycleDetail} from 'shared/api/lifecycle';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
 import {Routes, toRoute} from 'shared/util/router';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -146,13 +143,7 @@ const getPageRequests = () =>
 		.map(({variables}) => variables);
 
 const renderPanel = (props: React.ComponentProps<typeof Panel> = {}) =>
-	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter>
-				<Panel {...props} />
-			</MemoryRouter>
-		</Provider>
-	);
+	render(<Panel {...props} />);
 
 const getRow = (name: string) =>
 	screen.getByRole('link', {name}).closest('li') as HTMLElement;

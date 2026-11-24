@@ -1,12 +1,9 @@
 import * as API from 'shared/api';
 import DuplicateLifecycle from '../DuplicateLifecycle';
-import mockStore from 'test/mock-store';
 import React from 'react';
 import {Alert} from 'shared/types';
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from 'test/render';
 import {ILifecycleStage} from 'shared/api/lifecycle';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
 import {Routes, toRoute} from 'shared/util/router';
 import {useLifecycleAccountData} from 'lifecycle/hooks/useLifecycleAccountData';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -117,14 +114,7 @@ const mockRequests = (props: any) => {
 	return {data: lifecycle, error: false, loading: false};
 };
 
-const renderPage = () =>
-	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter>
-				<DuplicateLifecycle />
-			</MemoryRouter>
-		</Provider>
-	);
+const renderPage = () => render(<DuplicateLifecycle />);
 
 const clickCreate = () =>
 	fireEvent.click(screen.getByRole('button', {name: /create lifecycle/i}));
