@@ -3,6 +3,11 @@ import UnassignedSegmentsModal from '../index';
 import {cleanup, render, waitFor} from '@testing-library/react';
 import {noop} from 'lodash';
 import {useModal} from '@clayui/modal';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(),
+}));
 
 // The welcome screen has no header, so wait for the body instead.
 const Harness = () => {
@@ -13,6 +18,10 @@ const Harness = () => {
 
 describe('UnassignedSegmentsModal', () => {
 	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
 
 	it('renders', async () => {
 		render(<Harness />);
