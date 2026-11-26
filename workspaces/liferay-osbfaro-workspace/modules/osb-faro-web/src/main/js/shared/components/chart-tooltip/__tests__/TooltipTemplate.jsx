@@ -39,7 +39,7 @@ describe('TooltipTemplate.Column', () => {
 
 	it('should render w/ right alignment', () => {
 		const {container} = render(
-			<TooltipTemplate.Column alignment='right' children='Column' />
+			<TooltipTemplate.Column align='right' children='Column' />
 		);
 
 		expect(container).toMatchSnapshot();
