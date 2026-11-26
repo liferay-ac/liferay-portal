@@ -2,9 +2,18 @@ import React from 'react';
 import UnableDeletePropertyModal from '../UnableDeletePropertyModal';
 import {cleanup, fireEvent, screen} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(),
+}));
 
 describe('UnableDeletePropertyModal', () => {
 	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
 
 	it('renders the title, the documentation link and the danger status', async () => {
 		await renderModal(observer => (

@@ -36,6 +36,7 @@ import {Routes, toRoute} from 'shared/util/router';
 import {Sizes} from 'shared/util/constants';
 import {updateDefaultChannelId} from 'shared/actions/preferences';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useModal} from '@clayui/modal';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -111,6 +112,8 @@ const ChannelList: React.FC<IChannelListProps> = ({
 	});
 
 	const currentUser = useCurrentUser();
+
+	const LDPEnabled = useLDPEnabled({groupId});
 
 	const {timeZoneId} = useTimeZone();
 
@@ -310,9 +313,13 @@ const ChannelList: React.FC<IChannelListProps> = ({
 				pageDescription={
 					<>
 						<div>
-							{Liferay.Language.get(
-								'analytics-cloud-allows-for-customized-user-access-settings-per-property-managed'
-							)}
+							{LDPEnabled
+								? Liferay.Language.get(
+										'liferay-data-platform-allows-for-customized-user-access-settings-per-property-managed'
+									)
+								: Liferay.Language.get(
+										'analytics-cloud-allows-for-customized-user-access-settings-per-property-managed'
+									)}
 						</div>
 						<div>
 							{Liferay.Language.get(

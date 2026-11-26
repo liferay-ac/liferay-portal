@@ -1,9 +1,18 @@
 import React from 'react';
 import SyncedStripe, {getTitle} from '../SyncedStripe';
 import {cleanup, render} from '@testing-library/react';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(),
+}));
 
 describe('SyncedStripe', () => {
 	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
 
 	it('should render', () => {
 		const {container} = render(<SyncedStripe sitesSyncedCount={0} />);
