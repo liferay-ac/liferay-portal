@@ -48,3 +48,29 @@ describe('InviteUsersModal', () => {
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('InviteUsersModal product naming', () => {
+	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
+	it('shows the Analytics Cloud text for a non-LDP workspace', async () => {
+		await renderModal(observer => (
+			<InviteUsersModal observer={observer} onClose={noop} />
+		));
+
+		expect(screen.getByText(/invite to Analytics Cloud\. Separate each address/)).toBeInTheDocument();
+	});
+
+	it('shows the Liferay Data Platform text for an LDP workspace', async () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		await renderModal(observer => (
+			<InviteUsersModal observer={observer} onClose={noop} />
+		));
+
+		expect(screen.getByText(/invite to Liferay Data Platform\. Separate each address/)).toBeInTheDocument();
+	});
+});

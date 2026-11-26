@@ -3,11 +3,16 @@ import * as data from 'test/data';
 import InterestTopics from '../InterestTopics';
 import mockStore, {mockStoreData, toRD} from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render, screen} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {Provider} from 'react-redux';
 import {Routes} from 'shared/util/router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 const defaultProps = {
 	groupId: '23'
@@ -135,5 +140,53 @@ describe('InterestTopics', () => {
 		await waitForLoadingToBeRemoved(container);
 
 		expect(container.querySelector('.no-results-root')).toMatchSnapshot();
+	});
+});
+
+describe('InterestTopics product naming', () => {
+	afterEach(cleanup);
+
+	beforeEach(() => {
+		API.blockedKeywords.search.mockReturnValue(
+			Promise.resolve({items: [], total: 0})
+		);
+
+		useLDPEnabled.mockReturnValue(false);
+	});
+
+	it('shows the Analytics Cloud texts for a non-LDP workspace', async () => {
+		const {container} = render(
+			<Wrapper>
+				<InterestTopics {...defaultProps} />
+			</Wrapper>
+		);
+
+		await waitForLoadingToBeRemoved(container);
+
+		expect(
+			screen.getByText(/Liferay Analytics Cloud automatically associates/)
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/do not want listed in Liferay Analytics Cloud,/)
+		).toBeInTheDocument();
+	});
+
+	it('shows the Liferay Data Platform texts for an LDP workspace', async () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		const {container} = render(
+			<Wrapper>
+				<InterestTopics {...defaultProps} />
+			</Wrapper>
+		);
+
+		await waitForLoadingToBeRemoved(container);
+
+		expect(
+			screen.getByText(/Liferay Data Platform automatically associates/)
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/do not want listed in Liferay Data Platform,/)
+		).toBeInTheDocument();
 	});
 });

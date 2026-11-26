@@ -3,7 +3,7 @@ jest.mock('shared/components/modals/onboarding-modal', () => () => (
 ));
 
 import * as API from 'shared/api';
-import mockStore from 'test/mock-store';
+import mockStore, {mockStoreDataLDP} from 'test/mock-store';
 import NoPropertiesAvailable from '../NoPropertiesAvailable';
 import React from 'react';
 import {cleanup, fireEvent, render, screen} from '@testing-library/react';
@@ -13,8 +13,8 @@ import {MemoryRouter} from 'react-router';
 import {User} from 'shared/util/records';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
-const DefaultComponent = props => (
-	<Provider store={mockStore()}>
+const DefaultComponent = ({store = mockStore(), ...props}) => (
+	<Provider store={store}>
 		<MemoryRouter>
 			<NoPropertiesAvailable
 				currentUser={getImmutableMock(User, mockUser)}
@@ -50,6 +50,49 @@ describe('NoPropertiesAvailable', () => {
 		jest.runAllTimers();
 
 		expect(queryByRole('button')).toBeNull();
+	});
+
+	it('asks a member to contact the Analytics Cloud administrator in a non-LDP workspace', async () => {
+		API.dataSource.search.mockReturnValueOnce(Promise.resolve({total: 1}));
+
+		const {container, queryByText} = render(
+			<DefaultComponent
+				currentUser={getImmutableMock(User, mockMemberUser)}
+				groupId='23'
+			/>
+		);
+
+		jest.runAllTimers();
+
+		await waitForLoadingToBeRemoved(container);
+
+		expect(
+			queryByText(
+				/^you have not been added to any properties\. please contact your analytics cloud administrator\.$/i
+			)
+		).toBeInTheDocument();
+	});
+
+	it('asks a member to contact the Liferay Data Platform administrator in an LDP workspace', async () => {
+		API.dataSource.search.mockReturnValueOnce(Promise.resolve({total: 1}));
+
+		const {container, queryByText} = render(
+			<DefaultComponent
+				currentUser={getImmutableMock(User, mockMemberUser)}
+				groupId='23'
+				store={mockStore(mockStoreDataLDP)}
+			/>
+		);
+
+		jest.runAllTimers();
+
+		await waitForLoadingToBeRemoved(container);
+
+		expect(
+			queryByText(
+				/^you have not been added to any properties\. please contact your liferay data platform administrator\.$/i
+			)
+		).toBeInTheDocument();
 	});
 
 	it('should open the onboarding modal on "Start" click', async () => {

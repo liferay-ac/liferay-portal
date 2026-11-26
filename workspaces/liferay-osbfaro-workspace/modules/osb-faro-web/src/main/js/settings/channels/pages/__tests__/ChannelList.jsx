@@ -9,6 +9,11 @@ import {Provider} from 'react-redux';
 import {RemoteData, TimeZone, User} from 'shared/util/records';
 import {Routes} from 'shared/util/router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 const defaultProps = {
 	groupId: '23'
@@ -156,5 +161,39 @@ describe('ChannelList', () => {
 		);
 
 		expect(await screen.findByText('Jun 9, 2026')).toBeInTheDocument();
+	});
+});
+
+describe('ChannelList product naming', () => {
+	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+
+		API.channels.search.mockReturnValue(
+			Promise.resolve(data.mockChannels())
+		);
+	});
+
+	it('shows the Analytics Cloud text for a non-LDP workspace', async () => {
+		render(
+			<Wrapper>
+				<ChannelList {...defaultProps} />
+			</Wrapper>
+		);
+
+		expect(await screen.findByText(/^Analytics Cloud allows for customized user access settings/)).toBeInTheDocument();
+	});
+
+	it('shows the Liferay Data Platform text for an LDP workspace', async () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		render(
+			<Wrapper>
+				<ChannelList {...defaultProps} />
+			</Wrapper>
+		);
+
+		expect(await screen.findByText(/^Liferay Data Platform allows for customized user access settings/)).toBeInTheDocument();
 	});
 });

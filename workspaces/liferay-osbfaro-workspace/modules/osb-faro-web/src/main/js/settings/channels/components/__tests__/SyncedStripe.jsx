@@ -1,6 +1,6 @@
 import React from 'react';
 import SyncedStripe, {getTitle} from '../SyncedStripe';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render, screen} from '@testing-library/react';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 
 jest.mock('shared/hooks/useLDPEnabled', () => ({
@@ -67,4 +67,26 @@ describe('getTitle', () => {
 			}
 		}
 	);
+});
+
+describe('SyncedStripe product naming', () => {
+	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
+	it('shows the Analytics Cloud text for a non-LDP workspace', () => {
+		render(<SyncedStripe sitesSyncedCount={1} />);
+
+		expect(screen.getByText('Instance Settings > Analytics Cloud')).toBeInTheDocument();
+	});
+
+	it('shows the Liferay Data Platform text for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		render(<SyncedStripe sitesSyncedCount={1} />);
+
+		expect(screen.getByText('Instance Settings > Liferay Data Platform')).toBeInTheDocument();
+	});
 });

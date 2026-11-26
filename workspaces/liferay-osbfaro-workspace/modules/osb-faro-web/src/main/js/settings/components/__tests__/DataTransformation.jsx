@@ -1,14 +1,15 @@
 import * as API from 'shared/api';
-import mockStore from 'test/mock-store';
+import mockStore, {mockStoreData} from 'test/mock-store';
 import React from 'react';
 import {DataTransformation, processFieldMappings} from '../DataTransformation';
-import {fromJS} from 'immutable';
+import {fromJS, Map} from 'immutable';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockFieldMapping, mockMapping} from 'test/data';
 import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
+import {SubscriptionNames} from 'shared/util/subscriptions';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 const defaultProps = {
@@ -17,8 +18,8 @@ const defaultProps = {
 	onSubmit: jest.fn()
 };
 
-const WrappedComponent = props => (
-	<Provider store={mockStore()}>
+const WrappedComponent = ({store = mockStore(), ...props}) => (
+	<Provider store={store}>
 		<MemoryRouter
 			initialEntries={['/workspace/23/settings/data-source/123']}
 		>
@@ -115,4 +116,40 @@ describe('DataTransformation', () => {
 
 		expect(getByText(/^done$/i)).toBeDisabled();
 	});
+
+	it.each`
+		ldpEnabled | productName
+		${false}   | ${'Analytics Cloud'}
+		${true}    | ${'Liferay Data Platform'}
+	`(
+		'names $productName in the mapping instructions, column and field placeholder when the plan is LDP: $ldpEnabled',
+		async ({ldpEnabled, productName}) => {
+			API.dataSource.fetchMappings.mockReturnValue(
+				Promise.resolve([mockMapping('No default match')])
+			);
+
+			const store = ldpEnabled
+				? mockStore(
+						mockStoreData.setIn(
+							['projects', '23', 'data', 'faroSubscription'],
+							Map({name: SubscriptionNames.LiferayDataPlatform})
+						)
+					)
+				: mockStore();
+
+			render(<WrappedComponent ldpEnabled={ldpEnabled} store={store} />);
+
+			await waitForLoadingToBeRemoved(document.body);
+
+			expect(
+				screen.getByText(
+					`All fields have been mapped automatically to the best possible match. Please confirm the data mapping below and make any changes if necessary. You may only map one source data field to a single ${productName} field.`
+				)
+			).toBeInTheDocument();
+			expect(screen.getByText(`${productName} Field`)).toBeInTheDocument();
+			expect(
+				screen.getByText(`Select ${productName} Field`)
+			).toBeInTheDocument();
+		}
+	);
 });

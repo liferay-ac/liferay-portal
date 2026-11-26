@@ -2,17 +2,22 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import SalesforceOverview from '../SalesforceOverview';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render, screen} from '@testing-library/react';
 import {DataSource} from 'shared/util/records';
 import {fetchChannelDatasources} from 'shared/api/data-source';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {Provider} from 'react-redux';
 import {useRequest} from 'shared/hooks/useRequest';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 jest.mock('shared/api/connector', () => ({
 	fetchConnectorEntityCount: entity => entity
+}));
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn()
 }));
 
 jest.mock('shared/hooks/useRequest', () => ({
@@ -58,6 +63,8 @@ const WrappedComponent = props => (
 
 describe('SalesforceOverview', () => {
 	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+
 		useRequest.mockReturnValue({
 			data: 10,
 			loading: false
@@ -101,4 +108,47 @@ describe('SalesforceOverview', () => {
 		expect(getByText(/^an unexpected error occurred\.$/i)).toBeTruthy();
 		expect(queryByText(/items synced/i)).toBeNull();
 	});
+
+	it.each`
+		ldpEnabled | productName
+		${false}   | ${'Liferay Analytics Cloud'}
+		${true}    | ${'Liferay Data Platform'}
+	`(
+		'names $productName in the authentication message when ldpEnabled is $ldpEnabled',
+		({ldpEnabled, productName}) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
+
+			render(<WrappedComponent />);
+
+			expect(
+				screen.getByText(
+					`You have successfully authenticated your token with ${productName}. You can now select the data to sync.`
+				)
+			).toBeInTheDocument();
+		}
+	);
+
+	it.each`
+		ldpEnabled | message
+		${false}   | ${'To reestablish the connection between Salesforce and Liferay Analytics Cloud, check your credentials and paste on the input below.'}
+		${true}    | ${'To reestablish the connection between Salesforce and Liferay Data Platform, check your credentials and paste them in the field below.'}
+	`(
+		'shows the reconnection instructions for the plan when ldpEnabled is $ldpEnabled',
+		({ldpEnabled, message}) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
+
+			render(
+				<WrappedComponent
+					dataSource={data.getImmutableMock(
+						DataSource,
+						data.mockSalesforceDataSource,
+						1,
+						{state: 'DISCONNECTED', status: 'INACTIVE'}
+					)}
+				/>
+			);
+
+			expect(screen.getByText(message)).toBeInTheDocument();
+		}
+	);
 });

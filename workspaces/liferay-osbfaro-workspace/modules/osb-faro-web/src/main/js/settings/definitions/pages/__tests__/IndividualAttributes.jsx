@@ -7,6 +7,11 @@ import {cleanup, fireEvent, render, screen} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import {MemoryRouter} from 'react-router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
@@ -97,5 +102,27 @@ describe('IndividualAttributes', () => {
 		const noDataValues = getAllByText('–');
 
 		expect(noDataValues).toHaveLength(2);
+	});
+});
+
+describe('IndividualAttributes product naming', () => {
+	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
+	it('shows the Analytics Cloud text for a non-LDP workspace', async () => {
+		render(<DefaultComponent />);
+
+		expect(await screen.findByText(/Analytics Cloud will take and store the newest data/)).toBeInTheDocument();
+	});
+
+	it('shows the Liferay Data Platform text for an LDP workspace', async () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		render(<DefaultComponent />);
+
+		expect(await screen.findByText(/Liferay Data Platform will take and store the newest data/)).toBeInTheDocument();
 	});
 });

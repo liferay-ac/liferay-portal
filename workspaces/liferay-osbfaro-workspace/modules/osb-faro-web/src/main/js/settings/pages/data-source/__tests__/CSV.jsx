@@ -1,10 +1,11 @@
+import * as API from 'shared/api';
 import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {CSV} from '../CSV';
 import {DataSource, User} from 'shared/util/records';
 import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {UserRoleNames} from 'shared/util/constants';
 
@@ -48,4 +49,23 @@ describe('CSV', () => {
 
 		expect(queryByText(/Edit CSV/)).toBeNull();
 	});
+
+	it.each`
+		ldpEnabled | productName
+		${false}   | ${'Analytics Cloud'}
+		${true}    | ${'Liferay Data Platform'}
+	`(
+		'titles the mapped field column with $productName when ldpEnabled is $ldpEnabled',
+		async ({ldpEnabled, productName}) => {
+			API.dataSource.fetchMappingsLite.mockReturnValue(
+				Promise.resolve([data.mockMapping(0, {values: ['value']})])
+			);
+
+			render(<DefaultComponent ldpEnabled={ldpEnabled} />);
+
+			expect(
+				await screen.findByText(`${productName} Field`)
+			).toBeInTheDocument();
+		}
+	);
 });

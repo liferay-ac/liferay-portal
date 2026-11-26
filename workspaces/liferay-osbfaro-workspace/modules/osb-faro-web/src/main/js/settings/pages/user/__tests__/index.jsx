@@ -2,11 +2,16 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {BrowserRouter} from 'react-router-dom';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render, screen} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {User} from 'shared/util/records';
 import {User as UserRoutes} from '../index';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 jest.mock('shared/hooks/useCurrentUser', () => ({
 	useCurrentUser: jest.fn()
@@ -70,5 +75,35 @@ describe('UserRoutes', () => {
 		expect(
 			queryByRole('link', {name: /^requests$/i})
 		).not.toBeInTheDocument();
+	});
+});
+
+describe('UserRoutes product naming', () => {
+	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
+	it('shows the Analytics Cloud text for a non-LDP workspace', () => {
+		useCurrentUser.mockImplementation(() => ({
+			isAdmin: () => true
+		}));
+
+		render(<DefaultComponent />);
+
+		expect(screen.getByText(/^Invite new users to Analytics Cloud/)).toBeInTheDocument();
+	});
+
+	it('shows the Liferay Data Platform text for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		useCurrentUser.mockImplementation(() => ({
+			isAdmin: () => true
+		}));
+
+		render(<DefaultComponent />);
+
+		expect(screen.getByText(/^Invite new users to Liferay Data Platform/)).toBeInTheDocument();
 	});
 });

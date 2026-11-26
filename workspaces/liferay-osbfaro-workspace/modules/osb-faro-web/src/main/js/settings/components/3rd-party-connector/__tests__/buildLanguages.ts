@@ -37,4 +37,15 @@ describe('buildLanguages', () => {
 			expect(typeof value).toBe('string');
 		});
 	});
+
+	it('names Liferay Data Platform, since every third-party connector requires an LDP plan', () => {
+		const languages = buildLanguages('Acme');
+
+		expect(languages.connectDescription).toBe(
+			'Connect your Acme account to Liferay Data Platform to start importing data.'
+		);
+		expect(languages.endpointHelper).toBe(
+			'This is the Liferay Data Platform URL that Acme will redirect to after a user authorizes the connection.'
+		);
+	});
 });
