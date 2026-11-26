@@ -40,13 +40,17 @@ export const mapPropsToOptions = ({
 });
 
 export const mapResultToProps = safeResultToProps(
-	({
-		individualMetric: {
-			anonymousIndividualsMetric,
-			knownIndividualsMetric,
-			totalIndividualsMetric,
-		},
-	}: IIndividualMetricsResult) => ({
+	(
+		{
+			individualMetric: {
+				anonymousIndividualsMetric,
+				knownIndividualsMetric,
+				totalIndividualsMetric,
+			},
+		}: IIndividualMetricsResult,
+		_context?: any,
+		ownProps?: {ldpEnabled?: boolean}
+	) => ({
 		items: [
 			{
 				...totalIndividualsMetric,
@@ -58,9 +62,13 @@ export const mapResultToProps = safeResultToProps(
 				...knownIndividualsMetric,
 				id: 'knownIndividualsMetric',
 				info: {
-					content: Liferay.Language.get(
-						'current-total-of-known-individuals-that-are-tracked-by-analytics-cloud.-an-individual-is-considered-known-if-we-have-any-identifiable-information-about-the-individual'
-					),
+					content: ownProps?.ldpEnabled
+						? Liferay.Language.get(
+								'current-total-of-known-individuals-that-are-tracked-by-liferay-data-platform.-an-individual-is-considered-known-if-we-have-any-identifiable-information-about-the-individual'
+							)
+						: Liferay.Language.get(
+								'current-total-of-known-individuals-that-are-tracked-by-analytics-cloud.-an-individual-is-considered-known-if-we-have-any-identifiable-information-about-the-individual'
+							),
 					title: Liferay.Language.get('known-individuals'),
 				},
 				title: Liferay.Language.get('known'),
@@ -69,9 +77,13 @@ export const mapResultToProps = safeResultToProps(
 				...anonymousIndividualsMetric,
 				id: 'anonymousIndividualsMetric',
 				info: {
-					content: Liferay.Language.get(
-						'current-total-of-anonymous-individuals-that-are-tracked-by-analytics-cloud.-inactive-anonymous-individuals-are-automatically-removed-if-they-dont-have-activities-during-the-retention-period'
-					),
+					content: ownProps?.ldpEnabled
+						? Liferay.Language.get(
+								'current-total-of-anonymous-individuals-that-are-tracked-by-liferay-data-platform.-inactive-anonymous-individuals-are-automatically-removed-if-they-dont-have-activities-during-the-retention-period'
+							)
+						: Liferay.Language.get(
+								'current-total-of-anonymous-individuals-that-are-tracked-by-analytics-cloud.-inactive-anonymous-individuals-are-automatically-removed-if-they-dont-have-activities-during-the-retention-period'
+							),
 					title: Liferay.Language.get('anonymous-individuals'),
 				},
 				title: Liferay.Language.get('anonymous'),
