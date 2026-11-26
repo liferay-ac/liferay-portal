@@ -25,6 +25,7 @@ import {Option, Picker} from '@clayui/core';
 import {Routes, toRoute} from 'shared/util/router';
 import {sub} from 'shared/util/lang';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useModal} from '@clayui/modal';
 import {useMutation, useQuery} from '@apollo/client';
 
@@ -80,6 +81,8 @@ export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
 	});
 
 	const currentUser = useCurrentUser();
+
+	const LDPEnabled = useLDPEnabled({groupId});
 
 	const requestLogModal = useModal();
 	const retentionModal = useModal();
@@ -144,9 +147,13 @@ export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
 											</div>
 
 											<p className="text-secondary">
-												{Liferay.Language.get(
-													'analytics-cloud-stores-event-data-and-inactive-anonymous-individuals-for-the-period-specified.-known-profile-data-will-be-stored-indefinitely-unless-it-is-removed-from-the-source-or-requested-to-be-deleted.-contact-sales-to-customize-retention-period'
-												)}
+												{LDPEnabled
+													? Liferay.Language.get(
+															'liferay-data-platform-stores-event-data-and-inactive-anonymous-individuals-for-the-period-specified.-known-profile-data-will-be-stored-indefinitely-unless-it-is-removed-from-the-source-or-requested-to-be-deleted.-contact-sales-to-customize-the-retention-period'
+														)
+													: Liferay.Language.get(
+															'analytics-cloud-stores-event-data-and-inactive-anonymous-individuals-for-the-period-specified.-known-profile-data-will-be-stored-indefinitely-unless-it-is-removed-from-the-source-or-requested-to-be-deleted.-contact-sales-to-customize-retention-period'
+														)}
 											</p>
 										</div>
 
@@ -187,9 +194,13 @@ export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
 											</div>
 
 											<p className="text-secondary">
-												{Liferay.Language.get(
-													'data-subjects-and-your-organization-can-request-access,-deletion,-and-suppression-of-their-data-in-analytics-cloud.-some-requests-may-take-up-to-7-days-to-complete.-we-will-notify-the-requestor-by-email-once-the-download-is-ready'
-												)}
+												{LDPEnabled
+													? Liferay.Language.get(
+															'data-subjects-and-your-organization-can-request-access,-deletion,-and-suppression-of-their-data-in-liferay-data-platform.-some-requests-may-take-up-to-7-days-to-complete.-we-will-notify-the-requestor-by-email-once-the-download-is-ready'
+														)
+													: Liferay.Language.get(
+															'data-subjects-and-your-organization-can-request-access,-deletion,-and-suppression-of-their-data-in-analytics-cloud.-some-requests-may-take-up-to-7-days-to-complete.-we-will-notify-the-requestor-by-email-once-the-download-is-ready'
+														)}
 											</p>
 										</div>
 
