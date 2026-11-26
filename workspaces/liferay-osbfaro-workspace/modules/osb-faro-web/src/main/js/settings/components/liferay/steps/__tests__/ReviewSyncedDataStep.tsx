@@ -5,6 +5,11 @@ import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider, MockedResponse} from '@apollo/client/testing';
 import {render} from '@testing-library/react';
 import {ReviewSyncedDataStep} from '../ReviewSyncedDataStep';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(),
+}));
 
 const defaultMock = {
 	request: {
@@ -43,6 +48,10 @@ const Wrapper = ({
 );
 
 describe('ReviewSyncedDataStep', () => {
+	beforeEach(() => {
+		(useLDPEnabled as jest.Mock).mockReturnValue(false);
+	});
+
 	it('should render', () => {
 		const {container} = render(
 			<Wrapper>

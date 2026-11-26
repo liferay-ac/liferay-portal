@@ -5,13 +5,19 @@ import {AssignIndividualsDataToPropertiesStep} from 'settings/components/salesfo
 import {ConnectLiferayDXPStep} from 'settings/components/liferay/steps/ConnectLiferayDXPStep';
 import {ReviewSyncedDataStep} from 'settings/components/liferay/steps/ReviewSyncedDataStep';
 import {updateLiferay} from 'shared/api/data-source';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+import {useParams} from 'react-router-dom';
 
-const steps: Step[] = [
+const getSteps = (ldpEnabled: boolean): Step[] => [
 	{
 		content: (props: any) => <ConnectLiferayDXPStep {...props} />,
-		description: Liferay.Language.get(
-			'connect-your-dxp-instance-to-analytics-cloud-to-start-tracking-users-visits-and-interactions-within-your-sites'
-		),
+		description: ldpEnabled
+			? Liferay.Language.get(
+					'connect-your-dxp-instance-to-liferay-data-platform-to-start-tracking-users-visits-and-interactions-within-your-sites'
+				)
+			: Liferay.Language.get(
+					'connect-your-dxp-instance-to-analytics-cloud-to-start-tracking-users-visits-and-interactions-within-your-sites'
+				),
 		title: Liferay.Language.get('connect-your-dxp-analytics'),
 	},
 	{
@@ -60,6 +66,12 @@ const steps: Step[] = [
 	},
 ];
 
-const ConnectSalesforce = () => <WizardPage steps={steps} />;
+const ConnectSalesforce = () => {
+	const {groupId = ''} = useParams();
+
+	const LDPEnabled = useLDPEnabled({groupId});
+
+	return <WizardPage steps={getSteps(LDPEnabled)} />;
+};
 
 export default ConnectSalesforce;

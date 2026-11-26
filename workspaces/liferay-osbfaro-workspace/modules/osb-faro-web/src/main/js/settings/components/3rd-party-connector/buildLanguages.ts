@@ -5,7 +5,7 @@ export function buildLanguages(displayName: string): Languages {
 	return {
 		connectDescription: sub(
 			Liferay.Language.get(
-				'connect-your-x-account-to-analytics-cloud-to-start-importing-data'
+				'connect-your-x-account-to-liferay-data-platform-to-start-importing-data'
 			),
 			[displayName]
 		) as string,
@@ -14,7 +14,7 @@ export function buildLanguages(displayName: string): Languages {
 		]) as string,
 		endpointHelper: sub(
 			Liferay.Language.get(
-				'this-is-analytics-cloud-url-x-will-redirect-to-after-a-user-authorizes-the-connection'
+				'this-is-the-liferay-data-platform-url-that-x-will-redirect-to-after-a-user-authorizes-the-connection'
 			),
 			[displayName]
 		) as string,

@@ -6,8 +6,10 @@ import {ConnectSalesforceStep} from 'settings/components/salesforce/steps/Connec
 import {sub} from 'shared/util/lang';
 import {SyncSalesforceDataStep} from 'settings/components/salesforce/steps/SyncSalesforceDataStep';
 import {updateSalesforce} from 'shared/api/data-source';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+import {useParams} from 'react-router-dom';
 
-const steps: Step[] = [
+const getSteps = (ldpEnabled: boolean): Step[] => [
 	{
 		content: (props: any) => <ConnectSalesforceStep {...props} />,
 		description: Liferay.Language.get(
@@ -17,9 +19,16 @@ const steps: Step[] = [
 	},
 	{
 		content: (props: any) => <SyncSalesforceDataStep {...props} />,
-		description: Liferay.Language.get(
-			'select-which-salesforce-data-you-would-like-to-sync-to-analytics-cloud'
-		),
+		description: ldpEnabled
+			? (sub(
+					Liferay.Language.get(
+						'select-which-x-data-you-would-like-to-sync-to-liferay-data-platform'
+					),
+					[Liferay.Language.get('salesforce')]
+				) as string)
+			: Liferay.Language.get(
+					'select-which-salesforce-data-you-would-like-to-sync-to-analytics-cloud'
+				),
 		title: sub(Liferay.Language.get('sync-x-data'), [
 			Liferay.Language.get('salesforce'),
 		]) as string,
@@ -73,6 +82,12 @@ const steps: Step[] = [
 	},
 ];
 
-const ConnectSalesforce = () => <WizardPage steps={steps} />;
+const ConnectSalesforce = () => {
+	const {groupId = ''} = useParams();
+
+	const LDPEnabled = useLDPEnabled({groupId});
+
+	return <WizardPage steps={getSteps(LDPEnabled)} />;
+};
 
 export default ConnectSalesforce;

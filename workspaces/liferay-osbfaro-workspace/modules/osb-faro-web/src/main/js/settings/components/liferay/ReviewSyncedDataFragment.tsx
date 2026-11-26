@@ -6,6 +6,8 @@ import React from 'react';
 import {sub} from 'shared/util/lang';
 import {Text} from '@clayui/core';
 import {toLocale} from 'shared/util/numbers';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+import {useParams} from 'react-router-dom';
 
 const DATA_SOURCE_STATUSES = {
 	CONFIGURED: {
@@ -33,6 +35,10 @@ const ReviewSyncedDataFragment: React.FC<IReviewSyncedDataFragmentProps> = ({
 	contactsSelected,
 	sitesSelected,
 }) => {
+	const {groupId = ''} = useParams();
+
+	const LDPEnabled = useLDPEnabled({groupId});
+
 	const getLabelProps = (selected: boolean) =>
 		selected
 			? DATA_SOURCE_STATUSES.CONFIGURED
@@ -115,9 +121,13 @@ const ReviewSyncedDataFragment: React.FC<IReviewSyncedDataFragmentProps> = ({
 							{Liferay.Language.get('sites')}
 						</ClayList.ItemTitle>
 						<ClayList.ItemText>
-							{Liferay.Language.get(
-								'represents-the-sites-synced-from-liferay-portal,-under-dxp-instance-settings-analytics-cloud'
-							)}
+							{LDPEnabled
+								? Liferay.Language.get(
+										'represents-the-sites-synced-from-liferay-portal,-under-dxp-instance-settings-liferay-data-platform'
+									)
+								: Liferay.Language.get(
+										'represents-the-sites-synced-from-liferay-portal,-under-dxp-instance-settings-analytics-cloud'
+									)}
 						</ClayList.ItemText>
 
 						{renderMetricValue(
@@ -148,9 +158,13 @@ const ReviewSyncedDataFragment: React.FC<IReviewSyncedDataFragmentProps> = ({
 							{Liferay.Language.get('individuals')}
 						</ClayList.ItemTitle>
 						<ClayList.ItemText>
-							{Liferay.Language.get(
-								'represents-the-fields-synced-from-the-contact-object-within-liferay-portal,-under-dxp-instance-settings-analytics-cloud'
-							)}
+							{LDPEnabled
+								? Liferay.Language.get(
+										'represents-the-fields-synced-from-the-contact-object-within-liferay-portal,-under-dxp-instance-settings-liferay-data-platform'
+									)
+								: Liferay.Language.get(
+										'represents-the-fields-synced-from-the-contact-object-within-liferay-portal,-under-dxp-instance-settings-analytics-cloud'
+									)}
 						</ClayList.ItemText>
 
 						{renderMetricValue(
