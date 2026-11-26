@@ -12,6 +12,7 @@ import React, {lazy, Suspense, useState} from 'react';
 import {getMatchedRoute, Routes, toRoute} from 'shared/util/router';
 import {Route, Routes as RouterRoutes, useParams} from 'react-router-dom';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {UserStatuses} from 'shared/util/constants';
 
 const UserList = lazy(
@@ -24,6 +25,7 @@ const UserRequest = lazy(
 export const User = ({className}: {className?: string}) => {
 	const {groupId = ''} = useParams<{groupId: string}>();
 	const currentUser = useCurrentUser();
+	const LDPEnabled = useLDPEnabled({groupId});
 	const [userRequest, setUserRequest] = useState<number>(0);
 
 	const onSetUserRequest = (userRequest: number) =>
@@ -71,9 +73,15 @@ export const User = ({className}: {className?: string}) => {
 		<BasePage
 			className={getCN('user-list-page-root', className)}
 			key="userListPage"
-			pageDescription={Liferay.Language.get(
-				'invite-new-users-to-analytics-cloud-and-or-configure-existing-users'
-			)}
+			pageDescription={
+				LDPEnabled
+					? Liferay.Language.get(
+							'invite-new-users-to-liferay-data-platform-and-or-configure-existing-users'
+						)
+					: Liferay.Language.get(
+							'invite-new-users-to-analytics-cloud-and-or-configure-existing-users'
+						)
+			}
 			pageTitle={Liferay.Language.get('user-management')}
 		>
 			<Card key="cardContainer" pageDisplay>

@@ -4,6 +4,8 @@ import Input from 'shared/components/Input';
 import InputList from 'shared/components/InputList';
 import React, {useState} from 'react';
 import type {Observer} from '@clayui/modal/lib/types';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+import {useParams} from 'react-router-dom';
 import {validateEmail} from 'shared/util/email-validators';
 
 interface IInviteUsersModalProps {
@@ -20,6 +22,10 @@ const InviteUsersModal: React.FC<IInviteUsersModalProps> = ({
 	onSubmit,
 	...otherProps
 }) => {
+	const {groupId = ''} = useParams();
+
+	const LDPEnabled = useLDPEnabled({groupId});
+
 	const [emails, setEmails] = useState<string[]>([]);
 	const [inputValue, setInputValue] = useState('');
 
@@ -45,9 +51,13 @@ const InviteUsersModal: React.FC<IInviteUsersModalProps> = ({
 
 			<ClayModal.Body>
 				<div className="form-text mb-4">
-					{Liferay.Language.get(
-						'enter-the-email-addresses-of-the-people-you-would-like-to-invite-to-analytics-cloud.-separate-each-address-by-space-or-comma'
-					)}
+					{LDPEnabled
+						? Liferay.Language.get(
+								'enter-the-email-addresses-of-the-people-you-would-like-to-invite-to-liferay-data-platform.-separate-each-address-by-space-or-comma'
+							)
+						: Liferay.Language.get(
+								'enter-the-email-addresses-of-the-people-you-would-like-to-invite-to-analytics-cloud.-separate-each-address-by-space-or-comma'
+							)}
 				</div>
 
 				<Input.Group>

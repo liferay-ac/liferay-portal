@@ -3,9 +3,18 @@ import React from 'react';
 import {cleanup, fireEvent, screen} from '@testing-library/react';
 import {noop} from 'lodash';
 import {renderModal} from 'test/render-modal';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(),
+}));
 
 describe('InviteUsersModal', () => {
 	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
 
 	it('should render', async () => {
 		await renderModal(observer => (
