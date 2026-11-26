@@ -45,7 +45,6 @@ describe('SegmentGrowthWithList', () => {
 								]}
 								groupId='23'
 								id='3'
-								onPointSelect={jest.fn()}
 							/>
 						}
 						path={`${Routes.CONTACTS_SEGMENT_MEMBERSHIP}/*`}
@@ -83,7 +82,6 @@ describe('SegmentGrowthWithList', () => {
 								groupId='23'
 								id='3'
 								includeAnonymousUsers={false}
-								onPointSelect={jest.fn()}
 							/>
 						}
 						path={`${Routes.CONTACTS_SEGMENT_MEMBERSHIP}/*`}
@@ -104,7 +102,7 @@ describe('SegmentGrowthWithList', () => {
 
 describe('SegmentGrowthChart', () => {
 	it('should render', () => {
-		render(<SegmentGrowthChart data={[]} onPointSelect={jest.fn()} />);
+		render(<SegmentGrowthChart data={[]} />);
 
 		expect(
 			screen.getByText(/^there is no data for segment membership\.$/i)
@@ -143,20 +141,7 @@ describe('SegmentGrowthChart', () => {
 
 describe('SelectedPointInfo', () => {
 	it('should render', () => {
-		render(
-			<SelectedPointInfo
-				data={[
-					{
-						added: 1,
-						modifiedDate: data.getTimestamp(),
-						removed: 3
-					}
-				]}
-				hasSelectedPoint
-				onClearSelection={jest.fn()}
-				selectedPoint={0}
-			/>
-		);
+		render(<SelectedPointInfo />);
 
 		expect(screen.getByText(/^members$/i)).toBeInTheDocument();
 	});

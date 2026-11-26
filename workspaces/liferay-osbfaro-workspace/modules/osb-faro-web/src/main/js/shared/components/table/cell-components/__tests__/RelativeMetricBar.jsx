@@ -13,7 +13,6 @@ describe('RelativeMetricBar', () => {
 					name: 'Test Test'
 				}}
 				maxCount={10}
-				showTitle={false}
 				totalCount={12}
 			/>
 		);

@@ -7,7 +7,7 @@ describe('Welcome', () => {
 	afterEach(cleanup);
 
 	it('should render', () => {
-		const {container} = render(<Welcome onClose={noop} onNext={noop} />);
+		const {container} = render(<Welcome onNext={noop} />);
 
 		expect(container).toMatchSnapshot();
 	});
@@ -15,7 +15,7 @@ describe('Welcome', () => {
 	it('should call onNext when "Next" is clicked', () => {
 		const spy = jest.fn();
 
-		const {queryByText} = render(<Welcome onClose={noop} onNext={spy} />);
+		const {queryByText} = render(<Welcome onNext={spy} />);
 
 		expect(spy).not.toBeCalled();
 

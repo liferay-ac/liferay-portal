@@ -33,15 +33,7 @@ const renderOverview = () =>
 								value={mockChannelContext()}
 							>
 								<BasePage.Context.Provider value={MOCK_CONTEXT}>
-									<Overview
-										channelName="Test Channel"
-										router={{
-											params: {
-												channelId: '123123',
-												groupId: '23',
-											},
-										}}
-									/>
+									<Overview channelName="Test Channel" />
 								</BasePage.Context.Provider>
 							</ChannelContext.Provider>
 						}
@@ -93,15 +85,7 @@ describe('Sites Dashboard Overview', () => {
 									<BasePage.Context.Provider
 										value={MOCK_CONTEXT}
 									>
-										<Overview
-											channelName="Test Channel"
-											router={{
-												params: {
-													channelId: '123123',
-													groupId: '23',
-												},
-											}}
-										/>
+										<Overview channelName="Test Channel" />
 									</BasePage.Context.Provider>
 								</ChannelContext.Provider>
 							}

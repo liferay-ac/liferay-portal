@@ -70,7 +70,7 @@ describe('BasePage', () => {
 		const {getByText} = render(
 			<Provider store={mockStore()}>
 				<MemoryRouter>
-					<BasePage groupId='23' pageActions={mockPageActions} />
+					<BasePage pageActions={mockPageActions} />
 				</MemoryRouter>
 			</Provider>
 		);
@@ -82,7 +82,7 @@ describe('BasePage', () => {
 		const {getByText} = render(
 			<Provider store={mockStore()}>
 				<MemoryRouter>
-					<BasePage groupId='23' pageTitle='testPageTitle' />
+					<BasePage pageTitle='testPageTitle' />
 				</MemoryRouter>
 			</Provider>
 		);
@@ -95,7 +95,6 @@ describe('BasePage', () => {
 			<Provider store={mockStore()}>
 				<MemoryRouter>
 					<BasePage
-						groupId='23'
 						pageTitle='testPageTitle'
 						subTitle='mysubtitle'
 					/>

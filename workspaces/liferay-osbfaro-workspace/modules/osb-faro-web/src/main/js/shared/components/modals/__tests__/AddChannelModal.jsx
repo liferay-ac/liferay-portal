@@ -27,7 +27,6 @@ const DefaultComponent = ({observer, ...props}) => (
 				mocks={[]}
 			>
 				<AddChannelModal
-					groupId='23'
 					observer={observer}
 					onClose={jest.fn()}
 					onSubmit={jest.fn()}

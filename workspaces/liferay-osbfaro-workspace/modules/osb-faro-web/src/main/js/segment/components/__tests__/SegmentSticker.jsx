@@ -1,19 +1,19 @@
 import React from 'react';
 import SegmentSticker from '../SegmentSticker';
 import {render} from '@testing-library/react';
-import {SegmentStates, SegmentTypes} from 'shared/util/constants';
+import {SegmentStates} from 'shared/util/constants';
 
 describe('SegmentSticker', () => {
 	it('should render', () => {
 		const {container} = render(
-			<SegmentSticker segmentType={SegmentTypes.Batch} />
+			<SegmentSticker />
 		);
 		expect(container).toMatchSnapshot();
 	});
 
 	it('should render with a dynamic segment icon', () => {
 		const {container} = render(
-			<SegmentSticker segmentType={SegmentTypes.Batch} />
+			<SegmentSticker />
 		);
 
 		expect(container.querySelector('svg')).toHaveAttribute(

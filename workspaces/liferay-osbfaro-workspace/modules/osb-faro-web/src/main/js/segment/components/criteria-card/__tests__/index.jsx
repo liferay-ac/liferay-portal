@@ -39,7 +39,6 @@ describe('CriteriaCard', () => {
 			<ReferencedObjectsProvider segment={mockSegment}>
 				<CriteriaCard
 					criteriaString="demographics/firstName/value eq 'Test'"
-					segment={mockSegment}
 				/>
 			</ReferencedObjectsProvider>
 		);
@@ -53,7 +52,6 @@ describe('CriteriaCard', () => {
 				<CriteriaCard
 					criteriaString="demographics/name/value eq 'Test'"
 					includeAnonymousUsers
-					segment={mockSegment}
 				/>
 			</ReferencedObjectsProvider>
 		);

@@ -15,7 +15,7 @@ const WrappedComponent = props => (
 			<RouterRoutes>
 				<Route
 					element={
-						<MockedProvider freezeResults={false}>
+						<MockedProvider>
 							<DndProvider backend={HTML5Backend}>
 								<EventAnalysisBuilder {...props} />
 							</DndProvider>

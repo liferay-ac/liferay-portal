@@ -18,7 +18,7 @@ describe('TrackedBehaviorsList', () => {
 
 	it('should render with disabled restrict access checkboxes if the user is not authorized', () => {
 		const {container} = render(
-			<TrackedBehaviorsList authorized={false} groupId='23' />
+			<TrackedBehaviorsList authorized={false} />
 		);
 
 		jest.runAllTimers();
@@ -30,7 +30,7 @@ describe('TrackedBehaviorsList', () => {
 
 	it('should render the restrict access checkbbox in a checked state if the behavior has restricted access', () => {
 		const {container} = render(
-			<TrackedBehaviorsList authorized groupId='23' />
+			<TrackedBehaviorsList authorized />
 		);
 
 		jest.runAllTimers();
@@ -42,7 +42,7 @@ describe('TrackedBehaviorsList', () => {
 
 	it('should NOT contain a search bar or filter capability', () => {
 		const {container} = render(
-			<TrackedBehaviorsList authorized groupId='23' />
+			<TrackedBehaviorsList authorized />
 		);
 
 		jest.runAllTimers();
