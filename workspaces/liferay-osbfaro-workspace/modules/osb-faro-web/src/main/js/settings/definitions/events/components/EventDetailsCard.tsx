@@ -7,6 +7,7 @@ import {Attribute} from 'event-analysis/utils/types';
 import {attributeListColumns} from 'shared/util/table-columns';
 import {Column} from 'shared/components/table';
 import {Map, OrderedMap} from 'immutable';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 
 interface IEventDetailsCardProps {
 	eventAttributes: Attribute[];
@@ -19,6 +20,8 @@ const EventDetailsCard: React.FC<IEventDetailsCardProps> = ({
 	eventName,
 	groupId,
 }) => {
+	const LDPEnabled = useLDPEnabled({groupId});
+
 	const [codeLines, setCodeLines] = useState([
 		`Analytics.track('${eventName}', {`,
 		'});',
@@ -72,9 +75,13 @@ const EventDetailsCard: React.FC<IEventDetailsCardProps> = ({
 
 			<Card.Body>
 				<span className="mt-2 mb-4 w-50">
-					{Liferay.Language.get(
-						'use-this-script-to-start-sending-events-to-analytics-cloud.-you-can-customize-which-attributes-to-send-with-a-specific-event.-selecting-the-attributes-below-will-generate-a-new-sample-script'
-					)}
+					{LDPEnabled
+						? Liferay.Language.get(
+								'use-this-script-to-start-sending-events-to-liferay-data-platform.-you-can-customize-which-attributes-to-send-with-a-specific-event.-selecting-the-attributes-below-will-generate-a-new-sample-script'
+							)
+						: Liferay.Language.get(
+								'use-this-script-to-start-sending-events-to-analytics-cloud.-you-can-customize-which-attributes-to-send-with-a-specific-event.-selecting-the-attributes-below-will-generate-a-new-sample-script'
+							)}
 				</span>
 
 				<Label>{Liferay.Language.get('sample-javascript-colon')}</Label>

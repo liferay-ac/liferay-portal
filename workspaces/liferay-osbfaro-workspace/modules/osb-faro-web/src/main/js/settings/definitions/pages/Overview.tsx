@@ -6,6 +6,7 @@ import React from 'react';
 import {DEVELOPER_MODE, ACCOUNTS} from 'shared/util/constants';
 import {Routes, toRoute} from 'shared/util/router';
 import {ENABLE_BLOCKLIST_KEYWORDS} from 'shared/util/feature-flags';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 
 interface IOverviewProps {
 	groupId: string;
@@ -23,7 +24,10 @@ type ListItem = {
 
 // TODO: LRAC-4511 Remove developer only mode and add devItems back into items
 
-const items = (devMode: boolean = false): (ListItem | null)[] => [
+const items = (
+	devMode: boolean = false,
+	ldpEnabled: boolean = false
+): (ListItem | null)[] => [
 	{
 		header: Liferay.Language.get('people'),
 		items: [
@@ -54,9 +58,13 @@ const items = (devMode: boolean = false): (ListItem | null)[] => [
 			...(devMode
 				? [
 						{
-							description: Liferay.Language.get(
-								'view-and-manage-the-tracked-behaviors-in-analytics-cloud.-you-will-also-find-instructions-for-tagging-non-liferay-assets-to-track-them-in-analytics-cloud'
-							),
+							description: ldpEnabled
+								? Liferay.Language.get(
+										'view-and-manage-the-tracked-behaviors-in-liferay-data-platform.-you-will-also-find-instructions-for-tagging-non-liferay-assets-to-track-them-in-liferay-data-platform'
+									)
+								: Liferay.Language.get(
+										'view-and-manage-the-tracked-behaviors-in-analytics-cloud.-you-will-also-find-instructions-for-tagging-non-liferay-assets-to-track-them-in-analytics-cloud'
+									),
 							route: Routes.SETTINGS_DEFINITIONS_BEHAVIORS,
 							title: Liferay.Language.get('behaviors'),
 						},
@@ -102,66 +110,72 @@ const items = (devMode: boolean = false): (ListItem | null)[] => [
 		: null,
 ];
 
-export const Overview: React.FC<IOverviewProps> = ({groupId}) => (
-	<BasePage
-		className="definitions-overview-root"
-		pageDescription={Liferay.Language.get(
-			'select-the-entity-to-view-its-data-model'
-		)}
-		pageTitle={Liferay.Language.get('definitions')}
-	>
-		<div className="row">
-			<div className="col-xl-8">
-				<Card>
-					<ClayList>
-						{items(DEVELOPER_MODE)
-							.filter((item): item is ListItem => Boolean(item))
-							.map(({header, items}) => (
-								<React.Fragment key={header}>
-									{header && (
-										<ClayList.Header>
-											{header}
-										</ClayList.Header>
-									)}
+export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
+	const LDPEnabled = useLDPEnabled({groupId});
 
-									{items
-										.filter(Boolean)
-										.map(
-											({
-												description,
-												route,
-												routeParams = {},
-												title,
-											}) => (
-												<ClayList.Item key={title}>
-													<ClayList.ItemTitle>
-														<ClayLink
-															decoration="none"
-															href={toRoute(
-																route,
-																{
-																	groupId,
-																	...routeParams,
-																}
-															)}
-														>
-															{title}
-														</ClayLink>
-													</ClayList.ItemTitle>
-
-													<ClayList.ItemText>
-														{description}
-													</ClayList.ItemText>
-												</ClayList.Item>
-											)
+	return (
+		<BasePage
+			className="definitions-overview-root"
+			pageDescription={Liferay.Language.get(
+				'select-the-entity-to-view-its-data-model'
+			)}
+			pageTitle={Liferay.Language.get('definitions')}
+		>
+			<div className="row">
+				<div className="col-xl-8">
+					<Card>
+						<ClayList>
+							{items(DEVELOPER_MODE, LDPEnabled)
+								.filter((item): item is ListItem =>
+									Boolean(item)
+								)
+								.map(({header, items}) => (
+									<React.Fragment key={header}>
+										{header && (
+											<ClayList.Header>
+												{header}
+											</ClayList.Header>
 										)}
-								</React.Fragment>
-							))}
-					</ClayList>
-				</Card>
+
+										{items
+											.filter(Boolean)
+											.map(
+												({
+													description,
+													route,
+													routeParams = {},
+													title,
+												}) => (
+													<ClayList.Item key={title}>
+														<ClayList.ItemTitle>
+															<ClayLink
+																decoration="none"
+																href={toRoute(
+																	route,
+																	{
+																		groupId,
+																		...routeParams,
+																	}
+																)}
+															>
+																{title}
+															</ClayLink>
+														</ClayList.ItemTitle>
+
+														<ClayList.ItemText>
+															{description}
+														</ClayList.ItemText>
+													</ClayList.Item>
+												)
+											)}
+									</React.Fragment>
+								))}
+						</ClayList>
+					</Card>
+				</div>
 			</div>
-		</div>
-	</BasePage>
-);
+		</BasePage>
+	);
+};
 
 export default Overview;

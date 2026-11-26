@@ -31,6 +31,7 @@ import {Sizes} from 'shared/util/constants';
 import {sub} from 'shared/util/lang';
 import {UNAUTHORIZED_ACCESS} from 'shared/util/request';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useModal} from '@clayui/modal';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -51,6 +52,7 @@ const InterestTopics: React.FC<IInterestTopicsProps> = ({
 	groupId,
 }) => {
 	const currentUser = useCurrentUser();
+	const LDPEnabled = useLDPEnabled({groupId});
 	const {timeZoneId} = useTimeZone();
 	const {selectedItems, selectionDispatch} = useSelectionContext();
 
@@ -259,18 +261,26 @@ const InterestTopics: React.FC<IInterestTopicsProps> = ({
 					'approximates-what-topics-individuals-are-interested-in-based-on-their-interactions-with-registered-touchpoints'
 				)}
 				<br />
-				{Liferay.Language.get(
-					'liferay-analytics-cloud-automatically-associates-registered-touchpoints-with-keywords-based-on-their-meta-tags-titles-and-descriptions'
-				)}
+				{LDPEnabled
+					? Liferay.Language.get(
+							'liferay-data-platform-automatically-associates-registered-touchpoints-with-keywords-based-on-their-meta-tags-titles-and-descriptions'
+						)
+					: Liferay.Language.get(
+							'liferay-analytics-cloud-automatically-associates-registered-touchpoints-with-keywords-based-on-their-meta-tags-titles-and-descriptions'
+						)}
 			</p>
 
 			<div className="h4">
 				{Liferay.Language.get('keywords-blocklist')}
 			</div>
 			<p>
-				{Liferay.Language.get(
-					'keywords-can-be-excluded-by-adding-them-to-a-blocklist-manage-the-keywords-that-you-dont-want-listed-in-liferay-analytics-cloud-and-dont-want-them-to-be-used-to-generate-content-recommendation-in-liferay-dxp'
-				)}
+				{LDPEnabled
+					? Liferay.Language.get(
+							'keywords-can-be-excluded-by-adding-them-to-a-blocklist-manage-the-keywords-that-you-dont-want-listed-in-liferay-data-platform-and-dont-want-them-to-be-used-to-generate-content-recommendation-in-liferay-dxp'
+						)
+					: Liferay.Language.get(
+							'keywords-can-be-excluded-by-adding-them-to-a-blocklist-manage-the-keywords-that-you-dont-want-listed-in-liferay-analytics-cloud-and-dont-want-them-to-be-used-to-generate-content-recommendation-in-liferay-dxp'
+						)}
 			</p>
 		</>
 	);
