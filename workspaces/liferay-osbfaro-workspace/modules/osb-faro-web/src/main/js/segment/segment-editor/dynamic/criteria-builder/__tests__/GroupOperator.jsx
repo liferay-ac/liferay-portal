@@ -23,7 +23,7 @@ describe('GroupOperator', () => {
 			screen.getByRole('combobox', {name: /^match logic$/i})
 		).toHaveTextContent(/^all/i);
 		expect(container).toHaveTextContent(
-			/of these criteria must be met\./i
+			/of these criteria are met\./i
 		);
 	});
 
