@@ -1,6 +1,6 @@
 import LifecyclePicker from '../LifecyclePicker';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {ILifecycleDetail} from 'shared/api/lifecycle';
 
 const lifecycles = [
@@ -9,8 +9,6 @@ const lifecycles = [
 ] as ILifecycleDetail[];
 
 describe('LifecyclePicker', () => {
-	afterEach(cleanup);
-
 	it('should render the selected lifecycle', () => {
 		render(
 			<LifecyclePicker

@@ -1,6 +1,6 @@
 import MostEngagedIndividuals from '../MostEngagedIndividuals';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {useParams} from 'react-router-dom';
 
 jest.mock('@liferay/frontend-data-set-web', () => ({
@@ -40,8 +40,6 @@ jest.mock('react-router-dom', () => ({
 const mockedUseParams = useParams as jest.Mock;
 
 describe('MostEngagedIndividuals', () => {
-	afterEach(cleanup);
-
 	beforeEach(() => {
 		jest.clearAllMocks();
 		lastDropdownProps = undefined;

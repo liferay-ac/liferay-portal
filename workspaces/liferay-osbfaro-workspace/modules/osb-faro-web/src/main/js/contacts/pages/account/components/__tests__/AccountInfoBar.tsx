@@ -1,6 +1,6 @@
 import AccountInfoBar from '../AccountInfoBar';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {useLifecycleSelection} from 'shared/hooks/useLifecycleSelection';
 
 jest.mock('react-router-dom', () => ({
@@ -44,8 +44,6 @@ const lifecycleSelection = {
 };
 
 describe('AccountInfoBar', () => {
-	afterEach(cleanup);
-
 	beforeEach(() => {
 		mockedUseLifecycleSelection.mockReturnValue(lifecycleSelection);
 	});

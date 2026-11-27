@@ -2,7 +2,7 @@ import DistributionCard from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {BrowserRouter} from 'react-router-dom';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {fetchDistributionTabs} from 'shared/actions/preferences';
 import {Provider} from 'react-redux';
 
@@ -11,8 +11,6 @@ jest.mock('shared/actions/preferences');
 describe('DistributionCard', () => {
 	afterEach(() => {
 		fetchDistributionTabs.mockClear();
-
-		cleanup();
 	});
 
 	it('renders', () => {

@@ -2,7 +2,7 @@ import List from '../List';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ChannelContext} from 'shared/context/channel';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {mockChannelContext} from 'test/mock-channel-context';
 import {MemoryRouter, useNavigate} from 'react-router-dom';
 import {Provider} from 'react-redux';
@@ -161,8 +161,6 @@ describe('List', () => {
 		mockedUseNavigate.mockReturnValue(mockHistoryPush);
 		mockedUseRequest.mockImplementation(useRequestImpl());
 	});
-
-	afterEach(cleanup);
 
 	describe('rendering', () => {
 		it('should render without crashing', () => {

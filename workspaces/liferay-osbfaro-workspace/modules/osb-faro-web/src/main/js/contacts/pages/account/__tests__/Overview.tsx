@@ -3,7 +3,7 @@ import mockStore from 'test/mock-store';
 import Overview from '../Overview';
 import React from 'react';
 import {AccountIndividualMetricType} from '../utils/types';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockPreferenceReq, mockTimeRangeReq} from 'test/graphql-data';
@@ -120,8 +120,6 @@ const renderOverview = (props = {}) =>
 	);
 
 describe('Overview', () => {
-	afterEach(cleanup);
-
 	beforeEach(() => {
 		mockRefetch.mockClear();
 

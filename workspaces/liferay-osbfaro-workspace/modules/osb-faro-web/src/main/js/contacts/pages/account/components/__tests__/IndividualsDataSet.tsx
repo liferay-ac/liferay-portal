@@ -1,6 +1,6 @@
 import IndividualsDataSet, {getVisitorType} from '../IndividualsDataSet';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {warmFrontendDataSet} from 'test/warm-frontend-data-set';
 
 let lastFDSProps: any;
@@ -29,8 +29,6 @@ describe('IndividualsDataSet', () => {
 		lastFDSProps = undefined;
 		mockSearch = '';
 	});
-
-	afterEach(cleanup);
 
 	it('should render the FrontendDataSet with the dataset id', () => {
 		render(<IndividualsDataSet />);

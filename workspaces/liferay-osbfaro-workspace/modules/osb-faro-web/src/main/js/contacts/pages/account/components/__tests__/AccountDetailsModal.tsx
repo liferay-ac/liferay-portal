@@ -1,6 +1,6 @@
 import AccountDetailsModal from '../AccountDetailsModal';
 import React from 'react';
-import {act, cleanup, render, screen} from '@testing-library/react';
+import {act, render, screen} from '@testing-library/react';
 import {useRequest} from 'shared/hooks/useRequest';
 import {warmFrontendDataSet} from 'test/warm-frontend-data-set';
 
@@ -100,8 +100,6 @@ describe('AccountDetailsModal', () => {
 		lastOnItemsPropSearch = undefined;
 		mockedUseRequest.mockReturnValue({data: {items: mockFields}});
 	});
-
-	afterEach(cleanup);
 
 	it("should render the modal title with the account name's possessive form", () => {
 		renderModal();
