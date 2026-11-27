@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import AttributeBreakdownDropdown from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {DISPLAY_NAME} from 'shared/util/pagination';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockEventAttributeDefinitionsReq} from 'test/graphql-data';
@@ -52,9 +52,7 @@ describe('AttributeBreakdownDropdown', () => {
 			expect(document.body.querySelector('.loading-animation')).toBeNull()
 		);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(container).toMatchSnapshot();
 
@@ -81,9 +79,7 @@ describe('AttributeBreakdownDropdown', () => {
 			expect(document.body.querySelector('.loading-animation')).toBeNull()
 		);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(
 			document.body.querySelectorAll('.dropdown-item.disabled')
