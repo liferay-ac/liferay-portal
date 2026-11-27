@@ -21,7 +21,6 @@ describe('PercentOfCell', () => {
 			<PercentOfCell
 				compareToPrevious={false}
 				events={events}
-				totalEvents={data.totalEvents}
 			/>
 		);
 
@@ -37,7 +36,6 @@ describe('PercentOfCell', () => {
 			<PercentOfCell
 				compareToPrevious
 				events={events}
-				totalEvents={data.totalEvents}
 			/>
 		);
 
@@ -53,7 +51,6 @@ describe('PercentOfCell', () => {
 			<PercentOfCell
 				compareToPrevious
 				events={events}
-				totalEvents={data.totalEvents}
 			/>
 		);
 
@@ -69,7 +66,6 @@ describe('PercentOfCell', () => {
 			<PercentOfCell
 				compareToPrevious
 				events={events}
-				totalEvents={data.totalEvents}
 			/>
 		);
 
@@ -85,7 +81,6 @@ describe('PercentOfCell', () => {
 			<PercentOfCell
 				compareToPrevious
 				events={events}
-				totalEvents={data.totalEvents}
 			/>
 		);
 

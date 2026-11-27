@@ -14,7 +14,6 @@ import {Provider} from 'react-redux';
 import {Routes} from 'shared/util/router';
 import {SegmentCategories, SegmentTypes} from 'shared/util/constants';
 import {UnassignedSegmentsContext} from 'shared/context/unassignedSegments';
-import {User} from 'shared/util/records';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 const MOCK_UNASSIGNED_SEGMENTS_CONTEXT = {
@@ -43,10 +42,6 @@ const DefaultComponent = ({
 							<ChannelContext.Provider value={mockChannelContext()}>
 								<List
 									channelId='123'
-									currentUser={data.getImmutableMock(
-										User,
-										data.mockUser
-									)}
 									groupId='23'
 									{...otherProps}
 								/>

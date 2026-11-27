@@ -9,7 +9,7 @@ import {Provider} from 'react-redux';
 const DefaultComponent = props => (
 	<Provider store={mockStore()}>
 		<MemoryRouter>
-			<MockedProvider freezeResults={false}>
+			<MockedProvider>
 				<BaseDropdown
 					onActiveChange={jest.fn()}
 					trigger={<button data-testid='target'>{'click me'}</button>}

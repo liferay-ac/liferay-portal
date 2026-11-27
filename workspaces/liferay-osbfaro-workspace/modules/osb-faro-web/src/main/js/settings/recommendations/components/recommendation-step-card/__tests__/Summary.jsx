@@ -1,4 +1,3 @@
-import * as data from 'test/data';
 import Form from 'shared/components/form';
 import React from 'react';
 import Summary from '../Summary';
@@ -41,11 +40,9 @@ describe('Summary', () => {
 							type: JobTypes.ItemSimilarity
 						}}
 					>
-						{({initialValues, values}) => (
+						{({values}) => (
 							<Form.Form>
 								<Summary
-									initialValues={initialValues}
-									runDate={data.getTimestamp()}
 									setFieldValue={jest.fn()}
 									{...values}
 								/>
@@ -85,12 +82,10 @@ describe('Summary', () => {
 							type: JobTypes.ItemSimilarity
 						}}
 					>
-						{({initialValues, values}) => (
+						{({values}) => (
 							<Form.Form>
 								<Summary
-									initialValues={initialValues}
 									setFieldValue={jest.fn()}
-									trainingDate={data.getTimestamp()}
 									{...values}
 								/>
 							</Form.Form>

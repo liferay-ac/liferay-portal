@@ -50,11 +50,9 @@ exports[`TooltipTemplate.Column should render as truncated 1`] = `
 
 exports[`TooltipTemplate.Column should render w/ right alignment 1`] = `
 <div>
-  <td
-    alignment="right"
-  >
+  <td>
     <div
-      class="analytics-tooltip-chart-content analytics-tooltip-chart-column text-left font-weight-normal"
+      class="analytics-tooltip-chart-content analytics-tooltip-chart-column text-right font-weight-normal"
     >
       Column
     </div>

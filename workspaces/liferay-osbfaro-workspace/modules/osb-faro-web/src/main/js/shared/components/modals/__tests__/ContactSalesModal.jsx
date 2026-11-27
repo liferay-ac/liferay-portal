@@ -1,7 +1,6 @@
 import ContactSalesModal from '../ContactSalesModal';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {addAlert} from 'shared/actions/alerts';
 import {cleanup, fireEvent, screen} from '@testing-library/react';
 import {noop} from 'lodash';
 import {Provider} from 'react-redux';
@@ -10,7 +9,6 @@ import {renderModal} from 'test/render-modal';
 const DefaultComponent = ({observer, ...props}) => (
 	<Provider store={mockStore()}>
 		<ContactSalesModal
-			addAlert={addAlert}
 			observer={observer}
 			onClose={noop}
 			{...props}

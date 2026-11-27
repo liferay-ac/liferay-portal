@@ -16,7 +16,7 @@ const WrappedComponent = ({eventId, ...attributes}) => (
 			<RouterRoutes>
 				<Route
 					element={
-						<MockedProvider freezeResults={false}>
+						<MockedProvider>
 							<DndProvider backend={HTML5Backend}>
 								<AttributesContext.Provider
 									value={{

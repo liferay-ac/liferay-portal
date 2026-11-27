@@ -17,7 +17,6 @@ describe('IndividualDetails', () => {
 				<Provider store={mockStore()}>
 					<Details
 						groupId='23'
-						id='test'
 						individual={data.getImmutableMock(
 							Individual,
 							data.mockIndividual

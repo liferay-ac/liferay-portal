@@ -17,7 +17,7 @@ const DefaultComponent = props => (
 			<RouterRoutes>
 				<Route
 					element={
-						<MockedProvider freezeResults={false}>
+						<MockedProvider>
 							<UserRequest {...props} onSetUserRequest={noop} />
 						</MockedProvider>
 					}

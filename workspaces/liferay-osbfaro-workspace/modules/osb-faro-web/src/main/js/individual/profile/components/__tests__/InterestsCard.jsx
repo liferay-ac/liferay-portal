@@ -37,7 +37,6 @@ describe('InterestsList', () => {
 					groupId='23'
 					id='foo'
 					interests={[data.mockInterestData()]}
-					type={SEGMENTS}
 				/>
 			</MemoryRouter>
 		);

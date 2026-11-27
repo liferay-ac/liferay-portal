@@ -9,7 +9,7 @@ import {render} from '@testing-library/react';
 const Wrapper = ({children}) => (
 	<Provider store={mockStore()}>
 		<MemoryRouter>
-			<MockedProvider addTypename={false} freezeResults={false}>
+			<MockedProvider addTypename={false}>
 				{children}
 			</MockedProvider>
 		</MemoryRouter>

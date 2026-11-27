@@ -7,7 +7,7 @@ describe('TitleEditor', () => {
 	afterEach(cleanup);
 
 	it('should render', () => {
-		const {container} = render(<TitleEditor name='test' onChange={noop} />);
+		const {container} = render(<TitleEditor onChange={noop} />);
 		expect(container).toMatchSnapshot();
 	});
 
@@ -16,7 +16,6 @@ describe('TitleEditor', () => {
 
 		const {queryByPlaceholderText} = render(
 			<TitleEditor
-				name='test'
 				onChange={noop}
 				placeholder={placeholder}
 			/>
@@ -29,7 +28,7 @@ describe('TitleEditor', () => {
 		const value = 'foo';
 
 		const {queryByText} = render(
-			<TitleEditor name='test' onChange={noop} value={value} />
+			<TitleEditor onChange={noop} value={value} />
 		);
 
 		expect(queryByText(value)).toBeTruthy();
@@ -40,7 +39,6 @@ describe('TitleEditor', () => {
 
 		const {container, getByPlaceholderText} = render(
 			<TitleEditor
-				name='test'
 				onChange={noop}
 				placeholder={placeholder}
 			/>
@@ -57,7 +55,7 @@ describe('TitleEditor', () => {
 
 	it('should not be editable if editable prop is false', () => {
 		const {container} = render(
-			<TitleEditor editable={false} name='test' onChange={noop} />
+			<TitleEditor editable={false} onChange={noop} />
 		);
 
 		expect(container.querySelector('.btn')).toBeNull();

@@ -17,7 +17,7 @@ describe('TimeZoneAlert', () => {
 		const {container} = render(
 			<Provider store={mockStore()}>
 				<MemoryRouter>
-					<TimeZoneAlert groupId='23' onClose={jest.fn()} />
+					<TimeZoneAlert onClose={jest.fn()} />
 				</MemoryRouter>
 			</Provider>
 		);

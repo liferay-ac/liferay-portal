@@ -10,7 +10,7 @@ describe('ReadyToGo', () => {
 	it('renders', () => {
 		const {container} = render(
 			<BrowserRouter>
-				<ReadyToGo groupId='123' onClose={noop} />
+				<ReadyToGo onClose={noop} />
 			</BrowserRouter>
 		);
 
@@ -22,7 +22,7 @@ describe('ReadyToGo', () => {
 
 		const {queryByText} = render(
 			<BrowserRouter>
-				<ReadyToGo groupId='123' onClose={spy} />
+				<ReadyToGo onClose={spy} />
 			</BrowserRouter>
 		);
 

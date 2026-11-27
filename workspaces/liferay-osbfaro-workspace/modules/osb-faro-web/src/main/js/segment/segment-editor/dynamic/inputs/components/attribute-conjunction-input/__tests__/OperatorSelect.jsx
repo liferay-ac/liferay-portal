@@ -1,8 +1,6 @@
 import OperatorSelect from '../OperatorSelect';
 import React from 'react';
-import {ATTRIBUTES_NUMBER_OPERATOR_LONGHAND_LABELS_MAP} from '../utils';
 import {DataTypes} from 'shared/types/DataTypes';
-import {Operators} from 'event-analysis/utils/types';
 import {fireEvent, render} from '@testing-library/react';
 
 describe('OperatorSelect', () => {
@@ -11,9 +9,6 @@ describe('OperatorSelect', () => {
 			<OperatorSelect
 				dataType={DataTypes.Number}
 				onChange={jest.fn()}
-				operatorsName={
-					ATTRIBUTES_NUMBER_OPERATOR_LONGHAND_LABELS_MAP[Operators.EQ]
-				}
 			/>
 		);
 		fireEvent.click(getByText('Select an option'));
@@ -31,9 +26,6 @@ describe('OperatorSelect', () => {
 			<OperatorSelect
 				dataType={DataTypes.Number}
 				onChange={jest.fn()}
-				operatorsName={
-					ATTRIBUTES_NUMBER_OPERATOR_LONGHAND_LABELS_MAP[Operators.EQ]
-				}
 				small
 			/>
 		);
@@ -48,9 +40,6 @@ describe('OperatorSelect', () => {
 			<OperatorSelect
 				dataType={DataTypes.Number}
 				onChange={jest.fn()}
-				operatorsName={
-					ATTRIBUTES_NUMBER_OPERATOR_LONGHAND_LABELS_MAP[Operators.EQ]
-				}
 			/>
 		);
 
