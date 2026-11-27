@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import 'jest-canvas-mock';
 import 'jest-extended/all';
+import {cleanup} from '@testing-library/react';
 import lang from './lang';
 import {TextDecoder, TextEncoder} from 'util';
 
@@ -12,6 +13,10 @@ import {TextDecoder, TextEncoder} from 'util';
 
 console.error = jest.fn(); // eslint-disable-line no-console
 console.warn = jest.fn(); // eslint-disable-line no-console
+
+// Testing Library's auto cleanup misses files when runners skip isolation.
+
+afterEach(cleanup);
 
 // Every test runs against the mock API in shared/api/__mocks__; none unmock it.
 
