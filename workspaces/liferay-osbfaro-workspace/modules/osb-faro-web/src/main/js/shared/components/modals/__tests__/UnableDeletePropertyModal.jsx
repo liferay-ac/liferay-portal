@@ -42,30 +42,20 @@ describe('UnableDeletePropertyModal', () => {
 
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
-});
 
-describe('UnableDeletePropertyModal product naming', () => {
-	afterEach(cleanup);
+	it.each([
+		[false, /navigate to instance settings > analytics cloud > properties/i],
+		[true, /navigate to instance settings > liferay data platform > properties/i],
+	])(
+		'names the instance settings of the product when ldpEnabled is %s',
+		async (ldpEnabled, text) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
 
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
-	});
+			await renderModal(observer => (
+				<UnableDeletePropertyModal observer={observer} onClose={jest.fn()} />
+			));
 
-	it('shows the Analytics Cloud text for a non-LDP workspace', async () => {
-		await renderModal(observer => (
-			<UnableDeletePropertyModal observer={observer} onClose={jest.fn()} />
-		));
-
-		expect(screen.getByText(/navigate to Instance Settings > Analytics Cloud > Properties/)).toBeInTheDocument();
-	});
-
-	it('shows the Liferay Data Platform text for an LDP workspace', async () => {
-		useLDPEnabled.mockReturnValue(true);
-
-		await renderModal(observer => (
-			<UnableDeletePropertyModal observer={observer} onClose={jest.fn()} />
-		));
-
-		expect(screen.getByText(/navigate to Instance Settings > Liferay Data Platform > Properties/)).toBeInTheDocument();
-	});
+			expect(screen.getByText(text)).toBeInTheDocument();
+		}
+	);
 });

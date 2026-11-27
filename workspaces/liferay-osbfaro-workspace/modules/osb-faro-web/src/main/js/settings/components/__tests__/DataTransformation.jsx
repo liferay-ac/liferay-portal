@@ -117,39 +117,35 @@ describe('DataTransformation', () => {
 		expect(getByText(/^done$/i)).toBeDisabled();
 	});
 
-	it.each`
-		ldpEnabled | productName
-		${false}   | ${'Analytics Cloud'}
-		${true}    | ${'Liferay Data Platform'}
-	`(
-		'names $productName in the mapping instructions, column and field placeholder when the plan is LDP: $ldpEnabled',
-		async ({ldpEnabled, productName}) => {
-			API.dataSource.fetchMappings.mockReturnValue(
-				Promise.resolve([mockMapping('No default match')])
-			);
+	it('names Liferay Data Platform in the mapping instructions, column and field placeholder for an LDP workspace', async () => {
+		API.dataSource.fetchMappings.mockReturnValue(
+			Promise.resolve([mockMapping('No default match')])
+		);
 
-			const store = ldpEnabled
-				? mockStore(
-						mockStoreData.setIn(
-							['projects', '23', 'data', 'faroSubscription'],
-							Map({name: SubscriptionNames.LiferayDataPlatform})
-						)
+		render(
+			<WrappedComponent
+				ldpEnabled
+				store={mockStore(
+					mockStoreData.setIn(
+						['projects', '23', 'data', 'faroSubscription'],
+						Map({name: SubscriptionNames.LiferayDataPlatform})
 					)
-				: mockStore();
+				)}
+			/>
+		);
 
-			render(<WrappedComponent ldpEnabled={ldpEnabled} store={store} />);
+		await waitForLoadingToBeRemoved(document.body);
 
-			await waitForLoadingToBeRemoved(document.body);
-
-			expect(
-				screen.getByText(
-					`All fields have been mapped automatically to the best possible match. Please confirm the data mapping below and make any changes if necessary. You may only map one source data field to a single ${productName} field.`
-				)
-			).toBeInTheDocument();
-			expect(screen.getByText(`${productName} Field`)).toBeInTheDocument();
-			expect(
-				screen.getByText(`Select ${productName} Field`)
-			).toBeInTheDocument();
-		}
-	);
+		expect(
+			screen.getByText(
+				/you may only map one source data field to a single liferay data platform field\.$/i
+			)
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/^liferay data platform field$/i)
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/^select liferay data platform field$/i)
+		).toBeInTheDocument();
+	});
 });

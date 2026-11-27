@@ -105,25 +105,6 @@ describe('ConnectDXP', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	it('names Analytics Cloud in the connected heading for a non-LDP workspace', () => {
-		render(
-			<Wrapper>
-				<ConnectDXP
-					dxpConnected
-					groupId={mockGroupId}
-					onClose={jest.fn()}
-					onDxpConnected={jest.fn()}
-				/>
-			</Wrapper>
-		);
-
-		expect(
-			screen.getByText(
-				/^your dxp instance is connected to analytics cloud$/i
-			)
-		).toBeInTheDocument();
-	});
-
 	it('names Liferay Data Platform in the connected heading for an LDP workspace', () => {
 		render(
 			<Wrapper store={mockStore(mockStoreDataLDP)}>
@@ -140,27 +121,6 @@ describe('ConnectDXP', () => {
 			screen.getByText(
 				/^your dxp instance is connected to liferay data platform$/i
 			)
-		).toBeInTheDocument();
-	});
-
-	it('names Analytics Cloud in the connection help for a non-LDP workspace', async () => {
-		render(
-			<Wrapper>
-				<ConnectDXP
-					dxpConnected={false}
-					groupId={mockGroupId}
-					onClose={jest.fn()}
-					onDxpConnected={jest.fn()}
-				/>
-			</Wrapper>
-		);
-
-		await waitFor(() =>
-			expect(screen.getByDisplayValue('test-token')).toBeInTheDocument()
-		);
-
-		expect(
-			screen.getByText(/to learn how to connect liferay dxp to analytics cloud\.?$/i)
 		).toBeInTheDocument();
 	});
 

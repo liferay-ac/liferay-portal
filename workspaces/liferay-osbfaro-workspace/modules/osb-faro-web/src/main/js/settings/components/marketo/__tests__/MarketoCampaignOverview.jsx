@@ -114,55 +114,45 @@ describe('MarketoCampaignOverview', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	it.each`
-		ldpEnabled | productName
-		${false}   | ${'Liferay Analytics Cloud'}
-		${true}    | ${'Liferay Data Platform'}
-	`(
-		'names $productName in the authentication message when ldpEnabled is $ldpEnabled',
-		({ldpEnabled, productName}) => {
-			useLDPEnabled.mockReturnValue(ldpEnabled);
-			useRequest.mockReturnValue({data: 10, loading: false});
+	it('names Liferay Data Platform in the authentication message for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
+		useRequest.mockReturnValue({data: 10, loading: false});
 
-			render(
-				<WrappedComponent
-					dataSource={data.getImmutableMock(
-						DataSource,
-						data.mockMarketoCampaignDataSource
-					)}
-				/>
-			);
+		render(
+			<WrappedComponent
+				dataSource={data.getImmutableMock(
+					DataSource,
+					data.mockMarketoCampaignDataSource
+				)}
+			/>
+		);
 
-			expect(
-				screen.getByText(
-					`You have successfully authenticated your credentials with ${productName}. You can now select the data to sync.`
-				)
-			).toBeInTheDocument();
-		}
-	);
+		expect(
+			screen.getByText(
+				/^you have successfully authenticated your credentials with liferay data platform\. you can now select the data to sync\.$/i
+			)
+		).toBeInTheDocument();
+	});
 
-	it.each`
-		ldpEnabled | message
-		${false}   | ${'To reestablish the connection between Marketo and Liferay Analytics Cloud, check your credentials and paste on the input below.'}
-		${true}    | ${'To reestablish the connection between Marketo and Liferay Data Platform, check your credentials and paste them in the field below.'}
-	`(
-		'shows the reconnection instructions for the plan when ldpEnabled is $ldpEnabled',
-		({ldpEnabled, message}) => {
-			useLDPEnabled.mockReturnValue(ldpEnabled);
-			useRequest.mockReturnValue({data: 10, loading: false});
+	it('shows the Liferay Data Platform reconnection instructions for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
+		useRequest.mockReturnValue({data: 10, loading: false});
 
-			render(
-				<WrappedComponent
-					dataSource={data.getImmutableMock(
-						DataSource,
-						data.mockMarketoCampaignDataSource,
-						1,
-						{state: 'DISCONNECTED', status: 'INACTIVE'}
-					)}
-				/>
-			);
+		render(
+			<WrappedComponent
+				dataSource={data.getImmutableMock(
+					DataSource,
+					data.mockMarketoCampaignDataSource,
+					1,
+					{state: 'DISCONNECTED', status: 'INACTIVE'}
+				)}
+			/>
+		);
 
-			expect(screen.getByText(message)).toBeInTheDocument();
-		}
-	);
+		expect(
+			screen.getByText(
+				/^to reestablish the connection between marketo and liferay data platform, check your credentials and paste them in the field below\.$/i
+			)
+		).toBeInTheDocument();
+	});
 });

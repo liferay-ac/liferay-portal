@@ -18,26 +18,15 @@ const renderErrorDisplay = (props) =>
 
 describe('WorkspacesErrorDisplay', () => {
 	it.each`
-		errorType                    | text
-		${ProjectStates.Maintenance} | ${/^analytics cloud is undergoing scheduled maintenance\./i}
-		${ProjectStates.Unavailable} | ${/^analytics cloud is temporarily unavailable\./i}
+		errorType                    | ldpEnabled | text
+		${ProjectStates.Maintenance} | ${false}   | ${/^analytics cloud is undergoing scheduled maintenance\./i}
+		${ProjectStates.Unavailable} | ${false}   | ${/^analytics cloud is temporarily unavailable\./i}
+		${ProjectStates.Maintenance} | ${true}    | ${/^liferay data platform is undergoing scheduled maintenance\./i}
+		${ProjectStates.Unavailable} | ${true}    | ${/^liferay data platform is temporarily unavailable\./i}
 	`(
-		'shows the Analytics Cloud $errorType message for a non-LDP workspace',
-		({errorType, text}) => {
-			renderErrorDisplay({errorType});
-
-			expect(screen.getByText(text)).toBeInTheDocument();
-		}
-	);
-
-	it.each`
-		errorType                    | text
-		${ProjectStates.Maintenance} | ${/^liferay data platform is undergoing scheduled maintenance\./i}
-		${ProjectStates.Unavailable} | ${/^liferay data platform is temporarily unavailable\./i}
-	`(
-		'shows the Liferay Data Platform $errorType message for an LDP workspace',
-		({errorType, text}) => {
-			renderErrorDisplay({errorType, ldpEnabled: true});
+		'names the product of the plan in the $errorType message (ldpEnabled: $ldpEnabled)',
+		({errorType, ldpEnabled, text}) => {
+			renderErrorDisplay({errorType, ldpEnabled});
 
 			expect(screen.getByText(text)).toBeInTheDocument();
 		}

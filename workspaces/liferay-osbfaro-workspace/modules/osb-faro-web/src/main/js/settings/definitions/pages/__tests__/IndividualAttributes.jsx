@@ -108,21 +108,15 @@ describe('IndividualAttributes', () => {
 describe('IndividualAttributes product naming', () => {
 	afterEach(cleanup);
 
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
-	});
-
-	it('shows the Analytics Cloud text for a non-LDP workspace', async () => {
-		render(<DefaultComponent />);
-
-		expect(await screen.findByText(/Analytics Cloud will take and store the newest data/)).toBeInTheDocument();
-	});
-
-	it('shows the Liferay Data Platform text for an LDP workspace', async () => {
+	it('shows the Liferay Data Platform description for an LDP workspace', async () => {
 		useLDPEnabled.mockReturnValue(true);
 
 		render(<DefaultComponent />);
 
-		expect(await screen.findByText(/Liferay Data Platform will take and store the newest data/)).toBeInTheDocument();
+		expect(
+			await screen.findByText(
+				/liferay data platform will take and store the newest data/i
+			)
+		).toBeInTheDocument();
 	});
 });

@@ -51,21 +51,19 @@ describe('CSV', () => {
 	});
 
 	it.each`
-		ldpEnabled | productName
-		${false}   | ${'Analytics Cloud'}
-		${true}    | ${'Liferay Data Platform'}
+		ldpEnabled | columnTitle
+		${false}   | ${/^analytics cloud field$/i}
+		${true}    | ${/^liferay data platform field$/i}
 	`(
-		'titles the mapped field column with $productName when ldpEnabled is $ldpEnabled',
-		async ({ldpEnabled, productName}) => {
+		'titles the mapped field column with the product when ldpEnabled is $ldpEnabled',
+		async ({columnTitle, ldpEnabled}) => {
 			API.dataSource.fetchMappingsLite.mockReturnValue(
 				Promise.resolve([data.mockMapping(0, {values: ['value']})])
 			);
 
 			render(<DefaultComponent ldpEnabled={ldpEnabled} />);
 
-			expect(
-				await screen.findByText(`${productName} Field`)
-			).toBeInTheDocument();
+			expect(await screen.findByText(columnTitle)).toBeInTheDocument();
 		}
 	);
 });

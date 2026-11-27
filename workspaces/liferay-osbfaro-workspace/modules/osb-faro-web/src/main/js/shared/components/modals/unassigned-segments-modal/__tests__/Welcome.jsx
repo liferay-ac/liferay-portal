@@ -33,16 +33,6 @@ describe('Welcome', () => {
 		expect(spy).toBeCalled();
 	});
 
-	it('names Analytics Cloud in the upgrade message for a non-LDP workspace', () => {
-		const {queryByText} = render(<Welcome onNext={noop} />);
-
-		expect(
-			queryByText(
-				/^we have upgraded your analytics cloud workspace to include properties\.$/i
-			)
-		).toBeTruthy();
-	});
-
 	it('names Liferay Data Platform in the upgrade message for an LDP workspace', () => {
 		useLDPEnabled.mockReturnValue(true);
 

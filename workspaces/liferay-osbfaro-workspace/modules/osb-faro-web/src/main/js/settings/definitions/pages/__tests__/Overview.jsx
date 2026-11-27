@@ -70,37 +70,25 @@ describe('Definitions Overview', () => {
 describe('Definitions Overview product naming', () => {
 	afterEach(cleanup);
 
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
-	});
+	it.each([
+		[false, /^view and manage the tracked behaviors in analytics cloud\./i],
+		[true, /^view and manage the tracked behaviors in liferay data platform\./i],
+	])(
+		'names the product in the behaviors description when ldpEnabled is %s',
+		(ldpEnabled, text) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
 
-	it('shows the Analytics Cloud text for a non-LDP workspace', () => {
-		Constants.DEVELOPER_MODE = true;
+			Constants.DEVELOPER_MODE = true;
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<Overview groupId='23' />
-				</MemoryRouter>
-			</Provider>
-		);
+			render(
+				<Provider store={mockStore()}>
+					<MemoryRouter>
+						<Overview groupId='23' />
+					</MemoryRouter>
+				</Provider>
+			);
 
-		expect(screen.getByText(/^View and manage the tracked behaviors in Analytics Cloud\./)).toBeInTheDocument();
-	});
-
-	it('shows the Liferay Data Platform text for an LDP workspace', () => {
-		useLDPEnabled.mockReturnValue(true);
-
-		Constants.DEVELOPER_MODE = true;
-
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<Overview groupId='23' />
-				</MemoryRouter>
-			</Provider>
-		);
-
-		expect(screen.getByText(/^View and manage the tracked behaviors in Liferay Data Platform\./)).toBeInTheDocument();
-	});
+			expect(screen.getByText(text)).toBeInTheDocument();
+		}
+	);
 });

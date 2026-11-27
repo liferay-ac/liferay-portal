@@ -4,7 +4,7 @@ import mockStore from 'test/mock-store';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
 import {Provider} from 'react-redux';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 
@@ -20,6 +20,10 @@ jest.mock('react-router-dom', () => ({
 }));
 
 describe('Events', () => {
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
 	it('should render', () => {
 		const {container} = render(
 			<Provider store={mockStore()}>
@@ -31,30 +35,8 @@ describe('Events', () => {
 
 		expect(container).toMatchSnapshot();
 	});
-});
 
-describe('Events product naming', () => {
-	afterEach(cleanup);
-
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
-	});
-
-	it('shows the Analytics Cloud text for a non-LDP workspace', () => {
-		render(
-			<ApolloProvider client={client}>
-				<Provider store={mockStore()}>
-					<MemoryRouter>
-						<Events groupId='23' />
-					</MemoryRouter>
-				</Provider>
-			</ApolloProvider>
-		);
-
-		expect(screen.getByText('This is the data model of events sent to Analytics Cloud.')).toBeInTheDocument();
-	});
-
-	it('shows the Liferay Data Platform text for an LDP workspace', () => {
+	it('shows the Liferay Data Platform description for an LDP workspace', () => {
 		useLDPEnabled.mockReturnValue(true);
 
 		render(
@@ -67,6 +49,6 @@ describe('Events product naming', () => {
 			</ApolloProvider>
 		);
 
-		expect(screen.getByText('This is the data model of events sent to Liferay Data Platform.')).toBeInTheDocument();
+		expect(screen.getByText(/^this is the data model of events sent to liferay data platform\.$/i)).toBeInTheDocument();
 	});
 });

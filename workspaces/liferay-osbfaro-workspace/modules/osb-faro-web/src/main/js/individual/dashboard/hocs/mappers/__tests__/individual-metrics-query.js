@@ -47,24 +47,15 @@ describe('Individual Metrics Query Mapper', () => {
 			).info.content;
 
 		it.each`
-			id                              | text
-			${'knownIndividualsMetric'}     | ${/^current total of known individuals that are tracked by analytics cloud\./i}
-			${'anonymousIndividualsMetric'} | ${/^current total of anonymous individuals that are tracked by analytics cloud\./i}
+			id                              | ldpEnabled | text
+			${'knownIndividualsMetric'}     | ${false}   | ${/^current total of known individuals that are tracked by analytics cloud\./i}
+			${'anonymousIndividualsMetric'} | ${false}   | ${/^current total of anonymous individuals that are tracked by analytics cloud\./i}
+			${'knownIndividualsMetric'}     | ${true}    | ${/^current total of known individuals that are tracked by liferay data platform\./i}
+			${'anonymousIndividualsMetric'} | ${true}    | ${/^current total of anonymous individuals that are tracked by liferay data platform\./i}
 		`(
-			'names Analytics Cloud in the $id info for a non-LDP workspace',
-			({id, text}) => {
-				expect(getInfoContent({ldpEnabled: false}, id)).toMatch(text);
-			}
-		);
-
-		it.each`
-			id                              | text
-			${'knownIndividualsMetric'}     | ${/^current total of known individuals that are tracked by liferay data platform\./i}
-			${'anonymousIndividualsMetric'} | ${/^current total of anonymous individuals that are tracked by liferay data platform\./i}
-		`(
-			'names Liferay Data Platform in the $id info for an LDP workspace',
-			({id, text}) => {
-				expect(getInfoContent({ldpEnabled: true}, id)).toMatch(text);
+			'names the product of the plan in the $id info (ldpEnabled: $ldpEnabled)',
+			({id, ldpEnabled, text}) => {
+				expect(getInfoContent({ldpEnabled}, id)).toMatch(text);
 			}
 		);
 

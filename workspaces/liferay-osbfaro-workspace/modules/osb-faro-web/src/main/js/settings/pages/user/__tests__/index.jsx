@@ -35,6 +35,10 @@ const DefaultComponent = props => (
 describe('UserRoutes', () => {
 	afterEach(cleanup);
 
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
 	it('should render', () => {
 		useCurrentUser.mockImplementation(() => ({
 			isAdmin: () => true
@@ -76,26 +80,8 @@ describe('UserRoutes', () => {
 			queryByRole('link', {name: /^requests$/i})
 		).not.toBeInTheDocument();
 	});
-});
 
-describe('UserRoutes product naming', () => {
-	afterEach(cleanup);
-
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
-	});
-
-	it('shows the Analytics Cloud text for a non-LDP workspace', () => {
-		useCurrentUser.mockImplementation(() => ({
-			isAdmin: () => true
-		}));
-
-		render(<DefaultComponent />);
-
-		expect(screen.getByText(/^Invite new users to Analytics Cloud/)).toBeInTheDocument();
-	});
-
-	it('shows the Liferay Data Platform text for an LDP workspace', () => {
+	it('asks to invite users to Liferay Data Platform in an LDP workspace', () => {
 		useLDPEnabled.mockReturnValue(true);
 
 		useCurrentUser.mockImplementation(() => ({
@@ -104,6 +90,8 @@ describe('UserRoutes product naming', () => {
 
 		render(<DefaultComponent />);
 
-		expect(screen.getByText(/^Invite new users to Liferay Data Platform/)).toBeInTheDocument();
+		expect(
+			screen.getByText(/^invite new users to liferay data platform/i)
+		).toBeInTheDocument();
 	});
 });

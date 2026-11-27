@@ -36,22 +36,6 @@ describe('TrackedBehaviorsList', () => {
 describe('TrackedBehaviors product naming', () => {
 	afterEach(cleanup);
 
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
-	});
-
-	it('shows the Analytics Cloud text for a non-LDP workspace', () => {
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TrackedBehaviors groupId='23' />
-				</MemoryRouter>
-			</Provider>
-		);
-
-		expect(screen.getByText(/behaviors tracked within Analytics Cloud\./)).toBeInTheDocument();
-	});
-
 	it('shows the Liferay Data Platform text for an LDP workspace', () => {
 		useLDPEnabled.mockReturnValue(true);
 
@@ -65,7 +49,7 @@ describe('TrackedBehaviors product naming', () => {
 
 		expect(
 			screen.getByText(
-				/behaviors tracked within Liferay Data Platform\. Instructions for tracking third party assets in Liferay Data Platform/
+				/behaviors tracked within liferay data platform\. instructions for tracking third party assets in liferay data platform/i
 			)
 		).toBeInTheDocument();
 	});

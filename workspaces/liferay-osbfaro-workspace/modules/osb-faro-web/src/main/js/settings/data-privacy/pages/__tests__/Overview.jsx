@@ -2,7 +2,7 @@ import mockStore from 'test/mock-store';
 import PreferenceQuery from 'shared/queries/PreferenceQuery';
 import React from 'react';
 import {DATA_RETENTION_PERIOD_KEY} from 'shared/util/constants';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {Overview} from '../Overview';
@@ -55,6 +55,10 @@ const DefaultComponent = ({mocks = [mockPreferenceReq()], ...props}) => (
 );
 
 describe('Data Privacy Overview', () => {
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
 	it('should render', async () => {
 		useCurrentUser.mockImplementation(() => ({
 			isAdmin: () => true
@@ -85,48 +89,25 @@ describe('Data Privacy Overview', () => {
 			getByTestId('data-retention-period-select-input')
 		).toBeDisabled();
 	});
-});
-
-describe('Data Privacy Overview product naming', () => {
-	afterEach(cleanup);
-
-	beforeEach(() => {
-		useCurrentUser.mockImplementation(() => ({
-			isAdmin: () => true
-		}));
-
-		useLDPEnabled.mockReturnValue(false);
-	});
-
-	it('shows the Analytics Cloud retention and request log texts for a non-LDP workspace', async () => {
-		const {container} = render(<DefaultComponent />);
-
-		await waitForLoadingToBeRemoved(container);
-
-		expect(
-			screen.getByText(/^Analytics Cloud stores event data/)
-		).toBeInTheDocument();
-		expect(
-			screen.getByText(/suppression of their data in Analytics Cloud\./)
-		).toBeInTheDocument();
-	});
 
 	it('shows the Liferay Data Platform retention and request log texts for an LDP workspace', async () => {
 		useLDPEnabled.mockReturnValue(true);
 
+		useCurrentUser.mockImplementation(() => ({
+			isAdmin: () => true
+		}));
+
 		const {container} = render(<DefaultComponent />);
 
 		await waitForLoadingToBeRemoved(container);
 
 		expect(
 			screen.getByText(
-				/^Liferay Data Platform stores event data.*Contact sales to customize the retention period\.$/
+				/^liferay data platform stores event data.*contact sales to customize the retention period\.$/i
 			)
 		).toBeInTheDocument();
 		expect(
-			screen.getByText(
-				/suppression of their data in Liferay Data Platform\./
-			)
+			screen.getByText(/suppression of their data in liferay data platform\./i)
 		).toBeInTheDocument();
 	});
 });

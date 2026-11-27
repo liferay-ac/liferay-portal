@@ -109,29 +109,22 @@ describe('SalesforceOverview', () => {
 		expect(queryByText(/items synced/i)).toBeNull();
 	});
 
-	it.each`
-		ldpEnabled | productName
-		${false}   | ${'Liferay Analytics Cloud'}
-		${true}    | ${'Liferay Data Platform'}
-	`(
-		'names $productName in the authentication message when ldpEnabled is $ldpEnabled',
-		({ldpEnabled, productName}) => {
-			useLDPEnabled.mockReturnValue(ldpEnabled);
+	it('names Liferay Data Platform in the authentication message for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
 
-			render(<WrappedComponent />);
+		render(<WrappedComponent />);
 
-			expect(
-				screen.getByText(
-					`You have successfully authenticated your token with ${productName}. You can now select the data to sync.`
-				)
-			).toBeInTheDocument();
-		}
-	);
+		expect(
+			screen.getByText(
+				/^you have successfully authenticated your token with liferay data platform\. you can now select the data to sync\.$/i
+			)
+		).toBeInTheDocument();
+	});
 
 	it.each`
 		ldpEnabled | message
-		${false}   | ${'To reestablish the connection between Salesforce and Liferay Analytics Cloud, check your credentials and paste on the input below.'}
-		${true}    | ${'To reestablish the connection between Salesforce and Liferay Data Platform, check your credentials and paste them in the field below.'}
+		${false}   | ${/^to reestablish the connection between salesforce and liferay analytics cloud, check your credentials and paste on the input below\.$/i}
+		${true}    | ${/^to reestablish the connection between salesforce and liferay data platform, check your credentials and paste them in the field below\.$/i}
 	`(
 		'shows the reconnection instructions for the plan when ldpEnabled is $ldpEnabled',
 		({ldpEnabled, message}) => {

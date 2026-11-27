@@ -47,29 +47,20 @@ describe('ConnectLiferayDXPStep', () => {
 		useLDPEnabled.mockReturnValue(false);
 	});
 
-	it('names the Analytics Cloud workspace in the disconnect confirmation for a non-LDP workspace', () => {
-		renderStep();
+	it.each`
+		ldpEnabled | message
+		${false}   | ${/^this action will stop syncing data from your liferay dxp instance to this analytics cloud workspace\./i}
+		${true}    | ${/^this action will stop syncing data from this data source to this liferay data platform workspace\./i}
+	`(
+		'names the workspace product in the disconnect confirmation when ldpEnabled is $ldpEnabled',
+		({ldpEnabled, message}) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
 
-		fireEvent.click(screen.getByText('Disconnect Data Source'));
+			renderStep();
 
-		expect(
-			screen.getByText(
-				'This action will stop syncing data from your Liferay DXP instance to this Analytics Cloud workspace. The data that was already synced will remain available in the properties the data source was connected to. Are you sure you want to continue?'
-			)
-		).toBeInTheDocument();
-	});
+			fireEvent.click(screen.getByText(/^disconnect data source$/i));
 
-	it('names the Liferay Data Platform workspace in the disconnect confirmation for an LDP workspace', () => {
-		useLDPEnabled.mockReturnValue(true);
-
-		renderStep();
-
-		fireEvent.click(screen.getByText('Disconnect Data Source'));
-
-		expect(
-			screen.getByText(
-				'This action will stop syncing data from this data source to this Liferay Data Platform workspace. The data that was already synced will remain available in the properties the data source was connected to. Are you sure you want to continue?'
-			)
-		).toBeInTheDocument();
-	});
+			expect(screen.getByText(message)).toBeInTheDocument();
+		}
+	);
 });

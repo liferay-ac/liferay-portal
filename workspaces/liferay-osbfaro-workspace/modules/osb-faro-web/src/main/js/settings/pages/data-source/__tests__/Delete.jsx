@@ -80,12 +80,12 @@ describe('DataSourceDelete', () => {
 	});
 
 	it.each`
-		ldpEnabled | productName
-		${false}   | ${'Analytics Cloud'}
-		${true}    | ${'Liferay Data Platform'}
+		ldpEnabled | message
+		${false}   | ${/^liferay1 is currently being removed from analytics cloud\.$/i}
+		${true}    | ${/^liferay1 is currently being removed from liferay data platform\.$/i}
 	`(
-		'names $productName in the removal alert when ldpEnabled is $ldpEnabled',
-		async ({ldpEnabled, productName}) => {
+		'names the product in the removal alert when ldpEnabled is $ldpEnabled',
+		async ({ldpEnabled, message}) => {
 			const addAlert = jest.fn();
 
 			const deleteComponent = new DataSourceDelete({
@@ -99,7 +99,7 @@ describe('DataSourceDelete', () => {
 
 			expect(addAlert).toHaveBeenCalledWith(
 				expect.objectContaining({
-					message: `Liferay1 is currently being removed from ${productName}.`
+					message: expect.stringMatching(message)
 				})
 			);
 		}

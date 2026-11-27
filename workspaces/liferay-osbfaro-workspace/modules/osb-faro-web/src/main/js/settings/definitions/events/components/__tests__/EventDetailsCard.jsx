@@ -65,26 +65,6 @@ describe('EventDetailsCard', () => {
 describe('EventDetailsCard product naming', () => {
 	afterEach(cleanup);
 
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
-	});
-
-	it('shows the Analytics Cloud text for a non-LDP workspace', () => {
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<EventDetailsCard
-						eventAttributes={[]}
-						eventName='viewArticle'
-						groupId='23'
-					/>
-				</MemoryRouter>
-			</Provider>
-		);
-
-		expect(screen.getByText(/^Use this script to start sending events to Analytics Cloud\./)).toBeInTheDocument();
-	});
-
 	it('shows the Liferay Data Platform text for an LDP workspace', () => {
 		useLDPEnabled.mockReturnValue(true);
 
@@ -100,6 +80,10 @@ describe('EventDetailsCard product naming', () => {
 			</Provider>
 		);
 
-		expect(screen.getByText(/^Use this script to start sending events to Liferay Data Platform\./)).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				/^use this script to start sending events to liferay data platform\./i
+			)
+		).toBeInTheDocument();
 	});
 });

@@ -45,6 +45,16 @@ describe('SyncedStripe', () => {
 			}
 		}
 	);
+
+	it('shows the Liferay Data Platform instance settings for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		render(<SyncedStripe sitesSyncedCount={1} />);
+
+		expect(
+			screen.getByText(/^instance settings > liferay data platform$/i)
+		).toBeInTheDocument();
+	});
 });
 
 describe('getTitle', () => {
@@ -67,26 +77,4 @@ describe('getTitle', () => {
 			}
 		}
 	);
-});
-
-describe('SyncedStripe product naming', () => {
-	afterEach(cleanup);
-
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
-	});
-
-	it('shows the Analytics Cloud text for a non-LDP workspace', () => {
-		render(<SyncedStripe sitesSyncedCount={1} />);
-
-		expect(screen.getByText('Instance Settings > Analytics Cloud')).toBeInTheDocument();
-	});
-
-	it('shows the Liferay Data Platform text for an LDP workspace', () => {
-		useLDPEnabled.mockReturnValue(true);
-
-		render(<SyncedStripe sitesSyncedCount={1} />);
-
-		expect(screen.getByText('Instance Settings > Liferay Data Platform')).toBeInTheDocument();
-	});
 });

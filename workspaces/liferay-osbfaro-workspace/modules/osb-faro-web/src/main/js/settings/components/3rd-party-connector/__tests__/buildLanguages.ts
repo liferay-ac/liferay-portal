@@ -41,11 +41,11 @@ describe('buildLanguages', () => {
 	it('names Liferay Data Platform, since every third-party connector requires an LDP plan', () => {
 		const languages = buildLanguages('Acme');
 
-		expect(languages.connectDescription).toBe(
-			'Connect your Acme account to Liferay Data Platform to start importing data.'
+		expect(languages.connectDescription).toMatch(
+			/^connect your acme account to liferay data platform to start importing data\.$/i
 		);
-		expect(languages.endpointHelper).toBe(
-			'This is the Liferay Data Platform URL that Acme will redirect to after a user authorizes the connection.'
+		expect(languages.endpointHelper).toMatch(
+			/^this is the liferay data platform url that acme will redirect to after a user authorizes the connection\.$/i
 		);
 	});
 });

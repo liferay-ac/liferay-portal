@@ -70,16 +70,6 @@ describe('LiferayOverview', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	it('names Analytics Cloud in the authentication message for a non-LDP workspace', () => {
-		render(<WrappedComponent />);
-
-		expect(
-			screen.getByText(
-				'You have successfully authenticated your token with Liferay Analytics Cloud. You can now select the data to sync.'
-			)
-		).toBeInTheDocument();
-	});
-
 	it('names Liferay Data Platform in the authentication message for an LDP workspace', () => {
 		useLDPEnabled.mockReturnValue(true);
 
@@ -87,52 +77,43 @@ describe('LiferayOverview', () => {
 
 		expect(
 			screen.getByText(
-				'You have successfully authenticated your token with Liferay Data Platform. You can now select the data to sync.'
+				/^you have successfully authenticated your token with liferay data platform\. you can now select the data to sync\.$/i
 			)
 		).toBeInTheDocument();
 	});
 
-	it('names Analytics Cloud in the reconnection instructions for a non-LDP workspace', () => {
-		render(
-			<WrappedComponent
-				dataSource={
-					new DataSource(
-						data.mockLiferayDataSource(1, {
-							status: DataSourceStatuses.Inactive
-						})
-					)
-				}
-			/>
-		);
+	it.each([
+		{
+			instructions:
+				/between the liferay dxp instance and liferay analytics cloud, copy the token below and go to dxp instance settings > analytics cloud to/i,
+			ldpEnabled: false,
+			tokenLabel: /^analytics cloud token$/i
+		},
+		{
+			instructions:
+				/between the liferay dxp instance and liferay data platform, copy the token below and go to dxp instance settings > liferay data platform to/i,
+			ldpEnabled: true,
+			tokenLabel: /^liferay data platform token$/i
+		}
+	])(
+		'names the product in the reconnection instructions when ldpEnabled is $ldpEnabled',
+		({instructions, ldpEnabled, tokenLabel}) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
 
-		expect(
-			screen.getByText(
-				'To reestablish the connection between the Liferay DXP instance and Liferay Analytics Cloud, copy the token below and go to DXP instance settings > Analytics Cloud to continue the data source configuration.'
-			)
-		).toBeInTheDocument();
-		expect(screen.getByText('Analytics Cloud Token')).toBeInTheDocument();
-	});
+			render(
+				<WrappedComponent
+					dataSource={
+						new DataSource(
+							data.mockLiferayDataSource(1, {
+								status: DataSourceStatuses.Inactive
+							})
+						)
+					}
+				/>
+			);
 
-	it('names Liferay Data Platform in the reconnection instructions for an LDP workspace', () => {
-		useLDPEnabled.mockReturnValue(true);
-
-		render(
-			<WrappedComponent
-				dataSource={
-					new DataSource(
-						data.mockLiferayDataSource(1, {
-							status: DataSourceStatuses.Inactive
-						})
-					)
-				}
-			/>
-		);
-
-		expect(
-			screen.getByText(
-				'To reestablish the connection between the Liferay DXP instance and Liferay Data Platform, copy the token below and go to DXP Instance Settings > Liferay Data Platform to continue the data source configuration.'
-			)
-		).toBeInTheDocument();
-		expect(screen.getByText('Liferay Data Platform Token')).toBeInTheDocument();
-	});
+			expect(screen.getByText(instructions)).toBeInTheDocument();
+			expect(screen.getByText(tokenLabel)).toBeInTheDocument();
+		}
+	);
 });

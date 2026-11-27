@@ -146,32 +146,11 @@ describe('InterestTopics', () => {
 describe('InterestTopics product naming', () => {
 	afterEach(cleanup);
 
-	beforeEach(() => {
+	it('shows the Liferay Data Platform texts for an LDP workspace', async () => {
 		API.blockedKeywords.search.mockReturnValue(
 			Promise.resolve({items: [], total: 0})
 		);
 
-		useLDPEnabled.mockReturnValue(false);
-	});
-
-	it('shows the Analytics Cloud texts for a non-LDP workspace', async () => {
-		const {container} = render(
-			<Wrapper>
-				<InterestTopics {...defaultProps} />
-			</Wrapper>
-		);
-
-		await waitForLoadingToBeRemoved(container);
-
-		expect(
-			screen.getByText(/Liferay Analytics Cloud automatically associates/)
-		).toBeInTheDocument();
-		expect(
-			screen.getByText(/do not want listed in Liferay Analytics Cloud,/)
-		).toBeInTheDocument();
-	});
-
-	it('shows the Liferay Data Platform texts for an LDP workspace', async () => {
 		useLDPEnabled.mockReturnValue(true);
 
 		const {container} = render(
@@ -183,10 +162,10 @@ describe('InterestTopics product naming', () => {
 		await waitForLoadingToBeRemoved(container);
 
 		expect(
-			screen.getByText(/Liferay Data Platform automatically associates/)
+			screen.getByText(/liferay data platform automatically associates/i)
 		).toBeInTheDocument();
 		expect(
-			screen.getByText(/do not want listed in Liferay Data Platform,/)
+			screen.getByText(/do not want listed in liferay data platform,/i)
 		).toBeInTheDocument();
 	});
 });

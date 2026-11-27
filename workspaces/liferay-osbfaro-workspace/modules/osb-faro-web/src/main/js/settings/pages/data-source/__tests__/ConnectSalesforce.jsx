@@ -25,25 +25,18 @@ describe('ConnectSalesforce', () => {
 		useLDPEnabled.mockReturnValue(false);
 	});
 
-	it('describes the sync step with Analytics Cloud for a non-LDP workspace', () => {
-		render(<ConnectSalesforce />);
+	it.each`
+		ldpEnabled | description
+		${false}   | ${/^select which salesforce data you would like to sync to analytics cloud\.$/i}
+		${true}    | ${/^select which salesforce data you would like to sync to liferay data platform\.$/i}
+	`(
+		'describes the sync step for the plan when ldpEnabled is $ldpEnabled',
+		({description, ldpEnabled}) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
 
-		expect(
-			screen.getByText(
-				'Select which Salesforce data you would like to sync to Analytics Cloud.'
-			)
-		).toBeInTheDocument();
-	});
+			render(<ConnectSalesforce />);
 
-	it('describes the sync step with Liferay Data Platform for an LDP workspace', () => {
-		useLDPEnabled.mockReturnValue(true);
-
-		render(<ConnectSalesforce />);
-
-		expect(
-			screen.getByText(
-				'Select which Salesforce data you would like to sync to Liferay Data Platform.'
-			)
-		).toBeInTheDocument();
-	});
+			expect(screen.getByText(description)).toBeInTheDocument();
+		}
+	);
 });

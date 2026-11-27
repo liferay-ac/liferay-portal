@@ -162,38 +162,26 @@ describe('ChannelList', () => {
 
 		expect(await screen.findByText('Jun 9, 2026')).toBeInTheDocument();
 	});
-});
 
-describe('ChannelList product naming', () => {
-	afterEach(cleanup);
+	it.each([
+		[false, /^analytics cloud allows for customized user access settings/i],
+		[true, /^liferay data platform allows for customized user access settings/i],
+	])(
+		'names the product in the description when ldpEnabled is %s',
+		async (ldpEnabled, text) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
 
-	beforeEach(() => {
-		useLDPEnabled.mockReturnValue(false);
+			API.channels.search.mockReturnValue(
+				Promise.resolve(data.mockChannels())
+			);
 
-		API.channels.search.mockReturnValue(
-			Promise.resolve(data.mockChannels())
-		);
-	});
+			render(
+				<Wrapper>
+					<ChannelList {...defaultProps} />
+				</Wrapper>
+			);
 
-	it('shows the Analytics Cloud text for a non-LDP workspace', async () => {
-		render(
-			<Wrapper>
-				<ChannelList {...defaultProps} />
-			</Wrapper>
-		);
-
-		expect(await screen.findByText(/^Analytics Cloud allows for customized user access settings/)).toBeInTheDocument();
-	});
-
-	it('shows the Liferay Data Platform text for an LDP workspace', async () => {
-		useLDPEnabled.mockReturnValue(true);
-
-		render(
-			<Wrapper>
-				<ChannelList {...defaultProps} />
-			</Wrapper>
-		);
-
-		expect(await screen.findByText(/^Liferay Data Platform allows for customized user access settings/)).toBeInTheDocument();
-	});
+			expect(await screen.findByText(text)).toBeInTheDocument();
+		}
+	);
 });

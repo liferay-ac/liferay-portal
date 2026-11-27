@@ -52,48 +52,32 @@ describe('NoPropertiesAvailable', () => {
 		expect(queryByRole('button')).toBeNull();
 	});
 
-	it('asks a member to contact the Analytics Cloud administrator in a non-LDP workspace', async () => {
-		API.dataSource.search.mockReturnValueOnce(Promise.resolve({total: 1}));
+	it.each`
+		plan                       | storeData           | text
+		${'Analytics Cloud'}       | ${undefined}        | ${/^you have not been added to any properties\. please contact your analytics cloud administrator\.$/i}
+		${'Liferay Data Platform'} | ${mockStoreDataLDP} | ${/^you have not been added to any properties\. please contact your liferay data platform administrator\.$/i}
+	`(
+		'asks a member to contact the $plan administrator',
+		async ({storeData, text}) => {
+			API.dataSource.search.mockReturnValueOnce(
+				Promise.resolve({total: 1})
+			);
 
-		const {container, queryByText} = render(
-			<DefaultComponent
-				currentUser={getImmutableMock(User, mockMemberUser)}
-				groupId='23'
-			/>
-		);
+			const {container, queryByText} = render(
+				<DefaultComponent
+					currentUser={getImmutableMock(User, mockMemberUser)}
+					groupId='23'
+					store={mockStore(storeData)}
+				/>
+			);
 
-		jest.runAllTimers();
+			jest.runAllTimers();
 
-		await waitForLoadingToBeRemoved(container);
+			await waitForLoadingToBeRemoved(container);
 
-		expect(
-			queryByText(
-				/^you have not been added to any properties\. please contact your analytics cloud administrator\.$/i
-			)
-		).toBeInTheDocument();
-	});
-
-	it('asks a member to contact the Liferay Data Platform administrator in an LDP workspace', async () => {
-		API.dataSource.search.mockReturnValueOnce(Promise.resolve({total: 1}));
-
-		const {container, queryByText} = render(
-			<DefaultComponent
-				currentUser={getImmutableMock(User, mockMemberUser)}
-				groupId='23'
-				store={mockStore(mockStoreDataLDP)}
-			/>
-		);
-
-		jest.runAllTimers();
-
-		await waitForLoadingToBeRemoved(container);
-
-		expect(
-			queryByText(
-				/^you have not been added to any properties\. please contact your liferay data platform administrator\.$/i
-			)
-		).toBeInTheDocument();
-	});
+			expect(queryByText(text)).toBeInTheDocument();
+		}
+	);
 
 	it('should open the onboarding modal on "Start" click', async () => {
 		API.dataSource.search.mockReturnValueOnce(Promise.resolve({total: 0}));

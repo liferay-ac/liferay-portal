@@ -25,25 +25,18 @@ describe('ConnectLiferayDXP', () => {
 		useLDPEnabled.mockReturnValue(false);
 	});
 
-	it('describes the connection step with Analytics Cloud for a non-LDP workspace', () => {
-		render(<ConnectLiferayDXP />);
+	it.each`
+		ldpEnabled | description
+		${false}   | ${/^connect your dxp instance to analytics cloud to start tracking users visits and interactions within your sites\.$/i}
+		${true}    | ${/^connect your dxp instance to liferay data platform to start tracking users' visits and interactions within your sites\.$/i}
+	`(
+		'describes the connection step for the plan when ldpEnabled is $ldpEnabled',
+		({description, ldpEnabled}) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
 
-		expect(
-			screen.getByText(
-				'Connect your DXP instance to Analytics Cloud to start tracking users visits and interactions within your sites.'
-			)
-		).toBeInTheDocument();
-	});
+			render(<ConnectLiferayDXP />);
 
-	it('describes the connection step with Liferay Data Platform for an LDP workspace', () => {
-		useLDPEnabled.mockReturnValue(true);
-
-		render(<ConnectLiferayDXP />);
-
-		expect(
-			screen.getByText(
-				"Connect your DXP instance to Liferay Data Platform to start tracking users' visits and interactions within your sites."
-			)
-		).toBeInTheDocument();
-	});
+			expect(screen.getByText(description)).toBeInTheDocument();
+		}
+	);
 });
