@@ -6,13 +6,10 @@ import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {Provider} from 'react-redux';
-import {cleanup} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 describe('ReportIssue', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {queryByText} = await renderModal(observer => (
 			<Provider store={mockStore()}>

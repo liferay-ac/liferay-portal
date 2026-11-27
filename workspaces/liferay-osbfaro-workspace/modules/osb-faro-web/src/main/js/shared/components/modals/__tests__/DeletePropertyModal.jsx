@@ -1,13 +1,7 @@
 import DeletePropertyModal from '../DeletePropertyModal';
 import React from 'react';
 import {Alert} from 'shared/types';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {sub} from 'shared/util/lang';
 import {UNAUTHORIZED_ACCESS} from 'shared/util/request';
 
@@ -49,8 +43,6 @@ const renderDeletePropertyModal = (props) =>
 	);
 
 describe('DeletePropertyModal', () => {
-	afterEach(cleanup);
-
 	it('asks to copy the sentence of the property', async () => {
 		await renderDeletePropertyModal();
 

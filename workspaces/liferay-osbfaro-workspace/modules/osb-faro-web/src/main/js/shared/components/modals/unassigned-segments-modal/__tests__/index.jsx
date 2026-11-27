@@ -1,6 +1,6 @@
 import React from 'react';
 import UnassignedSegmentsModal from '../index';
-import {cleanup, render, waitFor} from '@testing-library/react';
+import {render, waitFor} from '@testing-library/react';
 import {noop} from 'lodash';
 import {useModal} from '@clayui/modal';
 
@@ -12,8 +12,6 @@ const Harness = () => {
 };
 
 describe('UnassignedSegmentsModal', () => {
-	afterEach(cleanup);
-
 	it('renders', async () => {
 		render(<Harness />);
 

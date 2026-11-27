@@ -1,7 +1,7 @@
 import mockStore from 'test/mock-store';
 import OnboardingModal, {getOnboardingState} from '../index';
 import React from 'react';
-import {cleanup, screen} from '@testing-library/react';
+import {screen} from '@testing-library/react';
 import {noop} from 'lodash';
 import {Provider} from 'react-redux';
 import {renderModal} from 'test/render-modal';
@@ -20,8 +20,6 @@ const renderOnboardingModal = (props = {}) =>
 
 describe('OnboardingModal', () => {
 	afterEach(() => {
-		cleanup();
-
 		window.sessionStorage.clear();
 	});
 

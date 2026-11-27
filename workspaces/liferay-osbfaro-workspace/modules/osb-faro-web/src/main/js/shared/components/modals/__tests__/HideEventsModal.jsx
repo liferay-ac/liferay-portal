@@ -1,7 +1,7 @@
 import HideEventsModal from '../HideEventsModal';
 import React from 'react';
 import {Alert} from 'shared/types';
-import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react';
+import {fireEvent, screen, waitFor} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
 
 const EVENTS = [
@@ -23,8 +23,6 @@ const renderHideEvents = (props) =>
 	));
 
 describe('HideEventsModal', () => {
-	afterEach(cleanup);
-
 	it('renders as a warning with the hide button', async () => {
 		await renderHideEvents();
 

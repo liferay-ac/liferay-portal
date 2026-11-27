@@ -1,6 +1,6 @@
 import React from 'react';
 import SearchableEntitiesTableModal from '../SearchableEntitiesTableModal';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {createOrderIOMap, EMAIL_ADDRESS} from 'shared/util/pagination';
 import {noop} from 'lodash';
 import {OrderByDirections} from 'shared/util/constants';
@@ -46,8 +46,6 @@ const DefaultComponent = props => (
 );
 
 describe('SearchableEntitiesTableModal', () => {
-	afterEach(cleanup);
-
 	it('should render loading state without ghost table', async () => {
 		const {getByText} = render(
 			<DefaultComponent dataSourceFn={() => new Promise(() => {})} />

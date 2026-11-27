@@ -1,7 +1,7 @@
 import mockStore from 'test/mock-store';
 import NewRequestModal from '../NewRequestModal';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {DndProvider} from 'react-dnd';
 import {HTML5Backend} from 'react-dnd-html5-backend';
 import {useModal} from '@clayui/modal';
@@ -16,8 +16,6 @@ const TestModal = () => {
 };
 
 describe('NewRequestModal', () => {
-	afterEach(cleanup);
-
 	it('renders', async () => {
 		render(
 			<Provider store={mockStore()}>

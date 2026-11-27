@@ -1,7 +1,7 @@
 import InvitePeople from '../InvitePeople';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {noop} from 'lodash';
 import {Provider} from 'react-redux';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
@@ -10,8 +10,6 @@ const inviteSentMessage =
 	'You can see the new members invitation status and role permissions under user management in settings.';
 
 describe('InvitePeople', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		const {container} = render(
 			<Provider store={mockStore()}>

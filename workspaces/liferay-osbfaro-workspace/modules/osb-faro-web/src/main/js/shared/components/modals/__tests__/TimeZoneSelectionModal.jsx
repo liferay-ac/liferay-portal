@@ -2,7 +2,7 @@ import * as pedantic from 'test/pedantic';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import TimeZoneSelectionModal from '../TimeZoneSelectionModal';
-import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react';
+import {fireEvent, screen, waitFor} from '@testing-library/react';
 import {fromJS} from 'immutable';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter} from 'react-router-dom';
@@ -68,7 +68,6 @@ describe('TimeZoneSelectionModal', () => {
 
 	afterEach(() => {
 		pedantic.enable();
-		cleanup();
 	});
 
 	it('should render', async () => {

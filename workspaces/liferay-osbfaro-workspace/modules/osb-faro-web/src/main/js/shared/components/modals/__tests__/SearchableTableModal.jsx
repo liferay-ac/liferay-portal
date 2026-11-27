@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import React from 'react';
 import SearchableTableModal from '../SearchableTableModal';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {createOrderIOMap} from 'shared/util/pagination';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {noop} from 'lodash';
@@ -51,8 +51,6 @@ const DefaultComponent = props => (
 );
 
 describe('SearchableTableModal', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		render(<DefaultComponent />);
 

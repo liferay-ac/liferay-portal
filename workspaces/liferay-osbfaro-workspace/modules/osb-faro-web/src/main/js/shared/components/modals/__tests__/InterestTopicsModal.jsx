@@ -1,12 +1,10 @@
 import InterestTopicsModal from '../InterestTopicsModal';
 import React from 'react';
-import {cleanup, fireEvent, screen} from '@testing-library/react';
+import {fireEvent, screen} from '@testing-library/react';
 import {noop} from 'lodash';
 import {renderModal} from 'test/render-modal';
 
 describe('InterestTopicsModal', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		await renderModal(observer => (
 			<InterestTopicsModal observer={observer} onClose={noop} />
