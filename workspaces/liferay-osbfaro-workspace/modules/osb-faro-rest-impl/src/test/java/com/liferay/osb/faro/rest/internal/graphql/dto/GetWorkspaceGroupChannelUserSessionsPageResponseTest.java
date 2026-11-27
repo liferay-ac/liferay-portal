@@ -11,6 +11,7 @@ import com.liferay.portal.json.JSONFactoryImpl;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 
 import java.time.Instant;
 
@@ -37,6 +38,8 @@ public class GetWorkspaceGroupChannelUserSessionsPageResponseTest {
 	public void testDeserialize() throws Exception {
 		ObjectMapper objectMapper = new ObjectMapper();
 
+		String individualId = RandomTestUtil.randomString();
+
 		JSONObject jsonObject = JSONUtil.put(
 			"userSessionBag",
 			JSONUtil.put(
@@ -48,6 +51,13 @@ public class GetWorkspaceGroupChannelUserSessionsPageResponseTest {
 						"completeDate", "Tue Oct 20 06:52:32 GMT 2026"
 					).put(
 						"createDate", "Tue Oct 20 06:41:05 GMT 2026"
+					).put(
+						"events",
+						JSONUtil.putAll(
+							JSONUtil.put(
+								"eventDate", "Tue Oct 20 06:41:03 GMT 2026"))
+					).put(
+						"individualId", individualId
 					))
 			));
 
@@ -82,6 +92,19 @@ public class GetWorkspaceGroupChannelUserSessionsPageResponseTest {
 		Assert.assertEquals(
 			Date.from(Instant.parse("2026-10-20T06:41:05Z")),
 			userSession.getCreateDate());
+
+		List<GetWorkspaceGroupChannelEventsPageResponse.Event> events =
+			userSession.getEvents();
+
+		Assert.assertEquals(events.toString(), 1, events.size());
+
+		GetWorkspaceGroupChannelEventsPageResponse.Event event = events.get(0);
+
+		Assert.assertEquals(
+			Date.from(Instant.parse("2026-10-20T06:41:03Z")),
+			event.getEventDate());
+
+		Assert.assertEquals(individualId, userSession.getIndividualId());
 	}
 
 }
