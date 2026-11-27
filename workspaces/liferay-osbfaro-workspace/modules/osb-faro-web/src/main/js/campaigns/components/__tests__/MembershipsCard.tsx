@@ -45,8 +45,16 @@ const getSelectedPanel = () =>
 			.getAttribute('aria-controls') as string
 	);
 
+// Clay marks the shown pane only with its active class, so the selected tab's
+// pane must also have that class, or a pane that never switches would pass.
+
 const expectActivePane = (id: string) =>
-	waitFor(() => expect(getSelectedPanel()).toContainElement(getDataSet(id)));
+	waitFor(() => {
+		const panel = getSelectedPanel();
+
+		expect(panel).toContainElement(getDataSet(id));
+		expect(panel).toHaveClass('active');
+	});
 
 beforeAll(warmFrontendDataSet);
 
