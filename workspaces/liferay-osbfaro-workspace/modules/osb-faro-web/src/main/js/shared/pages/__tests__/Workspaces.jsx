@@ -10,7 +10,7 @@ import {
 	Route,
 	Routes as RouterRoutes
 } from 'react-router-dom';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {Map} from 'immutable';
 import {noop} from 'lodash';
 import {Project} from 'shared/util/records';
@@ -82,8 +82,6 @@ jest.mock('shared/hooks/useIncidentAlert', () => ({
 }));
 
 describe('Workspaces', () => {
-	afterEach(cleanup);
-
 	const client = {
 		clearStore: noop
 	};

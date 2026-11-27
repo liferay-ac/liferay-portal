@@ -6,7 +6,7 @@ import * as API from 'shared/api';
 import mockStore from 'test/mock-store';
 import NoPropertiesAvailable from '../NoPropertiesAvailable';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {getImmutableMock, mockMemberUser, mockUser} from 'test/data';
 import {Provider} from 'react-redux';
 import {MemoryRouter} from 'react-router';
@@ -26,8 +26,6 @@ const DefaultComponent = props => (
 );
 
 describe('NoPropertiesAvailable', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		API.dataSource.search.mockReturnValueOnce(Promise.resolve({total: 0}));
 

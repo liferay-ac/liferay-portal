@@ -4,7 +4,7 @@ import mockStore from 'test/mock-store';
 import React from 'react';
 import {AddWorkspace, routingFn} from '../AddWorkspace';
 import {BrowserRouter} from 'react-router-dom';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {fromJS} from 'immutable';
 import {Project} from 'shared/util/records';
 import {Provider} from 'react-redux';
@@ -21,7 +21,6 @@ const mockUnconfiguredProject = new Project(
 jest.mock('shared/components/workspaces/AddWorkspaceForm', () => () => null);
 
 describe('AddWorkspace', () => {
-	afterEach(cleanup);
 	it('should render', () => {
 		const {getByText} = render(
 			<Provider store={mockStore()}>
