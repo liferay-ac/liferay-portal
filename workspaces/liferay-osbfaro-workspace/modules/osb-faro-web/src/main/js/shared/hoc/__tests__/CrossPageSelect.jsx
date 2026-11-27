@@ -7,7 +7,7 @@ import CrossPageSelect, {
 } from '../CrossPageSelect';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {createOrderIOMap, NAME} from 'shared/util/pagination';
 import {inputSearchText, selectAllAndToggle} from 'test/helpers';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
@@ -78,15 +78,11 @@ describe('CrossPageSelect', () => {
 
 		fireEvent.click(firstRowCheckbox);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		fireEvent.click(getByTestId('view-selected'));
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(container).toMatchSnapshot();
 

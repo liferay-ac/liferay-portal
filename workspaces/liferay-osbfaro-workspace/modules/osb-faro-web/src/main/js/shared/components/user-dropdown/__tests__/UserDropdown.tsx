@@ -176,9 +176,7 @@ describe('UserDropdown', () => {
 
 		fireEvent.click(toggleButton!);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(screen.getByText(/^language$/i)).toBeInTheDocument();
 	});

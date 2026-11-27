@@ -1,7 +1,7 @@
 import ClayModal from '@clayui/modal';
 import ModalAutoFocus from '../ModalAutoFocus';
 import React from 'react';
-import {act, screen} from '@testing-library/react';
+import {screen} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
 
 const renderFocusModal = () =>
@@ -23,9 +23,7 @@ describe('ModalAutoFocus', () => {
 	it('focuses the field after Clay moves the focus to the title', async () => {
 		await renderFocusModal();
 
-		act(() => {
-			jest.runOnlyPendingTimers();
-		});
+		jest.runOnlyPendingTimers();
 
 		expect(screen.getByLabelText('field')).toHaveFocus();
 	});
@@ -33,9 +31,7 @@ describe('ModalAutoFocus', () => {
 	it('does not focus a field that does not match the selector', async () => {
 		await renderFocusModal();
 
-		act(() => {
-			jest.runOnlyPendingTimers();
-		});
+		jest.runOnlyPendingTimers();
 
 		expect(screen.getByLabelText('other')).not.toHaveFocus();
 	});
@@ -59,9 +55,7 @@ describe('ModalAutoFocus', () => {
 			</ClayModal>
 		));
 
-		act(() => {
-			jest.runOnlyPendingTimers();
-		});
+		jest.runOnlyPendingTimers();
 
 		expect(onBlur).not.toHaveBeenCalled();
 	});

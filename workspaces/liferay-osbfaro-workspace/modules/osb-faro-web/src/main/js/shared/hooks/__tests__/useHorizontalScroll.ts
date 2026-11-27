@@ -38,7 +38,7 @@ describe('useHorizontalScroll', () => {
 			scrollWidth: 600,
 		});
 
-		act(() => result.current.updateArrows());
+		result.current.updateArrows();
 
 		expect(result.current.canScrollNext).toBe(false);
 		expect(result.current.canScrollPrevious).toBe(false);
@@ -80,8 +80,8 @@ describe('useHorizontalScroll', () => {
 
 		(result.current.trackRef as any).current = track;
 
-		act(() => result.current.scrollNext());
-		act(() => result.current.scrollPrevious());
+		result.current.scrollNext();
+		result.current.scrollPrevious();
 
 		expect(track.scrollBy).toHaveBeenNthCalledWith(1, {
 			behavior: 'smooth',

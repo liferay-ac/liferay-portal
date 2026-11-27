@@ -3,7 +3,7 @@ import DateRangeInput from '../DateRangeInput';
 import mockStore from 'test/mock-store';
 import moment from 'moment';
 import React from 'react';
-import {act, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {ApolloProvider} from '@apollo/client';
 import {clickFirstSelectableDay} from 'test/helpers';
 import {getCustomDateFormat} from 'shared/util/date';
@@ -145,7 +145,7 @@ describe('DateRangeInput', () => {
 
 		clickFirstSelectableDay();
 
-		act(() => closeFromFirstRender(false));
+		closeFromFirstRender(false);
 
 		expect(blurredValues).toHaveLength(1);
 		expect(blurredValues[0].start).toMatch(ISO_DATE);

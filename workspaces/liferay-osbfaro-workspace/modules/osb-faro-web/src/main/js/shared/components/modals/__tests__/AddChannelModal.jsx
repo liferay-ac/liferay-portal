@@ -2,7 +2,7 @@ import * as pedantic from 'test/pedantic';
 import AddChannelModal from '../AddChannelModal';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, fireEvent, screen, waitFor} from '@testing-library/react';
+import {fireEvent, screen, waitFor} from '@testing-library/react';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -63,9 +63,7 @@ describe('AddChannelModal', () => {
 			<DefaultComponent observer={observer} />
 		));
 
-		act(() => {
-			jest.runOnlyPendingTimers();
-		});
+		jest.runOnlyPendingTimers();
 
 		expect(screen.getByLabelText(/^property name$/i)).toHaveFocus();
 		expect(document.querySelector('.modal .has-error')).toBeNull();

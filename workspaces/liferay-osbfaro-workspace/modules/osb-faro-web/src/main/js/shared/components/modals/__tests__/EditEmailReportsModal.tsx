@@ -1,7 +1,7 @@
 import EditEmailReportsModal from '../EditEmailReportsModal';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {addAlert} from 'shared/actions/alerts';
 import {Frequency} from 'settings/channels/components/EmailReports';
 import {InMemoryCache} from '@apollo/client';
@@ -124,9 +124,7 @@ describe('EditEmailReportsModal', () => {
 
 		fireEvent.click(saveBtn!);
 
-		act(() => {
-			jest.advanceTimersByTime(0);
-		});
+		jest.advanceTimersByTime(0);
 
 		await waitFor(() => expect(addAlert).toHaveBeenCalled());
 	});
@@ -160,9 +158,7 @@ describe('EditEmailReportsModal', () => {
 
 		fireEvent.click(saveBtn!);
 
-		act(() => {
-			jest.advanceTimersByTime(0);
-		});
+		jest.advanceTimersByTime(0);
 
 		await waitFor(() => expect(addAlert).toHaveBeenCalled());
 	});
@@ -196,9 +192,7 @@ describe('EditEmailReportsModal', () => {
 
 		fireEvent.click(saveBtn!);
 
-		act(() => {
-			jest.advanceTimersByTime(0);
-		});
+		jest.advanceTimersByTime(0);
 
 		await waitFor(() => expect(addAlert).toHaveBeenCalled());
 	});
