@@ -4,13 +4,20 @@ import EventAnalysisEdit from '../Edit';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	within,
+} from '@testing-library/react';
 import {DISPLAY_NAME} from 'shared/util/pagination';
 import {DndProvider} from 'react-dnd';
 import {EventTypes} from 'event-analysis/utils/types';
 import {HTML5Backend} from 'react-dnd-html5-backend';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
+import {mockSuccessState} from 'test/__mocks__/mock-objects';
 import {
 	mockEventAnalysisReq,
 	mockEventAttributeDefinitionsReq,
@@ -26,11 +33,17 @@ import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
+	useBlocker: () => ({state: 'unblocked'}),
 	useParams: () => ({
 		channelId: '123',
 		groupId: '456',
 		id: '1'
 	})
+}));
+
+jest.mock('shared/context/dataSources', () => ({
+	...jest.requireActual('shared/context/dataSources'),
+	useDataSources: () => mockSuccessState,
 }));
 
 const WrappedComponent = () => (
@@ -94,224 +107,193 @@ const WrappedComponent = () => (
 	</Provider>
 );
 
-describe.skip('Event Analysis Edit', () => {
+describe('Event Analysis Edit', () => {
 	afterEach(cleanup);
 
 	it('should render', async () => {
-		const {container, getByText} = render(<WrappedComponent />);
+		const {container} = render(<WrappedComponent />);
 
 		await waitForLoadingToBeRemoved(container);
 
-		expect(getByText(/^download reports$/i)).toBeTruthy();
-
 		expect(
-			container.querySelector('.event-analysis-editor-root')
+			screen.getByRole('heading', {name: /^edit event analysis$/i})
 		).toBeInTheDocument();
 		expect(
-			container.querySelector('input.title-input')
+			screen.getByRole('button', {name: /^download reports$/i})
 		).toBeInTheDocument();
+		expect(screen.getByLabelText(/^title/i)).toBeInTheDocument();
 	});
 
 	it('should render event analysis with data', async () => {
-		const {container, getAllByText, getByText} = render(
-			<WrappedComponent />
-		);
+		const {container} = render(<WrappedComponent />);
 
 		jest.runOnlyPendingTimers();
 
 		await waitForLoadingToBeRemoved(container);
 
-		expect(getByText('My First Event Analysis')).toBeTruthy();
-		expect(
-			container.querySelector('.dropdown-range-key-root button')
-				.textContent
-		).toEqual('Last 90 days');
-		expect(container.querySelector('.event-list').textContent).toBe(
-			'assetClicked'
+		expect(screen.getByLabelText(/^title/i)).toHaveValue(
+			'My First Event Analysis'
 		);
 		expect(
-			container.querySelectorAll(
-				'.attribute-breakdown-section-root .attribute-list .dropdown'
-			).length
-		).toBe(2);
+			screen.getByRole('button', {name: /^last 90 days$/i})
+		).toBeInTheDocument();
 		expect(
-			container.querySelectorAll(
-				'.attribute-filter-section-root .attribute-list .dropdown'
-			).length
-		).toBe(1);
+			screen.getByRole('group', {name: 'assetClicked'})
+		).toBeInTheDocument();
 		expect(
-			container.querySelector('.compare-to-previous-checkbox input')
-				.checked
-		).toBeTruthy();
-		expect(getAllByText('displayName-0')).toBeTruthy();
+			within(
+				screen.getByRole('region', {name: /^breakdown by/i})
+			).getAllByRole('group')
+		).toHaveLength(2);
+		expect(
+			within(screen.getByRole('region', {name: /^filter by/i})).getAllByRole(
+				'group'
+			)
+		).toHaveLength(1);
+		expect(screen.getByRole('checkbox')).toBeChecked();
 	});
 
 	it('should check if search autocomplete is working properly', async () => {
-		const {container, queryByText} = render(<WrappedComponent />);
+		const {container} = render(<WrappedComponent />);
 
 		jest.runOnlyPendingTimers();
 
 		await waitForLoadingToBeRemoved(container);
 
-		const addAttributeButton = container.querySelector(
-			'.attribute-filter-section-root .add-attribute'
-		);
-
-		fireEvent.click(addAttributeButton);
+		fireEvent.click(screen.getByRole('button', {name: /^add filter$/i}));
 
 		jest.runOnlyPendingTimers();
 
-		const dropdown = document.querySelector(
-			'.base-dropdown-menu-root.show'
-		);
-
-		await waitFor(() => expect(dropdown).toBeTruthy());
-
-		const individualTab = document.querySelector(
-			'[data-testid="INDIVIDUAL"] button'
-		);
-
-		fireEvent.click(individualTab);
-
-		jest.runOnlyPendingTimers();
-
-		expect(queryByText('jobTitle')).toBeTruthy();
-		expect(queryByText('languageId')).toBeTruthy();
-		expect(queryByText(/^role$/i)).toBeTruthy();
-		expect(queryByText(/^site membership$/i)).toBeTruthy();
-		expect(queryByText(/^team$/i)).toBeTruthy();
-		expect(queryByText(/^user group$/i)).toBeTruthy();
-
-		const searchInput = document.querySelectorAll(
-			'[placeholder="Search"]'
-		)[1];
-
-		fireEvent.change(searchInput, {
-			target: {
-				value: 'jobTitle'
-			}
-		});
-
-		jest.runOnlyPendingTimers();
-
-		expect(queryByText('jobTitle')).toBeTruthy();
-		expect(queryByText('languageId')).not.toBeTruthy();
-		expect(queryByText(/^role$/i)).not.toBeTruthy();
-		expect(queryByText(/^site membership$/i)).not.toBeTruthy();
-		expect(queryByText(/^team$/i)).not.toBeTruthy();
-		expect(queryByText(/^user group$/i)).not.toBeTruthy();
-	});
-
-	it('should enable the save button when name is changed', async () => {
-		const {container, getByText} = render(<WrappedComponent />);
-
-		jest.runOnlyPendingTimers();
-
-		await waitForLoadingToBeRemoved(container);
-
-		const inputName = container.querySelector('input.title-input');
-
-		fireEvent.change(inputName, {
-			target: {
-				value: 'My First Event Analysis Updated'
-			}
-		});
-
-		expect(getByText('My First Event Analysis Updated')).toBeTruthy();
-
-		expect(getByText(/^save analysis$/i)).toBeEnabled();
-	});
-
-	it('should enable the save button when a new breakdown is added', async () => {
-		const {container, getByText} = render(<WrappedComponent />);
-
-		jest.runOnlyPendingTimers();
-
-		await waitForLoadingToBeRemoved(container);
-
-		expect(getByText(/^save analysis$/i)).toBeDisabled();
-
-		const addAttributeButton = container.querySelector(
-			'.attribute-breakdown-section-root .add-attribute'
-		);
-
-		fireEvent.click(addAttributeButton);
-
-		jest.runOnlyPendingTimers();
-
-		const dropdown = document.querySelector(
-			'.base-dropdown-menu-root.show'
-		);
-
-		await waitFor(() => expect(dropdown).toBeTruthy());
-
-		const hrefAttributeButton = dropdown.querySelector(
-			'.base-dropdown-list li:nth-child(3) button'
-		);
-
-		fireEvent.click(hrefAttributeButton);
+		fireEvent.click(await screen.findByRole('button', {name: /^individual$/i}));
 
 		jest.runOnlyPendingTimers();
 
 		expect(
-			container.querySelectorAll(
-				'.attribute-breakdown-section-root .attribute-list .dropdown'
-			).length
-		).toBe(3);
-		expect(getByText(/^save analysis$/i)).toBeEnabled();
+			await screen.findByRole('menuitem', {name: 'jobTitle'})
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole('menuitem', {name: 'languageId'})
+		).toBeInTheDocument();
+
+		// The conditions library has its own search field; the open menu's is the last one.
+
+		fireEvent.change(screen.getAllByPlaceholderText(/^search$/i).at(-1), {
+			target: {value: 'jobTitle'},
+		});
+
+		jest.runOnlyPendingTimers();
+
+		expect(
+			screen.getByRole('menuitem', {name: 'jobTitle'})
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole('menuitem', {name: 'languageId'})
+		).not.toBeInTheDocument();
+	});
+
+	it('should enable the save button when name is changed', async () => {
+		const {container} = render(<WrappedComponent />);
+
+		jest.runOnlyPendingTimers();
+
+		await waitForLoadingToBeRemoved(container);
+
+		fireEvent.change(screen.getByLabelText(/^title/i), {
+			target: {value: 'My First Event Analysis Updated'},
+		});
+
+		expect(screen.getByLabelText(/^title/i)).toHaveValue(
+			'My First Event Analysis Updated'
+		);
+		expect(
+			screen.getByRole('button', {name: /^save analysis$/i})
+		).toBeEnabled();
+	});
+
+	it('should enable the save button when a new breakdown is added', async () => {
+		const {container} = render(<WrappedComponent />);
+
+		jest.runOnlyPendingTimers();
+
+		await waitForLoadingToBeRemoved(container);
+
+		expect(
+			screen.getByRole('button', {name: /^save analysis$/i})
+		).toBeDisabled();
+
+		fireEvent.click(screen.getByRole('button', {name: /^add breakdown$/i}));
+
+		jest.runOnlyPendingTimers();
+
+		fireEvent.click(
+			await screen.findByRole('button', {name: 'displayName-2'})
+		);
+
+		jest.runOnlyPendingTimers();
+
+		// The open menu hides the rest of the page from the accessibility tree.
+
+		expect(
+			within(
+				screen.getByRole('region', {hidden: true, name: /^breakdown by/i})
+			).getAllByRole('group', {hidden: true})
+		).toHaveLength(3);
+		expect(
+			screen.getByRole('button', {name: /^save analysis$/i})
+		).toBeEnabled();
 	});
 
 	it('should enable the save button when compareToPrevious checkbox is changed', async () => {
-		const {container, getByText} = render(<WrappedComponent />);
+		const {container} = render(<WrappedComponent />);
 
 		jest.runOnlyPendingTimers();
 
 		await waitForLoadingToBeRemoved(container);
 
-		expect(getByText(/^save analysis$/i)).toBeDisabled();
+		expect(
+			screen.getByRole('button', {name: /^save analysis$/i})
+		).toBeDisabled();
 
-		const compareToPreviousCheckbox = container.querySelector(
-			'.compare-to-previous-checkbox input'
-		);
+		const compareToPreviousCheckbox = screen.getByRole('checkbox');
 
-		expect(compareToPreviousCheckbox.checked).toBeTruthy();
+		expect(compareToPreviousCheckbox).toBeChecked();
 
 		fireEvent.click(compareToPreviousCheckbox);
 
-		expect(compareToPreviousCheckbox.checked).toBeFalsy();
-
-		expect(getByText(/^save analysis$/i)).toBeEnabled();
+		expect(compareToPreviousCheckbox).not.toBeChecked();
+		expect(
+			screen.getByRole('button', {name: /^save analysis$/i})
+		).toBeEnabled();
 	});
 
 	it('should enable the save button when range selector is changed', async () => {
-		const {container, getByText} = render(<WrappedComponent />);
+		const {container} = render(<WrappedComponent />);
 
 		jest.runOnlyPendingTimers();
 
 		await waitForLoadingToBeRemoved(container);
 
-		expect(getByText(/^save analysis$/i)).toBeDisabled();
+		expect(
+			screen.getByRole('button', {name: /^save analysis$/i})
+		).toBeDisabled();
 
-		const rangeKeyButton = container.querySelector(
-			'.dropdown-range-key-root > button'
+		fireEvent.click(screen.getByRole('button', {name: /^last 90 days$/i}));
+
+		jest.runOnlyPendingTimers();
+
+		// A range item's name also lists the dates it covers.
+
+		fireEvent.click(
+			await screen.findByRole('menuitem', {name: /^last 24 hours/i})
 		);
 
-		expect(rangeKeyButton.textContent).toEqual('Last 90 days');
-
-		fireEvent.click(rangeKeyButton);
-
 		jest.runOnlyPendingTimers();
 
-		const dropdown = document.querySelector('.dropdown-menu.show');
-
-		await waitFor(() => expect(dropdown).toBeTruthy());
-
-		fireEvent.click(dropdown.querySelector('ul > li button'));
-
-		jest.runOnlyPendingTimers();
-
-		expect(rangeKeyButton.textContent).toEqual('Last 24 hours');
-
-		expect(getByText(/^save analysis$/i)).toBeEnabled();
+		expect(
+			screen.getByRole('button', {name: /^last 24 hours$/i})
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole('button', {name: /^save analysis$/i})
+		).toBeEnabled();
 	});
 });

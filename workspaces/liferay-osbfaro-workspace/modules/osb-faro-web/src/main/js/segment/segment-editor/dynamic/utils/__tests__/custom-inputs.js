@@ -77,12 +77,14 @@ const getLifecycleValue = (items, conjunctionName) =>
 		},
 	]);
 
+// Group and row ids are a namespace plus a uuid; pinning the uuid makes them
+// the same in the expected value and the result.
+
+jest.mock('uuid', () => ({v4: () => '01'}));
+
 describe('Custom Inputs Util', () => {
 	describe('createCustomValueMap', () => {
-
-		// This unit test is skipped because uuid is generated every time test is run.
-
-		it.skip('should create an immutable valueIMap from a given param array', () => {
+		it('should create an immutable valueIMap from a given param array', () => {
 			expect(
 				createCustomValueMap([
 					{
@@ -100,8 +102,27 @@ describe('Custom Inputs Util', () => {
 							},
 						],
 					},
-				])
-			).toMatchSnapshot();
+				]).toJS()
+			).toEqual({
+				criterionGroup: {
+					conjunctionName: 'and',
+					criteriaGroupId: 'group_01',
+					items: [
+						{
+							operatorName: 'eq',
+							propertyName: 'context/city',
+							value: 'foo',
+						},
+						{
+							operatorName: 'gt',
+							propertyName: 'completeDate',
+							value: 'last7Days',
+						},
+					],
+				},
+				operator: null,
+				value: null,
+			});
 		});
 	});
 

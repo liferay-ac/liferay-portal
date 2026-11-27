@@ -51,7 +51,7 @@ describe('SegmentDistribution', () => {
 		);
 	});
 
-	xit('should render a Chart component if loading is false', () => {
+	it('should render a Chart component if loading is false', () => {
 		const {container} = render(
 			<Distribution
 				{...defaultProps}
@@ -64,6 +64,6 @@ describe('SegmentDistribution', () => {
 
 		expect(
 			container.querySelector('.recharts-responsive-container')
-		).toBeTruthy();
+		).toBeInTheDocument();
 	});
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import TypeTrend, {TrendItem} from '../TypeTrend';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render, screen} from '@testing-library/react';
 
 describe('TypeTrend', () => {
 	afterEach(cleanup);
@@ -22,9 +22,11 @@ describe('TrendItem', () => {
 
 	afterEach(cleanup);
 
-	xit('should render', () => {
-		const {container} = render(<TrendItem {...mockTrendItem} />);
-		expect(container).toMatchSnapshot();
+	it('should render the title and the formatted total', () => {
+		render(<TrendItem {...mockTrendItem} />);
+
+		expect(screen.getByText(/^total individuals$/i)).toBeInTheDocument();
+		expect(screen.getByText('1,341,321')).toBeInTheDocument();
 	});
 
 	it('should render a negative change', () => {
