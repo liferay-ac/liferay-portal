@@ -108,7 +108,7 @@ public class UserFaroController extends BaseFaroController {
 				FaroParam<List<Long>> idsFaroParam)
 		throws Exception {
 
-		validateFaroUsers(groupId, idsFaroParam.getValue());
+		_validateDelete(groupId, idsFaroParam.getValue());
 
 		return TransformUtil.transform(
 			idsFaroParam.getValue(), id -> delete(groupId, id));
@@ -121,7 +121,7 @@ public class UserFaroController extends BaseFaroController {
 			@PathParam("groupId") long groupId, @PathParam("id") long id)
 		throws Exception {
 
-		validateFaroUsers(groupId, Collections.singletonList(id));
+		_validateDelete(groupId, Collections.singletonList(id));
 
 		return new FaroUserDisplay(_faroUserLocalService.deleteFaroUser(id));
 	}
@@ -345,7 +345,7 @@ public class UserFaroController extends BaseFaroController {
 
 	protected void validateGroup(long groupId1, long groupId2) {
 		if (groupId1 != groupId2) {
-			new FaroException("You do not have the required permissions");
+			throw new FaroException("You do not have the required permissions");
 		}
 	}
 
@@ -369,6 +369,20 @@ public class UserFaroController extends BaseFaroController {
 
 		validateFaroUsers(groupId, userIds);
 		validateRoleName(roleName);
+	}
+
+	private void _validateDelete(long groupId, List<Long> ids)
+		throws Exception {
+
+		validateFaroUsers(groupId, ids);
+
+		for (long id : ids) {
+			FaroUser faroUser = _faroUserLocalService.getFaroUser(id);
+
+			if (faroUser.getLiveUserId() == getUserId()) {
+				throw new FaroException("Unable to delete the current user");
+			}
+		}
 	}
 
 	private static final String _STATUSES_DEFAULT_VALUE = "[0, 1]";
