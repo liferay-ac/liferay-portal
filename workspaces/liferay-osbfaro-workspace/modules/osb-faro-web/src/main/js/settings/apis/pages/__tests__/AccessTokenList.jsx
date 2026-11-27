@@ -3,13 +3,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {AccessTokenList} from '../AccessTokenList';
-import {
-	cleanup,
-	fireEvent,
-	getByText,
-	render,
-	screen
-} from '@testing-library/react';
+import {fireEvent, getByText, render, screen} from '@testing-library/react';
 import {getISODate} from 'shared/util/date';
 import {mockGetDateNow} from 'test/mock-date';
 import {Provider} from 'react-redux';
@@ -39,8 +33,6 @@ describe('AccessTokenList', () => {
 	beforeAll(() => {
 		mockGetDateNow(data.getTimestamp(0));
 	});
-
-	afterEach(cleanup);
 
 	it('should render', async () => {
 		const {container} = render(<DefaultComponent />);

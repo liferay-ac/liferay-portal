@@ -3,7 +3,7 @@ import * as data from 'test/data';
 import InterestTopics from '../InterestTopics';
 import mockStore, {mockStoreData, toRD} from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {Provider} from 'react-redux';
 import {Routes} from 'shared/util/router';
@@ -31,8 +31,6 @@ const Wrapper = ({children, queryString = '', store = mockStore()}) => (
 );
 
 describe('InterestTopics', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		API.blockedKeywords.search.mockReturnValue(
 			Promise.resolve({items: [data.mockBlockedKeyword(1)], total: 1})

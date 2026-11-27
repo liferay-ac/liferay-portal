@@ -3,7 +3,7 @@ import * as data from 'test/data';
 import CustomEventList from '../CustomEventList';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -70,8 +70,6 @@ const WrappedComponent = ({
 );
 
 describe('CustomEventList', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		useCurrentUser.mockImplementation(() => ({isAdmin: () => true}));
 

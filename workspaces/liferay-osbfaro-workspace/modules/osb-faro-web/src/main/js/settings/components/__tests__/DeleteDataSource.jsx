@@ -3,7 +3,6 @@ import * as pedantic from 'test/pedantic';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {
-	cleanup,
 	fireEvent,
 	render,
 	screen,
@@ -35,7 +34,6 @@ describe('DeleteDataSource', () => {
 
 	afterEach(() => {
 		pedantic.enable();
-		cleanup();
 	});
 
 	const dataSource = data.getImmutableMock(

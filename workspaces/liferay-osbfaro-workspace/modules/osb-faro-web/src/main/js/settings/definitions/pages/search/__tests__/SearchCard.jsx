@@ -1,13 +1,7 @@
 import mockStore from 'test/mock-store';
 import React from 'react';
 import SearchCard from '../SearchCard';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -48,8 +42,6 @@ const WrappedComponent = props => (
 );
 
 describe('SearchCard', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		useCurrentUser.mockImplementation(() => ({isAdmin: () => true}));
 

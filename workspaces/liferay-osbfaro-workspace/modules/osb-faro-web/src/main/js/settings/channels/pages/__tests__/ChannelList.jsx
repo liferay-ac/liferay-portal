@@ -3,7 +3,7 @@ import * as data from 'test/data';
 import ChannelList from '../ChannelList';
 import mockStore, {mockStoreData} from 'test/mock-store';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {Provider} from 'react-redux';
 import {RemoteData, TimeZone, User} from 'shared/util/records';
@@ -25,8 +25,6 @@ const Wrapper = ({children, store = mockStore()}) => (
 );
 
 describe.skip('Channels List', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		API.channels.search.mockReturnValue(
 			Promise.resolve(data.mockChannels())
@@ -127,8 +125,6 @@ describe.skip('Channels List', () => {
 });
 
 describe('ChannelList', () => {
-	afterEach(cleanup);
-
 	it('renders the date added in the workspace time zone', async () => {
 		API.channels.search.mockReturnValue(
 			Promise.resolve({

@@ -1,6 +1,6 @@
 import FeatureFlags from 'settings/pages/FeatureFlags';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {
 	FEATURE_FLAGS,
 	FEATURE_FLAGS_STORAGE_KEY
@@ -32,7 +32,6 @@ describe('FeatureFlags', () => {
 	});
 
 	afterEach(() => {
-		cleanup();
 		window.localStorage.clear();
 	});
 

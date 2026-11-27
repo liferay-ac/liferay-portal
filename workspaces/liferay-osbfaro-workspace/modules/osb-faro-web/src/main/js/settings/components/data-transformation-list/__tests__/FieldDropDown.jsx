@@ -1,7 +1,7 @@
 import FieldDropDown from '../FieldDropDown';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, cleanup, render} from '@testing-library/react';
+import {act, render} from '@testing-library/react';
 import {Map} from 'immutable';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -26,8 +26,6 @@ const DefaultComponent = props => (
 );
 
 describe('FieldDropDown', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<DefaultWrapper>

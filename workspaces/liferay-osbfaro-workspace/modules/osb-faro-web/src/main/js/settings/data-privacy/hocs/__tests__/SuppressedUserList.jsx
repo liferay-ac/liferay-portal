@@ -1,7 +1,7 @@
 import mockStore from 'test/mock-store';
 import React from 'react';
 import SuppressedUserList from '../SuppressedUserList';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {GDPRRequestStatuses} from 'shared/util/constants';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
@@ -67,8 +67,6 @@ const WrappedComponent = props => (
 );
 
 describe('Suppressed User List', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container} = render(<WrappedComponent />);
 
