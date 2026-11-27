@@ -1,6 +1,6 @@
 import ActiveIndividualsCard from '../ActiveIndividualsCard';
 import React from 'react';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
@@ -13,8 +13,6 @@ jest.mock('react-router-dom', () => ({
 }));
 
 describe('ActiveIndividualsCard', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<ActiveIndividualsCard />

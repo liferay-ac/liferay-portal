@@ -2,7 +2,7 @@ import {useDataSources} from 'shared/context/dataSources';
 import * as API from 'shared/api';
 import KnownIndividuals from '../KnownIndividuals';
 import React from 'react';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 import {mockEmptyState, mockSuccessState} from 'test/__mocks__/mock-objects';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
 import {Routes} from 'shared/util/router';
@@ -20,8 +20,6 @@ const renderKnownIndividuals = () =>
 	});
 
 describe('Individuals Dashboard KnownIndividuals List', () => {
-	afterEach(cleanup);
-
 	it('renders', async () => {
 		useDataSources.mockReturnValue(mockSuccessState);
 

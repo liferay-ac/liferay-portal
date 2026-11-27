@@ -1,7 +1,7 @@
 import Dashboard from '../index';
 import DataSourcesProvider from 'shared/context/dataSources';
 import React from 'react';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
@@ -12,8 +12,6 @@ jest.mock('react-router-dom', () => ({
 }));
 
 describe('Individuals Dashboard', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		const {container} = render(
 			<DataSourcesProvider groupId='123'>

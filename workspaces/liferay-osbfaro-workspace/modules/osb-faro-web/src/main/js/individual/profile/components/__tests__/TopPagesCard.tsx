@@ -2,7 +2,7 @@ import BasePage from 'shared/components/base-page';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import TopPagesCard from '../TopPagesCard';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {
@@ -122,8 +122,6 @@ const renderTopPagesCardWithoutIndividual = () =>
 	);
 
 describe('TopPagesCard', () => {
-	afterEach(cleanup);
-
 	it('should render the card with a tab per metric', async () => {
 		const {container} = renderTopPagesCard();
 

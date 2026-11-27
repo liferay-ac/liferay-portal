@@ -1,7 +1,7 @@
 import {useDataSources} from 'shared/context/dataSources';
 import * as data from 'test/data';
 import React from 'react';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 import {IndividualsDistribution} from '../Distribution';
 import {mockEmptyState, mockSuccessState} from 'test/__mocks__/mock-objects';
 import {User} from 'shared/util/records';
@@ -24,8 +24,6 @@ const defaultProps = {
 };
 
 describe('Individuals Dashboard Distribution', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		useDataSources.mockReturnValue(mockSuccessState);
 

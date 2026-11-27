@@ -2,7 +2,7 @@ import BasePage from 'shared/components/base-page';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import TopCategoriesAndTags from '../TopCategoriesAndTags';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {
 	ITopCategory,
 	ITopTag,
@@ -122,8 +122,6 @@ describe('TopCategoriesAndTags', () => {
 		jest.clearAllMocks();
 		mockUseRequestWith({data: {items: DEFAULT_CATEGORIES}});
 	});
-
-	afterEach(cleanup);
 
 	describe('rendering', () => {
 		it('should render the card title', () => {

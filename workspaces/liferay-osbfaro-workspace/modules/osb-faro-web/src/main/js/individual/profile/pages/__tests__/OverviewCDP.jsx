@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import OverviewCDP from '../OverviewCDP';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Individual} from 'shared/util/records';
 import {Provider} from 'react-redux';
 import {MemoryRouter} from 'react-router';
@@ -29,10 +29,6 @@ const renderComponent = () =>
 	);
 
 describe('IndividualOverview', () => {
-	afterEach(() => {
-		cleanup();
-	});
-
 	it('should render the contextual information and profile card sections', () => {
 		const {getByText} = renderComponent();
 

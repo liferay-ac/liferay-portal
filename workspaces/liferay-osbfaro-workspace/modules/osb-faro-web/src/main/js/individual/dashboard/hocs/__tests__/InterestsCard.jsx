@@ -1,6 +1,6 @@
 import InterestsCard from '../InterestsCard';
 import React from 'react';
-import {act, cleanup, render, waitFor} from 'test/render';
+import {act, render, waitFor} from 'test/render';
 import {
 	mockCompositionBag,
 	mockIndividualInterestsReq
@@ -16,8 +16,6 @@ jest.mock('react-router-dom', () => ({
 }));
 
 describe('InterestsCard', () => {
-	afterEach(cleanup);
-
 	it('renders', async () => {
 		const {getByText} = render(
 			<InterestsCard />, {

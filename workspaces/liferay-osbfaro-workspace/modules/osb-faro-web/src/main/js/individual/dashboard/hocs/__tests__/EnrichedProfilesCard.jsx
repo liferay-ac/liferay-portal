@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import EnrichedProfilesCard from '../EnrichedProfilesCard';
 import React from 'react';
-import {cleanup, queryByText, render} from 'test/render';
+import {queryByText, render} from 'test/render';
 import {CredentialTypes} from 'shared/util/constants';
 import {DataSource} from 'shared/util/records';
 import {
@@ -26,8 +26,6 @@ const DefaultComponent = props => (
 describe('EnrichedProfilesCard', () => {
 	afterEach(() => {
 		jest.clearAllMocks();
-
-		cleanup();
 	});
 
 	it('should render', async () => {

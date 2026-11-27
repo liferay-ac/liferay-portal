@@ -1,15 +1,13 @@
 import * as data from 'test/data';
 import InterestsCard, {InterestsList} from '../InterestsCard';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {mockSegment} from 'test/data';
 import {SEGMENTS} from 'shared/util/constants';
 import {MemoryRouter} from 'react-router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 describe('InterestsCard', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container} = render(
 			<MemoryRouter>

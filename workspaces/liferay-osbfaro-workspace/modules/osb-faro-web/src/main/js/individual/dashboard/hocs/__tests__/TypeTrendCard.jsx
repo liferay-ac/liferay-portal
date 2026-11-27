@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import TypeTrendCard from '../TypeTrendCard';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 import {mockIndividualMetricsReq} from 'test/graphql-data';
 
 jest.mock('react-router-dom', () => ({
@@ -14,8 +14,6 @@ jest.mock('react-router-dom', () => ({
 ReactDOM.createPortal = jest.fn();
 
 describe('TypeTrendCard', () => {
-	afterEach(cleanup);
-
 	xit('should render', () => {
 		const {container} = render(<TypeTrendCard channelId='123123' />, {
 			apolloMocks: [mockIndividualMetricsReq()]

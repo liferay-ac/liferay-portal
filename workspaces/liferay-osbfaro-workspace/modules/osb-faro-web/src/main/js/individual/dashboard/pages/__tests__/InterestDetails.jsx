@@ -1,6 +1,6 @@
 import InterestDetails from '../InterestDetails';
 import React from 'react';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 import {
 	mockPreferenceReq,
 	mockTimeRangeReq,
@@ -40,8 +40,6 @@ const mockItems = [
 ];
 
 describe('Individuals Dashboard Individuals Interest Details', () => {
-	afterEach(cleanup);
-
 	it('renders', async () => {
 		const {getByText} = render(
 			<InterestDetails

@@ -1,7 +1,7 @@
 import {useDataSources} from 'shared/context/dataSources';
 import Interests from '../Interests';
 import React from 'react';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 import {mockEmptyState, mockSuccessState} from 'test/__mocks__/mock-objects';
 import {mockIndividualInterestsReq} from 'test/graphql-data';
 import {Routes} from 'shared/util/router';
@@ -27,8 +27,6 @@ const renderInterests = () =>
 	});
 
 describe('Individuals Dashboard Individuals Interests', () => {
-	afterEach(cleanup);
-
 	it('renders', async () => {
 		useDataSources.mockReturnValue(mockSuccessState);
 

@@ -1,7 +1,7 @@
 import EngagementSummary from '../EngagementSummary';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {
@@ -59,8 +59,6 @@ const renderEngagementSummary = (
 
 describe('EngagementSummary', () => {
 	beforeEach(jest.clearAllMocks);
-
-	afterEach(cleanup);
 
 	it('should render the section header', () => {
 		renderEngagementSummary();

@@ -4,7 +4,7 @@ import IndividualProfileRoutes from '../ProfileRoutes';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ChannelContext} from 'shared/context/channel';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Individual} from 'shared/util/records';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {mockChannelContext} from 'test/mock-channel-context';
@@ -43,8 +43,6 @@ const renderProfileRoutes = (props = defaultProps) =>
 	);
 
 describe('IndividualProfileRoutes', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container} = renderProfileRoutes();
 

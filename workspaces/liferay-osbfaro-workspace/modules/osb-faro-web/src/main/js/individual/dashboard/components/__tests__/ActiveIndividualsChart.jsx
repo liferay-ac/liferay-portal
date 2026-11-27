@@ -1,13 +1,11 @@
 import * as data from 'test/data';
 import ActiveIndividualsChart from '../ActiveIndividualsChart';
 import React from 'react';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 import {createDateKeysIMap} from 'shared/util/intervals';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
 
 describe('ActiveIndividualsChart', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const chartData = [
 			{
