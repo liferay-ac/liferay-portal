@@ -1,7 +1,7 @@
 import ExportLogModal from '../ExportLogModal';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -137,9 +137,7 @@ describe('ExportLogModal', () => {
 		expect(document.querySelector('.loading-root')).toBeTruthy();
 
 		// Resolve the submission
-		await act(async () => {
-			resolveSubmit('csv-data');
-		});
+		resolveSubmit('csv-data');
 
 		// Verify loading indicator is removed
 		await waitFor(() =>
@@ -181,9 +179,7 @@ describe('ExportLogModal', () => {
 		expect(document.querySelector('.loading-root')).toBeTruthy();
 
 		// Reject the submission
-		await act(async () => {
-			rejectSubmit(new Error('fail'));
-		});
+		rejectSubmit(new Error('fail'));
 
 		await waitFor(() =>
 			expect(document.querySelector('.loading-root')).toBeNull()
