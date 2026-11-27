@@ -1,4 +1,5 @@
 import Form from 'shared/components/form';
+import PickerTriggerButton from 'shared/components/PickerTriggerButton';
 import React from 'react';
 import {Conjunctions} from '../utils/constants';
 import {Option, Picker} from '@clayui/core';
@@ -15,10 +16,10 @@ const getSelectedOption = (conjunctionName: string) =>
 
 /**
  * The operator of a group as a plain sentence, such as "All of these criteria
- * must be met.", used as the accessible name of the group.
+ * are met.", used as the accessible name of the group.
  */
 export const getGroupOperatorLabel = (conjunctionName: string): string =>
-	sub(Liferay.Language.get('x-of-these-criteria-must-be-met'), [
+	sub(Liferay.Language.get('x-of-these-criteria-are-met'), [
 		getSelectedOption(conjunctionName).label,
 	]) as string;
 
@@ -29,9 +30,8 @@ interface IGroupOperatorProps {
 }
 
 /**
- * The "All / Any of these criteria must be met" control the lifecycle stage
- * configuration uses to match its conditions, with the same Picker as the other
- * segment inputs.
+ * The "All / Any of these criteria are met" control the lifecycle stage
+ * configuration uses to match its conditions, with the same trigger button.
  */
 const GroupOperator: React.FC<IGroupOperatorProps> = ({
 	conjunctionName,
@@ -41,17 +41,19 @@ const GroupOperator: React.FC<IGroupOperatorProps> = ({
 	const selectedOption = getSelectedOption(conjunctionName);
 
 	const parts = sub(
-		Liferay.Language.get('x-of-these-criteria-must-be-met'),
+		Liferay.Language.get('x-of-these-criteria-are-met'),
 		[
 			<Picker
 				aria-label={Liferay.Language.get('match-logic')}
-				className="criterion-input"
+				as={PickerTriggerButton}
+				buttonClassName="align-items-center d-inline-flex"
 				id={id}
 				items={GROUP_OPERATOR_OPTIONS}
 				key="matchLogic"
+				label={selectedOption.label}
 				onSelectionChange={(value) => onChange(value as Conjunctions)}
 				selectedKey={selectedOption.value}
-				shrink
+				size="xs"
 			>
 				{({label, value}) => <Option key={value}>{label}</Option>}
 			</Picker>,
@@ -61,7 +63,7 @@ const GroupOperator: React.FC<IGroupOperatorProps> = ({
 
 	return (
 		<div className="group-operator">
-			<Form.Group autoFit className="mb-0">
+			<Form.Group autoFit className="align-items-center mb-0">
 				{parts.map((part, index) =>
 					typeof part === 'string' ? (
 						part.trim() && (

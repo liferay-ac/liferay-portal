@@ -560,6 +560,7 @@ class CriteriaRow extends React.Component<
 					}
 					className={classes}
 					role="group"
+					tabIndex={0}
 				>
 					<div
 						className={`color-stripe color--${get(

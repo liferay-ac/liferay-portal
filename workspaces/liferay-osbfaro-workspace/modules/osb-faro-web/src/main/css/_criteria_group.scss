@@ -17,7 +17,7 @@
 			left: 0;
 			position: absolute;
 			top: 0;
-			width: 3px;
+			width: 4px;
 
 			@include generatePropertyGroupLoop(
 				$propertyGroupsColors,
@@ -28,7 +28,8 @@
 	}
 
 	.group-operator {
-		padding: 16px 16px 0 36px;
+		border-bottom: 1px solid $cadmin-secondary-l2;
+		padding: 16px;
 
 		.entity-name {
 			color: $secondary;
@@ -77,6 +78,75 @@
 		.criteria-group-drag-icon {
 			left: 1px;
 			top: 0;
+		}
+	}
+
+	&.criteria-group-with-operator {
+		.group-operator {
+			background-color: $cadmin-light-l1;
+			border-top-left-radius: 4px;
+			border-top-right-radius: 4px;
+		}
+
+		> .criterion {
+			margin: 0 16px;
+			padding: 0;
+
+			&:last-child {
+				margin-bottom: 16px;
+			}
+
+			.color-stripe {
+				border-bottom-left-radius: 4px;
+				border-top-left-radius: 4px;
+			}
+
+			.criterion-row-root {
+				background-color: $white;
+				border-color: $cadmin-secondary-l2;
+				border-width: 1px;
+				padding: 16px;
+
+				&:focus-visible {
+					border-color: $primary;
+				}
+
+				.drag-icon {
+					margin-right: 0;
+				}
+
+				.edit-container {
+					flex-wrap: wrap;
+					gap: 8px;
+
+					.actions {
+						margin-left: auto;
+					}
+				}
+			}
+		}
+
+		.group-operator + .criterion {
+			margin-top: 16px;
+		}
+
+		.conjunction-container {
+			margin: 8px 16px;
+
+			.conjunction-button {
+				background-color: transparent;
+				border: 0 none;
+				color: $secondary;
+				font-size: 16px;
+				font-weight: $fontWeightSemiBold;
+				height: auto;
+				line-height: 1.5;
+				padding: 0;
+			}
+
+			.separator {
+				display: none;
+			}
 		}
 	}
 

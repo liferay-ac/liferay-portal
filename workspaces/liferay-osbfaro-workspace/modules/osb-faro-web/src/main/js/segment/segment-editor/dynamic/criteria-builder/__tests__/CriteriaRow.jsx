@@ -136,6 +136,54 @@ describe('CriteriaRow', () => {
 		expect(getByRole('button', {name: /^menu$/i})).toBeInTheDocument();
 	});
 
+	describe('row focus', () => {
+		const Rows = ({values}) => (
+			<WrapperComponent>
+				<DndProvider backend={HTML5Backend}>
+					{values.map((value, index) => (
+						<CriteriaRow
+							criterion={{
+								operatorName: 'eq',
+								propertyName: 'knownSinceDate',
+								rowId: `row_${index}`,
+								touched: false,
+								valid: true,
+								value
+							}}
+							index={index}
+							key={value}
+							referencedAssetsIMap={new Map()}
+							referencedPropertiesIMap={new Map()}
+						/>
+					))}
+				</DndProvider>
+			</WrapperComponent>
+		);
+
+		it('should receive focus as a single row', () => {
+			const {getByRole} = render(<Rows values={['2026-01-15']} />);
+
+			const row = getByRole('group', {name: /known since date.*2026/i});
+
+			row.focus();
+
+			expect(row).toHaveAttribute('tabindex', '0');
+			expect(row).toHaveFocus();
+		});
+
+		it('should tell apart two rows with the same attribute', () => {
+			const {getAllByRole} = render(
+				<Rows values={['2026-01-15', '2026-03-20']} />
+			);
+
+			const rows = getAllByRole('group', {name: /known since date/i});
+
+			expect(rows).toHaveLength(2);
+			expect(rows[0]).toHaveAccessibleName(/2026-01-15|01\/15\/2026/);
+			expect(rows[1]).toHaveAccessibleName(/2026-03-20|03\/20\/2026/);
+		});
+	});
+
 	it('should render w/ Non-Existent Property message and only the delete action', () => {
 		const onDelete = jest.fn();
 
