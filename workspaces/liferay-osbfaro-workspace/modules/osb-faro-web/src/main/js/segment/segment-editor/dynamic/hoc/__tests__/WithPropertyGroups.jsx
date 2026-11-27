@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import React, {useState} from 'react';
 import withPropertyGroups from '../WithPropertyGroups';
-import {act, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
@@ -195,7 +195,7 @@ describe('WithPropertyGroups', () => {
 			</MemoryRouter>
 		);
 
-		await act(async () => {});
+		await screen.findByLabelText('draft');
 
 		const requestCount = API.fieldMappings.search.mock.calls.length;
 
@@ -235,7 +235,7 @@ describe('WithPropertyGroups', () => {
 				</MemoryRouter>
 			);
 
-			await act(async () => {});
+			await screen.findByRole('heading', {name: '404'});
 
 			expect(container.querySelector('.error-page-root')).toBeTruthy();
 		});
