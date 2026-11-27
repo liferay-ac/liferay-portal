@@ -2,13 +2,7 @@ import ChannelsMenu, {isValidChannel} from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {BrowserRouter} from 'react-router-dom';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	within
-} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {Provider} from 'react-redux';
 
 const mockMenuItems = () => [
@@ -25,8 +19,6 @@ const mockMenuItems = () => [
 ];
 
 describe('ChannelsMenu', () => {
-	afterEach(cleanup);
-
 	it('should render the first item as label', () => {
 		const {container} = render(
 			<Provider store={mockStore()}>

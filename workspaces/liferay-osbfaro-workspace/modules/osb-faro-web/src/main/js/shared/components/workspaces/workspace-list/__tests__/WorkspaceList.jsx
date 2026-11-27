@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import React from 'react';
 import WorkspaceList from '..';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {DataSourceStates} from 'shared/util/constants';
 import {fromJS} from 'immutable';
 import {Project} from 'shared/util/records';
@@ -72,7 +72,6 @@ const DefaultComponent = props => (
 );
 
 describe('WorkspaceList', () => {
-	afterEach(cleanup);
 	it('should render', () => {
 		const {container} = render(
 			<DefaultComponent accounts={mockAccountList} />

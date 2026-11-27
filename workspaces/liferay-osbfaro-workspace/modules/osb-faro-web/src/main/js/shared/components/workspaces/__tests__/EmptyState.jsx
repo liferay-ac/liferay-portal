@@ -2,12 +2,10 @@ import EmptyState, {CardEmpty} from '../EmptyState';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {BrowserRouter} from 'react-router-dom';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {Provider} from 'react-redux';
 
 describe('Workspace Empty State', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<Provider store={mockStore()}>

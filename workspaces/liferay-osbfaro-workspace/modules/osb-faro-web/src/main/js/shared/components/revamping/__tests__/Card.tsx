@@ -1,10 +1,8 @@
 import React from 'react';
 import {Card} from '../Card';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 
 describe('Card', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		render(<Card title="Card Title">{'Card Content'}</Card>);
 

@@ -1,10 +1,8 @@
 import React from 'react';
 import RelativeMetricBar from '../RelativeMetricBar';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('RelativeMetricBar', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<RelativeMetricBar

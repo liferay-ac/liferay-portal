@@ -1,7 +1,7 @@
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {BasePage} from '../index';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {Provider} from 'react-redux';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
@@ -13,8 +13,6 @@ jest.mock('shared/hooks/useLDPEnabled', () => ({
 }));
 
 describe('BasePage', () => {
-	afterEach(cleanup);
-
 	beforeEach(() => {
 		useLDPEnabled.mockReturnValue(false);
 	});

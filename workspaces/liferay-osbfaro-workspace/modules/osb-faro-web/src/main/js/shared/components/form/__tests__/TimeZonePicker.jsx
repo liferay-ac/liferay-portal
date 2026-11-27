@@ -3,7 +3,7 @@ import Form from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import TimeZonePicker from '../TimeZonePicker';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {fromJS} from 'immutable';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter} from 'react-router-dom';
@@ -60,7 +60,6 @@ describe('TimeZonePicker', () => {
 
 	afterEach(() => {
 		pedantic.enable();
-		cleanup();
 	});
 
 	it('renders', () => {

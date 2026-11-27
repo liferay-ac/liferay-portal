@@ -2,14 +2,12 @@ import * as API from 'shared/api';
 import * as data from 'test/data';
 import React from 'react';
 import WorkspaceListItem from '../ListItem';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {ProjectStates} from 'shared/util/constants';
 import {MemoryRouter} from 'react-router-dom';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 describe('WorkspaceListItem', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<MemoryRouter>

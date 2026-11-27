@@ -1,7 +1,7 @@
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import React from 'react';
 import StatesRenderer from 'shared/components/states-renderer/StatesRenderer';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	mockEmptyState,
 	mockErrorState,
@@ -45,8 +45,6 @@ const MockComponent = ({...states}) => (
 );
 
 describe('StatesRenderer', () => {
-	afterEach(cleanup);
-
 	it('should render empty states', () => {
 		const {container} = render(<MockComponent {...mockEmptyState} />);
 

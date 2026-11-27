@@ -1,6 +1,6 @@
 import React from 'react';
 import UserDropdown, {Menus} from '../index';
-import {act, cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 
 const mockMenus = (): Menus => ({
@@ -43,8 +43,6 @@ const Wrapper = ({children}: {children: React.ReactNode}) => (
 );
 
 describe('UserDropdown', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<Wrapper>

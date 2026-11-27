@@ -1,10 +1,8 @@
 import Body from '../Body';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('BasePage.Body', () => {
-	afterEach(cleanup);
-
 	it('renders Body', () => {
 		const {container} = render(<Body>{'Test Test'}</Body>);
 

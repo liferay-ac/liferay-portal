@@ -1,6 +1,6 @@
 import Canvas from '../Canvas';
 import React from 'react';
-import {act, cleanup, render, screen, waitFor} from '@testing-library/react';
+import {act, render, screen, waitFor} from '@testing-library/react';
 
 const EMPTY_STATE = {
 	description: 'Drop something here.',
@@ -8,8 +8,6 @@ const EMPTY_STATE = {
 };
 
 describe('Canvas', () => {
-	afterEach(cleanup);
-
 	it('renders the title as a heading and the actions in the header', () => {
 		const {getByRole, getByText} = render(
 			<Canvas>
@@ -75,8 +73,6 @@ describe('Canvas', () => {
 });
 
 describe('Canvas.EmptyState', () => {
-	afterEach(cleanup);
-
 	it('renders only the animated illustration by default', () => {
 		const {container} = render(<Canvas.EmptyState {...EMPTY_STATE} />);
 
