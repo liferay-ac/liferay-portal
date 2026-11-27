@@ -321,19 +321,20 @@ class CriteriaGroup extends React.Component<ICriteriaGroupProps> {
 				: null;
 		const atLimit = !!alertConfig;
 
+		const singleRow =
+			criteria && criteria.items && criteria.items.length === 1;
+
 		const classes = getCN(
 			'sheet',
 			{
 				'criteria-group-root': criteria,
+				'criteria-group-with-operator': !sequential && !singleRow,
 			},
 			`criteria-group-item${root ? '-root' : ''}`,
 			{
 				'dnd-drag': dragging,
 			}
 		);
-		const singleRow =
-			criteria && criteria.items && criteria.items.length === 1;
-
 		if (this.isCriteriaEmpty()) {
 			return (
 				<EmptyDropZone
