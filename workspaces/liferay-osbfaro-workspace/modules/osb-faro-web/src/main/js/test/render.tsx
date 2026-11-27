@@ -45,13 +45,18 @@ import {Store} from 'redux';
 
 export * from '@testing-library/react';
 
+// The channel fixtures in test/data.js are untyped JavaScript: they predate
+// `groupIdCount` and use numeric ids, so they do not match `Channel`.
+
+type ChannelContextValue = React.ContextType<typeof ChannelContext>;
+
 export interface IRenderOptions extends RenderOptions {
 	addTypename?: boolean;
 	apolloMocks?: ReadonlyArray<MockedResponse>;
-	channel?: React.ContextType<typeof ChannelContext>;
+	channel?: ChannelContextValue;
 	path?: string;
 	route?: InitialEntry;
-	store?: Store;
+	store?: Store<unknown>;
 	storeData?: unknown;
 }
 
@@ -60,7 +65,7 @@ export function render(
 	{
 		addTypename,
 		apolloMocks = [],
-		channel = mockChannelContext(),
+		channel = mockChannelContext() as unknown as ChannelContextValue,
 		path,
 		route = '/',
 		store: storeOption,
@@ -68,8 +73,8 @@ export function render(
 		wrapper: InnerWrapper = React.Fragment,
 		...renderOptions
 	}: IRenderOptions = {}
-): RenderResult & {store: Store} {
-	const store: Store = storeOption ?? mockStore(storeData);
+): RenderResult & {store: Store<unknown>} {
+	const store: Store<unknown> = storeOption ?? mockStore(storeData);
 
 	const Wrapper = ({children}: {children: React.ReactNode}) => (
 		<Provider store={store}>
