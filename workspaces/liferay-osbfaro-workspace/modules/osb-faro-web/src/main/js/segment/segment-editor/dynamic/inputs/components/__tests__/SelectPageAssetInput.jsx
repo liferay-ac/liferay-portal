@@ -667,7 +667,7 @@ describe('SelectPageAssetInput', () => {
 
 			render(<DefaultComponent {...props} />);
 
-			act(() => jest.runAllTimers());
+			jest.runAllTimers();
 
 			jest.useRealTimers();
 		};
