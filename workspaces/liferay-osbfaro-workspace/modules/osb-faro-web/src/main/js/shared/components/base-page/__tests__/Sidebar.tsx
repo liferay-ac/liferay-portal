@@ -48,6 +48,9 @@ describe('BasePage.Sidebar', () => {
 	it('pushes the content without an overlay', () => {
 		render(<Panel open />);
 
+		expect(
+			screen.getByRole('button', {name: 'Inside'}).closest('.sidebar')
+		).not.toHaveAttribute('inert');
 		expect(screen.queryByTestId('base-page-sidebar-backdrop')).toBeNull();
 	});
 
