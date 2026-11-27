@@ -164,12 +164,12 @@ describe('CriteriaGroup', () => {
 
 		expect(
 			screen.getByRole('group', {
-				name: /^all of these criteria must be met\.$/i
+				name: /^all of these criteria are met\.$/i
 			})
 		).toBeInTheDocument();
 		expect(
 			screen.getByRole('group', {
-				name: /^any of these criteria must be met\.$/i
+				name: /^any of these criteria are met\.$/i
 			})
 		).toBeInTheDocument();
 	});

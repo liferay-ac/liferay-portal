@@ -167,7 +167,7 @@ describe('KeyboardMovementProvider', () => {
 		fireEvent.keyDown(window, {key: 'Home'});
 
 		expect(screen.getByRole('status')).toHaveTextContent(
-			/^targeting top of any of these criteria must be met\.$/i
+			/^targeting top of any of these criteria are met\.$/i
 		);
 	});
 });
