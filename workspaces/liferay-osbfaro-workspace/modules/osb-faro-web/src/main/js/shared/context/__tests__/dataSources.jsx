@@ -1,11 +1,7 @@
 import * as API from 'shared/api';
 import * as data from 'test/data';
 import React from 'react';
-import {
-	cleanup,
-	render,
-	waitForElementToBeRemoved
-} from '@testing-library/react';
+import {render, waitForElementToBeRemoved} from '@testing-library/react';
 import {DataSourcesProvider, useDataSources} from '../dataSources';
 
 const ChildComponent = () => {
@@ -38,8 +34,6 @@ const renderWithProvider = (groupId = '1') =>
 	);
 
 describe('DataSourcesProvider', () => {
-	afterEach(cleanup);
-
 	it('should render empty', async () => {
 		API.dataSource.search.mockReturnValueOnce(
 			Promise.resolve(data.mockSearch([], 0))
@@ -111,8 +105,6 @@ describe('DataSourcesProvider', () => {
 });
 
 describe('useDataSources', () => {
-	afterEach(cleanup);
-
 	it('should throw when used outside of a DataSourcesProvider', () => {
 		const consoleError = jest
 			.spyOn(console, 'error')
