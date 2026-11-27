@@ -1,10 +1,8 @@
 import NavBar from '../NavBar';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('NavBar', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<NavBar />);
 		expect(container).toMatchSnapshot();

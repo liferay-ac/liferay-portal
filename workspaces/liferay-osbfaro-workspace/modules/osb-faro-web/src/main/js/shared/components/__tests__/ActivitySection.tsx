@@ -1,6 +1,6 @@
 import ActivitySection from '../ActivitySection';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 
 const renderSection = (props?: {label?: string}) =>
 	render(
@@ -10,8 +10,6 @@ const renderSection = (props?: {label?: string}) =>
 	);
 
 describe('ActivitySection', () => {
-	afterEach(cleanup);
-
 	it('shows its label', () => {
 		renderSection();
 

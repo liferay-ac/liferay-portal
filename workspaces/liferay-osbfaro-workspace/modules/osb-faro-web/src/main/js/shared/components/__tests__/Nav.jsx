@@ -1,7 +1,7 @@
 import ClayButton from '@clayui/button';
 import Nav from '../Nav';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 
 const items = [
@@ -23,8 +23,6 @@ const DefaultComponent = props => (
 );
 
 describe('Nav', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<DefaultComponent />);
 		expect(container).toMatchSnapshot();

@@ -1,10 +1,8 @@
 import InputWithEditToggle from '../InputWithEditToggle';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 
 describe('InputWithEditToggle', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<InputWithEditToggle />);
 		expect(container).toMatchSnapshot();

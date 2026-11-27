@@ -1,10 +1,8 @@
 import DateHeader from '../DateHeader';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 
 describe('DateHeader', () => {
-	afterEach(cleanup);
-
 	it('shows the day title and its event count', () => {
 		render(<DateHeader title="Yesterday" totalEvents={3} />);
 

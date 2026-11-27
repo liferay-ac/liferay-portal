@@ -1,6 +1,6 @@
 import DayList from '../DayList';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 
 const TIME_ZONE_ID = 'UTC';
 
@@ -48,8 +48,6 @@ const buildCampaignDays = (date: string) => ({
 });
 
 describe('DayList', () => {
-	afterEach(cleanup);
-
 	it('renders a date header per day, most recent first', () => {
 		const {container} = render(
 			<DayList

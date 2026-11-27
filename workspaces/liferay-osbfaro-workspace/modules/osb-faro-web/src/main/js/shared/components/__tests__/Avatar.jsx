@@ -1,11 +1,9 @@
 import Avatar from '../Avatar';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {mockIndividual, mockSegment} from 'test/data';
 
 describe('Avatar', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<Avatar entity={mockIndividual()} />);
 		expect(container).toMatchSnapshot();

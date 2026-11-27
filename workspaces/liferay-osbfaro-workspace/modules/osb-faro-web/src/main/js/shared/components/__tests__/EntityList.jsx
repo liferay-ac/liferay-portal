@@ -1,6 +1,6 @@
 import EntityList from '../EntityList';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {mockIndividual, mockSegment} from 'test/data';
 import {withStaticRouter} from 'test/mock-router';
 
@@ -15,8 +15,6 @@ const segments = [mockSegment(1, {segmentType: 'BATCH'})];
 const WrappedComponent = withStaticRouter(EntityList);
 
 describe('EntityList', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<WrappedComponent groupId='23' items={items} />

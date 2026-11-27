@@ -1,7 +1,7 @@
 import CampaignRow from '../CampaignRow';
 import React from 'react';
 import {CampaignTouch} from 'shared/util/activities';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 
 const CAMPAIGN: CampaignTouch = {
 	campaignId: 'c3',
@@ -45,8 +45,6 @@ const renderRow = (
 	);
 
 describe('CampaignRow', () => {
-	afterEach(cleanup);
-
 	it('shows the campaign name and its data source', () => {
 		renderRow();
 

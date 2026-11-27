@@ -5,7 +5,7 @@ import TopPagesCardContent, {
 	ITopPagesCardItem,
 	TOP_PAGES_TABS,
 } from '../TopPagesCardContent';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {EXIT_RATE_METRIC} from 'shared/util/pagination';
 import {MemoryRouter} from 'react-router-dom';
 import {noop} from 'lodash';
@@ -67,8 +67,6 @@ const renderContent = (
 	);
 
 describe('TopPagesCardContent', () => {
-	afterEach(cleanup);
-
 	it('should link a page that has a title to its dashboard', () => {
 		renderContent([item({})]);
 

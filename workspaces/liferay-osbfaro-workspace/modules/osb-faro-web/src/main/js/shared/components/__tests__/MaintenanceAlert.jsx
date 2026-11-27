@@ -1,6 +1,6 @@
 import * as data from 'test/data';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MaintenanceAlert, mapState} from '../MaintenanceAlert';
 import {mockStoreData} from 'test/mock-store';
 import {Project, RemoteData} from 'shared/util/records';
@@ -22,8 +22,6 @@ const mockProject = data.getImmutableMock(Project, data.mockProject, '23', {
 });
 
 describe('MaintenanceAlert', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, queryByText} = render(
 			<MaintenanceAlert project={new Project()} />

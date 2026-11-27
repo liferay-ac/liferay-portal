@@ -1,6 +1,6 @@
 import PaginationBar from '../PaginationBar';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 
 const DefaultComponent = props => (
@@ -16,8 +16,6 @@ const DefaultComponent = props => (
 );
 
 describe('PaginationBar', () => {
-	afterEach(cleanup);
-
 	it('names what it counts when the caller says so', () => {
 		const {container} = render(
 			<DefaultComponent

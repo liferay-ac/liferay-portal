@@ -1,13 +1,7 @@
 import mockStore from 'test/mock-store';
 import NavigationWarning from '../NavigationWarning';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {Provider} from 'react-redux';
 import {useBlocker} from 'react-router-dom';
@@ -47,8 +41,6 @@ const renderComponent = () =>
 
 describe('NavigationWarning', () => {
 	afterEach(() => {
-		cleanup();
-
 		useBlocker.mockReset();
 	});
 

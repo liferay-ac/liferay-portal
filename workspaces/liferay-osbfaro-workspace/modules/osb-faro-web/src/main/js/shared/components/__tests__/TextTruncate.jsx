@@ -1,11 +1,9 @@
 import React from 'react';
 import TextTruncate from '../TextTruncate';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {range} from 'lodash';
 
 describe('TextTruncate', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<TextTruncate title='foo' />);
 

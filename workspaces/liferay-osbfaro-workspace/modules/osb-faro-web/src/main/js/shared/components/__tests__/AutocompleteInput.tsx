@@ -1,12 +1,6 @@
 import AutocompleteInput from '../AutocompleteInput';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {mockListGeometry, scrollListToBottom} from 'test/infinite-scroll';
 
 const PAGE_SIZE = 2;
@@ -15,8 +9,6 @@ const getOptionIds = () =>
 	screen.getAllByRole('option').map((option) => option.id);
 
 describe('AutocompleteInput', () => {
-	afterEach(cleanup);
-
 	it('loads values page by page as the list is scrolled', async () => {
 		const restoreListGeometry = mockListGeometry();
 

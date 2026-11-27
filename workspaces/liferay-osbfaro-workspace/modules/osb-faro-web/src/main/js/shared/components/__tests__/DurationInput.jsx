@@ -1,10 +1,8 @@
 import DurationInput from '../DurationInput';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('DurationInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<DurationInput />);
 

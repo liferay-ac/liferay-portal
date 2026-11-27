@@ -1,7 +1,7 @@
 import ConfirmationModal from '../ConfirmationModal';
 import {useModal} from '@clayui/modal';
 import React from 'react';
-import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 
 const DefaultComponent = ({onClose = jest.fn(), ...props}) => {
 	const {observer, onOpenChange, open} = useModal();
@@ -42,8 +42,6 @@ const renderOpen = async (props) => {
 };
 
 describe('ConfirmationModal', () => {
-	afterEach(cleanup);
-
 	it('should render the title and the message', async () => {
 		await renderOpen({message: 'This is a message.', title: 'A title'});
 

@@ -1,10 +1,8 @@
 import CollapsibleOverlay from '../CollapsibleOverlay';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 
 describe('CollapsibleOverlay', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<CollapsibleOverlay title='foo title' />);
 		expect(container).toMatchSnapshot();

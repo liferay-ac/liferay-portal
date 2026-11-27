@@ -3,7 +3,7 @@ import DateRangeInput from '../DateRangeInput';
 import mockStore from 'test/mock-store';
 import moment from 'moment';
 import React from 'react';
-import {act, cleanup, fireEvent, render} from '@testing-library/react';
+import {act, fireEvent, render} from '@testing-library/react';
 import {ApolloProvider} from '@apollo/client';
 import {clickFirstSelectableDay} from 'test/helpers';
 import {getCustomDateFormat} from 'shared/util/date';
@@ -62,8 +62,6 @@ const WrapperComponent = ({children}) => (
 describe('DateRangeInput', () => {
 	afterEach(() => {
 		clayDropDownProps.length = 0;
-
-		cleanup();
 	});
 
 	it('renders', () => {

@@ -1,12 +1,6 @@
 import CampaignList from '../CampaignList';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	within,
-} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 
 const buildCampaigns = (total: number) =>
 	Array.from({length: total}, (unused, index) => ({
@@ -38,8 +32,6 @@ const renderList = (props = {}) =>
 	);
 
 describe('CampaignList', () => {
-	afterEach(cleanup);
-
 	it('renders the page it was given without slicing it', () => {
 		const {container} = renderList();
 

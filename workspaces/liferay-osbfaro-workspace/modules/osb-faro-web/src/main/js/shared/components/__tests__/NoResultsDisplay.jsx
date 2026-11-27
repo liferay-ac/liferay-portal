@@ -1,10 +1,8 @@
 import NoResultsDisplay, {getFormattedTitle} from '../NoResultsDisplay';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('NoResultsDisplay', () => {
-	afterEach(cleanup);
-
 	it('should render component', () => {
 		const {container} = render(<NoResultsDisplay />);
 

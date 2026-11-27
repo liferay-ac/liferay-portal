@@ -1,10 +1,8 @@
 import MaskedInput from '../MaskedInput';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('MaskedInput', () => {
-	afterEach(cleanup);
-
 	it('should render input', () => {
 		const {container} = render(<MaskedInput mask={[]} />);
 

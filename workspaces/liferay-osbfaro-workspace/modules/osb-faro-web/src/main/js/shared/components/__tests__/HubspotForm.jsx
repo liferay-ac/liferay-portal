@@ -1,10 +1,8 @@
 import HubspotForm from '../HubspotForm';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('HubspotForm', () => {
-	afterEach(cleanup);
-
 	it('should render a hubspot div with id', () => {
 		const {container} = render(<HubspotForm />);
 

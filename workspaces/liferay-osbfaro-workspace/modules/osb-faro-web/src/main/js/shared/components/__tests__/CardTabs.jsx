@@ -1,6 +1,6 @@
 import CardTabs from '../CardTabs';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 
 const mockTabs = [
 	{
@@ -16,8 +16,6 @@ const mockTabs = [
 ];
 
 describe('CardTabs', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<CardTabs activeTabId='bar' tabs={mockTabs} />

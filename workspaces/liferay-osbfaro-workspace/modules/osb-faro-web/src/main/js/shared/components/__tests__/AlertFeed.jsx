@@ -1,7 +1,7 @@
 import React from 'react';
 import {Alert} from 'shared/types';
 import {AlertFeed} from '../AlertFeed';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {fromJS} from 'immutable';
 import {sub} from 'shared/util/lang';
 
@@ -17,8 +17,6 @@ const defaultProps = {
 };
 
 describe('AlertFeed', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<AlertFeed {...defaultProps} />);
 

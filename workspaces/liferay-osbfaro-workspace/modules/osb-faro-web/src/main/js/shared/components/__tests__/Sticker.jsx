@@ -1,10 +1,8 @@
 import React from 'react';
 import Sticker, {getDisplayForId, hashCode} from '../Sticker';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('Sticker', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<Sticker symbol='file' />);
 		expect(container).toMatchSnapshot();

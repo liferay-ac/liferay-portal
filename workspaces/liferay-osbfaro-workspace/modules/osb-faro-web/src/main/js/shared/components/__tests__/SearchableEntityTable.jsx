@@ -1,6 +1,6 @@
 import React from 'react';
 import SearchableEntityTable from '../SearchableEntityTable';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {mockIndividual} from 'test/data';
 import {SelectionProvider} from 'shared/context/selection';
 import {times} from 'lodash';
@@ -38,8 +38,6 @@ const INDIVIDUALS = times(TOTAL, i => mockIndividual(i));
 const DefaultComponent = withStaticRouter(SearchableEntityTable);
 
 describe('SearchableEntityTable', () => {
-	afterEach(cleanup);
-
 	it('should render table rows with data after loading', async () => {
 		const {container} = render(
 			<DefaultComponent

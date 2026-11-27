@@ -1,10 +1,8 @@
 import Input from '../Input';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('Input', () => {
-	afterEach(cleanup);
-
 	it('should render input', () => {
 		const {container} = render(<Input />);
 		expect(container).toMatchSnapshot();

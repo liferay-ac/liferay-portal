@@ -1,7 +1,7 @@
 import mockStore from 'test/mock-store';
 import React from 'react';
 import VerticalTimeline from '../VerticalTimeline';
-import {cleanup, fireEvent, render, screen, within} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {Provider} from 'react-redux';
 
 const TIME_ZONE_ID = 'UTC';
@@ -17,8 +17,6 @@ const renderTimeline = (props) =>
 	);
 
 describe('VerticalTimeline', () => {
-	afterEach(cleanup);
-
 	it('renders on loading state', () => {
 		const {container} = renderTimeline({loading: true});
 

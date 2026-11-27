@@ -1,7 +1,7 @@
 import ClayModal from '@clayui/modal';
 import ModalAutoFocus from '../ModalAutoFocus';
 import React from 'react';
-import {act, cleanup, screen} from '@testing-library/react';
+import {act, screen} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
 
 const renderFocusModal = () =>
@@ -20,8 +20,6 @@ const renderFocusModal = () =>
 	));
 
 describe('ModalAutoFocus', () => {
-	afterEach(cleanup);
-
 	it('focuses the field after Clay moves the focus to the title', async () => {
 		await renderFocusModal();
 

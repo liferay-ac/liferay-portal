@@ -1,6 +1,6 @@
 import InputList from '../InputList';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {createEvent} from '@testing-library/dom';
 
 const createPasteEvent = html => {
@@ -14,8 +14,6 @@ const createPasteEvent = html => {
 };
 
 describe('InputList', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<InputList />);
 		expect(container).toMatchSnapshot();
