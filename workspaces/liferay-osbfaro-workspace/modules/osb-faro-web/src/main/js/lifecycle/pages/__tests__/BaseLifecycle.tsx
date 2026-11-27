@@ -2,7 +2,7 @@ import * as API from 'shared/api';
 import BaseLifecycle from '../BaseLifecycle';
 import React from 'react';
 import URLConstants from 'shared/util/url-constants';
-import {cleanup, fireEvent, render, screen, waitFor, within} from 'test/render';
+import {fireEvent, render, screen, waitFor, within} from 'test/render';
 import {matchPath, useLocation} from 'react-router-dom';
 import {Routes, toRoute} from 'shared/util/router';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
@@ -228,8 +228,6 @@ describe('BaseLifecycle', () => {
 		mockedUseDataSources.mockReturnValue({empty: false, loading: false});
 		mockedUseRequest.mockImplementation(useRequestImpl({totalCount: 5}));
 	});
-
-	afterEach(cleanup);
 
 	it('resets the filters and loads the current version when switching lifecycles', () => {
 		const {rerender} = renderPage();

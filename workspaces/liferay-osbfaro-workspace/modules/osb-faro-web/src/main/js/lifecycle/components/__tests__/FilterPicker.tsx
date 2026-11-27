@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import FilterPicker from '../FilterPicker';
 import React from 'react';
-import {cleanup, fireEvent, render, screen, waitFor} from 'test/render';
+import {fireEvent, render, screen, waitFor} from 'test/render';
 import {LifecycleContextProvider} from '../../context/LifecycleContext';
 import {
 	mockListGeometry,
@@ -32,8 +32,6 @@ const getTrigger = (name = 'Filter By Industries') =>
 	screen.getByRole('combobox', {name});
 
 describe('FilterPicker', () => {
-	afterEach(cleanup);
-
 	beforeEach(() => {
 		fetchFieldValues.mockReset();
 		fetchFieldValues.mockResolvedValue({items: ['Tech', 'Finance']});

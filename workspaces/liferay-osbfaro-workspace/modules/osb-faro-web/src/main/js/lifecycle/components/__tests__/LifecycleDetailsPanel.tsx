@@ -1,7 +1,7 @@
 import LifecycleDetailsPanel from '../LifecycleDetailsPanel';
 import BasePage from 'shared/components/base-page';
 import React from 'react';
-import {cleanup, fireEvent, render, screen, within} from 'test/render';
+import {fireEvent, render, screen, within} from 'test/render';
 import {ILifecycleDetail} from 'shared/api/lifecycle';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -109,8 +109,6 @@ describe('LifecycleDetailsPanel', () => {
 
 		mockLifecycle(LIFECYCLE);
 	});
-
-	afterEach(cleanup);
 
 	it('titles the panel with the lifecycle name and its sticker', () => {
 		renderPanel();

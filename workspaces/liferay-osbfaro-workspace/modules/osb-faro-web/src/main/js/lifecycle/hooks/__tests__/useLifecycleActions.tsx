@@ -1,6 +1,6 @@
 import * as API from 'shared/api';
 import React from 'react';
-import {cleanup, fireEvent, render, screen, waitFor, within} from 'test/render';
+import {fireEvent, render, screen, waitFor, within} from 'test/render';
 import {addAlert} from 'shared/actions/alerts';
 import {Alert} from 'shared/types';
 import {ILifecycle} from 'shared/api/lifecycle';
@@ -97,8 +97,6 @@ describe('useLifecycleActions', () => {
 
 		mockUseParams.mockReturnValue({channelId: '123', groupId: '23'});
 	});
-
-	afterEach(cleanup);
 
 	it('returns no actions without a lifecycle', () => {
 		renderActions({lifecycle: null});

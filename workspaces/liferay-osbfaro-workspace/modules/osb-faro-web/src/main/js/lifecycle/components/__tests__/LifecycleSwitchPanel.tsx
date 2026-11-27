@@ -4,15 +4,7 @@ import LifecycleSwitchPanel, {
 } from '../LifecycleSwitchPanel';
 import BasePage from 'shared/components/base-page';
 import React, {useState} from 'react';
-import {
-	act,
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-	within,
-} from 'test/render';
+import {act, fireEvent, render, screen, waitFor, within} from 'test/render';
 import {ILifecycleDetail} from 'shared/api/lifecycle';
 import {Routes, toRoute} from 'shared/util/router';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
@@ -163,8 +155,6 @@ describe('LifecycleSwitchPanel', () => {
 
 		mockLifecyclesPage(LIFECYCLES);
 	});
-
-	afterEach(cleanup);
 
 	it('lists every lifecycle linking to its dashboard by external reference code', () => {
 		renderPanel();

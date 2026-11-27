@@ -51,8 +51,6 @@ describe('useLifecycleAccountData', () => {
 		});
 	});
 
-	afterEach(cleanup);
-
 	it('asks for the account metrics of the channel', () => {
 		renderStatus();
 
