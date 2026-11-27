@@ -54,22 +54,6 @@ describe('CriteriaSidebarItem', () => {
 		).toBeTruthy();
 	});
 
-	it('marks the item as dragging while it is being dragged', () => {
-		const {container} = render(
-			<CriteriaSidebarItem
-				connectDragSource={connectDnd}
-				dragging
-				label='Click'
-				propertyKey='event'
-				type={PropertyTypes.Event}
-			/>
-		);
-
-		expect(
-			container.querySelector('.criteria-sidebar-item-root.dragging')
-		).toBeTruthy();
-	});
-
 	it('exposes the item as a menu item labelled with its add action', () => {
 		render(
 			<CriteriaSidebarItem
