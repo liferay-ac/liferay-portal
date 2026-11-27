@@ -4,7 +4,7 @@ import mockStore from 'test/mock-store';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
 import {clickFirstSelectableDay} from 'test/helpers';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {
 	FunctionalOperators,
 	RelationalOperators
@@ -41,8 +41,6 @@ const WrapperComponent = ({children}) => (
 );
 
 describe('DateFilterConjunctionInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<WrapperComponent>

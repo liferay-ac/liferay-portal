@@ -1,6 +1,6 @@
 import DynamicSegmentEdit from '../Dynamic';
 import React from 'react';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 import {List} from 'immutable';
 
 jest.mock('contacts/hoc/segment/WithBaseEdit', () => Component => Component);
@@ -28,8 +28,6 @@ const renderEdit = ({location = '/', segment} = {}) =>
 	);
 
 describe('DynamicSegmentEdit', () => {
-	afterEach(cleanup);
-
 	it("should use an existing segment's type", () => {
 		const {getByTestId} = renderEdit({
 			segment: {segmentType: 'REAL_TIME'}

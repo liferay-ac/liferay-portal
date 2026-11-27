@@ -3,7 +3,7 @@ import CriteriaBuilder from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Conjunctions} from '../../utils/constants';
 import {DndProvider} from 'react-dnd';
 import {expectNoAccessibilityViolations} from 'test/accessibility';
@@ -39,9 +39,6 @@ const criteria = {
 };
 
 describe('CriteriaBuilder accessibility', () => {
-
-	afterEach(cleanup);
-
 	it('should have no axe violations in the groups, rows and operators', async () => {
 		const {container} = render(
 			<ApolloProvider client={client}>

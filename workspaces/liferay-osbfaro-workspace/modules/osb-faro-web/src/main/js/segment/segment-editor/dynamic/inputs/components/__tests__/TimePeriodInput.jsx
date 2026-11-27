@@ -1,11 +1,9 @@
 import React from 'react';
 import TimePeriodInput from '../TimePeriodInput';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {TimeSpans} from '../../../utils/constants';
 
 describe('TimePeriodInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<TimePeriodInput onChange={jest.fn()} value={TimeSpans.Last7Days} />

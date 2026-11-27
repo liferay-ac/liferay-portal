@@ -6,7 +6,7 @@ import {
 	FunctionalOperators,
 	RelationalOperators
 } from '../../utils/constants';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {Map} from 'immutable';
 import {Property, Segment} from 'shared/util/records';
@@ -78,8 +78,6 @@ const DefaultComponent = props => (
 );
 
 describe('BehaviorInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<DefaultComponent />

@@ -1,7 +1,7 @@
 import CampaignInput from '../CampaignInput';
 import React from 'react';
 import {CAMPAIGN_PROPERTY} from '../../utils/properties';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {fromJS, List, Map} from 'immutable';
 import {getDefaultValue} from '../../criteria-sidebar/CriteriaSidebarCollapse';
 import {ReferencedObjectsContext} from '../../context/referencedObjects';
@@ -36,8 +36,6 @@ const Input: React.FC<{ids: string[]}> = ({ids}) => (
 );
 
 describe('CampaignInput', () => {
-	afterEach(cleanup);
-
 	it('should label the row with the segment category', () => {
 		render(<Input ids={['c1']} />);
 

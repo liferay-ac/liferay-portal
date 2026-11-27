@@ -3,7 +3,7 @@ import client from 'shared/apollo/client';
 import React from 'react';
 import SessionInput from '../SessionInput';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {fromJS} from 'immutable';
 import {MockedProvider} from '@apollo/client/testing';
 import {
@@ -28,8 +28,6 @@ const WrapperComponent = ({children}) => (
 );
 
 describe('SessionInput', () => {
-	afterEach(cleanup);
-
 	it('loads the next page of values when the list is scrolled to the bottom', async () => {
 		API.session.fetchFieldValues.mockImplementationOnce(
 			mockPaginatedFieldValues()

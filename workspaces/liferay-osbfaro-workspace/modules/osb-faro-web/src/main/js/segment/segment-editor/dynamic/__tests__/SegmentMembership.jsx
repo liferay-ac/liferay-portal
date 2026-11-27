@@ -3,7 +3,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import SegmentMembership from '../SegmentMembership';
-import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {Formik} from 'formik';
 import {Provider} from 'react-redux';
 import {SegmentCategories, SegmentTypes} from 'shared/util/constants';
@@ -54,8 +54,6 @@ const renderMembership = (props = {}, store = mockStore()) => {
 describe('SegmentMembership', () => {
 	afterEach(() => {
 		jest.clearAllMocks();
-
-		cleanup();
 	});
 
 	it('should render the anonymous toggle, the total members and an icon only preview button for batch segments', () => {

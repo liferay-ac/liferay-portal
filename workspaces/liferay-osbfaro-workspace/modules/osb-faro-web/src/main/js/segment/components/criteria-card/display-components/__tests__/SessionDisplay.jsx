@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import React from 'react';
 import SessionDisplay from '../SessionDisplay';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	CustomFunctionOperators,
 	PropertyTypes,
@@ -36,8 +36,6 @@ describe('SessionDisplay', () => {
 			})
 		})
 	};
-
-	afterEach(cleanup);
 
 	const mockProperty = data.getImmutableMock(Property, data.mockProperty, 1, {
 		entityName: 'Individual',

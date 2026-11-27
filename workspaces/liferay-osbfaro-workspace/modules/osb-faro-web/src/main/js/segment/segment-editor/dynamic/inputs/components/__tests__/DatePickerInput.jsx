@@ -3,7 +3,7 @@ import DatePickerInput from '../DatePickerInput';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockPreferenceReq} from 'test/graphql-data';
 import {Provider} from 'react-redux';
@@ -36,8 +36,6 @@ const WrapperComponent = ({children}) => (
 );
 
 describe('DatePickerInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		render(
 			<WrapperComponent>

@@ -1,7 +1,7 @@
 import mockStore from 'test/mock-store';
 import OrganizationSelectInput from '../OrganizationSelectInput';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {Property} from 'shared/util/records';
 import {Provider} from 'react-redux';
@@ -26,8 +26,6 @@ const DefaultComponent = props => (
 );
 
 describe('OrganizationSelectInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<DefaultComponent />);
 

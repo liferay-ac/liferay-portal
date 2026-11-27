@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import React from 'react';
 import StringInput from '../StringInput';
-import {cleanup, render, waitFor} from '@testing-library/react';
+import {render, waitFor} from '@testing-library/react';
 import {
 	focusAutocompleteInput,
 	mockListGeometry,
@@ -12,8 +12,6 @@ import {
 import {Property} from 'shared/util/records';
 
 describe('StringInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<StringInput

@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import DataSourcesProvider from 'shared/context/dataSources';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from 'test/render';
+import {fireEvent, render, screen} from 'test/render';
 import {mockSegment} from 'test/data';
 import {SegmentCategories, SegmentTypes} from 'shared/util/constants';
 import {Routes} from 'shared/util/router';
@@ -43,8 +43,6 @@ const renderProfileRoutes = () =>
 	);
 
 describe('SegmentProfileRoutes', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container} = renderProfileRoutes();
 

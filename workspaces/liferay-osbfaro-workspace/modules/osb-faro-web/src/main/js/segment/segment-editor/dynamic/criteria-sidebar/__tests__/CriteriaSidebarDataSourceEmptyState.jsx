@@ -1,6 +1,6 @@
 import CriteriaSidebarDataSourceEmptyState from '../CriteriaSidebarDataSourceEmptyState';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 
 jest.mock('shared/hooks/useCurrentUser', () => ({useCurrentUser: jest.fn()}));
@@ -17,8 +17,6 @@ const EmptyState = () => (
 );
 
 describe('CriteriaSidebarDataSourceEmptyState', () => {
-	afterEach(cleanup);
-
 	it('should offer an administrator to connect a data source', () => {
 		useCurrentUser.mockReturnValue({isAdmin: () => true});
 

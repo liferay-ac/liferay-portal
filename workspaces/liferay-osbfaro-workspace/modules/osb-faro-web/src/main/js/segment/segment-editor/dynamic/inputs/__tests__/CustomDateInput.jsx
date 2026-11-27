@@ -2,7 +2,7 @@ import client from 'shared/apollo/client';
 import CustomDateInput from '../CustomDateInput';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockPreferenceReq} from 'test/graphql-data';
@@ -23,8 +23,6 @@ const mockValue = createCustomValueMap([
 ]);
 
 describe('CustomDateInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {getAllByText, getByText} = render(
 			<ApolloProvider client={client}>

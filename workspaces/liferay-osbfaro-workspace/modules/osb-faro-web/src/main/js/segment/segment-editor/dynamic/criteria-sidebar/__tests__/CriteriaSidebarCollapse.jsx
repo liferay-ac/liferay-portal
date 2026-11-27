@@ -3,7 +3,7 @@ import CriteriaSidebarCollapse, {
 	getDefaultValue
 } from '../CriteriaSidebarCollapse';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {DndProvider} from 'react-dnd';
 import {FieldOwnerTypes} from 'shared/util/constants';
 import {createCampaignProperty} from '../../utils/utils';
@@ -109,8 +109,6 @@ describe('CriteriaSidebarCollapse', () => {
 			])
 		})
 	]);
-
-	afterEach(cleanup);
 
 	it('should render correctly', () => {
 		render(

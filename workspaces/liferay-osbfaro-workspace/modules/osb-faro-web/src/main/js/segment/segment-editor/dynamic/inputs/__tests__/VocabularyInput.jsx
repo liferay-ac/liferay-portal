@@ -7,7 +7,7 @@ import VocabularyInput, {
 	getCategoriesFromValue,
 	getEventTypeFromValue
 } from '../VocabularyInput';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	createCustomValueMap,
 	getIndexFromPropertyName
@@ -464,8 +464,6 @@ describe('VocabularyInput', () => {
 	});
 
 	describe('render', () => {
-		afterEach(cleanup);
-
 		it('should call onChange on mount with a built value when value has no criterionGroup', () => {
 			const onChange = jest.fn();
 

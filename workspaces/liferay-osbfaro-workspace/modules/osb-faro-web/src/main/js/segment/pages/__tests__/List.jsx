@@ -5,7 +5,7 @@ import {mockStoreData, mockStoreDataLDP} from 'test/mock-store';
 import React from 'react';
 import {formatDateToTimeZone, getCustomDateTimeFormat} from 'shared/util/date';
 import {getTimestamp} from 'test/data';
-import {act, cleanup, fireEvent, render, screen, within} from 'test/render';
+import {act, fireEvent, render, screen, within} from 'test/render';
 import {Routes} from 'shared/util/router';
 import {SegmentCategories, SegmentTypes} from 'shared/util/constants';
 import {UnassignedSegmentsContext} from 'shared/context/unassignedSegments';
@@ -47,8 +47,6 @@ describe('List', () => {
 	});
 
 	afterEach(() => {
-		cleanup();
-
 		jest.useRealTimers();
 	});
 

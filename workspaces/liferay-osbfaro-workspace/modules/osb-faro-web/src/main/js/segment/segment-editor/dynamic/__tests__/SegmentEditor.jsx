@@ -4,7 +4,6 @@ import React from 'react';
 import SegmentEditor, {validateSegmentEditor} from '../index';
 import {BrowserRouter} from 'react-router-dom';
 import {
-	cleanup,
 	fireEvent,
 	render,
 	screen,
@@ -45,8 +44,6 @@ function blocksNavigation() {
 }
 
 describe('SegmentEditor', () => {
-	afterEach(cleanup);
-
 	beforeAll(() => {
 		Object.defineProperty(document.body, 'clientWidth', {
 			configurable: true,

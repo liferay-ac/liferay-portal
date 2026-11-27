@@ -7,7 +7,7 @@ import {
 import mockStore from 'test/mock-store';
 import React from 'react';
 import SelectCategoryFromModal from '../SelectCategoryFromModal';
-import {act, cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, waitFor} from '@testing-library/react';
 import {OrderedMap} from 'immutable';
 import {Provider} from 'react-redux';
 
@@ -30,7 +30,6 @@ describe('SelectCategoryFromModal', () => {
 	});
 
 	afterEach(() => {
-		cleanup();
 		resetModalProps();
 	});
 

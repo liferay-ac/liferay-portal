@@ -1,5 +1,5 @@
 import React, {useContext} from 'react';
-import {act, cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen} from '@testing-library/react';
 import {Conjunctions, PropertyTypes} from '../../utils/constants';
 import {
 	KeyboardMovementContext,
@@ -50,8 +50,6 @@ const getAnnouncement = () =>
 	document.querySelector('[role="status"]').textContent;
 
 describe('KeyboardMovementProvider', () => {
-	afterEach(cleanup);
-
 	it('adds the criterion right away when the canvas is empty', () => {
 		const onChange = renderProvider({criteria: null});
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {Toolbar} from '../Toolbar';
 
@@ -13,8 +13,6 @@ const renderToolbar = (props = {}) =>
 describe('Toolbar', () => {
 	afterEach(() => {
 		jest.clearAllMocks();
-
-		cleanup();
 	});
 
 	it('should render the new segment title and actions', () => {

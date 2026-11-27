@@ -1,11 +1,9 @@
 import BooleanInput from '../BooleanInput';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {Property} from 'shared/util/records';
 
 describe('BooleanInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getByText} = render(
 			<BooleanInput

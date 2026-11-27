@@ -11,7 +11,7 @@ import SelectPageAssetInput, {
 	getAssetTypeLabel,
 	getCompatibleAssetTypes
 } from '../SelectPageAssetInput';
-import {act, cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, waitFor} from '@testing-library/react';
 import {OrderedMap} from 'immutable';
 import {Provider} from 'react-redux';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
@@ -139,7 +139,6 @@ describe('SelectPageAssetInput', () => {
 	});
 
 	afterEach(() => {
-		cleanup();
 		resetModalProps();
 		API.activities.searchAssets.mockClear();
 		API.assets.searchTypes.mockClear();

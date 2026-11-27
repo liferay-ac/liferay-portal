@@ -2,7 +2,7 @@ import * as API from 'shared/api';
 import AccountProfile from '../AccountProfile';
 import DataSourcesProvider from 'shared/context/dataSources';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from 'test/render';
+import {fireEvent, render, screen} from 'test/render';
 import {mockSegment} from 'test/data';
 import {Segment} from 'shared/util/records';
 import {SegmentCategories, SegmentStates} from 'shared/util/constants';
@@ -69,8 +69,6 @@ describe('AccountProfile', () => {
 		lastDataSetId = undefined;
 		lastFilters = undefined;
 	});
-
-	afterEach(cleanup);
 
 	it('should render the segment name, its type and its external reference code', () => {
 		renderAccountProfile();

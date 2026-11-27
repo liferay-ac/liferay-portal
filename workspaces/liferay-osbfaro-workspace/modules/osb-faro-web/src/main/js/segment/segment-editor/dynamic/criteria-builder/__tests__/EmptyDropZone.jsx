@@ -2,15 +2,13 @@ import EmptyDropZone, {
 	EmptyDropZone as UndecoratedEmptyDropZone,
 } from '../EmptyDropZone';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {DndProvider} from 'react-dnd';
 import {HTML5Backend} from 'react-dnd-html5-backend';
 
 const connectDnd = jest.fn((element) => element);
 
 describe('EmptyDropZone', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<DndProvider backend={HTML5Backend}>

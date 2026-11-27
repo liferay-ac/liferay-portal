@@ -1,13 +1,7 @@
 import * as API from 'shared/api';
 import React from 'react';
 import UtmParameterInput from '../UtmParameterInput';
-import {
-	act,
-	cleanup,
-	fireEvent,
-	render,
-	waitFor
-} from '@testing-library/react';
+import {act, fireEvent, render, waitFor} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {Property} from 'shared/util/records';
 import {PropertyTypes} from '../../utils/constants';
@@ -89,8 +83,6 @@ describe('UtmParameterInput', () => {
 	afterEach(() => {
 		jest.clearAllMocks();
 	});
-
-	afterEach(cleanup);
 
 	it('should render the entity name, display value, default parameter, operator, and value input', () => {
 		const {getByText} = render(<DefaultComponent />);

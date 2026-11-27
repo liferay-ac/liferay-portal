@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import AccountSelectInput from '../AccountSelectInput';
 import React, {useState} from 'react';
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {Property} from 'shared/util/records';
 import {PropertyTypes} from '../../utils/constants';
@@ -46,8 +46,6 @@ const getItems = (onChange, call = 0) =>
 		.toJS();
 
 describe('AccountSelectInput', () => {
-	afterEach(cleanup);
-
 	beforeEach(() => {
 		API.lifecycle.fetchChannelLifecycles.mockReturnValue(
 			Promise.resolve([

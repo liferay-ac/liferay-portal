@@ -1,13 +1,11 @@
 import InterestBooleanInput from '../InterestBooleanInput';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {Property} from 'shared/util/records';
 import {RelationalOperators} from '../../utils/constants';
 
 describe('InterestBooleanInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<InterestBooleanInput

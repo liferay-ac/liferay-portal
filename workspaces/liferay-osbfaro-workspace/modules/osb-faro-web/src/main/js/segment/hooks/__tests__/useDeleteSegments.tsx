@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import {useDeleteSegments} from '../useDeleteSegments';
 import {waitFor} from '@testing-library/react';
@@ -44,8 +44,6 @@ const renderComponent = (
 
 describe('useDeleteSegments', () => {
 	afterEach(() => {
-		cleanup();
-
 		jest.clearAllMocks();
 	});
 

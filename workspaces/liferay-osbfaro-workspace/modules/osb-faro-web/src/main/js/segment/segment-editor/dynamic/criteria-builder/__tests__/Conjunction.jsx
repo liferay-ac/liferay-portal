@@ -1,10 +1,8 @@
 import Conjunction from '../Conjunction';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('Conjunction', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<Conjunction conjunctionName='and' />);
 
