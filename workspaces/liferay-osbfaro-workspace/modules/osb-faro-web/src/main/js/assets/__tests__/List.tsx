@@ -2,13 +2,7 @@ import List from 'assets/pages/List';
 import mockStore, {mockStoreDataLDP} from 'test/mock-store';
 import React from 'react';
 import {ChannelContext} from 'shared/context/channel';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {mockChannelContext} from 'test/mock-channel-context';
 import {MemoryRouter} from 'react-router-dom';
 import {Provider} from 'react-redux';
@@ -407,8 +401,6 @@ describe('List', () => {
 
 		useNavigate.mockReturnValue(mockHistoryPush);
 	});
-
-	afterEach(cleanup);
 
 	describe('empty state', () => {
 		it('should pass the correct title to the FDS empty state', async () => {
