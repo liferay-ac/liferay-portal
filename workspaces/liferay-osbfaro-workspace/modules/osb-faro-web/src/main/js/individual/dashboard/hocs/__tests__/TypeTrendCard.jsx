@@ -19,8 +19,8 @@ describe('TypeTrendCard', () => {
 			</MockedProvider>
 		);
 
-		expect(await screen.findByText('Total Individuals')).toBeInTheDocument();
-		expect(screen.getByText('Known')).toBeInTheDocument();
-		expect(screen.getByText('Anonymous')).toBeInTheDocument();
+		expect(await screen.findByText(/^total individuals$/i)).toBeInTheDocument();
+		expect(screen.getByText(/^known$/i)).toBeInTheDocument();
+		expect(screen.getByText(/^anonymous$/i)).toBeInTheDocument();
 	});
 });

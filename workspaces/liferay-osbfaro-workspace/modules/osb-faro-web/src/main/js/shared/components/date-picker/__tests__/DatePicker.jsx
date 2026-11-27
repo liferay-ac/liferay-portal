@@ -65,7 +65,7 @@ describe('DatePicker', () => {
 		jest.runAllTimers();
 
 		expect(
-			screen.getByText('This exceeds the maximum range of 365 days.')
+			screen.getByText(/^this exceeds the maximum range of 365 days\.$/i)
 		).toBeInTheDocument();
 	});
 });

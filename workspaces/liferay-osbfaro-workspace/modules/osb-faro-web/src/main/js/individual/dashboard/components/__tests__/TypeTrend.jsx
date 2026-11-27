@@ -25,7 +25,7 @@ describe('TrendItem', () => {
 	it('should render the title and the formatted total', () => {
 		render(<TrendItem {...mockTrendItem} />);
 
-		expect(screen.getByText('Total Individuals')).toBeInTheDocument();
+		expect(screen.getByText(/^total individuals$/i)).toBeInTheDocument();
 		expect(screen.getByText('1,341,321')).toBeInTheDocument();
 	});
 
