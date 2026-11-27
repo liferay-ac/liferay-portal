@@ -15,10 +15,10 @@ const getSelectedOption = (conjunctionName: string) =>
 
 /**
  * The operator of a group as a plain sentence, such as "All of these criteria
- * must be met.", used as the accessible name of the group.
+ * are met.", used as the accessible name of the group.
  */
 export const getGroupOperatorLabel = (conjunctionName: string): string =>
-	sub(Liferay.Language.get('x-of-these-criteria-must-be-met'), [
+	sub(Liferay.Language.get('x-of-these-criteria-are-met'), [
 		getSelectedOption(conjunctionName).label,
 	]) as string;
 
@@ -29,7 +29,7 @@ interface IGroupOperatorProps {
 }
 
 /**
- * The "All / Any of these criteria must be met" control the lifecycle stage
+ * The "All / Any of these criteria are met" control the lifecycle stage
  * configuration uses to match its conditions, with the same Picker as the other
  * segment inputs.
  */
@@ -41,7 +41,7 @@ const GroupOperator: React.FC<IGroupOperatorProps> = ({
 	const selectedOption = getSelectedOption(conjunctionName);
 
 	const parts = sub(
-		Liferay.Language.get('x-of-these-criteria-must-be-met'),
+		Liferay.Language.get('x-of-these-criteria-are-met'),
 		[
 			<Picker
 				aria-label={Liferay.Language.get('match-logic')}
