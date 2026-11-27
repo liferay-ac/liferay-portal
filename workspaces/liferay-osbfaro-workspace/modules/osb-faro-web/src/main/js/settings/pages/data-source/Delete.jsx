@@ -18,6 +18,8 @@ import {
 import {connect} from 'react-redux';
 import {DataSource} from 'shared/util/records';
 import {deleteDataSource} from 'shared/actions/data-sources';
+import {getSubscriptionName} from 'shared/hooks/useSubscriptionName';
+import {isLDPPlan} from 'shared/util/subscriptions';
 import {PropTypes} from 'prop-types';
 import {Routes, toRoute} from 'shared/util/router';
 import {sub} from 'shared/util/lang';
@@ -42,7 +44,8 @@ export class Delete extends React.Component {
 		entitiesCount: PropTypes.object,
 		groupId: PropTypes.string.isRequired,
 		history: PropTypes.object.isRequired,
-		id: PropTypes.string.isRequired
+		id: PropTypes.string.isRequired,
+		ldpEnabled: PropTypes.bool
 	};
 
 	@autobind
@@ -53,7 +56,8 @@ export class Delete extends React.Component {
 			deleteDataSource,
 			groupId,
 			history,
-			id
+			id,
+			ldpEnabled
 		} = this.props;
 
 		return deleteDataSource({
@@ -64,9 +68,13 @@ export class Delete extends React.Component {
 				addAlert({
 					alertType: Alert.Types.Default,
 					message: sub(
-						Liferay.Language.get(
-							'x-is-currently-being-removed-from-analytics-cloud'
-						),
+						ldpEnabled
+							? Liferay.Language.get(
+									'x-is-currently-being-removed-from-liferay-data-platform'
+								)
+							: Liferay.Language.get(
+									'x-is-currently-being-removed-from-analytics-cloud'
+								),
 						[truncate(name, {length: 50})]
 					)
 				});
@@ -151,5 +159,10 @@ export default compose(
 	withHistory,
 	withAdminPermission,
 	withDataSource,
-	connect(null, {addAlert, deleteDataSource})
+	connect(
+		(state, {groupId}) => ({
+			ldpEnabled: isLDPPlan(getSubscriptionName(state, groupId))
+		}),
+		{addAlert, deleteDataSource}
+	)
 )(Delete);

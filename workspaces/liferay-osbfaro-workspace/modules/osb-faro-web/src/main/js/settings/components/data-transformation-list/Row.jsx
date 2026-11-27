@@ -11,7 +11,10 @@ import getCN from 'classnames';
 import MountedModal from 'shared/components/MountedModal';
 import React from 'react';
 import {autoCancel, hasRequest} from 'shared/util/request-decorator';
+import {connect} from 'react-redux';
+import {getSubscriptionName} from 'shared/hooks/useSubscriptionName';
 import {hasChanges} from 'shared/util/react';
+import {isLDPPlan} from 'shared/util/subscriptions';
 import {map, uniqBy} from 'lodash';
 import {Map} from 'immutable';
 import {PropTypes} from 'prop-types';
@@ -38,6 +41,7 @@ export class DataTransformationListRow extends React.Component {
 		index: PropTypes.number,
 		initialSearchedSuggestions: PropTypes.array,
 		isDuplicateTargetField: PropTypes.bool,
+		ldpEnabled: PropTypes.bool,
 		mappingSuggestions: PropTypes.object,
 		onChange: PropTypes.func,
 		onRemove: PropTypes.func,
@@ -211,7 +215,13 @@ export class DataTransformationListRow extends React.Component {
 		) {
 			arr = arr.concat([
 				{
-					name: Liferay.Language.get('analytics-cloud-fields'),
+					name: this.props.ldpEnabled
+						? Liferay.Language.get(
+								'liferay-data-platform-fields'
+							)
+						: Liferay.Language.get(
+								'analytics-cloud-fields'
+							),
 					subheader: true
 				},
 				...searchedSuggestions
@@ -231,9 +241,13 @@ export class DataTransformationListRow extends React.Component {
 		const unmatched = !sourceName || !suggestionName;
 
 		if (isDuplicateTargetField) {
-			return Liferay.Language.get(
-				'only-one-field-per-source-can-be-mapped-to-the-same-analytics-cloud-field'
-			);
+			return this.props.ldpEnabled
+				? Liferay.Language.get(
+						'only-one-field-per-source-can-be-mapped-to-the-same-liferay-data-platform-field'
+					)
+				: Liferay.Language.get(
+						'only-one-field-per-source-can-be-mapped-to-the-same-analytics-cloud-field'
+					);
 		} else if (unmatched) {
 			return Liferay.Language.get(
 				'no-fields-matched.-please-select-a-field-from-the-dropdown-or-create-a-new-one'
@@ -352,9 +366,15 @@ export class DataTransformationListRow extends React.Component {
 						name={`${sourceName}.${index}`}
 						onSearchInput={this.handleMappingSearch}
 						onSearchSelect={this.handleMappingSelect}
-						placeholder={Liferay.Language.get(
-							'select-analytics-cloud-field'
-						)}
+						placeholder={
+							this.props.ldpEnabled
+								? Liferay.Language.get(
+										'select-liferay-data-platform-field'
+									)
+								: Liferay.Language.get(
+										'select-analytics-cloud-field'
+									)
+						}
 						readOnly={readOnly}
 						searchInputValue={suggestionQuery}
 						searchItems={this.getMappingSuggestions()}
@@ -461,4 +481,6 @@ export class DataTransformationListRow extends React.Component {
 	}
 }
 
-export default DataTransformationListRow;
+export default connect((state, {groupId}) => ({
+	ldpEnabled: isLDPPlan(getSubscriptionName(state, groupId))
+}))(DataTransformationListRow);

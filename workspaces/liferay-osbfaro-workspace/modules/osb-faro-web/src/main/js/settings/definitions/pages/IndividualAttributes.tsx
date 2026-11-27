@@ -19,6 +19,7 @@ import {Sizes} from 'shared/util/constants';
 import {sub} from 'shared/util/lang';
 import {useModal} from '@clayui/modal';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {User} from 'shared/util/records';
 import {useTimeZone} from 'shared/hooks/useTimeZone';
 
@@ -39,6 +40,7 @@ const IndividualAttributes: React.FC<IIndividualAttributesProps> = ({
 	groupId,
 }) => {
 	const currentUser = useCurrentUser();
+	const ldpEnabled = useLDPEnabled({groupId});
 	const {timeZoneId} = useTimeZone();
 
 	const attributesModal = useModal();
@@ -86,9 +88,15 @@ const IndividualAttributes: React.FC<IIndividualAttributesProps> = ({
 				},
 			]}
 			className="individual-attributes-root"
-			pageDescription={Liferay.Language.get(
-				'this-is-the-data-model-of-an-individual.-analytics-cloud-will-take-and-store-the-newest-data-from-all-your-sources'
-			)}
+			pageDescription={
+				ldpEnabled
+					? Liferay.Language.get(
+							'this-is-the-data-model-of-an-individual.-liferay-data-platform-will-take-and-store-the-newest-data-from-all-your-sources'
+						)
+					: Liferay.Language.get(
+							'this-is-the-data-model-of-an-individual.-analytics-cloud-will-take-and-store-the-newest-data-from-all-your-sources'
+						)
+			}
 			pageTitle={Liferay.Language.get('individual-attributes')}
 		>
 			<Card>

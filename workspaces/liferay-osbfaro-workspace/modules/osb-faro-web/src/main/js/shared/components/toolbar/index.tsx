@@ -34,11 +34,11 @@ const Toolbar: React.FC<IToolbarProps> = ({className, groupId}) => {
 
 	const triggerElementRef = useRef(null);
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const {selectedChannel} = useChannelContext();
 
-	const productName = LDPEnabled
+	const productName = ldpEnabled
 		? Liferay.Language.get('liferay-data-platform')
 		: Liferay.Language.get('analytics-cloud');
 
@@ -77,7 +77,7 @@ const Toolbar: React.FC<IToolbarProps> = ({className, groupId}) => {
 			<BaseToolbar.Item className="mt-1">
 				<ClayIcon
 					className="icon-root text-6"
-					symbol={LDPEnabled ? 'ldp_logo' : 'ac_logo'}
+					symbol={ldpEnabled ? 'ldp_logo' : 'ac_logo'}
 				/>
 			</BaseToolbar.Item>
 

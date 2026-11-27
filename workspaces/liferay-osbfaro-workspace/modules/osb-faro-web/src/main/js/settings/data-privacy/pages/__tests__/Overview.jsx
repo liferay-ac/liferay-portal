@@ -2,13 +2,18 @@ import mockStore from 'test/mock-store';
 import PreferenceQuery from 'shared/queries/PreferenceQuery';
 import React from 'react';
 import {DATA_RETENTION_PERIOD_KEY} from 'shared/util/constants';
-import {fireEvent, render} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {Overview} from '../Overview';
 import {Provider} from 'react-redux';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 jest.mock('shared/hooks/useCurrentUser', () => ({
 	useCurrentUser: jest.fn()
@@ -50,6 +55,10 @@ const DefaultComponent = ({mocks = [mockPreferenceReq()], ...props}) => (
 );
 
 describe('Data Privacy Overview', () => {
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
 	it('should render', async () => {
 		useCurrentUser.mockImplementation(() => ({
 			isAdmin: () => true
@@ -79,5 +88,26 @@ describe('Data Privacy Overview', () => {
 		expect(
 			getByTestId('data-retention-period-select-input')
 		).toBeDisabled();
+	});
+
+	it('shows the Liferay Data Platform retention and request log texts for an LDP workspace', async () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		useCurrentUser.mockImplementation(() => ({
+			isAdmin: () => true
+		}));
+
+		const {container} = render(<DefaultComponent />);
+
+		await waitForLoadingToBeRemoved(container);
+
+		expect(
+			screen.getByText(
+				/^liferay data platform stores event data.*contact sales to customize the retention period\.$/i
+			)
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/suppression of their data in liferay data platform\./i)
+		).toBeInTheDocument();
 	});
 });

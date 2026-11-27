@@ -2,10 +2,15 @@ import * as data from 'test/data';
 import EventDetailsCard from '../EventDetailsCard';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {fireEvent, render} from '@testing-library/react';
+import {cleanup, fireEvent, render, screen} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import {range} from 'lodash';
 import {MemoryRouter} from 'react-router';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 describe('EventDetailsCard', () => {
 	const eventAttributes = range(5).map(i =>
@@ -54,5 +59,31 @@ describe('EventDetailsCard', () => {
 				'\n});'
 			].join('')
 		);
+	});
+});
+
+describe('EventDetailsCard product naming', () => {
+	afterEach(cleanup);
+
+	it('shows the Liferay Data Platform text for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		render(
+			<Provider store={mockStore()}>
+				<MemoryRouter>
+					<EventDetailsCard
+						eventAttributes={[]}
+						eventName='viewArticle'
+						groupId='23'
+					/>
+				</MemoryRouter>
+			</Provider>
+		);
+
+		expect(
+			screen.getByText(
+				/^use this script to start sending events to liferay data platform\./i
+			)
+		).toBeInTheDocument();
 	});
 });

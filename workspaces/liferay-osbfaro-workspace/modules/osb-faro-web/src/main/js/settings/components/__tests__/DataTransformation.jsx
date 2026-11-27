@@ -1,14 +1,15 @@
 import * as API from 'shared/api';
-import mockStore from 'test/mock-store';
+import mockStore, {mockStoreData} from 'test/mock-store';
 import React from 'react';
 import {DataTransformation, processFieldMappings} from '../DataTransformation';
-import {fromJS} from 'immutable';
+import {fromJS, Map} from 'immutable';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockFieldMapping, mockMapping} from 'test/data';
 import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
+import {SubscriptionNames} from 'shared/util/subscriptions';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 const defaultProps = {
@@ -17,8 +18,8 @@ const defaultProps = {
 	onSubmit: jest.fn()
 };
 
-const WrappedComponent = props => (
-	<Provider store={mockStore()}>
+const WrappedComponent = ({store = mockStore(), ...props}) => (
+	<Provider store={store}>
 		<MemoryRouter
 			initialEntries={['/workspace/23/settings/data-source/123']}
 		>
@@ -114,5 +115,37 @@ describe('DataTransformation', () => {
 		await waitForLoadingToBeRemoved(document.body);
 
 		expect(getByText(/^done$/i)).toBeDisabled();
+	});
+
+	it('names Liferay Data Platform in the mapping instructions, column and field placeholder for an LDP workspace', async () => {
+		API.dataSource.fetchMappings.mockReturnValue(
+			Promise.resolve([mockMapping('No default match')])
+		);
+
+		render(
+			<WrappedComponent
+				ldpEnabled
+				store={mockStore(
+					mockStoreData.setIn(
+						['projects', '23', 'data', 'faroSubscription'],
+						Map({name: SubscriptionNames.LiferayDataPlatform})
+					)
+				)}
+			/>
+		);
+
+		await waitForLoadingToBeRemoved(document.body);
+
+		expect(
+			screen.getByText(
+				/you may only map one source data field to a single liferay data platform field\.$/i
+			)
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/^liferay data platform field$/i)
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/^select liferay data platform field$/i)
+		).toBeInTheDocument();
 	});
 });

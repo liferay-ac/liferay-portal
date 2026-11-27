@@ -332,7 +332,7 @@ describe('VerticalTimeline', () => {
 		it('hides the data source label when the workspace is not on the LDP plan', () => {
 			renderTimeline({
 				items: [{...SESSION_ITEM, applicationId: 'WebContent'}],
-				LDPEnabled: false
+				ldpEnabled: false
 			});
 
 			expect(screen.queryByText(/^dxp$/i)).not.toBeInTheDocument();

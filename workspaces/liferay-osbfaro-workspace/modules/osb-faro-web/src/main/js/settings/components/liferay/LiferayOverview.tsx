@@ -29,6 +29,7 @@ import {sub} from 'shared/util/lang';
 import {Text} from '@clayui/core';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDisconnectDataSource} from '../data-source/utils';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
 
@@ -52,6 +53,7 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 	const [, setLoading] = useState(false);
 	const {groupId = '', id = ''} = useParams<{groupId: string; id: string}>();
 	const currentUser = useCurrentUser();
+	const ldpEnabled = useLDPEnabled({groupId});
 	const [token, setToken] = useState('');
 
 	const {display, label} = getDataSourceDisplayObject(dataSource);
@@ -104,9 +106,13 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 	useEffect(() => {
 		const alert: Alert = {
 			displayType: 'success',
-			message: Liferay.Language.get(
-				'you-have-successfully-authenticated-your-token-with-liferay-analytics-cloud.-you-can-now-select-the-data-to-sync'
-			),
+			message: ldpEnabled
+				? Liferay.Language.get(
+						'you-have-successfully-authenticated-your-token-with-liferay-data-platform.-you-can-now-select-the-data-to-sync'
+					)
+				: Liferay.Language.get(
+						'you-have-successfully-authenticated-your-token-with-liferay-analytics-cloud.-you-can-now-select-the-data-to-sync'
+					),
 		};
 
 		if (!dataSourceActive) {
@@ -126,7 +132,7 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 		}
 
 		setAlert(alert);
-	}, [dataSource, dataSourceActive]);
+	}, [ldpEnabled, dataSource, dataSourceActive]);
 
 	let _tokenRequest:
 		| ReturnType<typeof setTimeout>
@@ -204,9 +210,13 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 						<>
 							<div className="mb-4">
 								<Text color="secondary" size={4}>
-									{Liferay.Language.get(
-										'to-reestablish-the-connection-between-the-liferay-dxp-instance-and-liferay-analytics-cloud,-copy-the-token-below-and-go-to-dxp-instance-settings-analytics-cloud-to-continue-the-data-source-configuration'
-									)}
+									{ldpEnabled
+										? Liferay.Language.get(
+												'to-reestablish-the-connection-between-the-liferay-dxp-instance-and-liferay-data-platform,-copy-the-token-below-and-go-to-dxp-instance-settings-liferay-data-platform-to-continue-the-data-source-configuration'
+											)
+										: Liferay.Language.get(
+												'to-reestablish-the-connection-between-the-liferay-dxp-instance-and-liferay-analytics-cloud,-copy-the-token-below-and-go-to-dxp-instance-settings-analytics-cloud-to-continue-the-data-source-configuration'
+											)}
 								</Text>
 
 								<ClayLink
@@ -223,9 +233,13 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 
 							<label htmlFor="token">
 								<Text weight="semi-bold">
-									{Liferay.Language.get(
-										'analytics-cloud-token'
-									)}
+									{ldpEnabled
+										? Liferay.Language.get(
+												'liferay-data-platform-token'
+											)
+										: Liferay.Language.get(
+												'analytics-cloud-token'
+											)}
 								</Text>
 
 								<div>

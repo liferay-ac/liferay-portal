@@ -60,7 +60,7 @@ function TouchpointRoutes({className, router}) {
 	} = router.params;
 	const {accountId, accountName, setAccount} = useAccountFilter();
 	const {segmentId, segmentName, setSegment} = useSegmentFilter();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const NAV_ITEMS = [
 		{
 			exact: true,
@@ -72,12 +72,12 @@ function TouchpointRoutes({className, router}) {
 			label: Liferay.Language.get('path'),
 			route: Routes.SITES_TOUCHPOINTS_PATH
 		},
-		LDPEnabled && {
+		ldpEnabled && {
 			exact: true,
 			label: Liferay.Language.get('visitors'),
 			route: Routes.SITES_TOUCHPOINTS_ACCOUNTS
 		},
-		!LDPEnabled && {
+		!ldpEnabled && {
 			exact: true,
 			label: Liferay.Language.get('known-individuals'),
 			route: Routes.SITES_TOUCHPOINTS_KNOWN_INDIVIDUALS
@@ -92,7 +92,7 @@ function TouchpointRoutes({className, router}) {
 	const [experienceId, setExperienceId] = useState(experienceIdfromURL);
 	const history = useHistoryAdapter();
 
-	const accountDropdown = LDPEnabled && (
+	const accountDropdown = ldpEnabled && (
 		<AccountDropdown
 			assetType='page'
 			className='mr-3'
@@ -103,7 +103,7 @@ function TouchpointRoutes({className, router}) {
 		/>
 	);
 
-	const segmentDropdown = LDPEnabled && (
+	const segmentDropdown = ldpEnabled && (
 		<SegmentDropdown
 			className='mr-3'
 			initialSegmentId={segmentId}
@@ -181,7 +181,7 @@ function TouchpointRoutes({className, router}) {
 
 					{segmentDropdown}
 
-					{LDPEnabled && (
+					{ldpEnabled && (
 						<ExperienceDropdown
 							groupId={groupId}
 							onChange={experienceId => {

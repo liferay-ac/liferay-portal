@@ -9,6 +9,11 @@ import {Provider} from 'react-redux';
 import {RemoteData, TimeZone, User} from 'shared/util/records';
 import {Routes} from 'shared/util/router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 const defaultProps = {
 	groupId: '23'
@@ -157,4 +162,26 @@ describe('ChannelList', () => {
 
 		expect(await screen.findByText('Jun 9, 2026')).toBeInTheDocument();
 	});
+
+	it.each([
+		[false, /^analytics cloud allows for customized user access settings/i],
+		[true, /^liferay data platform allows for customized user access settings/i],
+	])(
+		'names the product in the description when ldpEnabled is %s',
+		async (ldpEnabled, text) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
+
+			API.channels.search.mockReturnValue(
+				Promise.resolve(data.mockChannels())
+			);
+
+			render(
+				<Wrapper>
+					<ChannelList {...defaultProps} />
+				</Wrapper>
+			);
+
+			expect(await screen.findByText(text)).toBeInTheDocument();
+		}
+	);
 });

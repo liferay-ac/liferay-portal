@@ -12,14 +12,14 @@ interface IDocumentTitleProps {
 }
 
 const DocumentTitle: React.FC<IDocumentTitleProps> = ({
-	ldpEnabled,
+	ldpEnabled: ldpEnabledProp,
 	loadingLDPEnabled,
 	title,
 }) => {
 	const {groupId = ''} = useParams<{groupId?: string}>();
 	const routeLDPEnabled = useLDPEnabled({groupId});
 
-	const LDPEnabled = ldpEnabled ?? routeLDPEnabled;
+	const ldpEnabled = ldpEnabledProp ?? routeLDPEnabled;
 
 	// The theme serves a single static favicon for the whole instance, so the
 	// branding can only be resolved here, where the plan is known.
@@ -47,13 +47,13 @@ const DocumentTitle: React.FC<IDocumentTitleProps> = ({
 			document.head.appendChild(link);
 		}
 
-		link.setAttribute('href', LDPEnabled ? ldpFaviconURL : acFaviconURL);
+		link.setAttribute('href', ldpEnabled ? ldpFaviconURL : acFaviconURL);
 
 		// The theme's favicon is an ICO, so a stale type would make the browser
 		// reject the SVG.
 
 		link.setAttribute('type', 'image/svg+xml');
-	}, [LDPEnabled, loadingLDPEnabled]);
+	}, [ldpEnabled, loadingLDPEnabled]);
 
 	useEffect(() => {
 		if (loadingLDPEnabled) {
@@ -62,7 +62,7 @@ const DocumentTitle: React.FC<IDocumentTitleProps> = ({
 			return;
 		}
 
-		const defaultTitle = LDPEnabled
+		const defaultTitle = ldpEnabled
 			? Liferay.Language.get('liferay-data-platform')
 			: Liferay.Language.get('analytics-cloud');
 
@@ -70,7 +70,7 @@ const DocumentTitle: React.FC<IDocumentTitleProps> = ({
 		// product name has to stand on its own rather than trail a dash.
 
 		document.title = title ? `${title} - ${defaultTitle}` : defaultTitle;
-	}, [LDPEnabled, loadingLDPEnabled, title]);
+	}, [ldpEnabled, loadingLDPEnabled, title]);
 
 	return null;
 };

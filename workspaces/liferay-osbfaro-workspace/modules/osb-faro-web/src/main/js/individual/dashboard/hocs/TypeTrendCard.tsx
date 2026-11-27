@@ -11,6 +11,7 @@ import {
 } from '../hocs/mappers/individual-metrics-query';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
 import {ReportContainer} from 'shared/components/download-report/DownloadPDFReport';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useParams} from 'react-router-dom';
 import {withError, withLoading} from 'shared/hoc';
 
@@ -24,7 +25,9 @@ const TypeTrendWithData = compose<any>(
 )(TypeTrend);
 
 const TypeTrendCard: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
-	const {channelId} = useParams();
+	const {channelId, groupId = ''} = useParams();
+
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<Card
@@ -35,6 +38,7 @@ const TypeTrendCard: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 				<TypeTrendWithData
 					channelId={channelId}
 					interval={INTERVAL_KEY_MAP.week}
+					ldpEnabled={ldpEnabled}
 					rangeSelectors={{rangeKey: RangeKeyTimeRanges.Last30Days}}
 				/>
 			</Card.Body>

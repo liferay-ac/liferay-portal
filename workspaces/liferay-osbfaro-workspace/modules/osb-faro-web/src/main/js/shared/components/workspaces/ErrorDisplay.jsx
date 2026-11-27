@@ -35,6 +35,19 @@ const DETAILS_MAP = {
 	]
 };
 
+const LDP_DETAILS_MAP = {
+	[ProjectStates.Maintenance]: [
+		Liferay.Language.get(
+			'liferay-data-platform-is-undergoing-scheduled-maintenance.-we-expect-to-be-back-online-in-a-couple-of-hours.-thank-you-for-your-patience'
+		)
+	],
+	[ProjectStates.Unavailable]: [
+		Liferay.Language.get(
+			'liferay-data-platform-is-temporarily-unavailable.-we-apologize-for-any-inconvenience,-we-plan-to-be-back-up-shortly'
+		)
+	]
+};
+
 const STEP_LIST_MAP = {
 	[ProjectStates.Deactivated]: {
 		secondaryInfo: Liferay.Language.get(
@@ -89,18 +102,23 @@ export default class WorkspacesErrorDisplay extends React.Component {
 	};
 
 	static propTypes = {
-		errorType: PropTypes.string
+		errorType: PropTypes.string,
+		ldpEnabled: PropTypes.bool
 	};
 
 	render() {
-		const {className, errorType} = this.props;
+		const {className, errorType, ldpEnabled} = this.props;
 
 		const stepListProps = STEP_LIST_MAP[errorType];
 
 		return (
 			<WorkspacesBasePage
 				className={getCN('workspaces-error-display-root', {className})}
-				details={DETAILS_MAP[errorType]}
+				details={
+					(ldpEnabled && LDP_DETAILS_MAP[errorType]) ||
+					DETAILS_MAP[errorType]
+				}
+				ldpEnabled={ldpEnabled}
 				title={TITLE_MAP[errorType]}
 			>
 				{stepListProps && <StepList {...stepListProps} />}

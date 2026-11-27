@@ -14,9 +14,12 @@ import React from 'react';
 import Sheet from 'shared/components/Sheet';
 import {autoCancel, hasRequest} from 'shared/util/request-decorator';
 import {compose} from 'redux';
+import {connect} from 'react-redux';
 import {DataSource, User} from 'shared/util/records';
 import {FieldContexts} from 'shared/util/constants';
+import {getSubscriptionName} from 'shared/hooks/useSubscriptionName';
 import {hasChanges} from 'shared/util/react';
+import {isLDPPlan} from 'shared/util/subscriptions';
 import {List, Map} from 'immutable';
 import {noop} from 'lodash';
 import {PropTypes} from 'prop-types';
@@ -36,7 +39,8 @@ export class CSV extends React.Component {
 		currentUser: PropTypes.instanceOf(User).isRequired,
 		dataSource: PropTypes.instanceOf(DataSource).isRequired,
 		groupId: PropTypes.string.isRequired,
-		id: PropTypes.string
+		id: PropTypes.string,
+		ldpEnabled: PropTypes.bool
 	};
 
 	state = {
@@ -288,9 +292,15 @@ export class CSV extends React.Component {
 							readOnly
 							sourceFields={sourceFields}
 							sourceTitle={Liferay.Language.get('csv-field')}
-							suggestionsTitle={Liferay.Language.get(
-								'analytics-cloud-field'
-							)}
+							suggestionsTitle={
+								this.props.ldpEnabled
+									? Liferay.Language.get(
+											'liferay-data-platform-field'
+										)
+									: Liferay.Language.get(
+											'analytics-cloud-field'
+										)
+							}
 						/>
 					)}
 				</Sheet>
@@ -314,4 +324,9 @@ export class CSV extends React.Component {
 	}
 }
 
-export default compose(withCurrentUser)(CSV);
+export default compose(
+	connect((state, {groupId}) => ({
+		ldpEnabled: isLDPPlan(getSubscriptionName(state, groupId))
+	})),
+	withCurrentUser
+)(CSV);

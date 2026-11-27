@@ -41,6 +41,24 @@ describe('Individual Metrics Query Mapper', () => {
 	});
 
 	describe('mapResultToProps', () => {
+		const getInfoContent = (ownProps, id) =>
+			mapResultToProps({data: mockData.data, ownProps}).items.find(
+				(item) => item.id === id
+			).info.content;
+
+		it.each`
+			id                              | ldpEnabled | text
+			${'knownIndividualsMetric'}     | ${false}   | ${/^current total of known individuals that are tracked by analytics cloud\./i}
+			${'anonymousIndividualsMetric'} | ${false}   | ${/^current total of anonymous individuals that are tracked by analytics cloud\./i}
+			${'knownIndividualsMetric'}     | ${true}    | ${/^current total of known individuals that are tracked by liferay data platform\./i}
+			${'anonymousIndividualsMetric'} | ${true}    | ${/^current total of anonymous individuals that are tracked by liferay data platform\./i}
+		`(
+			'names the product of the plan in the $id info (ldpEnabled: $ldpEnabled)',
+			({id, ldpEnabled, text}) => {
+				expect(getInfoContent({ldpEnabled}, id)).toMatch(text);
+			}
+		);
+
 		xit('should map results to props', () => {
 			expect(mapResultToProps(mockData).items).toEqual(
 				expect.arrayContaining([

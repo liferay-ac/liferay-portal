@@ -4,8 +4,13 @@ import React from 'react';
 import {ENABLE_BLOCKLIST_KEYWORDS} from 'shared/util/feature-flags';
 import {Overview} from '../Overview';
 import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {cleanup, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
@@ -60,4 +65,30 @@ describe('Definitions Overview', () => {
 			).toHaveTextContent(/interests/i);
 		}
 	});
+});
+
+describe('Definitions Overview product naming', () => {
+	afterEach(cleanup);
+
+	it.each([
+		[false, /^view and manage the tracked behaviors in analytics cloud\./i],
+		[true, /^view and manage the tracked behaviors in liferay data platform\./i],
+	])(
+		'names the product in the behaviors description when ldpEnabled is %s',
+		(ldpEnabled, text) => {
+			useLDPEnabled.mockReturnValue(ldpEnabled);
+
+			Constants.DEVELOPER_MODE = true;
+
+			render(
+				<Provider store={mockStore()}>
+					<MemoryRouter>
+						<Overview groupId='23' />
+					</MemoryRouter>
+				</Provider>
+			);
+
+			expect(screen.getByText(text)).toBeInTheDocument();
+		}
+	);
 });

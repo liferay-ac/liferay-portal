@@ -37,7 +37,7 @@ function TouchpointProfile({className, renderContent, router}) {
 	} = router.params;
 	const {accountId, accountName, setAccount} = useAccountFilter();
 	const {segmentId, segmentName, setSegment} = useSegmentFilter();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const [pathRangeSelectors, setPathRangeSelectors] =
 		useState(rangeSelectors);
 	const {selectedChannel} = useChannelContext();
@@ -46,7 +46,7 @@ function TouchpointProfile({className, renderContent, router}) {
 	const decodedTouchpoint = getSafeDecodedURIComponent(touchpoint);
 	const [experienceId, setExperienceId] = useState(experienceIdfromURL);
 
-	const accountDropdown = LDPEnabled && (
+	const accountDropdown = ldpEnabled && (
 		<AccountDropdown
 			assetType='page'
 			className='mr-3'
@@ -57,7 +57,7 @@ function TouchpointProfile({className, renderContent, router}) {
 		/>
 	);
 
-	const segmentDropdown = LDPEnabled && (
+	const segmentDropdown = ldpEnabled && (
 		<SegmentDropdown
 			className='mr-3'
 			initialSegmentId={segmentId}
@@ -110,7 +110,7 @@ function TouchpointProfile({className, renderContent, router}) {
 
 					{segmentDropdown}
 
-					{LDPEnabled && (
+					{ldpEnabled && (
 						<ExperienceDropdown
 							groupId={groupId}
 							onChange={experienceId => {

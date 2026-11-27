@@ -64,7 +64,7 @@ type ITEM_SHAPE = VerticalTimelineItem;
 type IRowProps<Item> = {
 	initialExpanded?: boolean;
 	item: Item;
-	LDPEnabled?: boolean;
+	ldpEnabled?: boolean;
 	timeZoneId: string;
 };
 
@@ -393,7 +393,6 @@ const IndividualRow: FC<{item: VerticalTimelineIndividual}> = ({
  * stream reads as a list of visited pages without an extra click.
  */
 const SessionRow: FC<IRowProps<VerticalTimelineSession>> = ({
-	LDPEnabled,
 	initialExpanded,
 	item: {
 		applicationId,
@@ -408,6 +407,7 @@ const SessionRow: FC<IRowProps<VerticalTimelineSession>> = ({
 		totalEvents,
 		userAgent,
 	},
+	ldpEnabled,
 	timeZoneId,
 }) => {
 	const [expanded, setExpanded] = useState<boolean>(!!initialExpanded);
@@ -455,7 +455,7 @@ const SessionRow: FC<IRowProps<VerticalTimelineSession>> = ({
 
 					<DeviceIcon browserName={browserName} device={device} />
 
-					{LDPEnabled && (
+					{ldpEnabled && (
 						<DataSourceLabel
 							applicationId={applicationId}
 							isWebhook={isWebhookUserAgent(userAgent)}
@@ -476,7 +476,7 @@ const SessionRow: FC<IRowProps<VerticalTimelineSession>> = ({
 			{!!nestedItems.length && (
 				<VerticalTimeline
 					items={nestedItems}
-					LDPEnabled={LDPEnabled}
+					ldpEnabled={ldpEnabled}
 					nested
 					timeZoneId={timeZoneId}
 				/>
@@ -491,7 +491,6 @@ const SessionRow: FC<IRowProps<VerticalTimelineSession>> = ({
  * events the row stands for. Expanding it reveals those events.
  */
 const PageGroupRow: FC<IRowProps<VerticalTimelinePageGroup>> = ({
-	LDPEnabled,
 	item: {
 		campaign,
 		descriptionUrl,
@@ -502,6 +501,7 @@ const PageGroupRow: FC<IRowProps<VerticalTimelinePageGroup>> = ({
 		title,
 		totalEvents,
 	},
+	ldpEnabled,
 	timeZoneId,
 }) => {
 	const [expanded, setExpanded] = useState<boolean>(false);
@@ -584,7 +584,7 @@ const PageGroupRow: FC<IRowProps<VerticalTimelinePageGroup>> = ({
 			{expanded && !!nestedItems.length && (
 				<VerticalTimeline
 					items={nestedItems}
-					LDPEnabled={LDPEnabled}
+					ldpEnabled={ldpEnabled}
 					nested
 					timeZoneId={timeZoneId}
 				/>
@@ -707,7 +707,7 @@ const TimelineRow: FC<IRowProps<ITEM_SHAPE>> = (props) => {
 type IVerticalTimelineProps = {
 	initialExpanded?: boolean;
 	items: ITEM_SHAPE[];
-	LDPEnabled?: boolean;
+	ldpEnabled?: boolean;
 	loading?: boolean;
 	nested?: boolean;
 	timeZoneId: string;
@@ -719,9 +719,9 @@ type IVerticalTimelineProps = {
  * summary until the marketer drills into it.
  */
 const VerticalTimeline: FC<IVerticalTimelineProps> = ({
-	LDPEnabled = true,
 	initialExpanded,
 	items = [],
+	ldpEnabled = true,
 	loading = false,
 	nested = false,
 	timeZoneId,
@@ -736,7 +736,7 @@ const VerticalTimeline: FC<IVerticalTimelineProps> = ({
 						initialExpanded={initialExpanded}
 						item={item}
 						key={i}
-						LDPEnabled={LDPEnabled}
+						ldpEnabled={ldpEnabled}
 						timeZoneId={timeZoneId}
 					/>
 				))}

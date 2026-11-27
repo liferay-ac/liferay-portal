@@ -39,9 +39,9 @@ export const SubscriptionDetails = ({
 }: ISubscriptionDetailsProps) => {
 	const addOns = getPlanAddOns(currentPlan);
 
-	const LDPEnabled = planType?.includes('Data Platform');
+	const ldpEnabled = planType?.includes('Data Platform');
 
-	const showAddOns = !!Object.keys(addOns).length && !LDPEnabled;
+	const showAddOns = !!Object.keys(addOns).length && !ldpEnabled;
 
 	return (
 		<Card testId="subscription-details">

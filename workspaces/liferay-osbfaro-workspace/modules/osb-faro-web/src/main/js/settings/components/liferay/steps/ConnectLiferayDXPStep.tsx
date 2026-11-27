@@ -11,6 +11,7 @@ import {sub} from 'shared/util/lang';
 import {Text} from '@clayui/core';
 import {updateSearchParams} from 'settings/components/base-page/utis';
 import {useHistoryAdapter} from 'shared/hooks/useHistoryAdapter';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useModal} from '@clayui/modal';
 import {useQueryParams} from 'shared/hooks/useQueryParams';
 import {useWizardPage} from '../../base-page/WizardPageContext';
@@ -28,6 +29,7 @@ const ConnectLiferayDXPStep = ({
 	onNext,
 }: IConnectLiferayDXPStepProps) => {
 	const {dataSource, refetchDataSource} = useWizardPage();
+	const ldpEnabled = useLDPEnabled({groupId});
 	const modal = useModal();
 	const {dataSourceId} = useQueryParams();
 	const history = useHistoryAdapter();
@@ -171,12 +173,18 @@ const ConnectLiferayDXPStep = ({
 					errorMessage={Liferay.Language.get(
 						'there-was-an-error-processing-your-request.-try-again.-if-the-problem-persists,-please-contact-support'
 					)}
-					message={sub(
-						Liferay.Language.get(
-							'this-action-will-stop-syncing-data-from-your-x-instance-to-this-analytics-cloud-workspace.-the-data-that-was-already-synced-will-remain-available-in-the-properties-the-data-source-was-connected-to.-are-you-sure-you-want-to-continue'
-						),
-						[Liferay.Language.get('liferay-dxp')]
-					)}
+					message={
+						ldpEnabled
+							? Liferay.Language.get(
+									'this-action-will-stop-syncing-data-from-this-data-source-to-this-liferay-data-platform-workspace.-the-data-that-was-already-synced-will-remain-available-in-the-properties-the-data-source-was-connected-to.-are-you-sure-you-want-to-continue'
+								)
+							: sub(
+									Liferay.Language.get(
+										'this-action-will-stop-syncing-data-from-your-x-instance-to-this-analytics-cloud-workspace.-the-data-that-was-already-synced-will-remain-available-in-the-properties-the-data-source-was-connected-to.-are-you-sure-you-want-to-continue'
+									),
+									[Liferay.Language.get('liferay-dxp')]
+								)
+					}
 					observer={modal.observer}
 					onClose={() => modal.onOpenChange(false)}
 					onSubmit={async () => {

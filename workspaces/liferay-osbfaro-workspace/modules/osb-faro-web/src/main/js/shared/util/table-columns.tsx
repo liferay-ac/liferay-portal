@@ -1276,8 +1276,8 @@ export const segmentsListColumns = {
 		cellRendererProps: {timeZoneId},
 		label: Liferay.Language.get('last-modified'),
 	}),
-	getSegmentType: (LDPEnabled: boolean) => {
-		if (!LDPEnabled) return null;
+	getSegmentType: (ldpEnabled: boolean) => {
+		if (!ldpEnabled) return null;
 
 		return {
 			accessor: 'segmentType',

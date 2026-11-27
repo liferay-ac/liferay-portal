@@ -3,6 +3,7 @@ import React from 'react';
 import TrackedBehaviorsList from '../hocs/TrackedBehaviorsList';
 import {getDefinitions} from 'shared/util/breadcrumbs';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 
 interface ITrackedBehaviorsProps {
 	groupId: string;
@@ -13,15 +14,23 @@ export const TrackedBehaviors: React.FC<ITrackedBehaviorsProps> = ({
 }) => {
 	const currentUser = useCurrentUser();
 
+	const ldpEnabled = useLDPEnabled({groupId});
+
 	return (
 		<BasePage
 			breadcrumbItems={[
 				getDefinitions({groupId}),
 				{active: true, label: Liferay.Language.get('behaviors')},
 			]}
-			pageDescription={Liferay.Language.get(
-				'this-is-the-data-model-of-behaviors-tracked-within-analytics-cloud.-instructions-for-tracking-third-party-assets-in-analytics-cloud-are-provided-when-you-click-each-behavior.-click-and-conversion-goals-can-be-tracked-using-click-events'
-			)}
+			pageDescription={
+				ldpEnabled
+					? Liferay.Language.get(
+							'this-is-the-data-model-of-behaviors-tracked-within-liferay-data-platform.-instructions-for-tracking-third-party-assets-in-liferay-data-platform-are-provided-when-you-click-each-behavior.-click-and-conversion-goals-can-be-tracked-using-click-events'
+						)
+					: Liferay.Language.get(
+							'this-is-the-data-model-of-behaviors-tracked-within-analytics-cloud.-instructions-for-tracking-third-party-assets-in-analytics-cloud-are-provided-when-you-click-each-behavior.-click-and-conversion-goals-can-be-tracked-using-click-events'
+						)
+			}
 			pageTitle={Liferay.Language.get('tracked-behaviors')}
 		>
 			<TrackedBehaviorsList authorized={currentUser.isAdmin()} />

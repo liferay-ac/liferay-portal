@@ -17,6 +17,8 @@ import {autoCancel, hasRequest} from 'shared/util/request-decorator';
 import {compose} from 'redux';
 import {connect} from 'react-redux';
 import {fromJS, List, Map} from 'immutable';
+import {getSubscriptionName} from 'shared/hooks/useSubscriptionName';
+import {isLDPPlan} from 'shared/util/subscriptions';
 import {hasChanges} from 'shared/util/react';
 import {mapValues, noop, values} from 'lodash';
 import {PropTypes} from 'prop-types';
@@ -111,6 +113,7 @@ export class DataTransformation extends React.Component {
 			mappingSuggestions: PropTypes.object,
 			sourceFields: PropTypes.object
 		}),
+		ldpEnabled: PropTypes.bool,
 		name: PropTypes.string,
 		navigationWarning: PropTypes.bool,
 		onPrevious: PropTypes.func,
@@ -455,9 +458,15 @@ export class DataTransformation extends React.Component {
 								sourceFieldPlaceholder={sourceFieldPlaceholder}
 								sourceFields={sourceFields}
 								sourceTitle={sourceTitle}
-								suggestionsTitle={Liferay.Language.get(
-									'analytics-cloud-field'
-								)}
+								suggestionsTitle={
+									this.props.ldpEnabled
+										? Liferay.Language.get(
+												'liferay-data-platform-field'
+											)
+										: Liferay.Language.get(
+												'analytics-cloud-field'
+											)
+								}
 							/>
 						)}
 
@@ -507,9 +516,13 @@ export class DataTransformation extends React.Component {
 								Liferay.Language.get(
 									'all-fields-have-been-mapped-automatically-to-the-best-possible-match'
 								),
-								Liferay.Language.get(
-									'please-confirm-the-data-mapping-below-and-make-any-changes-if-necessary.-you-may-only-map-one-source-data-field-to-a-single-analytics-cloud-field'
-								)
+								this.props.ldpEnabled
+									? Liferay.Language.get(
+											'please-confirm-the-data-mapping-below-and-make-any-changes-if-necessary.-you-may-only-map-one-source-data-field-to-a-single-liferay-data-platform-field'
+										)
+									: Liferay.Language.get(
+											'please-confirm-the-data-mapping-below-and-make-any-changes-if-necessary.-you-may-only-map-one-source-data-field-to-a-single-analytics-cloud-field'
+										)
 							].join(' ')}
 						</p>
 					)}
@@ -538,6 +551,11 @@ export class DataTransformation extends React.Component {
 }
 
 export default compose(
-	connect(null, {addAlert}),
+	connect(
+		(state, {groupId}) => ({
+			ldpEnabled: isLDPPlan(getSubscriptionName(state, groupId))
+		}),
+		{addAlert}
+	),
 	hasRequest
 )(DataTransformation);

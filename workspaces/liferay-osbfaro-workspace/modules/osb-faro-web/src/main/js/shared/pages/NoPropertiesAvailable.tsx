@@ -7,6 +7,7 @@ import OnboardingModal from 'shared/components/modals/onboarding-modal';
 import React from 'react';
 import {compose} from 'redux';
 import {User} from 'shared/util/records';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useModal} from '@clayui/modal';
 import {withRequest} from 'shared/hoc';
 
@@ -28,15 +29,21 @@ const NoPropertiesAvailable: React.FC<INoPropertiesAvailableProps> = ({
 }) => {
 	const onboardingModal = useModal();
 
+	const ldpEnabled = useLDPEnabled({groupId});
+
 	const admin = currentUser.isAdmin();
 
 	const description = admin
 		? Liferay.Language.get(
 				'to-get-your-workspace-set-up-you-will-need-to-create-a-property-and-sync-your-dxp-sites'
 			)
-		: Liferay.Language.get(
-				'you-have-not-been-added-to-any-properties.-please-contact-your-analytics-cloud-administrator'
-			);
+		: ldpEnabled
+			? Liferay.Language.get(
+					'you-have-not-been-added-to-any-properties.-please-contact-your-liferay-data-platform-administrator'
+				)
+			: Liferay.Language.get(
+					'you-have-not-been-added-to-any-properties.-please-contact-your-analytics-cloud-administrator'
+				);
 
 	const title = admin
 		? Liferay.Language.get('first-connect-your-dxp-sites')

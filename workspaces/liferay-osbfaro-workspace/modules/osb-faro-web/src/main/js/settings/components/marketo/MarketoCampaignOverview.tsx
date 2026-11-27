@@ -28,6 +28,7 @@ import {sub} from 'shared/util/lang';
 import {Text} from '@clayui/core';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDisconnectDataSource} from '../data-source/utils';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
 import {withSelectionProvider} from 'shared/context/selection';
@@ -54,6 +55,7 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 		id: string;
 	}>();
 	const currentUser = useCurrentUser();
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	type ConnectionAlert = {
 		displayType: DisplayType;
@@ -99,9 +101,13 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 	useEffect(() => {
 		const connectionAlert: ConnectionAlert = {
 			displayType: 'success',
-			message: Liferay.Language.get(
-				'you-have-successfully-authenticated-your-credentials-with-liferay-analytics-cloud.-you-can-now-select-the-data-to-sync'
-			),
+			message: ldpEnabled
+				? Liferay.Language.get(
+						'you-have-successfully-authenticated-your-credentials-with-liferay-data-platform.-you-can-now-select-the-data-to-sync'
+					)
+				: Liferay.Language.get(
+						'you-have-successfully-authenticated-your-credentials-with-liferay-analytics-cloud.-you-can-now-select-the-data-to-sync'
+					),
 		};
 
 		if (!dataSourceActive) {
@@ -121,7 +127,7 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 		}
 
 		setAlert(connectionAlert);
-	}, [dataSourceActive, enableAllLeads]);
+	}, [ldpEnabled, dataSourceActive, enableAllLeads]);
 
 	const {disconnectModal, handleDisconnect} = useDisconnectDataSource({
 		addAlert,
@@ -175,9 +181,13 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 							<div className="mb-3">
 								<Text color="secondary" size={4}>
 									{sub(
-										Liferay.Language.get(
-											'to-reestablish-the-connection-between-x-and-liferay-analytics-cloud,-check-your-credentials-and-paste-on-the-input-below'
-										),
+										ldpEnabled
+											? Liferay.Language.get(
+													'to-reestablish-the-connection-between-x-and-liferay-data-platform,-check-your-credentials-and-paste-them-in-the-field-below'
+												)
+											: Liferay.Language.get(
+													'to-reestablish-the-connection-between-x-and-liferay-analytics-cloud,-check-your-credentials-and-paste-on-the-input-below'
+												),
 										[Liferay.Language.get('marketo')]
 									)}
 								</Text>

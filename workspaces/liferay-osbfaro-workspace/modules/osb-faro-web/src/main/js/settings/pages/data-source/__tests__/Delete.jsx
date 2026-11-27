@@ -78,4 +78,30 @@ describe('DataSourceDelete', () => {
 
 		expect(container).toMatchSnapshot();
 	});
+
+	it.each`
+		ldpEnabled | message
+		${false}   | ${/^liferay1 is currently being removed from analytics cloud\.$/i}
+		${true}    | ${/^liferay1 is currently being removed from liferay data platform\.$/i}
+	`(
+		'names the product in the removal alert when ldpEnabled is $ldpEnabled',
+		async ({ldpEnabled, message}) => {
+			const addAlert = jest.fn();
+
+			const deleteComponent = new DataSourceDelete({
+				...defaultProps,
+				addAlert,
+				deleteDataSource: jest.fn(() => Promise.resolve()),
+				ldpEnabled
+			});
+
+			await deleteComponent.deleteDataSource();
+
+			expect(addAlert).toHaveBeenCalledWith(
+				expect.objectContaining({
+					message: expect.stringMatching(message)
+				})
+			);
+		}
+	);
 });

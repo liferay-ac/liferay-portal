@@ -4,8 +4,13 @@ import mockStore from 'test/mock-store';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
 import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(() => false),
+}));
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
@@ -16,6 +21,10 @@ jest.mock('react-router-dom', () => ({
 }));
 
 describe('BlockList', () => {
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
+
 	it('should render', () => {
 		const {container} = render(
 			<ApolloProvider client={client}>
@@ -28,5 +37,21 @@ describe('BlockList', () => {
 		);
 
 		expect(container).toMatchSnapshot();
+	});
+
+	it('shows the Liferay Data Platform description for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		render(
+			<ApolloProvider client={client}>
+				<Provider store={mockStore()}>
+					<MemoryRouter>
+						<BlockList groupId='23' />
+					</MemoryRouter>
+				</Provider>
+			</ApolloProvider>
+		);
+
+		expect(screen.getByText(/^blocked events are not processed by liferay data platform\.$/i)).toBeInTheDocument();
 	});
 });

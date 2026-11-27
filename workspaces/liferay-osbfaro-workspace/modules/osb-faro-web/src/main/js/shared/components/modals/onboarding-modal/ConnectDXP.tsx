@@ -100,7 +100,7 @@ const ConnectDXP: React.FC<IConnectDXPWrapperProps & IConnectDXPProps> = ({
 }) => {
 	const {channelDispatch} = useChannelContext();
 	const [token, setToken] = useState<string>('');
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const [getDataSources, {data}] = useLazyQuery<DataSourceData>(
 		DataSourceQuery,
@@ -221,16 +221,20 @@ const ConnectDXP: React.FC<IConnectDXPWrapperProps & IConnectDXPProps> = ({
 						style={
 							dxpConnected ? undefined : {filter: 'grayscale(1)'}
 						}
-						symbol={LDPEnabled ? 'ldp_logo' : 'ac_logo'}
+						symbol={ldpEnabled ? 'ldp_logo' : 'ac_logo'}
 					/>
 				</div>
 
 				<div className="text-center mb-4">
 					<Text size={6} weight="bold">
 						{dxpConnected
-							? Liferay.Language.get(
-									'your-dxp-instance-is-connected-to-analytics-cloud'
-								)
+							? ldpEnabled
+								? Liferay.Language.get(
+										'your-dxp-instance-is-connected-to-liferay-data-platform'
+									)
+								: Liferay.Language.get(
+										'your-dxp-instance-is-connected-to-analytics-cloud'
+									)
 							: Liferay.Language.get(
 									'connect-your-dxp-analytics'
 								)}
@@ -241,7 +245,7 @@ const ConnectDXP: React.FC<IConnectDXPWrapperProps & IConnectDXPProps> = ({
 					<>
 						<TokenInput token={token} />
 
-						<FixPackSelect />
+						<FixPackSelect ldpEnabled={ldpEnabled} />
 					</>
 				)}
 
@@ -380,7 +384,7 @@ const DxpSyncTable: FC<React.HTMLAttributes<HTMLElement>> = () => {
 	);
 };
 
-const FixPackSelect: FC<React.HTMLAttributes<HTMLElement>> = () => {
+const FixPackSelect: FC<{ldpEnabled: boolean}> = ({ldpEnabled}) => {
 	const dxpVersionsList = Object.keys(DXP_VERSIONS);
 	const [dxpVersion, setDxpVersion] = useState<string>(dxpVersionsList[0]);
 
@@ -389,9 +393,13 @@ const FixPackSelect: FC<React.HTMLAttributes<HTMLElement>> = () => {
 			<div className="mt-1">
 				<Text color="secondary" size={4}>
 					{sub(
-						Liferay.Language.get(
-							'x-to-learn-how-to-connect-liferay-dxp-to-analytics-cloud'
-						),
+						ldpEnabled
+							? Liferay.Language.get(
+									'x-to-learn-how-to-connect-liferay-dxp-to-liferay-data-platform'
+								)
+							: Liferay.Language.get(
+									'x-to-learn-how-to-connect-liferay-dxp-to-analytics-cloud'
+								),
 						[
 							<ClayLink
 								href={URLConstants.HelpConnectDxp}

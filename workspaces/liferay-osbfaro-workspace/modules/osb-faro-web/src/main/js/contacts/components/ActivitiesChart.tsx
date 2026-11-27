@@ -51,7 +51,7 @@ interface IChartProps<T> extends React.HTMLAttributes<HTMLElement> {
 	hideGrid?: boolean;
 	history: Array<T>;
 	interval: Interval;
-	LDPEnabled?: boolean;
+	ldpEnabled?: boolean;
 	onAfterInit?: () => void;
 	onPointSelect: (index: number | null) => void;
 	rangeSelectors: RangeSelectors;
@@ -70,7 +70,6 @@ interface IActivitiesHistoryProps<initDateType = number> {
 const ActivitiesChart: React.FC<
 	IChartProps<IActivitiesHistoryProps<number>>
 > = ({
-	LDPEnabled = false,
 	alwaysShowSelectedTooltip = false,
 	chartView = DEFAULT_CHART_VIEW,
 	hasSelectedPoint,
@@ -78,6 +77,7 @@ const ActivitiesChart: React.FC<
 	hideGrid = false,
 	history,
 	interval,
+	ldpEnabled = false,
 	onPointSelect,
 	rangeSelectors,
 	selectedPoint,
@@ -238,7 +238,7 @@ const ActivitiesChart: React.FC<
 					allowDecimals={false}
 					axisLine={{stroke: AXIS.borderStroke}}
 					label={
-						LDPEnabled
+						ldpEnabled
 							? {
 									dy: -20,
 									position: 'top',

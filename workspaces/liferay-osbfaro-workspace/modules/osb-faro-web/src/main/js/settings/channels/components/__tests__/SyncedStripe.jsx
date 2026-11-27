@@ -1,9 +1,18 @@
 import React from 'react';
 import SyncedStripe, {getTitle} from '../SyncedStripe';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render, screen} from '@testing-library/react';
+import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+
+jest.mock('shared/hooks/useLDPEnabled', () => ({
+	useLDPEnabled: jest.fn(),
+}));
 
 describe('SyncedStripe', () => {
 	afterEach(cleanup);
+
+	beforeEach(() => {
+		useLDPEnabled.mockReturnValue(false);
+	});
 
 	it('should render', () => {
 		const {container} = render(<SyncedStripe sitesSyncedCount={0} />);
@@ -36,6 +45,16 @@ describe('SyncedStripe', () => {
 			}
 		}
 	);
+
+	it('shows the Liferay Data Platform instance settings for an LDP workspace', () => {
+		useLDPEnabled.mockReturnValue(true);
+
+		render(<SyncedStripe sitesSyncedCount={1} />);
+
+		expect(
+			screen.getByText(/^instance settings > liferay data platform$/i)
+		).toBeInTheDocument();
+	});
 });
 
 describe('getTitle', () => {
