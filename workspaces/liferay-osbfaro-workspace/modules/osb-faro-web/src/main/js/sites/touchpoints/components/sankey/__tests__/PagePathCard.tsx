@@ -2,7 +2,7 @@ import BasePage from 'shared/components/base-page';
 import PagePathCard from '../PagePathCard';
 import React from 'react';
 import {CHART_COLORS, MAIN_NODE_COLOR, SECONDARY_NODE_COLOR} from '../utils';
-import {cleanup, fireEvent, getByTestId, render} from 'test/render';
+import {fireEvent, getByTestId, render} from 'test/render';
 import {mockPagePathReq} from 'test/graphql-data';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
 import {RangeSelectors} from 'shared/types';
@@ -143,8 +143,6 @@ const renderCard = ({
 	});
 
 describe('PagePathCard', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container} = renderCard({data: DATA});
 

@@ -1,7 +1,7 @@
 import BasePage from 'shared/components/base-page';
 import Overview from '../Overview';
 import React from 'react';
-import {cleanup, fireEvent, render} from 'test/render';
+import {fireEvent, render} from 'test/render';
 import {Routes} from 'shared/util/router';
 
 const MOCK_CONTEXT = {
@@ -42,8 +42,6 @@ const renderOverview = (path = Routes.SITES) =>
 	);
 
 describe('Sites Dashboard Overview', () => {
-	afterEach(cleanup);
-
 	it('should give the Top Pages and Acquisitions cards the same minimum height', () => {
 		const {container} = renderOverview();
 

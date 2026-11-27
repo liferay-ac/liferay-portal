@@ -4,7 +4,7 @@ import BasePage from 'shared/components/base-page';
 import React from 'react';
 import {Dashboard} from '../index';
 import {mockEmptyState, mockSuccessState} from 'test/__mocks__/mock-objects';
-import {cleanup, render} from 'test/render';
+import {render} from 'test/render';
 import {Routes} from 'shared/util/router';
 import {User} from 'shared/util/records';
 import {UserRoleNames} from 'shared/util/constants';
@@ -51,7 +51,6 @@ const renderDashboard = options =>
 	);
 
 describe('Sites Dashboard Index', () => {
-	afterEach(cleanup);
 	useDataSources.mockReturnValue(mockSuccessState);
 
 	beforeAll(() => {
