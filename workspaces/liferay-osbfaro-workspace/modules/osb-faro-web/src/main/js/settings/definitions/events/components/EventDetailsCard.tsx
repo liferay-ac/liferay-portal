@@ -20,7 +20,7 @@ const EventDetailsCard: React.FC<IEventDetailsCardProps> = ({
 	eventName,
 	groupId,
 }) => {
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const [codeLines, setCodeLines] = useState([
 		`Analytics.track('${eventName}', {`,
@@ -75,7 +75,7 @@ const EventDetailsCard: React.FC<IEventDetailsCardProps> = ({
 
 			<Card.Body>
 				<span className="mt-2 mb-4 w-50">
-					{LDPEnabled
+					{ldpEnabled
 						? Liferay.Language.get(
 								'use-this-script-to-start-sending-events-to-liferay-data-platform.-you-can-customize-which-attributes-to-send-with-a-specific-event.-selecting-the-attributes-below-will-generate-a-new-sample-script'
 							)

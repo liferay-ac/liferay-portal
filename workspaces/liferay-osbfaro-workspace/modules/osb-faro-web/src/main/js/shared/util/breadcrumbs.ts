@@ -70,12 +70,12 @@ export const getCampaigns = ({
 };
 
 export const getIndividuals = ({
-	LDPEnabled,
 	channelId,
 	groupId,
-}: IBasicSidebarRouteArgs & {LDPEnabled: boolean}) => ({
+	ldpEnabled,
+}: IBasicSidebarRouteArgs & {ldpEnabled: boolean}) => ({
 	href: toRoute(
-		LDPEnabled
+		ldpEnabled
 			? Routes.CONTACTS_INDIVIDUALS
 			: Routes.CONTACTS_INDIVIDUALS_KNOWN_INDIVIDUALS,
 		{

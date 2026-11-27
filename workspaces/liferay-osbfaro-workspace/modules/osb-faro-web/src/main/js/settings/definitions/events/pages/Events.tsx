@@ -9,7 +9,7 @@ interface IEventsProps {
 }
 
 const Events: React.FC<IEventsProps> = ({groupId}) => {
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<BasePage
@@ -18,7 +18,7 @@ const Events: React.FC<IEventsProps> = ({groupId}) => {
 				{active: true, label: Liferay.Language.get('events')},
 			]}
 			pageDescription={
-				LDPEnabled
+				ldpEnabled
 					? Liferay.Language.get(
 							'this-is-the-data-model-of-events-sent-to-liferay-data-platform'
 						)

@@ -199,7 +199,7 @@ const ORDER_BY_OPTIONS = [
 
 export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 	const currentUser = useCurrentUser();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const {selectedChannel} = useChannelContext();
 	const {deleteSegments, deleteSegmentsModal} = useDeleteSegments(groupId);
 	const notificationsModal = useModal();
@@ -431,7 +431,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 				<Nav>
 					<Nav.Item>
 						<div className="d-flex align-items-center">
-							{!LDPEnabled && (
+							{!ldpEnabled && (
 								<ClayLink
 									aria-disabled={error || loading}
 									button
@@ -454,7 +454,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 								</ClayLink>
 							)}
 
-							{LDPEnabled && (
+							{ldpEnabled && (
 								<ClayDropDown
 									alignmentPosition={Align.BottomRight}
 									trigger={

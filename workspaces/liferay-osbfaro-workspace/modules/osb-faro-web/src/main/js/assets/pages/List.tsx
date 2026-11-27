@@ -216,7 +216,7 @@ const List = () => {
 	const {selectedChannel} = useChannelContext();
 	const {channelId, groupId} = useParams();
 	const initialRangeSelectors = useQueryRangeSelectors();
-	const LDPEnabled = useLDPEnabled({groupId: groupId!});
+	const ldpEnabled = useLDPEnabled({groupId: groupId!});
 
 	const searchParams = new URLSearchParams(search);
 	const accountId = searchParams.get('accountId');
@@ -258,7 +258,7 @@ const List = () => {
 
 	const filters = useMemo(
 		() => [
-			...(LDPEnabled
+			...(ldpEnabled
 				? [
 						{
 							apiURL: `/o/faro/contacts/${groupId}/account/search?channelId=${channelId}&filter=(rangeKey eq '${rangeSelectors.rangeKey}')`,
@@ -386,7 +386,7 @@ const List = () => {
 			accountName,
 			channelId,
 			groupId,
-			LDPEnabled,
+			ldpEnabled,
 			objectType,
 			rangeSelectorParams,
 			segmentId,
@@ -515,7 +515,7 @@ const List = () => {
 								],
 								label: Liferay.Language.get('filter-by'),
 							},
-							...(LDPEnabled
+							...(ldpEnabled
 								? [
 										{
 											filters: [

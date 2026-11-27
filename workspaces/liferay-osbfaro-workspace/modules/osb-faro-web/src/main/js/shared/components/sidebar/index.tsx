@@ -83,7 +83,7 @@ const Sidebar: React.FC<ISidebarProps> = ({
 }) => {
 	const isMobile = useIsMobile();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	/**
 	 * On mobile the panel overlays the page and traps focus while it is open,
@@ -99,14 +99,14 @@ const Sidebar: React.FC<ISidebarProps> = ({
 		{
 			id: 'touchpoints',
 			items: [
-				LDPEnabled && {
+				ldpEnabled && {
 					icon: 'plant',
 					id: 'lifecycles',
 					label: Liferay.Language.get('lifecycles'),
 					route: Routes.LIFECYCLE,
 					url: toRoute(Routes.LIFECYCLE, {channelId, groupId}),
 				},
-				LDPEnabled && {
+				ldpEnabled && {
 					icon: 'megaphone',
 					id: 'campaigns',
 					label: Liferay.Language.get('campaigns'),
@@ -157,7 +157,7 @@ const Sidebar: React.FC<ISidebarProps> = ({
 						type: SEGMENTS,
 					}),
 				},
-				LDPEnabled && {
+				ldpEnabled && {
 					icon: 'briefcase',
 					id: 'accounts',
 					label: Liferay.Language.get('accounts'),

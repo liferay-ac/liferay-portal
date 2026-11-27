@@ -14,9 +14,9 @@ export const LDPElement: React.FC<ILDPElementProps> = ({
 }) => {
 	const {groupId = ''} = useParams<{groupId: string}>();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
-	return <>{LDPEnabled ? children : fallback}</>;
+	return <>{ldpEnabled ? children : fallback}</>;
 };
 
 const LDPLayout: React.FC = () => (

@@ -10,7 +10,7 @@ interface IBlockListProps {
 }
 
 const BlockList: React.FC<IBlockListProps> = ({groupId, ...otherProps}) => {
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<BasePage
@@ -25,7 +25,7 @@ const BlockList: React.FC<IBlockListProps> = ({groupId, ...otherProps}) => {
 				{active: true, label: Liferay.Language.get('block-list')},
 			]}
 			pageDescription={
-				LDPEnabled
+				ldpEnabled
 					? Liferay.Language.get(
 							'blocked-events-are-not-processed-by-liferay-data-platform'
 						)

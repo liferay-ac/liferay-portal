@@ -55,7 +55,7 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 		id: string;
 	}>();
 	const currentUser = useCurrentUser();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	type ConnectionAlert = {
 		displayType: DisplayType;
@@ -101,7 +101,7 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 	useEffect(() => {
 		const connectionAlert: ConnectionAlert = {
 			displayType: 'success',
-			message: LDPEnabled
+			message: ldpEnabled
 				? Liferay.Language.get(
 						'you-have-successfully-authenticated-your-credentials-with-liferay-data-platform.-you-can-now-select-the-data-to-sync'
 					)
@@ -127,7 +127,7 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 		}
 
 		setAlert(connectionAlert);
-	}, [LDPEnabled, dataSourceActive, enableAllLeads]);
+	}, [ldpEnabled, dataSourceActive, enableAllLeads]);
 
 	const {disconnectModal, handleDisconnect} = useDisconnectDataSource({
 		addAlert,
@@ -181,7 +181,7 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 							<div className="mb-3">
 								<Text color="secondary" size={4}>
 									{sub(
-										LDPEnabled
+										ldpEnabled
 											? Liferay.Language.get(
 													'to-reestablish-the-connection-between-x-and-liferay-data-platform,-check-your-credentials-and-paste-them-in-the-field-below'
 												)

@@ -22,7 +22,7 @@ const ProjectStateDisplay: React.FC<IProjectStateDisplayProps> = ({
 }) => {
 	const {friendlyURL, groupId, state} = project;
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	if (state === ProjectStates.Ready || state === ProjectStates.Scheduled) {
 		return <>{children}</>;
@@ -37,7 +37,7 @@ const ProjectStateDisplay: React.FC<IProjectStateDisplayProps> = ({
 			<WorkspacesErrorDisplay
 				className={className}
 				errorType={state}
-				ldpEnabled={LDPEnabled}
+				ldpEnabled={ldpEnabled}
 			/>
 		);
 	}

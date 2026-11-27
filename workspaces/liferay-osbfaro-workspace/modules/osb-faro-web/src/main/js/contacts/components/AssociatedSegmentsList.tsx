@@ -39,7 +39,7 @@ const AssociatedSegmentsList: React.FC<IAssociatedSegmentsListProps> = ({
 	timeZoneId,
 	total,
 }) => {
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<Card
@@ -83,7 +83,7 @@ const AssociatedSegmentsList: React.FC<IAssociatedSegmentsListProps> = ({
 			<SearchableEntityTable
 				columns={[
 					segmentsListColumns.getName({channelId, groupId}),
-					segmentsListColumns.getSegmentType(LDPEnabled),
+					segmentsListColumns.getSegmentType(ldpEnabled),
 					segmentsListColumns.individualAddedDate,
 					segmentsListColumns.getDateCreated(timeZoneId),
 				].filter(Boolean)}

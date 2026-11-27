@@ -29,7 +29,7 @@ const NoPropertiesAvailable: React.FC<INoPropertiesAvailableProps> = ({
 }) => {
 	const onboardingModal = useModal();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const admin = currentUser.isAdmin();
 
@@ -37,7 +37,7 @@ const NoPropertiesAvailable: React.FC<INoPropertiesAvailableProps> = ({
 		? Liferay.Language.get(
 				'to-get-your-workspace-set-up-you-will-need-to-create-a-property-and-sync-your-dxp-sites'
 			)
-		: LDPEnabled
+		: ldpEnabled
 			? Liferay.Language.get(
 					'you-have-not-been-added-to-any-properties.-please-contact-your-liferay-data-platform-administrator'
 				)

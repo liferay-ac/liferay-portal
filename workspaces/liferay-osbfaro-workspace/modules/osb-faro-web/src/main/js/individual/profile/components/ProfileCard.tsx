@@ -86,7 +86,7 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 	const {hasSelectedPoint, onPointSelect, selectedPoint} = useSelectedPoint();
 	const [searchValue, setSearchValue] = useState<string>('');
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const activityResponse = useQuery<EventMetricsData, EventMetricsVariables>(
 		EventMetricQuery,
@@ -284,7 +284,7 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 						alwaysShowSelectedTooltip
 						history={activityHistory}
 						interval={interval}
-						LDPEnabled={LDPEnabled}
+						ldpEnabled={ldpEnabled}
 						onPointSelect={handleChangeSelection}
 						rangeSelectors={rangeSelectors}
 						selectedPoint={selectedPoint}
@@ -333,7 +333,7 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 				{...sessionsMappedResults}
 				delta={delta}
 				initialExpanded={false}
-				LDPEnabled={LDPEnabled}
+				ldpEnabled={ldpEnabled}
 				noResultsRenderer={renderNoResults()}
 				onDeltaChange={onDeltaChange}
 				onPageChange={onPageChange}

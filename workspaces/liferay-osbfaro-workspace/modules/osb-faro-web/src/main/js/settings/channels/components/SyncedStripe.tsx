@@ -22,7 +22,7 @@ export function getTitle(sitesSyncedCount: number): string | any[] {
 const SyncedStripe: React.FC<ISyncedStripeProps> = ({sitesSyncedCount}) => {
 	const {groupId = ''} = useParams();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<div
@@ -41,7 +41,7 @@ const SyncedStripe: React.FC<ISyncedStripeProps> = ({sitesSyncedCount}) => {
 					),
 					[
 						<b key="INSTANCE_SETTINGS">
-							{LDPEnabled
+							{ldpEnabled
 								? Liferay.Language.get(
 										'instance-settings-liferay-data-platform'
 									)

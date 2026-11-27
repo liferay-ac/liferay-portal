@@ -55,7 +55,7 @@ const SalesforceOverview: React.FC<ISalesforceOverviewProps> = ({
 		id: string;
 	}>();
 	const currentUser = useCurrentUser();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	type Alert = {
 		displayType: DisplayType;
@@ -111,7 +111,7 @@ const SalesforceOverview: React.FC<ISalesforceOverviewProps> = ({
 	useEffect(() => {
 		const alert: Alert = {
 			displayType: 'success',
-			message: LDPEnabled
+			message: ldpEnabled
 				? Liferay.Language.get(
 						'you-have-successfully-authenticated-your-token-with-liferay-data-platform.-you-can-now-select-the-data-to-sync'
 					)
@@ -138,7 +138,7 @@ const SalesforceOverview: React.FC<ISalesforceOverviewProps> = ({
 
 		setAlert(alert);
 	}, [
-		LDPEnabled,
+		ldpEnabled,
 		dataSourceActive,
 		enableAllLeads,
 		enabledAllAccounts,
@@ -197,7 +197,7 @@ const SalesforceOverview: React.FC<ISalesforceOverviewProps> = ({
 							<div className="mb-3">
 								<Text color="secondary" size={4}>
 									{sub(
-										LDPEnabled
+										ldpEnabled
 											? Liferay.Language.get(
 													'to-reestablish-the-connection-between-x-and-liferay-data-platform,-check-your-credentials-and-paste-them-in-the-field-below'
 												)

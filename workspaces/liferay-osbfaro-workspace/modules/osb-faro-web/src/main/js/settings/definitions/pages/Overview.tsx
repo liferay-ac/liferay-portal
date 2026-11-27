@@ -111,7 +111,7 @@ const items = (
 ];
 
 export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<BasePage
@@ -125,7 +125,7 @@ export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
 				<div className="col-xl-8">
 					<Card>
 						<ClayList>
-							{items(DEVELOPER_MODE, LDPEnabled)
+							{items(DEVELOPER_MODE, ldpEnabled)
 								.filter((item): item is ListItem =>
 									Boolean(item)
 								)

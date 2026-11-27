@@ -25,7 +25,7 @@ const UserRequest = lazy(
 export const User = ({className}: {className?: string}) => {
 	const {groupId = ''} = useParams<{groupId: string}>();
 	const currentUser = useCurrentUser();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const [userRequest, setUserRequest] = useState<number>(0);
 
 	const onSetUserRequest = (userRequest: number) =>
@@ -74,7 +74,7 @@ export const User = ({className}: {className?: string}) => {
 			className={getCN('user-list-page-root', className)}
 			key="userListPage"
 			pageDescription={
-				LDPEnabled
+				ldpEnabled
 					? Liferay.Language.get(
 							'invite-new-users-to-liferay-data-platform-and-or-configure-existing-users'
 						)

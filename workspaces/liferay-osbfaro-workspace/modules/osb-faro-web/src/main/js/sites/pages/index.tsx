@@ -88,7 +88,7 @@ export const Dashboard: React.FC<IDashboardProps> = ({router}) => {
 	const {accountId, accountName, setAccount} = useAccountFilter();
 	const {segmentId, segmentName, setSegment} = useSegmentFilter();
 	const dataSourceStates = useDataSources();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const {selectedChannel} = useChannelContext();
 	const currentUser = useCurrentUser();
 
@@ -137,7 +137,7 @@ export const Dashboard: React.FC<IDashboardProps> = ({router}) => {
 			</BasePage.Header>
 
 			<BasePage.SubHeader>
-				{LDPEnabled && (
+				{ldpEnabled && (
 					<AccountDropdown
 						className="mr-2"
 						initialAccountId={accountId}
@@ -146,7 +146,7 @@ export const Dashboard: React.FC<IDashboardProps> = ({router}) => {
 					/>
 				)}
 
-				{LDPEnabled && (
+				{ldpEnabled && (
 					<SegmentDropdown
 						className="mr-2"
 						initialSegmentId={segmentId}

@@ -85,9 +85,9 @@ const getSteps = (ldpEnabled: boolean): Step[] => [
 const ConnectSalesforce = () => {
 	const {groupId = ''} = useParams();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
-	return <WizardPage steps={getSteps(LDPEnabled)} />;
+	return <WizardPage steps={getSteps(ldpEnabled)} />;
 };
 
 export default ConnectSalesforce;

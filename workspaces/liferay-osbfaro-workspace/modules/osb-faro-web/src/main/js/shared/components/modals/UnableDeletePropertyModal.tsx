@@ -14,7 +14,7 @@ const UnableDeletePropertyModal: React.FC<{
 }> = ({observer, onClose}) => {
 	const {groupId = ''} = useParams();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<ClayModal observer={observer} status="danger">
@@ -25,7 +25,7 @@ const UnableDeletePropertyModal: React.FC<{
 			<ClayModal.Body scrollable>
 				<p className="text-secondary">
 					{sub(
-						LDPEnabled
+						ldpEnabled
 							? Liferay.Language.get(
 									'ensure-no-sites-are-assigned-to-it-before-deleting-a-property-in-liferay-data-platform'
 								)

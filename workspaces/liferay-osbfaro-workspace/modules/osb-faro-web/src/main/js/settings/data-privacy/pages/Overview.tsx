@@ -82,7 +82,7 @@ export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
 
 	const currentUser = useCurrentUser();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const requestLogModal = useModal();
 	const retentionModal = useModal();
@@ -147,7 +147,7 @@ export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
 											</div>
 
 											<p className="text-secondary">
-												{LDPEnabled
+												{ldpEnabled
 													? Liferay.Language.get(
 															'liferay-data-platform-stores-event-data-and-inactive-anonymous-individuals-for-the-period-specified.-known-profile-data-will-be-stored-indefinitely-unless-it-is-removed-from-the-source-or-requested-to-be-deleted.-contact-sales-to-customize-the-retention-period'
 														)
@@ -194,7 +194,7 @@ export const Overview: React.FC<IOverviewProps> = ({groupId}) => {
 											</div>
 
 											<p className="text-secondary">
-												{LDPEnabled
+												{ldpEnabled
 													? Liferay.Language.get(
 															'data-subjects-and-your-organization-can-request-access,-deletion,-and-suppression-of-their-data-in-liferay-data-platform.-some-requests-may-take-up-to-7-days-to-complete.-we-will-notify-the-requestor-by-email-once-the-download-is-ready'
 														)

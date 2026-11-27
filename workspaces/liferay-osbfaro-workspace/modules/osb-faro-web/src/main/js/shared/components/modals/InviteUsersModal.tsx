@@ -24,7 +24,7 @@ const InviteUsersModal: React.FC<IInviteUsersModalProps> = ({
 }) => {
 	const {groupId = ''} = useParams();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const [emails, setEmails] = useState<string[]>([]);
 	const [inputValue, setInputValue] = useState('');
@@ -51,7 +51,7 @@ const InviteUsersModal: React.FC<IInviteUsersModalProps> = ({
 
 			<ClayModal.Body>
 				<div className="form-text mb-4">
-					{LDPEnabled
+					{ldpEnabled
 						? Liferay.Language.get(
 								'enter-the-email-addresses-of-the-people-you-would-like-to-invite-to-liferay-data-platform.-separate-each-address-by-space-or-comma'
 							)

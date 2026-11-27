@@ -53,7 +53,7 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 	const [, setLoading] = useState(false);
 	const {groupId = '', id = ''} = useParams<{groupId: string; id: string}>();
 	const currentUser = useCurrentUser();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const [token, setToken] = useState('');
 
 	const {display, label} = getDataSourceDisplayObject(dataSource);
@@ -106,7 +106,7 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 	useEffect(() => {
 		const alert: Alert = {
 			displayType: 'success',
-			message: LDPEnabled
+			message: ldpEnabled
 				? Liferay.Language.get(
 						'you-have-successfully-authenticated-your-token-with-liferay-data-platform.-you-can-now-select-the-data-to-sync'
 					)
@@ -132,7 +132,7 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 		}
 
 		setAlert(alert);
-	}, [LDPEnabled, dataSource, dataSourceActive]);
+	}, [ldpEnabled, dataSource, dataSourceActive]);
 
 	let _tokenRequest:
 		| ReturnType<typeof setTimeout>
@@ -210,7 +210,7 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 						<>
 							<div className="mb-4">
 								<Text color="secondary" size={4}>
-									{LDPEnabled
+									{ldpEnabled
 										? Liferay.Language.get(
 												'to-reestablish-the-connection-between-the-liferay-dxp-instance-and-liferay-data-platform,-copy-the-token-below-and-go-to-dxp-instance-settings-liferay-data-platform-to-continue-the-data-source-configuration'
 											)
@@ -233,7 +233,7 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 
 							<label htmlFor="token">
 								<Text weight="semi-bold">
-									{LDPEnabled
+									{ldpEnabled
 										? Liferay.Language.get(
 												'liferay-data-platform-token'
 											)

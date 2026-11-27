@@ -27,7 +27,7 @@ const TypeTrendWithData = compose<any>(
 const TypeTrendCard: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 	const {channelId, groupId = ''} = useParams();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<Card
@@ -38,7 +38,7 @@ const TypeTrendCard: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 				<TypeTrendWithData
 					channelId={channelId}
 					interval={INTERVAL_KEY_MAP.week}
-					ldpEnabled={LDPEnabled}
+					ldpEnabled={ldpEnabled}
 					rangeSelectors={{rangeKey: RangeKeyTimeRanges.Last30Days}}
 				/>
 			</Card.Body>

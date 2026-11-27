@@ -12,7 +12,7 @@ type IDayListProps = {
 	individualUrls?: Record<string, string>;
 	initialExpanded?: boolean;
 	items?: TimelineDay[];
-	LDPEnabled?: boolean;
+	ldpEnabled?: boolean;
 	onCampaignDeltaChange?: (date: string, delta: number) => void;
 	onCampaignPageChange?: (date: string, page: number) => void;
 	timeZoneId: string;
@@ -24,7 +24,7 @@ const DayList: FC<IDayListProps> = ({
 	individualUrls,
 	initialExpanded,
 	items = [],
-	LDPEnabled = true,
+	ldpEnabled = true,
 	onCampaignDeltaChange,
 	onCampaignPageChange,
 	timeZoneId,
@@ -69,7 +69,7 @@ const DayList: FC<IDayListProps> = ({
 							<VerticalTimeline
 								initialExpanded={initialExpanded}
 								items={dayItems}
-								LDPEnabled={LDPEnabled}
+								ldpEnabled={ldpEnabled}
 								timeZoneId={timeZoneId}
 							/>
 						</ActivitySection>

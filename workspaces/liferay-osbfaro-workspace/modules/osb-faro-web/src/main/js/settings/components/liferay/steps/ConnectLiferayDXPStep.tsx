@@ -29,7 +29,7 @@ const ConnectLiferayDXPStep = ({
 	onNext,
 }: IConnectLiferayDXPStepProps) => {
 	const {dataSource, refetchDataSource} = useWizardPage();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const modal = useModal();
 	const {dataSourceId} = useQueryParams();
 	const history = useHistoryAdapter();
@@ -174,7 +174,7 @@ const ConnectLiferayDXPStep = ({
 						'there-was-an-error-processing-your-request.-try-again.-if-the-problem-persists,-please-contact-support'
 					)}
 					message={
-						LDPEnabled
+						ldpEnabled
 							? Liferay.Language.get(
 									'this-action-will-stop-syncing-data-from-this-data-source-to-this-liferay-data-platform-workspace.-the-data-that-was-already-synced-will-remain-available-in-the-properties-the-data-source-was-connected-to.-are-you-sure-you-want-to-continue'
 								)

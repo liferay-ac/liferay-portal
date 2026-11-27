@@ -13,7 +13,7 @@ export const LDPElement: React.FC<ILDPElementProps> = ({
 }) => {
 	const {groupId} = usePageConfig();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
-	return <>{LDPEnabled ? children : fallback}</>;
+	return <>{ldpEnabled ? children : fallback}</>;
 };

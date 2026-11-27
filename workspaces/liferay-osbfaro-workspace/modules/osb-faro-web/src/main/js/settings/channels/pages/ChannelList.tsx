@@ -113,7 +113,7 @@ const ChannelList: React.FC<IChannelListProps> = ({
 
 	const currentUser = useCurrentUser();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const {timeZoneId} = useTimeZone();
 
@@ -313,7 +313,7 @@ const ChannelList: React.FC<IChannelListProps> = ({
 				pageDescription={
 					<>
 						<div>
-							{LDPEnabled
+							{ldpEnabled
 								? Liferay.Language.get(
 										'liferay-data-platform-allows-for-customized-user-access-settings-per-property-managed'
 									)

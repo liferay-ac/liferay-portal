@@ -52,7 +52,7 @@ const InterestTopics: React.FC<IInterestTopicsProps> = ({
 	groupId,
 }) => {
 	const currentUser = useCurrentUser();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const {timeZoneId} = useTimeZone();
 	const {selectedItems, selectionDispatch} = useSelectionContext();
 
@@ -261,7 +261,7 @@ const InterestTopics: React.FC<IInterestTopicsProps> = ({
 					'approximates-what-topics-individuals-are-interested-in-based-on-their-interactions-with-registered-touchpoints'
 				)}
 				<br />
-				{LDPEnabled
+				{ldpEnabled
 					? Liferay.Language.get(
 							'liferay-data-platform-automatically-associates-registered-touchpoints-with-keywords-based-on-their-meta-tags-titles-and-descriptions'
 						)
@@ -274,7 +274,7 @@ const InterestTopics: React.FC<IInterestTopicsProps> = ({
 				{Liferay.Language.get('keywords-blocklist')}
 			</div>
 			<p>
-				{LDPEnabled
+				{ldpEnabled
 					? Liferay.Language.get(
 							'keywords-can-be-excluded-by-adding-them-to-a-blocklist-manage-the-keywords-that-you-dont-want-listed-in-liferay-data-platform-and-dont-want-them-to-be-used-to-generate-content-recommendation-in-liferay-dxp'
 						)

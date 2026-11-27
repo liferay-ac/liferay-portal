@@ -10,7 +10,7 @@ interface IWelcomeProps {
 }
 
 const Welcome: React.FC<IWelcomeProps> = ({groupId = '', onNext}) => {
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<div className="pt-4">
@@ -30,7 +30,7 @@ const Welcome: React.FC<IWelcomeProps> = ({groupId = '', onNext}) => {
 				</h2>
 
 				<span className="d-block mb-4 text-secondary">
-					{LDPEnabled
+					{ldpEnabled
 						? Liferay.Language.get(
 								'we-ve-upgraded-your-liferay-data-platform-workspace-to-include-properties'
 							)

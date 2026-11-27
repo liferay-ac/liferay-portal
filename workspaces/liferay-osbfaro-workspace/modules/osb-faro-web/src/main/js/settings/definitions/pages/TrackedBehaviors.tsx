@@ -14,7 +14,7 @@ export const TrackedBehaviors: React.FC<ITrackedBehaviorsProps> = ({
 }) => {
 	const currentUser = useCurrentUser();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	return (
 		<BasePage
@@ -23,7 +23,7 @@ export const TrackedBehaviors: React.FC<ITrackedBehaviorsProps> = ({
 				{active: true, label: Liferay.Language.get('behaviors')},
 			]}
 			pageDescription={
-				LDPEnabled
+				ldpEnabled
 					? Liferay.Language.get(
 							'this-is-the-data-model-of-behaviors-tracked-within-liferay-data-platform.-instructions-for-tracking-third-party-assets-in-liferay-data-platform-are-provided-when-you-click-each-behavior.-click-and-conversion-goals-can-be-tracked-using-click-events'
 						)

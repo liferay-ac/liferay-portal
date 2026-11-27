@@ -92,7 +92,7 @@ export const IndividualProfileRoutesCDP = ({
 }: IIndividualProfileRoutesCDPProps) => {
 	const dataSourceStates = useDataSources();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const {selectedChannel} = useContext(ChannelContext);
 
@@ -131,7 +131,7 @@ export const IndividualProfileRoutesCDP = ({
 					breadcrumbs.getIndividuals({
 						channelId,
 						groupId,
-						LDPEnabled,
+						ldpEnabled,
 					}),
 					breadcrumbs.getEntityName({label: entityName}),
 				]}

@@ -37,7 +37,7 @@ const ReviewSyncedDataFragment: React.FC<IReviewSyncedDataFragmentProps> = ({
 }) => {
 	const {groupId = ''} = useParams();
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const getLabelProps = (selected: boolean) =>
 		selected
@@ -121,7 +121,7 @@ const ReviewSyncedDataFragment: React.FC<IReviewSyncedDataFragmentProps> = ({
 							{Liferay.Language.get('sites')}
 						</ClayList.ItemTitle>
 						<ClayList.ItemText>
-							{LDPEnabled
+							{ldpEnabled
 								? Liferay.Language.get(
 										'represents-the-sites-synced-from-liferay-portal,-under-dxp-instance-settings-liferay-data-platform'
 									)
@@ -158,7 +158,7 @@ const ReviewSyncedDataFragment: React.FC<IReviewSyncedDataFragmentProps> = ({
 							{Liferay.Language.get('individuals')}
 						</ClayList.ItemTitle>
 						<ClayList.ItemText>
-							{LDPEnabled
+							{ldpEnabled
 								? Liferay.Language.get(
 										'represents-the-fields-synced-from-the-contact-object-within-liferay-portal,-under-dxp-instance-settings-liferay-data-platform'
 									)

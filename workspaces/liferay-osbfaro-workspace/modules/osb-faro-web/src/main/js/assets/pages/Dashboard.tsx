@@ -61,7 +61,7 @@ const AssetDashboard: React.FC<{
 
 	const descriptor = getAssetDescriptorBySlug(slug);
 
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 
 	const NAV_ITEMS = [
 		{
@@ -69,7 +69,7 @@ const AssetDashboard: React.FC<{
 			label: Liferay.Language.get('overview'),
 			route: Routes.ASSETS_DASHBOARD_OVERVIEW,
 		},
-		...(LDPEnabled
+		...(ldpEnabled
 			? [
 					{
 						exact: true,
@@ -167,7 +167,7 @@ const AssetDashboard: React.FC<{
 			{tabId !== ACCOUNTS_TAB_ID &&
 				tabId !== KNOWN_INDIVIDUALS_TAB_ID && (
 					<BasePage.SubHeader>
-						{LDPEnabled && (
+						{ldpEnabled && (
 							<AccountDropdown
 								assetType={graphQLType}
 								className="mr-3"
@@ -178,7 +178,7 @@ const AssetDashboard: React.FC<{
 							/>
 						)}
 
-						{LDPEnabled && (
+						{ldpEnabled && (
 							<SegmentDropdown
 								initialSegmentId={segmentId}
 								initialSegmentName={segmentName}

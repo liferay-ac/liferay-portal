@@ -40,7 +40,7 @@ const IndividualAttributes: React.FC<IIndividualAttributesProps> = ({
 	groupId,
 }) => {
 	const currentUser = useCurrentUser();
-	const LDPEnabled = useLDPEnabled({groupId});
+	const ldpEnabled = useLDPEnabled({groupId});
 	const {timeZoneId} = useTimeZone();
 
 	const attributesModal = useModal();
@@ -89,7 +89,7 @@ const IndividualAttributes: React.FC<IIndividualAttributesProps> = ({
 			]}
 			className="individual-attributes-root"
 			pageDescription={
-				LDPEnabled
+				ldpEnabled
 					? Liferay.Language.get(
 							'this-is-the-data-model-of-an-individual.-liferay-data-platform-will-take-and-store-the-newest-data-from-all-your-sources'
 						)
