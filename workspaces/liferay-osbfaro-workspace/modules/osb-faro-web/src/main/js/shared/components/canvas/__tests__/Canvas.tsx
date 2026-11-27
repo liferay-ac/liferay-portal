@@ -1,6 +1,6 @@
 import Canvas from '../Canvas';
 import React from 'react';
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 
 const EMPTY_STATE = {
 	description: 'Drop something here.',
@@ -86,9 +86,7 @@ describe('Canvas.EmptyState', () => {
 	it('swaps to the reduced motion illustration when it is enabled', async () => {
 		const {container} = render(<Canvas.EmptyState {...EMPTY_STATE} />);
 
-		act(() => {
-			document.body.classList.add('c-prefers-reduced-motion');
-		});
+		document.body.classList.add('c-prefers-reduced-motion');
 
 		await waitFor(() => {
 			const images = container.querySelectorAll('img');
