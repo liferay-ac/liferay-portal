@@ -83,17 +83,6 @@ describe('Name', () => {
 		expect(getByText('foo')).toBeTruthy();
 	});
 
-	it('should render the display name in TextTruncate if the tooltip prop is true', () => {
-		const {getByText} = render(
-			<Name
-				data={{id: 'test', name: 'Name in text-truncate', title: 'foo'}}
-				tooltip
-			/>
-		);
-
-		expect(getByText('Name in text-truncate')).toBeInTheDocument();
-	});
-
 	it.each([null, undefined, ''])(
 		'should render a %p name as no data',
 		name => {

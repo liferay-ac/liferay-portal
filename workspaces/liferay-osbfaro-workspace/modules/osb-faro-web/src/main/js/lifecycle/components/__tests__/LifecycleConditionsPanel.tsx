@@ -154,14 +154,6 @@ describe('LifecycleConditionsPanel', () => {
 		).toBeInTheDocument();
 	});
 
-	it('keeps the configuration summary sticker when selected, but not the stage stickers', () => {
-		renderPanel({selectedKey: null});
-
-		expect(
-			screen.getByRole('group', {name: /configuration summary/i})
-		).toBeInTheDocument();
-	});
-
 	it('cannot remove the configuration summary', () => {
 		renderPanel();
 

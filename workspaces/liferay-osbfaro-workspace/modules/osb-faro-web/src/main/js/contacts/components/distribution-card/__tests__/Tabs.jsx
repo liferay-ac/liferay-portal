@@ -20,7 +20,7 @@ describe('DistributionCard Tabs', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	it('renders w/ Add button as selected', () => {
+	it('renders w/ Add button expanded', () => {
 		const {getByRole} = render(
 			<Tabs
 				itemsIList={
@@ -32,7 +32,7 @@ describe('DistributionCard Tabs', () => {
 		);
 
 		expect(getByRole('button', {name: /^add$/i})).toHaveAttribute(
-			'aria-pressed',
+			'aria-expanded',
 			'true'
 		);
 	});

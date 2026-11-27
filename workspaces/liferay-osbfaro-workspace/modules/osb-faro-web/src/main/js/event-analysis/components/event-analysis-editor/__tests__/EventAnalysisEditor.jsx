@@ -65,7 +65,6 @@ describe('Event Analysis Editor', () => {
 			const button = getByRole('button', {name});
 
 			expect(button).toHaveAttribute('aria-pressed', 'false');
-			expect(button).toHaveAttribute('aria-pressed', 'false');
 		}
 	});
 
