@@ -1,5 +1,5 @@
 import * as API from 'shared/api';
-import * as useStatefulPaginationModule from 'shared/hooks/useStatefulPagination';
+import {useStatefulPagination} from 'shared/hooks/useStatefulPagination';
 
 import IndividualsList from '../IndividualsList';
 import React from 'react';
@@ -7,8 +7,7 @@ import {AccountTypes} from 'segment/segment-editor/dynamic/utils/constants';
 import {createOrderIOMap, NAME} from 'shared/util/pagination';
 import {Map, Set} from 'immutable';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
-import {fireEvent, render} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import {fireEvent, render} from 'test/render';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 jest.mock('react-router-dom', () => ({
@@ -19,8 +18,22 @@ jest.mock('react-router-dom', () => ({
 	}),
 }));
 
+const {useStatefulPagination: actualUseStatefulPagination} = jest.requireActual(
+	'shared/hooks/useStatefulPagination'
+);
+
+jest.mock('shared/hooks/useStatefulPagination', () => ({
+	...jest.requireActual('shared/hooks/useStatefulPagination'),
+	useStatefulPagination: jest.fn(),
+}));
+
+const mockedUseStatefulPagination = useStatefulPagination as jest.Mock;
+
 describe('Individuals List', () => {
 	beforeEach(() => {
+		mockedUseStatefulPagination.mockImplementation(
+			actualUseStatefulPagination
+		);
 
 		// @ts-ignore
 		API.individuals.fetchFieldValues.mockReturnValue(
@@ -77,11 +90,7 @@ describe('Individuals List', () => {
 			})
 		);
 
-		const {getByText} = render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		const {getByText} = render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -96,11 +105,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -121,11 +126,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		const {getByText} = render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		const {getByText} = render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -149,11 +150,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		render(
-			<MemoryRouter>
-				<IndividualsList campaignId="7" />
-			</MemoryRouter>
-		);
+		render(<IndividualsList campaignId="7" />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -170,9 +167,7 @@ describe('Individuals List', () => {
 		);
 
 		const {getByText, queryByText} = render(
-			<MemoryRouter>
-				<IndividualsList campaignId="7" onClearFilters={jest.fn()} />
-			</MemoryRouter>
+			<IndividualsList campaignId="7" onClearFilters={jest.fn()} />
 		);
 
 		await waitForLoadingToBeRemoved(document.body);
@@ -196,12 +191,7 @@ describe('Individuals List', () => {
 		);
 
 		const {getByText} = render(
-			<MemoryRouter>
-				<IndividualsList
-					campaignId="7"
-					onClearFilters={onClearFilters}
-				/>
-			</MemoryRouter>
+			<IndividualsList campaignId="7" onClearFilters={onClearFilters} />
 		);
 
 		await waitForLoadingToBeRemoved(document.body);
@@ -218,11 +208,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -241,29 +227,23 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		const spy = jest
-			.spyOn(useStatefulPaginationModule, 'useStatefulPagination')
-			.mockReturnValue({
-				delta: 20,
-				filterBy: Map({
-					activeUsers: Set([RangeKeyTimeRanges.Last7Days]),
-				}) as any,
-				onDeltaChange: jest.fn(),
-				onFilterByChange: jest.fn(),
-				onOrderIOMapChange: jest.fn(),
-				onPageChange: jest.fn(),
-				onQueryChange: jest.fn(),
-				orderIOMap: createOrderIOMap(NAME),
-				page: 1,
-				query: '',
-				resetPage: jest.fn(),
-			});
+		mockedUseStatefulPagination.mockReturnValue({
+			delta: 20,
+			filterBy: Map({
+				activeUsers: Set([RangeKeyTimeRanges.Last7Days]),
+			}) as any,
+			onDeltaChange: jest.fn(),
+			onFilterByChange: jest.fn(),
+			onOrderIOMapChange: jest.fn(),
+			onPageChange: jest.fn(),
+			onQueryChange: jest.fn(),
+			orderIOMap: createOrderIOMap(NAME),
+			page: 1,
+			query: '',
+			resetPage: jest.fn(),
+		});
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -272,8 +252,6 @@ describe('Individuals List', () => {
 				rangeKey: 7,
 			})
 		);
-
-		spy.mockRestore();
 	});
 
 	it('passes null rangeKey when activeUsers filter is cleared', async () => {
@@ -281,29 +259,23 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		const spy = jest
-			.spyOn(useStatefulPaginationModule, 'useStatefulPagination')
-			.mockReturnValue({
-				delta: 20,
-				filterBy: Map({
-					activeUsers: Set([]),
-				}) as any,
-				onDeltaChange: jest.fn(),
-				onFilterByChange: jest.fn(),
-				onOrderIOMapChange: jest.fn(),
-				onPageChange: jest.fn(),
-				onQueryChange: jest.fn(),
-				orderIOMap: createOrderIOMap(NAME),
-				page: 1,
-				query: '',
-				resetPage: jest.fn(),
-			});
+		mockedUseStatefulPagination.mockReturnValue({
+			delta: 20,
+			filterBy: Map({
+				activeUsers: Set([]),
+			}) as any,
+			onDeltaChange: jest.fn(),
+			onFilterByChange: jest.fn(),
+			onOrderIOMapChange: jest.fn(),
+			onPageChange: jest.fn(),
+			onQueryChange: jest.fn(),
+			orderIOMap: createOrderIOMap(NAME),
+			page: 1,
+			query: '',
+			resetPage: jest.fn(),
+		});
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -312,8 +284,6 @@ describe('Individuals List', () => {
 				rangeKey: null,
 			})
 		);
-
-		spy.mockRestore();
 	});
 
 	it('passes the selected account types to the search API', async () => {
@@ -321,29 +291,23 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		const spy = jest
-			.spyOn(useStatefulPaginationModule, 'useStatefulPagination')
-			.mockReturnValue({
-				delta: 20,
-				filterBy: Map({
-					accountTypes: Set([AccountTypes.UNKNOWN]),
-				}) as any,
-				onDeltaChange: jest.fn(),
-				onFilterByChange: jest.fn(),
-				onOrderIOMapChange: jest.fn(),
-				onPageChange: jest.fn(),
-				onQueryChange: jest.fn(),
-				orderIOMap: createOrderIOMap(NAME),
-				page: 1,
-				query: '',
-				resetPage: jest.fn(),
-			});
+		mockedUseStatefulPagination.mockReturnValue({
+			delta: 20,
+			filterBy: Map({
+				accountTypes: Set([AccountTypes.UNKNOWN]),
+			}) as any,
+			onDeltaChange: jest.fn(),
+			onFilterByChange: jest.fn(),
+			onOrderIOMapChange: jest.fn(),
+			onPageChange: jest.fn(),
+			onQueryChange: jest.fn(),
+			orderIOMap: createOrderIOMap(NAME),
+			page: 1,
+			query: '',
+			resetPage: jest.fn(),
+		});
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -352,8 +316,6 @@ describe('Individuals List', () => {
 				accountTypes: [AccountTypes.UNKNOWN],
 			})
 		);
-
-		spy.mockRestore();
 	});
 
 	it('does not pass accountTypes to the search API when no account type is selected', async () => {
@@ -361,11 +323,7 @@ describe('Individuals List', () => {
 			Promise.resolve({items: [], total: 0})
 		);
 
-		render(
-			<MemoryRouter>
-				<IndividualsList />
-			</MemoryRouter>
-		);
+		render(<IndividualsList />);
 
 		await waitForLoadingToBeRemoved(document.body);
 

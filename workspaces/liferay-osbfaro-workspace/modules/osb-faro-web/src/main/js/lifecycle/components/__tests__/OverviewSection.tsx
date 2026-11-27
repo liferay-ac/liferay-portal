@@ -1,6 +1,6 @@
 import OverviewSection from '../OverviewSection';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render} from 'test/render';
 import {IOverviewMetric, OverviewMetricType} from '../../utils/types';
 import {TrendClassification} from 'segment/types';
 

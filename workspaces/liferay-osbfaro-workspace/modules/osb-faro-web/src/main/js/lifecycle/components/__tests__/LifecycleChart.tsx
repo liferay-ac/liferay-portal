@@ -1,6 +1,6 @@
 import LifecycleChart from '../LifecycleChart';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {cleanup, fireEvent, render, screen} from 'test/render';
 import {ILifecycleStage} from 'lifecycle/utils/types';
 import {
 	LifecycleContextProvider,

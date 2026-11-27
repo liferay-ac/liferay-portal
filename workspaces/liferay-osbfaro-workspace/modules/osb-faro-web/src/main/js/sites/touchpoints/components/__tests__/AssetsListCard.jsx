@@ -1,10 +1,7 @@
 import AssetsListCard from '../AssetsListCard';
 import BasePage from 'shared/components/base-page';
-import client from 'shared/apollo/client';
 import React from 'react';
-import {ApolloProvider} from '@apollo/client';
-import {BrowserRouter} from 'react-router-dom';
-import {render} from '@testing-library/react';
+import {render} from 'test/render';
 
 const items = [
 	{
@@ -86,27 +83,25 @@ describe('AssetsListCard', () => {
 		}
 	};
 
-	const WrappedComponent = props => (
-		<ApolloProvider client={client}>
-			<BasePage.Context.Provider value={MOCK_CONTEXT}>
-				<BrowserRouter>
-					<AssetsListCard
-						{...props}
-						rangeSelectors={{rangeKey: '30'}}
-					/>
-				</BrowserRouter>
-			</BasePage.Context.Provider>
-		</ApolloProvider>
+	const BasePageContext = ({children}) => (
+		<BasePage.Context.Provider value={MOCK_CONTEXT}>
+			{children}
+		</BasePage.Context.Provider>
 	);
 
+	const renderCard = props =>
+		render(<AssetsListCard {...props} rangeSelectors={{rangeKey: '30'}} />, {
+			wrapper: BasePageContext
+		});
+
 	it('should render component', () => {
-		const {container} = render(<WrappedComponent />);
+		const {container} = renderCard();
 
 		expect(container).toMatchSnapshot();
 	});
 
 	it('should render component with items', () => {
-		const {container} = render(<WrappedComponent items={items} />);
+		const {container} = renderCard({items});
 
 		expect(container).toMatchSnapshot();
 	});

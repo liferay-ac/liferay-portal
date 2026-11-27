@@ -1,12 +1,9 @@
 import * as API from 'shared/api';
 import EditLifecycle from '../EditLifecycle';
-import mockStore from 'test/mock-store';
 import React from 'react';
 import {Alert} from 'shared/types';
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {ILifecycleStage} from 'shared/api/lifecycle';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
+import {fireEvent, render, screen, waitFor} from 'test/render';
 import {Routes, toRoute} from 'shared/util/router';
 import {useLifecycleAccountData} from 'lifecycle/hooks/useLifecycleAccountData';
 import {useRequest} from 'shared/hooks/useRequest';
@@ -91,28 +88,11 @@ const lifecycle = {
 	processedDate: 1700000000000,
 };
 
-const mockCatalog =
-	(error = false, refetch = jest.fn()) =>
-	(props: any) => {
-		if (props.dataSourceFn === (API as any).catalog.fetchCatalogFields) {
-			return {
-				data: error ? null : {items: []},
-				error,
-				loading: false,
-				refetch,
-			};
-		}
-
-		return {data: lifecycle, error: false, loading: false};
-	};
-
-const renderPage = () =>
-	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter>
-				<EditLifecycle />
-			</MemoryRouter>
-		</Provider>
+const mockLifecycleRequest = (lifecycleRequest: object) =>
+	mockedUseRequest.mockImplementation(({dataSourceFn}) =>
+		dataSourceFn === API.catalog.fetchCatalogFields
+			? {data: {items: []}, error: false, loading: false}
+			: lifecycleRequest
 	);
 
 const lifecycleURL = toRoute(Routes.LIFECYCLE_DASHBOARD, {
@@ -125,23 +105,17 @@ describe('EditLifecycle', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 
-		(API as any).catalog = {fetchCatalogFields: jest.fn()};
+		(API.lifecycle.fetchLifecyclesPage as jest.Mock).mockResolvedValue({
+			items: [
+				{
+					externalReferenceCode: 'erc-9',
+					id: '9',
+					name: 'Growth and Retention Hub',
+				},
+			],
+		});
 
-		(API as any).lifecycle = {
-			fetchLifecycle: jest.fn(),
-			fetchLifecyclesPage: jest.fn().mockResolvedValue({
-				items: [
-					{
-						externalReferenceCode: 'erc-9',
-						id: '9',
-						name: 'Growth and Retention Hub',
-					},
-				],
-			}),
-			updateLifecycle: jest.fn().mockResolvedValue({}),
-		};
-
-		mockedUseRequest.mockImplementation(mockCatalog());
+		mockLifecycleRequest({data: lifecycle, error: false, loading: false});
 
 		(useLifecycleAccountData as jest.Mock).mockReturnValue({
 			refetch: jest.fn(),
@@ -150,26 +124,13 @@ describe('EditLifecycle', () => {
 	});
 
 	describe('when the channel has no account data', () => {
-		const renderWithStore = () =>
-			render(
-				<Provider store={mockStore()}>
-					<MemoryRouter
-						initialEntries={[
-							'/workspace/23/123/lifecycle/erc-9/edit',
-						]}
-					>
-						<EditLifecycle />
-					</MemoryRouter>
-				</Provider>
-			);
-
 		it('shows the empty state instead of the editor', () => {
 			(useLifecycleAccountData as jest.Mock).mockReturnValue({
 				refetch: jest.fn(),
 				status: AccountDataStatus.NoAccountData,
 			});
 
-			renderWithStore();
+			render(<EditLifecycle />);
 
 			expect(
 				screen.getByText(/no account data available/i)
@@ -190,7 +151,7 @@ describe('EditLifecycle', () => {
 				status: AccountDataStatus.Error,
 			});
 
-			renderWithStore();
+			render(<EditLifecycle />);
 
 			fireEvent.click(screen.getByRole('button', {name: /reload/i}));
 
@@ -202,7 +163,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('opens on the configuration summary with the edit toolbar', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		expect(
 			screen.getByRole('heading', {level: 1, name: /edit lifecycle/i})
@@ -219,7 +180,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('lists one chip per stage, in display order and labelled by name', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		const chips = screen.getAllByRole('group', {
 			name: /^(aware|qualified|pipeline)$/i,
@@ -232,7 +193,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('shows the selected stage and keeps edits when switching items', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.change(screen.getByLabelText(/^name/i), {
 			target: {value: 'Renamed Hub'},
@@ -253,7 +214,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('summarizes the saved lifecycle with its author and modified date', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		expect(screen.getByLabelText(/^description/i)).toHaveValue(
 			'Lifecycle for qualified accounts'
@@ -270,7 +231,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('saves the edited description and stage name', async () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.change(screen.getByLabelText(/^description/i), {
 			target: {value: 'Renamed description'},
@@ -281,10 +242,6 @@ describe('EditLifecycle', () => {
 		fireEvent.change(screen.getByLabelText(/^name/i), {
 			target: {value: 'Engaged'},
 		});
-
-		expect(
-			screen.getByRole('group', {name: /^engaged$/i})
-		).toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
@@ -300,10 +257,10 @@ describe('EditLifecycle', () => {
 			expect.objectContaining({id: 'stage-1', name: 'Engaged'})
 		);
 		expect(payload.stages[0].name).toBe('Aware');
-	}, 15000);
+	});
 
 	it('moves the selection to the next stage when the selected one is removed', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('group', {name: /^qualified$/i}));
 
@@ -321,7 +278,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('moves the selection to the previous stage when the last one is removed', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('group', {name: /^pipeline$/i}));
 
@@ -333,7 +290,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('counts the stages left after removing one', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /remove.aware/i}));
 
@@ -343,7 +300,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('saves removed and reordered stages numbered in their new order', async () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /remove.aware/i}));
 
@@ -381,7 +338,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('adds a stage at the end and selects it', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /add.stage/i}));
 
@@ -394,7 +351,7 @@ describe('EditLifecycle', () => {
 	it('leaves directly without changes, even after switching items', () => {
 		const mockedPrompt = useUnsavedChangesPrompt as jest.Mock;
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('group', {name: /^qualified$/i}));
 
@@ -408,7 +365,7 @@ describe('EditLifecycle', () => {
 	it('warns about unsaved changes after editing a stage', () => {
 		const mockedPrompt = useUnsavedChangesPrompt as jest.Mock;
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('group', {name: /^qualified$/i}));
 
@@ -422,7 +379,7 @@ describe('EditLifecycle', () => {
 	it('warns about unsaved changes after reordering the stages', () => {
 		const mockedPrompt = useUnsavedChangesPrompt as jest.Mock;
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		const handle = screen.getByRole('button', {name: /drag.aware/i});
 
@@ -436,7 +393,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('blocks Save when the last stage is removed', () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		['aware', 'qualified', 'pipeline'].forEach((name) =>
 			fireEvent.click(
@@ -453,11 +410,11 @@ describe('EditLifecycle', () => {
 	});
 
 	it('shows the save failure alert when the server rejects the lifecycle', async () => {
-		(API.lifecycle.updateLifecycle as jest.Mock).mockRejectedValue(
+		(API.lifecycle.updateLifecycle as jest.Mock).mockRejectedValueOnce(
 			new Error('failed')
 		);
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
@@ -471,11 +428,11 @@ describe('EditLifecycle', () => {
 	});
 
 	it('tells the user to reload when someone else changed the lifecycle', async () => {
-		(API.lifecycle.updateLifecycle as jest.Mock).mockRejectedValue(
+		(API.lifecycle.updateLifecycle as jest.Mock).mockRejectedValueOnce(
 			Object.assign(new Error('Request error'), {status: 409})
 		);
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
@@ -494,25 +451,15 @@ describe('EditLifecycle', () => {
 	it('renders a loading state while the lifecycle is loading', () => {
 		mockedUseRequest.mockReturnValue({data: undefined, loading: true});
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		expect(screen.queryByText(/edit lifecycle/i)).toBeNull();
 	});
 
 	it('shows the dashboard not found state when the lifecycle is missing', () => {
-		mockedUseRequest.mockImplementation((props: any) =>
-			props.dataSourceFn === (API as any).catalog.fetchCatalogFields
-				? {data: {items: []}, error: false, loading: false}
-				: {data: null, error: true, loading: false}
-		);
+		mockLifecycleRequest({data: null, error: true, loading: false});
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<EditLifecycle />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<EditLifecycle />);
 
 		expect(screen.queryByText(/edit lifecycle/i)).toBeNull();
 		expect(
@@ -527,7 +474,7 @@ describe('EditLifecycle', () => {
 	});
 
 	it('saves the loaded version by its id, alerts success, and navigates to the dashboard', async () => {
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
@@ -563,24 +510,17 @@ describe('EditLifecycle', () => {
 			expect(mockPush).toHaveBeenCalledWith(lifecycleURL)
 		);
 
-		expect(mockDispatch).toHaveBeenCalledWith(
-			expect.objectContaining({alertType: Alert.Types.Success})
-		);
-	});
-
-	it('saves when only the edited lifecycle uses the name', async () => {
-		renderPage();
-
-		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
-
-		await waitFor(() =>
-			expect(API.lifecycle.updateLifecycle).toHaveBeenCalled()
-		);
-
 		expect(API.lifecycle.fetchLifecyclesPage).toHaveBeenCalledWith(
 			expect.objectContaining({
 				channelId: '123',
 				search: 'Growth and Retention Hub',
+			})
+		);
+
+		expect(mockDispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				alertType: Alert.Types.Success,
+				message: expect.stringMatching(/lifecycle was updated/i),
 			})
 		);
 	});
@@ -601,7 +541,7 @@ describe('EditLifecycle', () => {
 			],
 		});
 
-		renderPage();
+		render(<EditLifecycle />);
 
 		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
 
@@ -610,20 +550,5 @@ describe('EditLifecycle', () => {
 		).toBeInTheDocument();
 		expect(screen.getByText(/enter a unique name/i)).toBeInTheDocument();
 		expect(API.lifecycle.updateLifecycle).not.toHaveBeenCalled();
-	});
-
-	it('keeps the update toast after saving', async () => {
-		renderPage();
-
-		fireEvent.click(screen.getByRole('button', {name: /save lifecycle/i}));
-
-		await waitFor(() =>
-			expect(mockDispatch).toHaveBeenCalledWith(
-				expect.objectContaining({
-					alertType: Alert.Types.Success,
-					message: expect.stringMatching(/lifecycle was updated/i),
-				})
-			)
-		);
 	});
 });

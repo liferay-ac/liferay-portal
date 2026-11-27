@@ -1,10 +1,7 @@
-import mockStore from 'test/mock-store';
 import React from 'react';
 import TouchpointRoutes from '../TouchpointRoutes';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
 import {getMatchedRoute, Routes} from 'shared/util/router';
-import {render, screen} from '@testing-library/react';
+import {render, screen} from 'test/render';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 
 jest.mock('shared/components/download-report/DownloadCSVReport', () => ({
@@ -67,6 +64,8 @@ jest.mock('shared/components/SegmentDropdown', () => ({
 }));
 
 jest.mock('shared/context/channel', () => ({
+	__esModule: true,
+	...jest.requireActual('shared/context/channel'),
 	useChannelContext: () => ({selectedChannel: {name: 'test channel'}})
 }));
 
@@ -114,11 +113,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(
@@ -146,11 +141,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('experience-dropdown')).toBeTruthy();
@@ -172,11 +163,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('experience-dropdown')).toBeNull();
@@ -198,11 +185,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByText(/^visitors$/i)).toBeTruthy();
@@ -224,11 +207,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByText(/^visitors$/i)).toBeNull();
@@ -250,11 +229,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByText(/^known individuals$/i)).toBeTruthy();
@@ -276,11 +251,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByText(/^known individuals$/i)).toBeNull();
@@ -303,11 +274,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('account-dropdown')).toBeTruthy();
@@ -330,11 +297,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.getByTestId('account-dropdown')).toHaveAttribute(
@@ -360,11 +323,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('account-dropdown')).toBeNull();
@@ -387,11 +346,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('account-dropdown')).toBeTruthy();
@@ -414,11 +369,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('account-dropdown')).toBeNull();
@@ -440,15 +391,9 @@ describe('TouchpointRoutes', () => {
 			query: {}
 		};
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter
-					initialEntries={['/?accountId=100&accountName=Account+100']}
-				>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<TouchpointRoutes router={router} />, {
+			route: '/?accountId=100&accountName=Account+100'
+		});
 
 		expect(screen.getByTestId('account-dropdown')).toHaveAttribute(
 			'data-initial-account-id',
@@ -476,15 +421,9 @@ describe('TouchpointRoutes', () => {
 			query: {}
 		};
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter
-					initialEntries={['/?accountId=100&accountName=Account+100']}
-				>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<TouchpointRoutes router={router} />, {
+			route: '/?accountId=100&accountName=Account+100'
+		});
 
 		expect(screen.getByTestId('account-dropdown')).toHaveAttribute(
 			'data-initial-account-id',
@@ -509,11 +448,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('segment-dropdown')).toBeTruthy();
@@ -536,11 +471,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('segment-dropdown')).toBeNull();
@@ -563,11 +494,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('segment-dropdown')).toBeTruthy();
@@ -590,11 +517,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('segment-dropdown')).toBeTruthy();
@@ -617,11 +540,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('segment-dropdown')).toBeNull();
@@ -643,15 +562,9 @@ describe('TouchpointRoutes', () => {
 			query: {}
 		};
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter
-					initialEntries={['/?segmentId=100&segmentName=Segment+100']}
-				>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<TouchpointRoutes router={router} />, {
+			route: '/?segmentId=100&segmentName=Segment+100'
+		});
 
 		expect(screen.getByTestId('segment-dropdown')).toHaveAttribute(
 			'data-initial-segment-id',
@@ -679,15 +592,9 @@ describe('TouchpointRoutes', () => {
 			query: {}
 		};
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter
-					initialEntries={['/?segmentId=100&segmentName=Segment+100']}
-				>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<TouchpointRoutes router={router} />, {
+			route: '/?segmentId=100&segmentName=Segment+100'
+		});
 
 		expect(screen.getByTestId('segment-dropdown')).toHaveAttribute(
 			'data-initial-segment-id',
@@ -711,15 +618,9 @@ describe('TouchpointRoutes', () => {
 			query: {}
 		};
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter
-					initialEntries={['/?accountId=100&accountName=Account+100']}
-				>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<TouchpointRoutes router={router} />, {
+			route: '/?accountId=100&accountName=Account+100'
+		});
 
 		const href = screen.getByText(/^path$/i).closest('a').getAttribute('href');
 
@@ -745,11 +646,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		const href = screen.getByText(/^path$/i).closest('a').getAttribute('href');
@@ -775,15 +672,9 @@ describe('TouchpointRoutes', () => {
 			query: {}
 		};
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter
-					initialEntries={['/?segmentId=100&segmentName=Segment+100']}
-				>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<TouchpointRoutes router={router} />, {
+			route: '/?segmentId=100&segmentName=Segment+100'
+		});
 
 		const href = screen.getByText(/^path$/i).closest('a').getAttribute('href');
 
@@ -808,11 +699,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		const href = screen.getByText(/^path$/i).closest('a').getAttribute('href');
@@ -841,11 +728,7 @@ describe('TouchpointRoutes', () => {
 		};
 
 		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<TouchpointRoutes router={router} />
-				</MemoryRouter>
-			</Provider>
+			<TouchpointRoutes router={router} />
 		);
 
 		expect(screen.queryByTestId('route-not-found')).toBeTruthy();
@@ -859,23 +742,19 @@ describe('TouchpointRoutes', () => {
 			'path'
 		]) {
 			const {unmount} = render(
-				<Provider store={mockStore()}>
-					<MemoryRouter>
-						<TouchpointRoutes
-							router={{
-								params: {
-									channelId: '1',
-									experienceId: '',
-									groupId: '2',
-									title: 'page',
-									touchpoint:
-										'http://example.com/web/site/home',
-									touchpointType
-								}
-							}}
-						/>
-					</MemoryRouter>
-				</Provider>
+				<TouchpointRoutes
+					router={{
+						params: {
+							channelId: '1',
+							experienceId: '',
+							groupId: '2',
+							title: 'page',
+							touchpoint:
+								'http://example.com/web/site/home',
+							touchpointType
+						}
+					}}
+				/>
 			);
 
 			expect(screen.queryByTestId('route-not-found')).toBeNull();

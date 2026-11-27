@@ -1,6 +1,6 @@
 import React from 'react';
 import TypeTrend, {TrendItem} from '../TypeTrend';
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, render} from 'test/render';
 
 describe('TypeTrend', () => {
 	afterEach(cleanup);

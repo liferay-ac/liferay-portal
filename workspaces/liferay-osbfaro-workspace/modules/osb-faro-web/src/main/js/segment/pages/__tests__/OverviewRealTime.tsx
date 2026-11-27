@@ -1,11 +1,8 @@
 import * as data from 'test/data';
-import mockStore from 'test/mock-store';
 import OverviewRealTime from '../OverviewRealTime';
 import React from 'react';
-import {Provider} from 'react-redux';
-import {render, screen} from '@testing-library/react';
+import {render, screen} from 'test/render';
 import {Segment} from 'shared/util/records';
-import {MemoryRouter} from 'react-router';
 
 jest.mock('shared/hooks/useTimeZone', () => ({
 	useTimeZone: () => ({
@@ -15,22 +12,18 @@ jest.mock('shared/hooks/useTimeZone', () => ({
 
 const renderOverviewRealTime = () =>
 	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter>
-				<OverviewRealTime
-					channelId="123"
-					groupId="23"
-					segment={
-						new Segment(
-							data.mockSegment(0, {
-								criteriaString:
-									"(demographics/middleName/value eq 'additionalName')",
-							})
-						)
-					}
-				/>
-			</MemoryRouter>
-		</Provider>
+		<OverviewRealTime
+			channelId="123"
+			groupId="23"
+			segment={
+				new Segment(
+					data.mockSegment(0, {
+						criteriaString:
+							"(demographics/middleName/value eq 'additionalName')",
+					})
+				)
+			}
+		/>
 	);
 
 describe('OverviewRealTime', () => {

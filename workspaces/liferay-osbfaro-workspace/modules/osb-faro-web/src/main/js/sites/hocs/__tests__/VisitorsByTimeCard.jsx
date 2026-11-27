@@ -1,16 +1,11 @@
 import BasePage from 'shared/components/base-page';
-import mockStore from 'test/mock-store';
 import React from 'react';
 import VisitorsByTimeCard, {
 	formatHour,
 	renderTooltip
 } from '../VisitorsByTimeCard';
-import {InMemoryCache} from '@apollo/client';
-import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
-import {MockedProvider} from '@apollo/client/testing';
 import {mockPreferenceReq, mockTimeRangeReq} from 'test/graphql-data';
-import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {render} from 'test/render';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 const MOCK_CONTEXT = {
@@ -26,36 +21,21 @@ const MOCK_CONTEXT = {
 	}
 };
 
-const WrappedComponent = props => (
-	<Provider store={mockStore()}>
-		<MemoryRouter initialEntries={['/workspace/2000/123']}>
-			<RouterRoutes>
-				<Route
-					element={
-						<BasePage.Context.Provider value={MOCK_CONTEXT}>
-							<MockedProvider
-								cache={
-									new InMemoryCache({
-										addTypename: false,
-										freezeResults: false
-									})
-								}
-								mocks={[mockTimeRangeReq(), mockPreferenceReq()]}
-							>
-								<VisitorsByTimeCard {...props} />
-							</MockedProvider>
-						</BasePage.Context.Provider>
-					}
-					path='/workspace/:groupId/:channelId/*'
-				/>
-			</RouterRoutes>
-		</MemoryRouter>
-	</Provider>
+const BasePageContext = ({children}) => (
+	<BasePage.Context.Provider value={MOCK_CONTEXT}>
+		{children}
+	</BasePage.Context.Provider>
 );
 
 describe('VisitorsByTimeCard', () => {
 	it('render', async () => {
-		const {container} = render(<WrappedComponent />);
+		const {container} = render(<VisitorsByTimeCard />, {
+			addTypename: false,
+			apolloMocks: [mockTimeRangeReq(), mockPreferenceReq()],
+			path: '/workspace/:groupId/:channelId/*',
+			route: '/workspace/2000/123',
+			wrapper: BasePageContext
+		});
 
 		await waitForLoadingToBeRemoved(container);
 

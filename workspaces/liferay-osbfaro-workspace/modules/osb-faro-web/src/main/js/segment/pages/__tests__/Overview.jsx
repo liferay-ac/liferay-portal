@@ -1,13 +1,8 @@
 import * as data from 'test/data';
-import client from 'shared/apollo/client';
-import mockStore from 'test/mock-store';
 import Overview from '../Overview';
 import React from 'react';
-import {ApolloProvider} from '@apollo/client';
-import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {render} from 'test/render';
 import {Segment} from 'shared/util/records';
-import {MemoryRouter} from 'react-router';
 import {waitForLoadingToBeRemoved} from 'test/helpers';
 
 const segment = new Segment(
@@ -45,13 +40,7 @@ jest.mock('shared/hooks/useTimeZone', () => ({
 describe('SegmentOverview', () => {
 	it('should render', async () => {
 		const {container} = render(
-			<Provider store={mockStore()}>
-				<ApolloProvider client={client}>
-					<MemoryRouter>
-						<Overview groupId='23' segment={segment} />
-					</MemoryRouter>
-				</ApolloProvider>
-			</Provider>
+			<Overview groupId='23' segment={segment} />
 		);
 
 		await waitForLoadingToBeRemoved(container).then(() => {
@@ -61,16 +50,10 @@ describe('SegmentOverview', () => {
 
 	it('should render the composition counts as processing while the membership is processing', async () => {
 		const {container} = render(
-			<Provider store={mockStore()}>
-				<ApolloProvider client={client}>
-					<MemoryRouter>
-						<Overview
-							groupId='23'
-							segment={segment.set('lastMembershipUpdateDate', null)}
-						/>
-					</MemoryRouter>
-				</ApolloProvider>
-			</Provider>
+			<Overview
+				groupId='23'
+				segment={segment.set('lastMembershipUpdateDate', null)}
+			/>
 		);
 
 		await waitForLoadingToBeRemoved(container);
