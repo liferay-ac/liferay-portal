@@ -1,7 +1,7 @@
 import FieldDropDown from '../FieldDropDown';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Map} from 'immutable';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -33,9 +33,7 @@ describe('FieldDropDown', () => {
 			</DefaultWrapper>
 		);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(container).toMatchSnapshot();
 	});
@@ -47,9 +45,7 @@ describe('FieldDropDown', () => {
 			</DefaultWrapper>
 		);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(getByText('FOO BAR')).toBeTruthy();
 	});
@@ -63,9 +59,7 @@ describe('FieldDropDown', () => {
 			</DefaultWrapper>
 		);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(getByText('foo')).toBeTruthy();
 		expect(getByText('450')).toBeTruthy();
