@@ -1,7 +1,7 @@
 import OverviewSection from '../OverviewSection';
 import React from 'react';
 import {CampaignMetricType, ICampaignMetric} from 'shared/api/campaigns';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
 import {RangeSelectors} from 'shared/types';
 import {TrendClassification} from 'segment/types';
@@ -45,8 +45,6 @@ const METRICS: ICampaignMetric[] = [
 const cardOf = (title: string) => screen.getByText(title).closest('.card')!;
 
 describe('OverviewSection', () => {
-	afterEach(cleanup);
-
 	it('should render the overview header and all four card titles', () => {
 		const {getByText} = render(
 			<OverviewSection metrics={[]} rangeSelectors={LAST_30_DAYS} />

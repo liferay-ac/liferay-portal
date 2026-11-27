@@ -1,6 +1,6 @@
 import IndividualsTouchedDataSet from '../IndividualsTouchedDataSet';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {warmFrontendDataSet} from 'test/warm-frontend-data-set';
 
@@ -34,8 +34,6 @@ describe('IndividualsTouchedDataSet', () => {
 	beforeEach(() => {
 		lastFDSProps = undefined;
 	});
-
-	afterEach(cleanup);
 
 	it('should render the FrontendDataSet with id "campaign-individuals-dataset"', () => {
 		renderDataSet();
