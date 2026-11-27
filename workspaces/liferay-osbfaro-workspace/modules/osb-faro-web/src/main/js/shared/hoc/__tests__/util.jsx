@@ -1,11 +1,9 @@
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {SafeResults, withEmpty, withError, withLoading} from '../util';
 import {MemoryRouter} from 'react-router';
 
 describe('HOC Util', () => {
-	afterEach(cleanup);
-
 	describe('SafeResults', () => {
 		it('should pass the children when error and loading are false', () => {
 			const {getByText} = render(

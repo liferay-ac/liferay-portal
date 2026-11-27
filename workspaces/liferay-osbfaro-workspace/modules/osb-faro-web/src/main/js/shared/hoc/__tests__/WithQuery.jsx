@@ -1,6 +1,6 @@
 import React from 'react';
 import withQuery from '../WithQuery';
-import {cleanup, render, waitFor} from '@testing-library/react';
+import {render, waitFor} from '@testing-library/react';
 
 const mockData = {test: 'pass'};
 const mockFailData = {test: 'fail'};
@@ -9,8 +9,6 @@ const request = jest.fn(() => Promise.resolve(mockData));
 const rejectRequest = jest.fn(() => Promise.reject(mockFailData));
 
 describe('WithQuery', () => {
-	afterEach(cleanup);
-
 	it('should pass result props to the wrapped component', async () => {
 		const WrappedComponent = withQuery(
 			request,
