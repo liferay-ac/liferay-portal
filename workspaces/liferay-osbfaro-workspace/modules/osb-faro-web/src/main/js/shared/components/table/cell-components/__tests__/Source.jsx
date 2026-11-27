@@ -1,11 +1,9 @@
 import React from 'react';
 import SourceCell from '../Source';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 
 describe('SourceCell', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<MemoryRouter>

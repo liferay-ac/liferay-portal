@@ -2,7 +2,7 @@ import ContactSalesModal from '../ContactSalesModal';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {addAlert} from 'shared/actions/alerts';
-import {cleanup, fireEvent, screen} from '@testing-library/react';
+import {fireEvent, screen} from '@testing-library/react';
 import {noop} from 'lodash';
 import {Provider} from 'react-redux';
 import {renderModal} from 'test/render-modal';
@@ -19,8 +19,6 @@ const DefaultComponent = ({observer, ...props}) => (
 );
 
 describe('ContactSalesModal', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		await renderModal(observer => <DefaultComponent observer={observer} />);
 

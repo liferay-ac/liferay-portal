@@ -1,13 +1,7 @@
 import ClayModal from '@clayui/modal';
 import MountedModal from '../MountedModal';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 
 const renderMountedModal = onClose =>
 	render(
@@ -27,8 +21,6 @@ const renderMountedModal = onClose =>
 	);
 
 describe('MountedModal', () => {
-	afterEach(cleanup);
-
 	it('opens the modal as soon as it is mounted', async () => {
 		renderMountedModal(jest.fn());
 

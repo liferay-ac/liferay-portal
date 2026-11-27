@@ -1,6 +1,6 @@
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockSuppressedUsersListReq} from 'test/graphql-data';
@@ -34,8 +34,6 @@ const mockItems = [
 ];
 
 describe('SuppressedUsers', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const mocks = [
 			mockSuppressedUsersListReq(mockItems, {

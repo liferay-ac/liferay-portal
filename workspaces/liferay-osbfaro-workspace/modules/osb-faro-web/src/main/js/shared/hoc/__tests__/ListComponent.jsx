@@ -1,11 +1,9 @@
 import ListComponent from '../ListComponent';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 
 describe('ListComponent', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		const {container} = render(
 			<MemoryRouter>

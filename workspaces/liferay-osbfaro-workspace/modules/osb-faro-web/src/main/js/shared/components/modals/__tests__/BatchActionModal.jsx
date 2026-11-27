@@ -1,7 +1,7 @@
 import BatchActionModal from '../BatchActionModal';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, fireEvent, screen} from '@testing-library/react';
+import {fireEvent, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {Provider} from 'react-redux';
@@ -33,8 +33,6 @@ const DefaultComponent = ({observer, ...props}) => (
 );
 
 describe('BatchActionModal', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		await renderModal(observer => <DefaultComponent observer={observer} />);
 

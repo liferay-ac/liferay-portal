@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {addAlert} from 'shared/actions/alerts';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {Project, User} from 'shared/util/records';
 import {Provider} from 'react-redux';
@@ -46,8 +46,6 @@ const DefaultComponent = props => (
 );
 
 describe('Workspace Settting', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		useCurrentUser.mockImplementation(() => ({
 			isAdmin: () => true

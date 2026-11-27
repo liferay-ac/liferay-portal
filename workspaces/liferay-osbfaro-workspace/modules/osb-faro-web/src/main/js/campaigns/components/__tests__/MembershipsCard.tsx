@@ -1,12 +1,6 @@
 import MembershipsCard from '../MembershipsCard';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
 import {warmFrontendDataSet} from 'test/warm-frontend-data-set';
@@ -54,8 +48,6 @@ describe('MembershipsCard', () => {
 	beforeEach(() => {
 		mockLifecycles([{id: '55'}]);
 	});
-
-	afterEach(cleanup);
 
 	it('should title the card Membership', () => {
 		renderCard();

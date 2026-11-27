@@ -4,7 +4,7 @@ import React from 'react';
 import {Accessor, AssetAppearsOnCard} from '../AssetAppearsOnCard';
 import {ApolloProvider} from '@apollo/client';
 import {AssetTypes} from 'shared/util/constants';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {EmptyStateLink, EmptyStateText} from '../AssetAppearsOnCard';
 import {
 	mockAssetAppearsOnReq,
@@ -75,8 +75,6 @@ const WrappedComponent = ({
 );
 
 describe('AssetAppearsOnCard', () => {
-	afterEach(cleanup);
-
 	it('should render a missing page name and canonical URL as no data', async () => {
 		const assetAppearsOnMock = mockAssetAppearsOnReq({
 			assetType: AssetTypes.Blog.toUpperCase(),

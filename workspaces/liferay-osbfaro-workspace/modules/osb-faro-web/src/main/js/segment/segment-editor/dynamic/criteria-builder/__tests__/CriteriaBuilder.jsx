@@ -1,6 +1,6 @@
 import CriteriaBuilder from '../index';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {Conjunctions} from '../../utils/constants';
 import {DndProvider} from 'react-dnd';
 import {HTML5Backend} from 'react-dnd-html5-backend';
@@ -8,8 +8,6 @@ import {HTML5Backend} from 'react-dnd-html5-backend';
 jest.mock('../CriteriaGroup', () => () => <div />);
 
 describe('CriteriaBuilder', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<DndProvider backend={HTML5Backend}>

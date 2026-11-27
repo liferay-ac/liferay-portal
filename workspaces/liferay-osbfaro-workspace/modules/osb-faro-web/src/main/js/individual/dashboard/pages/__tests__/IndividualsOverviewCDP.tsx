@@ -1,9 +1,6 @@
 import IndividualsOverviewCDP from '../IndividualsOverviewCDP';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {BrowserRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
-import {render} from '@testing-library/react';
+import {render} from 'test/render';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
 import {useQuery} from '@apollo/client';
@@ -75,14 +72,7 @@ const mockedIndividualMetrics = {
 	},
 };
 
-const renderIndividualsOverviewCDP = () =>
-	render(
-		<Provider store={mockStore()}>
-			<BrowserRouter>
-				<IndividualsOverviewCDP />
-			</BrowserRouter>
-		</Provider>
-	);
+const renderIndividualsOverviewCDP = () => render(<IndividualsOverviewCDP />);
 
 describe('IndividualsOverviewCDP', () => {
 	beforeEach(() => {

@@ -1,10 +1,8 @@
 import React from 'react';
 import TypeTrend, {TrendItem} from '../TypeTrend';
-import {cleanup, render} from '@testing-library/react';
+import {render} from 'test/render';
 
 describe('TypeTrend', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<TypeTrend items={[]} />);
 		expect(container).toMatchSnapshot();
@@ -19,8 +17,6 @@ describe('TrendItem', () => {
 		title: Liferay.Language.get('total-individuals'),
 		total: 1341321
 	};
-
-	afterEach(cleanup);
 
 	xit('should render', () => {
 		const {container} = render(<TrendItem {...mockTrendItem} />);

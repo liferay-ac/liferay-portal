@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {BrowserRouter} from 'react-router-dom';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {User} from 'shared/util/records';
@@ -28,8 +28,6 @@ const DefaultComponent = props => (
 );
 
 describe('UserRoutes', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		useCurrentUser.mockImplementation(() => ({
 			isAdmin: () => true

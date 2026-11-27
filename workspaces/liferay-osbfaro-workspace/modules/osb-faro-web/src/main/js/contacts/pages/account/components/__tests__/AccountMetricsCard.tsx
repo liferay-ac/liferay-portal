@@ -1,6 +1,6 @@
 import AccountMetricsCard from '../AccountMetricsCard';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 
 const renderAccountMetricsCard = (props = {}) =>
 	render(
@@ -12,8 +12,6 @@ const renderAccountMetricsCard = (props = {}) =>
 	);
 
 describe('AccountMetricsCard', () => {
-	afterEach(cleanup);
-
 	describe('rendering', () => {
 		it('should render the title in uppercase', () => {
 			renderAccountMetricsCard();

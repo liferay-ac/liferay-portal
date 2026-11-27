@@ -1,6 +1,6 @@
 import OrganizationTextInput from '../OrganizationTextInput';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {Property} from 'shared/util/records';
 
@@ -18,8 +18,6 @@ const defaultProps = {
 };
 
 describe('OrganizationTextInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<OrganizationTextInput {...defaultProps} />

@@ -6,7 +6,7 @@ import {
 	useUnassignedSegmentsContext,
 	withUnassignedSegmentsProvider
 } from '../unassignedSegments';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {mockSegment} from 'test/data';
 
 const initialState = {
@@ -27,8 +27,6 @@ describe('unassignedSegmentsReducer', () => {
 });
 
 describe('UnassignedSegmentsProvider', () => {
-	afterEach(cleanup);
-
 	it('should allow an initial context value to be set through the unassignedSegments prop', () => {
 		const successMsg = 'has unassignedSegments intialized in context!';
 
@@ -49,8 +47,6 @@ describe('UnassignedSegmentsProvider', () => {
 });
 
 describe('useUnassignedSegmentsContext', () => {
-	afterEach(cleanup);
-
 	it('should return context', () => {
 		const successMsg = 'has context!';
 
@@ -74,8 +70,6 @@ describe('useUnassignedSegmentsContext', () => {
 });
 
 describe('withUnassignedSegmentsProvider', () => {
-	afterEach(cleanup);
-
 	it('should pass the WrappedComponent', () => {
 		const WrappedComponent = withUnassignedSegmentsProvider(() => (
 			<div>{'foo'}</div>

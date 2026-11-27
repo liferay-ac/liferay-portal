@@ -1,6 +1,6 @@
 import DateFilterConjunctionDisplay from '../DateFilterConjunctionDisplay';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	FunctionalOperators,
 	RelationalOperators,
@@ -8,8 +8,6 @@ import {
 } from 'segment/segment-editor/dynamic/utils/constants';
 
 describe('DateFilterConjunctionDisplay', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<DateFilterConjunctionDisplay

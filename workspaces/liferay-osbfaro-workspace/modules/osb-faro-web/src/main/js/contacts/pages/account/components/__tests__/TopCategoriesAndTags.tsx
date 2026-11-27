@@ -6,13 +6,7 @@ import {
 	ITopCategory,
 	ITopTag,
 } from 'shared/components/TopCategoriesAndTagsBaseCard';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	within,
-} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockPreferenceReq, mockTimeRangeReq} from 'test/graphql-data';
@@ -169,8 +163,6 @@ describe('TopCategoriesAndTags', () => {
 		jest.clearAllMocks();
 		mockUseRequestWith({data: {items: DEFAULT_CATEGORIES}});
 	});
-
-	afterEach(cleanup);
 
 	describe('rendering', () => {
 		it('should render the card title', () => {

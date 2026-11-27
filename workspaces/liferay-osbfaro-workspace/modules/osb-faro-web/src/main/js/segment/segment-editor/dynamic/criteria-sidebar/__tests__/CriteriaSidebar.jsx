@@ -4,7 +4,6 @@ import apolloClient from 'shared/apollo/client';
 import CriteriaSidebar from '../index';
 import React from 'react';
 import {
-	cleanup,
 	fireEvent,
 	render,
 	screen,
@@ -144,8 +143,6 @@ describe('CriteriaSidebar', () => {
 			])
 		})
 	]);
-
-	afterEach(cleanup);
 
 	it('should render the sidebar structure with property groups', () => {
 		render(

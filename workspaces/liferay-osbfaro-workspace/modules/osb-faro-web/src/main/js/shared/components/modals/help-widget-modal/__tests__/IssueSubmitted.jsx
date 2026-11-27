@@ -1,13 +1,11 @@
 import ClayModal from '@clayui/modal';
 import IssueSubmitted from '../IssueSubmitted';
 import React from 'react';
-import {cleanup, screen} from '@testing-library/react';
+import {screen} from '@testing-library/react';
 import {noop} from 'lodash';
 import {renderModal} from 'test/render-modal';
 
 describe('IssueSubmitted', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		await renderModal(observer => (
 			<ClayModal observer={observer}>

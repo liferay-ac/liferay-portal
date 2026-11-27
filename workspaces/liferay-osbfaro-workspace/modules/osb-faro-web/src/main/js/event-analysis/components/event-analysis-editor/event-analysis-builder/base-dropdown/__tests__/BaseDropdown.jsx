@@ -1,7 +1,7 @@
 import BaseDropdown from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {Provider} from 'react-redux';
@@ -28,9 +28,7 @@ describe('BaseDropdown', () => {
 
 		fireEvent.click(getByTestId('target'));
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(container).toMatchSnapshot();
 
@@ -58,9 +56,7 @@ describe('BaseDropdown', () => {
 
 		fireEvent.click(trigger);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		const closeButton = getByText('close');
 
@@ -70,9 +66,7 @@ describe('BaseDropdown', () => {
 
 		closeButton.blur();
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(document.activeElement).toBe(trigger);
 	});
@@ -100,15 +94,11 @@ describe('BaseDropdown', () => {
 
 		fireEvent.click(trigger);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		rerender(<Section showDropdown={false} />);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(document.activeElement).toBe(getByTestId('section'));
 	});

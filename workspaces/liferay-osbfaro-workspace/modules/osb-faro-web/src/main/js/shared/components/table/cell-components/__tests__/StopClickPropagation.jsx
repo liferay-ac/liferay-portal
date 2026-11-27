@@ -1,10 +1,8 @@
 import React from 'react';
 import StopClickPropagation from '../StopClickPropagation';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 
 describe('StopClickPropagation', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<StopClickPropagation />);
 

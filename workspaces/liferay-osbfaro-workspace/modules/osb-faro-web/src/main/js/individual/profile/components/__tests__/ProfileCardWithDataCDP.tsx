@@ -206,17 +206,13 @@ describe('IndividualProfileCard', () => {
 			key: 'Enter',
 		});
 
-		await act(async () => {
-			await jest.advanceTimersByTimeAsync(500);
-		});
+		await jest.advanceTimersByTimeAsync(500);
 
 		expect(getByPlaceholderText(/^search$/i)).toHaveValue(inputValue);
 
 		fireEvent.click(container.querySelector('.lexicon-icon-times')!);
 
-		await act(async () => {
-			await jest.advanceTimersByTimeAsync(500);
-		});
+		await jest.advanceTimersByTimeAsync(500);
 
 		expect(getByPlaceholderText(/^search$/i)).toHaveValue('');
 	});

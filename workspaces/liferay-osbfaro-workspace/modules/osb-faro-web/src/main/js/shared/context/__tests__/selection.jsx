@@ -6,7 +6,7 @@ import {
 	useSelectionContext,
 	withSelectionProvider
 } from '../selection';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {OrderedMap} from 'immutable';
 
 const initialState = {selectedItems: new OrderedMap([['1', {}]])};
@@ -58,8 +58,6 @@ describe('selectionReducer', () => {
 });
 
 describe('SelectionProvider', () => {
-	afterEach(cleanup);
-
 	it('should allow an initial context value to be set through the selectedItems prop', () => {
 		const successMsg = 'has selected items intialized in context!';
 
@@ -80,8 +78,6 @@ describe('SelectionProvider', () => {
 });
 
 describe('useSelectionContext', () => {
-	afterEach(cleanup);
-
 	it('should return context', () => {
 		const successMsg = 'has selected items context!';
 
@@ -102,8 +98,6 @@ describe('useSelectionContext', () => {
 });
 
 describe('withSelectionProvider', () => {
-	afterEach(cleanup);
-
 	it('should pass the WrappedComponent', () => {
 		const WrappedComponent = withSelectionProvider(() => (
 			<div>{'foo'}</div>

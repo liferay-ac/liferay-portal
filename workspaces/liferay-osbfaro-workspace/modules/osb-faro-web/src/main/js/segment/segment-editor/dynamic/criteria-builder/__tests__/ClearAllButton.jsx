@@ -1,10 +1,8 @@
 import ClearAllButton from '../ClearAllButton';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 
 describe('ClearAllButton', () => {
-	afterEach(cleanup);
-
 	it('should render the clear-all button', () => {
 		render(<ClearAllButton onClear={() => {}} />);
 

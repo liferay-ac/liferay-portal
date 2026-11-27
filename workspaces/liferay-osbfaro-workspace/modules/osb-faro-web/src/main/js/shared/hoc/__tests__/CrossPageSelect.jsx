@@ -7,7 +7,7 @@ import CrossPageSelect, {
 } from '../CrossPageSelect';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {createOrderIOMap, NAME} from 'shared/util/pagination';
 import {inputSearchText, selectAllAndToggle} from 'test/helpers';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
@@ -61,8 +61,6 @@ const DefaultComponent = props => (
 );
 
 describe('CrossPageSelect', () => {
-	afterEach(cleanup);
-
 	it('should render the server data list by default', () => {
 		const {container} = render(<DefaultComponent />);
 
@@ -80,15 +78,11 @@ describe('CrossPageSelect', () => {
 
 		fireEvent.click(firstRowCheckbox);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		fireEvent.click(getByTestId('view-selected'));
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(container).toMatchSnapshot();
 
@@ -197,8 +191,6 @@ describe('WithSelection', () => {
 		selectEntirePageIndeterminate: false,
 		showCheckbox: true
 	};
-
-	afterEach(cleanup);
 
 	it('should return a function component with the mapped props', () => {
 		const componentSpy = jest.fn(() => <div />);

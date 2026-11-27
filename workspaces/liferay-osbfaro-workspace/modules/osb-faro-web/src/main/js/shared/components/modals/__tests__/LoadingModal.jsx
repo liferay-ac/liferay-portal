@@ -1,14 +1,11 @@
 import LoadingModal from '../LoadingModal';
 import React from 'react';
-import {cleanup} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
 
 const renderLoadingModal = props =>
 	renderModal(observer => <LoadingModal observer={observer} {...props} />);
 
 describe('LoadingModal', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		await renderLoadingModal();
 

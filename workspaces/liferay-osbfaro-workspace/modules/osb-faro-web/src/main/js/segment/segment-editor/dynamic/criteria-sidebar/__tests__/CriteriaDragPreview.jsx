@@ -1,6 +1,6 @@
 import CriteriaDragPreview from '../CriteriaDragPreview';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {DragTypes} from '../../utils/drag-types';
 import {Property} from 'shared/util/records';
 import {PropertyTypes} from '../../utils/constants';
@@ -38,8 +38,6 @@ const mockDragLayer = state => {
 };
 
 describe('CriteriaDragPreview', () => {
-	afterEach(cleanup);
-
 	it('renders the dragged property with its sticker at the pointer', () => {
 		mockDragLayer();
 

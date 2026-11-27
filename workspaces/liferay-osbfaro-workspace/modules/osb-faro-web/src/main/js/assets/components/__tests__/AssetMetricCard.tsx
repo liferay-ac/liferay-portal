@@ -3,7 +3,7 @@ import client from 'shared/apollo/client';
 import React from 'react';
 import URLConstants from 'shared/util/url-constants';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	AbandonmentsMetric,
 	CommentsMetric,
@@ -161,8 +161,6 @@ const WrappedComponent = ({
 );
 
 describe('AssetMetricCard', () => {
-	afterEach(cleanup);
-
 	describe.each(CASES)('$slug', (assetCase) => {
 		it('should render the card for the asset type', async () => {
 			const {getByText} = render(

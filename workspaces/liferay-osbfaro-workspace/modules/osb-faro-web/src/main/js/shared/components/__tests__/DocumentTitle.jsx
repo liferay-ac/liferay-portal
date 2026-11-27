@@ -2,7 +2,7 @@ jest.unmock('../DocumentTitle');
 
 import DocumentTitle from '../DocumentTitle';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {StaticRouter} from 'react-router-dom';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 
@@ -16,8 +16,6 @@ const getFaviconLink = () => document.querySelector("link[rel~='icon']");
 
 describe('DocumentTitle', () => {
 	afterEach(() => {
-		cleanup();
-
 		document.head.innerHTML = '';
 	});
 

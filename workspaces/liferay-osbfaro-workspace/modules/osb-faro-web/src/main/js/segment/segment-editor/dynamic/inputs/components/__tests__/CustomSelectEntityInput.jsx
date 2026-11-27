@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import CustomSelectEntityInput from '../CustomSelectEntityInput';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {createCustomValueMap} from '../../../utils/custom-inputs';
 import {
 	EntityType,
@@ -44,8 +44,6 @@ const DefaultComponent = props => (
 );
 
 describe('CustomSelectEntityInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<DefaultComponent valid={false} />);
 

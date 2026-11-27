@@ -1,6 +1,6 @@
 import LifecycleChart from '../LifecycleChart';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from 'test/render';
 import {ILifecycleStage} from 'lifecycle/utils/types';
 import {
 	LifecycleContextProvider,
@@ -91,8 +91,6 @@ const getStageNames = (container: HTMLElement) =>
 	).map((element) => element.textContent);
 
 describe('LifecycleChart', () => {
-	afterEach(cleanup);
-
 	it('should title the card with the lifecycle name and description', () => {
 		renderChart({
 			description: 'Lifecycle for marketing-qualified accounts',

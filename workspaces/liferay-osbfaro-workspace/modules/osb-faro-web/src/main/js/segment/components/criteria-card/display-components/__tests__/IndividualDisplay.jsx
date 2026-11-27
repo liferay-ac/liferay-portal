@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import IndividualDisplay from '../IndividualDisplay';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Property, Segment} from 'shared/util/records';
 import {
 	PropertyTypes,
@@ -25,8 +25,6 @@ describe('IndividualDisplay', () => {
 		propertykey: 'individual',
 		type: PropertyTypes.Text
 	});
-
-	afterEach(cleanup);
 
 	it('renders', () => {
 		const {container} = render(

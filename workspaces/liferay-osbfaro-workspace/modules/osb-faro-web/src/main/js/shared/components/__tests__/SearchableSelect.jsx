@@ -1,11 +1,9 @@
 import React from 'react';
 import SearchableSelect from '../SearchableSelect';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {times} from 'lodash';
 
 describe('SearchableSelect', () => {
-	afterEach(cleanup);
-
 	const items = times(5, i => ({name: `item${i}`, value: i}));
 
 	it('should render', () => {

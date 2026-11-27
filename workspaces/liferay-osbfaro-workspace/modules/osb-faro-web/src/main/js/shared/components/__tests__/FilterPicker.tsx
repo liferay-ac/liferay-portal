@@ -1,13 +1,7 @@
 import FilterPicker, {IFilterPickerItem} from '../FilterPicker';
 import React from 'react';
 import {mockListGeometry, scrollListToBottom} from 'test/infinite-scroll';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 
 const ITEMS: IFilterPickerItem[] = [
 	{id: '1', name: 'Acme Corporation'},
@@ -29,8 +23,6 @@ const getTrigger = () =>
 	screen.getByRole('combobox', {name: 'Filter By Accounts'});
 
 describe('FilterPicker', () => {
-	afterEach(cleanup);
-
 	describe('deferred request', () => {
 		it('does not request the options before the picker is opened', () => {
 			const dataSourceFn = jest.fn().mockResolvedValue({items: ITEMS});

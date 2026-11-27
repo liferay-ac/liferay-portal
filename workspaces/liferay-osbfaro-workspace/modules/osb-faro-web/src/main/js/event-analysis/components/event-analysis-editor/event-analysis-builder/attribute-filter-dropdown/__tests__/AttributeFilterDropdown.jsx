@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import AttributeFilterDropdown from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {act, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {AttributesProvider} from '../../../context/attributes';
 import {DISPLAY_NAME} from 'shared/util/pagination';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
@@ -71,9 +71,7 @@ describe('AttributeFilterDropdown', () => {
 			expect(document.body.querySelector('.loading-root')).toBeNull()
 		);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(container).toMatchSnapshot();
 
@@ -100,9 +98,7 @@ describe('AttributeFilterDropdown', () => {
 			expect(document.body.querySelector('.loading-root')).toBeNull()
 		);
 
-		act(() => {
-			jest.advanceTimersByTime(250);
-		});
+		jest.advanceTimersByTime(250);
 
 		expect(
 			document.body.querySelectorAll('.dropdown-item.disabled')

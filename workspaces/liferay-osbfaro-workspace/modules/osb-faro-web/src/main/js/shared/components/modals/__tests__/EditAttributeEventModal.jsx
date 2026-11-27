@@ -5,7 +5,7 @@ import EVENT_DEFINITION_QUERY, {
 } from 'event-analysis/queries/EventDefinitionQuery';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, fireEvent, screen} from '@testing-library/react';
+import {fireEvent, screen} from '@testing-library/react';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockEventDefinitionReq} from 'test/graphql-data';
 import {Provider} from 'react-redux';
@@ -34,8 +34,6 @@ const DefaultComponent = ({observer, ...props}) => (
 );
 
 describe('EditAttributeEventModal', () => {
-	afterEach(cleanup);
-
 	it('renders the name and the display name of the event as the title', async () => {
 		await renderModal(observer => <DefaultComponent observer={observer} />);
 

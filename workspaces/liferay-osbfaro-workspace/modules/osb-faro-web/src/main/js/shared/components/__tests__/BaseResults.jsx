@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import BaseResults from '../BaseResults';
 import React from 'react';
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {noop, times} from 'lodash';
 import {SelectionProvider} from 'shared/context/selection';
 import {MemoryRouter} from 'react-router';
@@ -19,8 +19,6 @@ const DefaultComponent = props => (
 );
 
 describe('BaseResults', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container} = render(
 			<DefaultComponent

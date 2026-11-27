@@ -1,7 +1,7 @@
 import BasePage from '../base-page/BasePage';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import {MemoryRouter} from 'react-router';
 
@@ -28,8 +28,6 @@ const mockPageActions = [
 ];
 
 describe('BasePage', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<Provider store={mockStore()}>

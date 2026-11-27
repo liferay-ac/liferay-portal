@@ -2,7 +2,7 @@ import mockStore from 'test/mock-store';
 import React from 'react';
 import RequestList from '../RequestList';
 import RequestListQuery from '../../queries/RequestListQuery';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {GDPRRequestStatuses, GDPRRequestTypes} from 'shared/util/constants';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -121,8 +121,6 @@ const Wrapper = ({children, store = mockStore()}) => (
 );
 
 describe('RequestList', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container} = render(
 			<Wrapper>

@@ -1,17 +1,8 @@
 import LifecycleDetailsPanel from '../LifecycleDetailsPanel';
 import BasePage from 'shared/components/base-page';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	within,
-} from '@testing-library/react';
+import {fireEvent, render, screen, within} from 'test/render';
 import {ILifecycleDetail} from 'shared/api/lifecycle';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useRequest} from 'shared/hooks/useRequest';
 
@@ -105,14 +96,7 @@ const Panel = (
 
 const renderPanel = (
 	props: Partial<React.ComponentProps<typeof LifecycleDetailsPanel>> = {}
-) =>
-	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter>
-				<Panel {...props} />
-			</MemoryRouter>
-		</Provider>
-	);
+) => render(<Panel {...props} />);
 
 const openStagesTab = () =>
 	fireEvent.click(screen.getByRole('tab', {name: /^stages$/i}));
@@ -125,8 +109,6 @@ describe('LifecycleDetailsPanel', () => {
 
 		mockLifecycle(LIFECYCLE);
 	});
-
-	afterEach(cleanup);
 
 	it('titles the panel with the lifecycle name and its sticker', () => {
 		renderPanel();

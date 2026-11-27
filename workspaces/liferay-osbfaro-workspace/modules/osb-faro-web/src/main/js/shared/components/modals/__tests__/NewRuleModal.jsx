@@ -1,7 +1,7 @@
 import mockStore from 'test/mock-store';
 import NewRuleModal from '../NewRuleModal';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -43,8 +43,6 @@ const TestModal = props => {
 };
 
 describe('NewRuleModal', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		render(
 			<DefaultWrapper mocks={[mockRecommendationPageAssetsReq([])]}>

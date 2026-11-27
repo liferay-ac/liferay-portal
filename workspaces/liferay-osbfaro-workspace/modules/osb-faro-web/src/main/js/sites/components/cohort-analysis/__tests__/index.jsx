@@ -1,7 +1,7 @@
 import CohortAnalysis from '../index';
 import React from 'react';
 import {DAY, VISITORS} from '../utils';
-import {render} from '@testing-library/react';
+import {render} from 'test/render';
 
 describe('CohortAnalysis', () => {
 	it('should render', () => {

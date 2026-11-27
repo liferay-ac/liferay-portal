@@ -3,12 +3,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import View from '../View';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen
-} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import {MemoryRouter} from 'react-router';
 import {User} from 'shared/util/records';
@@ -40,8 +35,6 @@ const DefaultComponent = props => {
 
 describe('View Channel', () => {
 	afterEach(() => {
-		cleanup();
-
 		jest.clearAllMocks();
 	});
 

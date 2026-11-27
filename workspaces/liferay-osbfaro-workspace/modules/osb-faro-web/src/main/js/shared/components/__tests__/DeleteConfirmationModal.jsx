@@ -1,14 +1,7 @@
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {
-	act,
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {Provider} from 'react-redux';
@@ -61,8 +54,6 @@ const renderOpen = async (props) => {
 };
 
 describe('DeleteConfirmationModal', () => {
-	afterEach(cleanup);
-
 	it('should render with a custom title and message', async () => {
 		await renderOpen({children: 'Custom Delete Message', title: 'Custom'});
 
@@ -97,9 +88,7 @@ describe('DeleteConfirmationModal', () => {
 	it('should focus the input without showing its error', async () => {
 		await renderOpen();
 
-		act(() => {
-			jest.runOnlyPendingTimers();
-		});
+		jest.runOnlyPendingTimers();
 
 		expect(screen.getByTestId('delete-confirmation-input')).toHaveFocus();
 		expect(document.querySelector('.modal .has-error')).toBeNull();

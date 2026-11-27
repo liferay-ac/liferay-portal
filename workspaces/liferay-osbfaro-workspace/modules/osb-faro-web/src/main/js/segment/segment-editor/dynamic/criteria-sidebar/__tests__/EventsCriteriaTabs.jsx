@@ -1,13 +1,7 @@
 import client from 'shared/apollo/client';
 import EventsCriteriaTabs from '../EventsCriteriaTabs';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {DndProvider} from 'react-dnd';
 import {HTML5Backend} from 'react-dnd-html5-backend';
 import {List} from 'immutable';
@@ -91,7 +85,6 @@ describe('EventsCriteriaTabs', () => {
 	});
 
 	afterEach(() => {
-		cleanup();
 		jest.clearAllMocks();
 	});
 

@@ -1,6 +1,6 @@
 import CriteriaGroup from '../CriteriaGroup';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {Conjunctions} from '../../utils/constants';
 import {DndProvider} from 'react-dnd';
 import {HTML5Backend} from 'react-dnd-html5-backend';
@@ -57,8 +57,6 @@ const renderGroup = ({conjunction, count, root, sequential}) =>
 	);
 
 describe('CriteriaGroup', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<DndProvider backend={HTML5Backend}>

@@ -1,11 +1,9 @@
 import IntervalSelector from 'shared/components/IntervalSelector';
 import React from 'react';
 import withInterval from '../WithInterval';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('WithInterval', () => {
-	afterEach(cleanup);
-
 	it('should render the original component', () => {
 		const WrappedComponent = withInterval(() => 'wrapped component text');
 

@@ -2,13 +2,7 @@ import BasePage from 'shared/components/base-page';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import TopAssets from '../TopAssets';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	within,
-} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {ITopAsset} from 'shared/api/assets';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -158,8 +152,6 @@ describe('TopAssets', () => {
 		jest.clearAllMocks();
 		mockUseRequestWith({data: {items: DEFAULT_ASSETS}});
 	});
-
-	afterEach(cleanup);
 
 	describe('rendering', () => {
 		it('should render the card title', () => {

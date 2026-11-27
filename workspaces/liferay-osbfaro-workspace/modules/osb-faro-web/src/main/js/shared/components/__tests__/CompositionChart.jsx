@@ -1,10 +1,8 @@
 import CompositionChart, {CompositionLegend} from '../CompositionChart';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 
 describe('CompositionChart', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<CompositionChart />);
 
@@ -13,8 +11,6 @@ describe('CompositionChart', () => {
 });
 
 describe('CompositionLegend', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<CompositionLegend

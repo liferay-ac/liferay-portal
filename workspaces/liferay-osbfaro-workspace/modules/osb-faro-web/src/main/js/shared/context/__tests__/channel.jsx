@@ -6,7 +6,7 @@ import {
 	channelReducer,
 	useChannelContext
 } from '../channel';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {mockChannel} from 'test/data';
 import {mockChannelContext} from 'test/mock-channel-context';
 
@@ -40,8 +40,6 @@ describe('channelsReducer', () => {
 });
 
 describe('ChannelProvider', () => {
-	afterEach(cleanup);
-
 	it('should allow an initial context value to be set through the channel prop', () => {
 		const successMsg = 'has channel intialized in context!';
 
@@ -64,8 +62,6 @@ describe('ChannelProvider', () => {
 });
 
 describe('useChannelContext', () => {
-	afterEach(cleanup);
-
 	it('should return context', () => {
 		const successMsg = 'has channel context!';
 		const ChildComponent = () => {

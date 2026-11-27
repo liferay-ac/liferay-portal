@@ -1,11 +1,9 @@
 import ErrorDisplay from '../ErrorDisplay';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {noop} from 'lodash';
 
 describe('ErrorDisplay', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<ErrorDisplay />);
 		expect(container).toMatchSnapshot();

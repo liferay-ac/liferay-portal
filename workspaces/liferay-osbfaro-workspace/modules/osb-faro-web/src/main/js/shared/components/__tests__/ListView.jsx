@@ -1,14 +1,12 @@
 import ListView from '../ListView';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {mockIndividual} from 'test/data';
 import {times} from 'lodash';
 
 const items = times(3, i => mockIndividual(i, {total: 123}));
 
 describe('ListView', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<ListView

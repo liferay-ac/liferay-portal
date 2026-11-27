@@ -1,7 +1,7 @@
 import DisconnectDataSourceModal from '../DisconnectDataSourceModal';
 import React from 'react';
 import {Alert} from 'shared/types';
-import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react';
+import {fireEvent, screen, waitFor} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
 
 const renderDisconnect = (props) =>
@@ -18,8 +18,6 @@ const renderDisconnect = (props) =>
 	));
 
 describe('DisconnectDataSourceModal', () => {
-	afterEach(cleanup);
-
 	it('renders as a warning with the message', async () => {
 		await renderDisconnect();
 

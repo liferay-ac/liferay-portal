@@ -1,10 +1,8 @@
 import DataValue from '../DataValue';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 
 describe('DataValue', () => {
-	afterEach(cleanup);
-
 	it.each([null, undefined, ''])(
 		'should render the no data value in the secondary text color for %p',
 		(value) => {

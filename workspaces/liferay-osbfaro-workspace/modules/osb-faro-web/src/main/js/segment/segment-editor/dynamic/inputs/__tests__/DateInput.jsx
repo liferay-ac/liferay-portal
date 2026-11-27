@@ -2,7 +2,7 @@ import client from 'shared/apollo/client';
 import DateInput from '../DateInput';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockPreferenceReq} from 'test/graphql-data';
 import {Property} from 'shared/util/records';
@@ -16,8 +16,6 @@ const WrapperComponent = ({children}) => (
 );
 
 describe('DateInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {getByText} = render(
 			<WrapperComponent>

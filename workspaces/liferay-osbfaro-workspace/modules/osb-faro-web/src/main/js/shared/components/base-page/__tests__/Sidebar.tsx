@@ -1,7 +1,7 @@
 import BasePage from '..';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {Provider} from 'react-redux';
 import {resetBodyWidth, setBodyWidth} from 'test/body-width';
@@ -40,8 +40,6 @@ const getPage = () => document.querySelector('.test-page');
 
 describe('BasePage.Sidebar', () => {
 	afterEach(() => {
-		cleanup();
-
 		resetBodyWidth();
 	});
 

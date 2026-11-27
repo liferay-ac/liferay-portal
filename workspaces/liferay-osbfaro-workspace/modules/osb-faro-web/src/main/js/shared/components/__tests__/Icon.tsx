@@ -4,13 +4,11 @@ import Icon, {CLAY_ICONS_SPRITEMAP} from '../Icon';
 import path from 'path';
 import React from 'react';
 import {ClayIconSpriteContext} from '@clayui/icon';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 const AC_ICONS_DIR = path.join(__dirname, '..', '..', '..', '..', 'images');
 
 describe('Icon', () => {
-	afterEach(cleanup);
-
 	it('should draw an Analytics Cloud icon inline', () => {
 		const {container} = render(
 			<Icon className="text-secondary" symbol="ac_hidden" />

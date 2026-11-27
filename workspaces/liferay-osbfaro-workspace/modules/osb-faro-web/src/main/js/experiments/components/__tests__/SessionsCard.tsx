@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, fireEvent, render, within} from '@testing-library/react';
+import {fireEvent, render, within} from '@testing-library/react';
 import {SessionsCard} from '../SessionsCard';
 
 jest.mock('recharts', () => {
@@ -38,9 +38,7 @@ const hoverFirstDataPoint = (container: HTMLElement) => {
 
 	fireEvent(container.querySelector('.recharts-wrapper')!, event);
 
-	act(() => {
-		jest.runOnlyPendingTimers();
-	});
+	jest.runOnlyPendingTimers();
 };
 
 describe('SessionsCard', () => {

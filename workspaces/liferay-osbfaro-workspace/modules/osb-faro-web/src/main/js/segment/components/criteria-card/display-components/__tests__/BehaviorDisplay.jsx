@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import BehaviorDisplay from '../BehaviorDisplay';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	CustomFunctionOperators,
 	FunctionalOperators,
@@ -78,8 +78,6 @@ describe('BehaviorDisplay', () => {
 		propertykey: 'web',
 		type: PropertyTypes.Behavior
 	});
-
-	afterEach(cleanup);
 
 	it('renders', () => {
 		const {container, queryByText} = render(

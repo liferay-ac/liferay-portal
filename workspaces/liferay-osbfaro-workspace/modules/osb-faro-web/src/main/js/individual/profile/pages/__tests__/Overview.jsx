@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import Overview from '../Overview';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Individual} from 'shared/util/records';
 import {MockedProvider} from '@apollo/client/testing';
 import {
@@ -18,8 +18,6 @@ import {waitForLoadingToBeRemoved} from 'test/helpers';
 const variables = {channelId: undefined};
 
 describe('IndividualOverview', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container, getByText} = render(
 			<MockedProvider

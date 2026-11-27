@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import SalesforceOverview from '../SalesforceOverview';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {DataSource} from 'shared/util/records';
 import {fetchChannelDatasources} from 'shared/api/data-source';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
@@ -63,8 +63,6 @@ describe('SalesforceOverview', () => {
 			loading: false
 		});
 	});
-
-	afterEach(cleanup);
 
 	it('should render', async () => {
 		const {container} = render(<WrappedComponent />);

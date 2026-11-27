@@ -1,10 +1,8 @@
 import AddPropertyForm from '../AddPropertyForm';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('DistributionCard AddPropertyForm', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		const {getByText} = render(<AddPropertyForm />);
 

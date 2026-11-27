@@ -2,14 +2,12 @@ import client from 'shared/apollo/client';
 import DateTimeInput from '../DateTimeInput';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, fireEvent, render, screen, within} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockPreferenceReq} from 'test/graphql-data';
 import {Property} from 'shared/util/records';
 
 describe('DateTimeInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {getByText} = render(
 			<ApolloProvider client={client}>

@@ -3,7 +3,7 @@ import mockStore from 'test/mock-store';
 import React from 'react';
 import WorkspaceNotFound from '../WorkspaceNotFound';
 import {BrowserRouter} from 'react-router-dom';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Provider} from 'react-redux';
 
 Router.navigate = jest.fn();
@@ -17,8 +17,6 @@ const renderWithProvider = props => (
 );
 
 describe('WorkspaceNotFound', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(renderWithProvider());
 

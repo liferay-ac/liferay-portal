@@ -1,6 +1,6 @@
 import CustomStringInput from '../CustomStringInput';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {
 	createCustomValueMap,
 	setPropertyValue
@@ -26,8 +26,6 @@ const DefaultComponent = props => (
 );
 
 describe('CustomStringInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<DefaultComponent valid={false} />

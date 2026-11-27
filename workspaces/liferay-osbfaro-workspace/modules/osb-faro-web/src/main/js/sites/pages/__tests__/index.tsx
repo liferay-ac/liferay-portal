@@ -1,9 +1,6 @@
-import mockStore from 'test/mock-store';
 import React from 'react';
 import {Dashboard} from '../index';
-import {MemoryRouter} from 'react-router-dom';
-import {Provider} from 'react-redux';
-import {render, screen} from '@testing-library/react';
+import {render, screen} from 'test/render';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 
 jest.mock('shared/components/download-report/DownloadCSVReport', () => ({
@@ -66,6 +63,8 @@ jest.mock('shared/components/SegmentDropdown', () => ({
 }));
 
 jest.mock('shared/context/channel', () => ({
+	__esModule: true,
+	...jest.requireActual('shared/context/channel'),
 	useChannelContext: () => ({selectedChannel: {name: 'test channel'}}),
 }));
 
@@ -98,13 +97,7 @@ describe('Dashboard', () => {
 	it('shows the account filter for LDP workspaces', () => {
 		(useLDPEnabled as jest.Mock).mockReturnValue(true);
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<Dashboard router={router as any} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<Dashboard router={router as any} />);
 
 		expect(screen.queryByTestId('filter-by-account')).toBeTruthy();
 	});
@@ -112,13 +105,7 @@ describe('Dashboard', () => {
 	it('hides the account filter for non-LDP workspaces', () => {
 		(useLDPEnabled as jest.Mock).mockReturnValue(false);
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<Dashboard router={router as any} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<Dashboard router={router as any} />);
 
 		expect(screen.queryByTestId('filter-by-account')).toBeNull();
 	});
@@ -126,15 +113,9 @@ describe('Dashboard', () => {
 	it('seeds the account filter from the accountId/accountName URL query params', () => {
 		(useLDPEnabled as jest.Mock).mockReturnValue(true);
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter
-					initialEntries={['/?accountId=100&accountName=Account+100']}
-				>
-					<Dashboard router={router as any} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<Dashboard router={router as any} />, {
+			route: '/?accountId=100&accountName=Account+100',
+		});
 
 		expect(screen.getByTestId('filter-by-account')).toHaveAttribute(
 			'data-initial-account-id',
@@ -149,13 +130,7 @@ describe('Dashboard', () => {
 	it('shows the segment filter for LDP workspaces', () => {
 		(useLDPEnabled as jest.Mock).mockReturnValue(true);
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<Dashboard router={router as any} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<Dashboard router={router as any} />);
 
 		expect(screen.queryByTestId('filter-by-segment')).toBeTruthy();
 	});
@@ -163,13 +138,7 @@ describe('Dashboard', () => {
 	it('hides the segment filter for non-LDP workspaces', () => {
 		(useLDPEnabled as jest.Mock).mockReturnValue(false);
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter>
-					<Dashboard router={router as any} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<Dashboard router={router as any} />);
 
 		expect(screen.queryByTestId('filter-by-segment')).toBeNull();
 	});
@@ -177,15 +146,9 @@ describe('Dashboard', () => {
 	it('seeds the segment filter from the segmentId/segmentName URL query params', () => {
 		(useLDPEnabled as jest.Mock).mockReturnValue(true);
 
-		render(
-			<Provider store={mockStore()}>
-				<MemoryRouter
-					initialEntries={['/?segmentId=100&segmentName=Segment+100']}
-				>
-					<Dashboard router={router as any} />
-				</MemoryRouter>
-			</Provider>
-		);
+		render(<Dashboard router={router as any} />, {
+			route: '/?segmentId=100&segmentName=Segment+100',
+		});
 
 		expect(screen.getByTestId('filter-by-segment')).toHaveAttribute(
 			'data-initial-segment-id',

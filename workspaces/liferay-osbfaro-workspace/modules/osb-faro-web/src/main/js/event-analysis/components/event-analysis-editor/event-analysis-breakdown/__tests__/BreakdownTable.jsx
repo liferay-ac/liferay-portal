@@ -1,7 +1,7 @@
 import BreakdownTable from '../index';
 import React from 'react';
 import {AttributesContext, AttributesProvider} from '../../context/attributes';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MockedProvider} from '@apollo/client/testing';
 import {mockEventAnalysisResultReq} from 'test/graphql-data';
 import {MemoryRouter} from 'react-router';
@@ -77,8 +77,6 @@ const eventAnalysisResult = {
 const event = {id: '1', name: 'View Article'};
 
 describe('BreakdownTable', () => {
-	afterEach(cleanup);
-
 	it('render', async () => {
 		const {container} = render(
 			<MemoryRouter>

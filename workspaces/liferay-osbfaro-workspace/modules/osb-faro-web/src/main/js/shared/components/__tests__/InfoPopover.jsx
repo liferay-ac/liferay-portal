@@ -1,10 +1,8 @@
 import InfoPopover from '../InfoPopover';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('InfoPopover', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<InfoPopover content='foo content' title='foo title' />

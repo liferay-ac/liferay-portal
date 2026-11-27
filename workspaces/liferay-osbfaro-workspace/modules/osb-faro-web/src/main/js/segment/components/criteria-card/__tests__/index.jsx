@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import CriteriaCard from '../index';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {ReferencedObjectsProvider} from 'segment/segment-editor/dynamic/context/referencedObjects';
 import {Segment} from 'shared/util/records';
 
@@ -9,8 +9,6 @@ describe('CriteriaCard', () => {
 	const innerHeight = window.innerHeight;
 
 	afterEach(() => {
-		cleanup();
-
 		window.innerHeight = innerHeight;
 	});
 

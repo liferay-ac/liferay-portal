@@ -1,10 +1,8 @@
 import React from 'react';
 import TrackedBehaviorsList from '../TrackedBehaviorsList';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('TrackedBehaviorsList', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<TrackedBehaviorsList authorized />);
 

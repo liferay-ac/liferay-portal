@@ -2,7 +2,7 @@ import * as API from 'shared/api';
 import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {DataSource} from 'shared/util/records';
 import {Delete as DataSourceDelete} from '../Delete';
 import {fromJS} from 'immutable';
@@ -63,8 +63,6 @@ describe('DataSourceDelete', () => {
 			})
 		);
 	});
-
-	afterEach(cleanup);
 
 	it('should render', async () => {
 		const {container} = render(

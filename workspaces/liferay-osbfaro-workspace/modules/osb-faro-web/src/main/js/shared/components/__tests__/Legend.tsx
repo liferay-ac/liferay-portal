@@ -1,6 +1,6 @@
 import Legend from '../Legend';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 const data = [
 	{
@@ -18,8 +18,6 @@ const data = [
 ];
 
 describe('Legend', () => {
-	afterEach(cleanup);
-
 	it('should render a Legend component', () => {
 		const {container} = render(<Legend data={data} />);
 

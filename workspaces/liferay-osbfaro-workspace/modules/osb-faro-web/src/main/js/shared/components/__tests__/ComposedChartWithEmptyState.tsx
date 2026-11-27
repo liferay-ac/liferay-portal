@@ -1,14 +1,12 @@
 import ComposedChartWithEmptyState from '../ComposedChartWithEmptyState';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 const MockedComposedChart = () => (
 	<div data-testid="my-composed-chart">{'my composed chart content'}</div>
 );
 
 describe('CollapsibleOverlay', () => {
-	afterEach(cleanup);
-
 	it('should render without empty state', () => {
 		const {container, getByTestId, getByText} = render(
 			<ComposedChartWithEmptyState

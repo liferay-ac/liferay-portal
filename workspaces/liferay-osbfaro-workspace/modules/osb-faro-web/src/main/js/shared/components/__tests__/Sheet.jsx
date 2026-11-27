@@ -1,10 +1,8 @@
 import React from 'react';
 import Sheet from '../Sheet';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('Sheet', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<Sheet />);
 		expect(container).toMatchSnapshot();

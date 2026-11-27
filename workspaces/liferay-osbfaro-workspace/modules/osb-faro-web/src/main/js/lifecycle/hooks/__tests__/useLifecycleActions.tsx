@@ -1,19 +1,10 @@
 import * as API from 'shared/api';
-import mockStore from 'test/mock-store';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-	within,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from 'test/render';
 import {addAlert} from 'shared/actions/alerts';
 import {Alert} from 'shared/types';
 import {ILifecycle} from 'shared/api/lifecycle';
-import {MemoryRouter, useLocation} from 'react-router-dom';
-import {Provider} from 'react-redux';
+import {useLocation} from 'react-router-dom';
 import {Routes, toRoute} from 'shared/util/router';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useLifecycleActions} from '../useLifecycleActions';
@@ -87,13 +78,12 @@ const LocationProbe = () => (
 
 const renderActions = (props: React.ComponentProps<typeof ActionsProbe>) =>
 	render(
-		<Provider store={mockStore()}>
-			<MemoryRouter initialEntries={['/workspace/23/123/lifecycle/1']}>
-				<ActionsProbe {...props} />
+		<>
+			<ActionsProbe {...props} />
 
-				<LocationProbe />
-			</MemoryRouter>
-		</Provider>
+			<LocationProbe />
+		</>,
+		{route: '/workspace/23/123/lifecycle/1'}
 	);
 
 const getLabels = () =>
@@ -107,8 +97,6 @@ describe('useLifecycleActions', () => {
 
 		mockUseParams.mockReturnValue({channelId: '123', groupId: '23'});
 	});
-
-	afterEach(cleanup);
 
 	it('returns no actions without a lifecycle', () => {
 		renderActions({lifecycle: null});

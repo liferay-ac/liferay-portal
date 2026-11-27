@@ -1,6 +1,6 @@
 import GroupByPicker, {GROUP_BY_METRICS, GroupByMetric} from '../GroupByPicker';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 
 const renderGroupByPicker = ({
 	metrics = GROUP_BY_METRICS,
@@ -20,8 +20,6 @@ const renderGroupByPicker = ({
 	);
 
 describe('GroupByPicker', () => {
-	afterEach(cleanup);
-
 	it('should render the label of the selected metric', () => {
 		renderGroupByPicker({value: GroupByMetric.VIEWS});
 

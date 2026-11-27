@@ -3,7 +3,7 @@ import Campaigns from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ChannelContext} from 'shared/context/channel';
-import {act, cleanup, render, waitFor} from '@testing-library/react';
+import {act, render, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {mockChannelContext} from 'test/mock-channel-context';
 import {Provider} from 'react-redux';
@@ -86,8 +86,6 @@ describe('Campaigns', () => {
 		mockedUseCurrentUser.mockReturnValue({isAdmin: () => true});
 		mockedUseDataSources.mockReturnValue({empty: false, loading: false});
 	});
-
-	afterEach(cleanup);
 
 	it('should render the page title', () => {
 		const {getByRole} = renderCampaigns();

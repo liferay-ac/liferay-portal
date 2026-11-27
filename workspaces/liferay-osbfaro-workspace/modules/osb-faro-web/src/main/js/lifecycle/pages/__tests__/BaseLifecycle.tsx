@@ -1,20 +1,9 @@
 import * as API from 'shared/api';
 import BaseLifecycle from '../BaseLifecycle';
-import mockStore from 'test/mock-store';
 import React from 'react';
 import URLConstants from 'shared/util/url-constants';
-import {ChannelContext} from 'shared/context/channel';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-	within,
-} from '@testing-library/react';
-import {MemoryRouter, matchPath, useLocation} from 'react-router-dom';
-import {mockChannelContext} from 'test/mock-channel-context';
-import {Provider} from 'react-redux';
+import {fireEvent, render, screen, waitFor, within} from 'test/render';
+import {matchPath, useLocation} from 'react-router-dom';
 import {Routes, toRoute} from 'shared/util/router';
 import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
@@ -201,18 +190,16 @@ const LocationProbe = () => (
 	<div data-testid="location">{useLocation().pathname}</div>
 );
 
-const renderPage = (initialEntries = ['/workspace/23/123/lifecycle/erc-1']) =>
-	render(
-		<Provider store={mockStore()}>
-			<ChannelContext.Provider value={mockChannelContext() as any}>
-				<MemoryRouter initialEntries={initialEntries}>
-					<BaseLifecycle />
+const Page = () => (
+	<>
+		<BaseLifecycle />
 
-					<LocationProbe />
-				</MemoryRouter>
-			</ChannelContext.Provider>
-		</Provider>
-	);
+		<LocationProbe />
+	</>
+);
+
+const renderPage = (route = '/workspace/23/123/lifecycle/erc-1') =>
+	render(<Page />, {route});
 
 describe('BaseLifecycle', () => {
 	beforeEach(() => {
@@ -241,8 +228,6 @@ describe('BaseLifecycle', () => {
 		mockedUseDataSources.mockReturnValue({empty: false, loading: false});
 		mockedUseRequest.mockImplementation(useRequestImpl({totalCount: 5}));
 	});
-
-	afterEach(cleanup);
 
 	it('resets the filters and loads the current version when switching lifecycles', () => {
 		const {rerender} = renderPage();
@@ -274,17 +259,7 @@ describe('BaseLifecycle', () => {
 			useRequestImpl({lifecycle: {id: '2'}, totalCount: 5})
 		);
 
-		rerender(
-			<Provider store={mockStore()}>
-				<ChannelContext.Provider value={mockChannelContext() as any}>
-					<MemoryRouter
-						initialEntries={['/workspace/23/123/lifecycle/erc-2']}
-					>
-						<BaseLifecycle />
-					</MemoryRouter>
-				</ChannelContext.Provider>
-			</Provider>
-		);
+		rerender(<Page />);
 
 		expect(screen.getByTestId('filter-industryFilter')).toHaveAttribute(
 			'data-value',
@@ -1207,9 +1182,9 @@ describe('BaseLifecycle', () => {
 			})
 		);
 
-		renderPage([
-			toRoute(Routes.LIFECYCLE, {channelId: '123', groupId: '23'}),
-		]);
+		renderPage(
+			toRoute(Routes.LIFECYCLE, {channelId: '123', groupId: '23'})
+		);
 
 		expect(screen.getByTestId('location')).toHaveTextContent(
 			toRoute(Routes.LIFECYCLE_DASHBOARD, {

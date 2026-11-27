@@ -4,7 +4,7 @@ import DataSourceQuery from 'shared/queries/DataSourceQuery';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ChannelContext} from 'shared/context/channel';
-import {cleanup, render, screen, waitFor} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 import {DataSourceTypes, OrderByDirections} from 'shared/util/constants';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -60,8 +60,6 @@ describe('ConnectDXP', () => {
 			})
 		);
 	});
-
-	afterEach(cleanup);
 
 	it('should render', async () => {
 		const {container} = render(

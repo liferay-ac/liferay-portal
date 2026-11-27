@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import MarketoCampaignOverview from '../MarketoCampaignOverview';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {DataSource} from 'shared/util/records';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -38,8 +38,6 @@ const WrappedComponent = props => (
 );
 
 describe('MarketoCampaignOverview', () => {
-	afterEach(cleanup);
-
 	it('should render the connected data source with the synced leads and companies count', async () => {
 		useRequest.mockReturnValue({
 			data: 10,

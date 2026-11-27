@@ -7,7 +7,7 @@ import TagInput, {
 	getConjunctionCriterionFromValue,
 	getEventTypeFromValue
 } from '../TagInput';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	createCustomValueMap,
 	getIndexFromPropertyName
@@ -354,8 +354,6 @@ describe('TagInput', () => {
 	});
 
 	describe('render', () => {
-		afterEach(cleanup);
-
 		it('should call onChange on mount with a built value when value has no criterionGroup', () => {
 			const onChange = jest.fn();
 

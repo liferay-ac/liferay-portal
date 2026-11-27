@@ -1,6 +1,6 @@
 import OverviewSection from '../OverviewSection';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from 'test/render';
 import {IOverviewMetric, OverviewMetricType} from '../../utils/types';
 import {TrendClassification} from 'segment/types';
 
@@ -17,8 +17,6 @@ const buildMetric = (
 });
 
 describe('OverviewSection', () => {
-	afterEach(cleanup);
-
 	it('should render the overview header and all three card titles', () => {
 		const {getByText} = render(<OverviewSection />);
 

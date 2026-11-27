@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import * as data from 'test/data';
 import React from 'react';
-import {cleanup, render, waitFor} from '@testing-library/react';
+import {render, waitFor} from '@testing-library/react';
 import {Distribution} from '../Distribution';
 import {List} from 'immutable';
 import {User} from 'shared/util/records';
@@ -18,8 +18,6 @@ const defaultProps = {
 };
 
 describe('SegmentDistribution', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {getByText} = render(<Distribution {...defaultProps} />);
 

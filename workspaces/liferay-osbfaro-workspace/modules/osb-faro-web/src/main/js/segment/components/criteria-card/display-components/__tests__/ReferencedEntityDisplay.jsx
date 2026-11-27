@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import React from 'react';
 import ReferencedEntityDisplay from '../ReferencedEntityDisplay';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	EntityType,
 	ReferencedObjectsProvider
@@ -29,8 +29,6 @@ const DefaultComponent = props => (
 );
 
 describe('ReferencedEntityDisplay', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		const {container} = render(<DefaultComponent />);
 

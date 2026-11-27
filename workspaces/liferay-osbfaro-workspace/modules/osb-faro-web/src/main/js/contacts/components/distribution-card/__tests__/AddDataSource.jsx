@@ -1,11 +1,9 @@
 import AddDataSource from '../AddDataSource';
 import React from 'react';
 import {BrowserRouter} from 'react-router-dom';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('DistributionCard AddDataSource', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		const {getByText} = render(
 			<BrowserRouter>

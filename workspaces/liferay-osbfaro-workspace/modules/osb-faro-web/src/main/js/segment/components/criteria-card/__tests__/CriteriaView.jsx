@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import CriteriaView from '../CriteriaView';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Segment} from 'shared/util/records';
 import {SegmentTypes} from 'shared/util/constants';
 import {withReferencedObjectsProvider} from 'segment/segment-editor/dynamic/context/referencedObjects';
@@ -27,8 +27,6 @@ const buildSegment = () =>
 	});
 
 describe('CriteriaView', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const WrappedCriteriaView = withReferencedObjectsProvider(CriteriaView);
 		const {container} = render(

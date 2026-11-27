@@ -2,7 +2,7 @@ import ClayForm from '@clayui/form';
 import client from 'shared/apollo/client';
 import mockStore from 'test/mock-store';
 import React, {useState} from 'react';
-import {act, cleanup, fireEvent, render} from '@testing-library/react';
+import {act, fireEvent, render} from '@testing-library/react';
 import {ApolloProvider} from '@apollo/client';
 import {
 	Checkbox,
@@ -183,8 +183,6 @@ const generateCSVURL = (type: CSVType) => {
 describe('DownloadReportModal CSV', () => {
 	afterEach(() => {
 		jest.clearAllTimers();
-
-		cleanup();
 	});
 
 	beforeAll(() => {
@@ -255,8 +253,6 @@ describe('DownloadReportModal CSV', () => {
 describe('DownloadReportModal PDF', () => {
 	afterEach(() => {
 		jest.clearAllTimers();
-
-		cleanup();
 	});
 
 	beforeAll(() => {

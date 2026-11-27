@@ -1,10 +1,8 @@
 import Circle from '../Circle';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('Circle', () => {
-	afterEach(cleanup);
-
 	it('should render a Circle component', () => {
 		const {container} = render(<Circle />);
 

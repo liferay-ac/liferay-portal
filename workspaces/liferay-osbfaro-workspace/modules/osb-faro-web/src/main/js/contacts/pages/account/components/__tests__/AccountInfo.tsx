@@ -1,6 +1,6 @@
 import AccountInfo from '../AccountInfo';
 import React from 'react';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
@@ -28,8 +28,6 @@ const mockAccount = {
 };
 
 describe('AccountInfo', () => {
-	afterEach(cleanup);
-
 	describe('rendering', () => {
 		it('should render the card title', () => {
 			render(<AccountInfo account={mockAccount} />);

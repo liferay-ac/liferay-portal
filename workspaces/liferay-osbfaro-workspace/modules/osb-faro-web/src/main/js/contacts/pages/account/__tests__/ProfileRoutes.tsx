@@ -2,7 +2,7 @@ import mockStore from 'test/mock-store';
 import ProfileRoutes from '../ProfileRoutes';
 import React from 'react';
 import {ChannelContext} from 'shared/context/channel';
-import {cleanup, render, screen, waitFor, within} from '@testing-library/react';
+import {render, screen, waitFor, within} from '@testing-library/react';
 import {
 	MemoryRouter,
 	Route,
@@ -90,8 +90,6 @@ describe('AccountProfileRoutes', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 	});
-
-	afterEach(cleanup);
 
 	it('renders a loading indicator while the account request is in flight', () => {
 		mockedUseRequest.mockReturnValue({

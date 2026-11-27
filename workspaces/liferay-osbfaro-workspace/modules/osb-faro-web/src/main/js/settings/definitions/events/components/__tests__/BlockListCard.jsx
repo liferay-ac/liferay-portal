@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import BlockListCard from '../BlockListCard';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {mockBlockedCustomEventDefinitionsReq} from 'test/graphql-data';
 import {MockedProvider} from '@apollo/client/testing';
@@ -34,8 +34,6 @@ const Wrapper = ({children, mocks = []}) => (
 );
 
 describe('BlockListCard', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const mocks = [
 			mockBlockedCustomEventDefinitionsReq(

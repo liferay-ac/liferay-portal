@@ -1,11 +1,9 @@
 import {Routes, toRoute} from 'shared/util/router';
 import {buildHeaderSubtitle} from '../utils';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('buildHeaderSubtitle', () => {
 	const context = {channelId: '123', groupId: 'liferay.com'};
-
-	afterEach(cleanup);
 
 	it('links the account name to its account page when an account id exists', () => {
 		const individual = {

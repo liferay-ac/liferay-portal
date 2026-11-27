@@ -1,7 +1,7 @@
 import HelpWidgetModal from '../index';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, screen} from '@testing-library/react';
+import {screen} from '@testing-library/react';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
 import {Provider} from 'react-redux';
@@ -30,8 +30,6 @@ const DefaultComponent = ({observer, ...props}) => (
 );
 
 describe('HelpWidgetModal', () => {
-	afterEach(cleanup);
-
 	it('Should render', async () => {
 		await renderModal(observer => <DefaultComponent observer={observer} />);
 

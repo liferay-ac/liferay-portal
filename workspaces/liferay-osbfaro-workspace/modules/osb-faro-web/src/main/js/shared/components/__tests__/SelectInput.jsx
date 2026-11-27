@@ -1,10 +1,8 @@
 import React from 'react';
 import SelectInput from '../SelectInput';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('SelectInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<SelectInput

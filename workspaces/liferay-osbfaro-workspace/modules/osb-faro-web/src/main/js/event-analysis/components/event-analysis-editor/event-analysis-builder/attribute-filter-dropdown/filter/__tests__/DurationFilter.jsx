@@ -2,7 +2,7 @@ import * as pedantic from 'test/pedantic';
 import DurationFilter from '../DurationFilter';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter} from 'react-router-dom';
 import {MockedProvider} from '@apollo/client/testing';
@@ -37,7 +37,6 @@ describe('DurationFilter', () => {
 
 	afterEach(() => {
 		pedantic.enable();
-		cleanup();
 	});
 
 	it('should render', () => {

@@ -1,11 +1,9 @@
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {noop} from 'lodash';
 import {TitleEditor} from '../TitleEditor';
 
 describe('TitleEditor', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<TitleEditor name='test' onChange={noop} />);
 		expect(container).toMatchSnapshot();

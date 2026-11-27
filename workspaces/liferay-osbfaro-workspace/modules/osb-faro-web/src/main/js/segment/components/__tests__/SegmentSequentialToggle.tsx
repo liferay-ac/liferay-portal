@@ -1,6 +1,6 @@
 import React from 'react';
 import SegmentSequentialToggle from '../SegmentSequentialToggle';
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {Form, Formik, FormikProps} from 'formik';
 
 type Values = {sequential: boolean};
@@ -29,8 +29,6 @@ const renderToggle = () => {
 };
 
 describe('SegmentSequentialToggle', () => {
-	afterEach(cleanup);
-
 	it('updates the field when it is toggled', async () => {
 		const {getByRole, getFormik} = renderToggle();
 

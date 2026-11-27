@@ -1,10 +1,8 @@
 import FilterAndOrder from '../FilterAndOrder';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 
 describe('FilterAndOrder', () => {
-	afterEach(cleanup);
-
 	const FILTER_BY_OPTIONS = [
 		{
 			key: 'status',

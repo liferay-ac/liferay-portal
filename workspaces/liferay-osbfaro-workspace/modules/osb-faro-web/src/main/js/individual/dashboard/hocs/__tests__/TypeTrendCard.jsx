@@ -1,8 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import TypeTrendCard from '../TypeTrendCard';
-import {cleanup, render} from '@testing-library/react';
-import {MockedProvider} from '@apollo/client/testing';
+import {render} from 'test/render';
 import {mockIndividualMetricsReq} from 'test/graphql-data';
 
 jest.mock('react-router-dom', () => ({
@@ -15,14 +14,10 @@ jest.mock('react-router-dom', () => ({
 ReactDOM.createPortal = jest.fn();
 
 describe('TypeTrendCard', () => {
-	afterEach(cleanup);
-
 	xit('should render', () => {
-		const {container} = render(
-			<MockedProvider mocks={[mockIndividualMetricsReq()]}>
-				<TypeTrendCard channelId='123123' />
-			</MockedProvider>
-		);
+		const {container} = render(<TypeTrendCard channelId='123123' />, {
+			apolloMocks: [mockIndividualMetricsReq()]
+		});
 
 		jest.runAllTimers();
 

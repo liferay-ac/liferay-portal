@@ -1,11 +1,9 @@
 import React from 'react';
 import UnableDeletePropertyModal from '../UnableDeletePropertyModal';
-import {cleanup, fireEvent, screen} from '@testing-library/react';
+import {fireEvent, screen} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
 
 describe('UnableDeletePropertyModal', () => {
-	afterEach(cleanup);
-
 	it('renders the title, the documentation link and the danger status', async () => {
 		await renderModal(observer => (
 			<UnableDeletePropertyModal observer={observer} onClose={jest.fn()} />

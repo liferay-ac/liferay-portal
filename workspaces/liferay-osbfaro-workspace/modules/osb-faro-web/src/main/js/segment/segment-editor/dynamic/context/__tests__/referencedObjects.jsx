@@ -9,7 +9,7 @@ import {
 	withReferencedObjectsConsumer,
 	withReferencedObjectsProvider
 } from '../referencedObjects';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {fromJS, Map} from 'immutable';
 import {Property, Segment} from 'shared/util/records';
 
@@ -33,8 +33,6 @@ const initialReferencedProperties = new Map({
 
 describe('referencedObjects', () => {
 	describe('referencedEntitiesReducer', () => {
-		afterEach(cleanup);
-
 		it('should return referencedEntities state with added Asset', () => {
 			const referencedEntities = referencedEntitiesReducer(
 				initialReferencedEntities,
@@ -64,8 +62,6 @@ describe('referencedObjects', () => {
 	});
 
 	describe('referencedPropertiesReducer', () => {
-		afterEach(cleanup);
-
 		it('should return referencedProperties state with added properties', () => {
 			const referencedProperties = referencedPropertiesReducer(
 				initialReferencedProperties,
@@ -163,8 +159,6 @@ describe('referencedObjects', () => {
 	});
 
 	describe('ReferencedObjectsProvider', () => {
-		afterEach(cleanup);
-
 		it('should allow an initial context value for referencedProperties segment prop', () => {
 			const name = 'city';
 
@@ -308,8 +302,6 @@ describe('referencedObjects', () => {
 	});
 
 	describe('withReferencedObjectsConsumer', () => {
-		afterEach(cleanup);
-
 		it('should pass the WrappedComponent', () => {
 			const ChildComponent = ({
 				addEntities,
@@ -345,8 +337,6 @@ describe('referencedObjects', () => {
 	});
 
 	describe('withReferencedObjectsProvider', () => {
-		afterEach(cleanup);
-
 		it('should pass the WrappedComponent', () => {
 			const WrappedComponent = withReferencedObjectsProvider(() => (
 				<div>{'foo'}</div>

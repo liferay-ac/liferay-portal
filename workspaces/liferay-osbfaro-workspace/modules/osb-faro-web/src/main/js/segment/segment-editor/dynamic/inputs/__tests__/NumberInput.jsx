@@ -1,11 +1,9 @@
 import NumberInput from '../NumberInput';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Property} from 'shared/util/records';
 
 describe('NumberInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<NumberInput

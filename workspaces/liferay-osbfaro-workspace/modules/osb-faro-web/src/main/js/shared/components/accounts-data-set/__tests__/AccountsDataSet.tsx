@@ -1,6 +1,6 @@
 import AccountsDataSet from '../AccountsDataSet';
 import React from 'react';
-import {cleanup, render, screen, waitFor} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 import {CatalogFieldDataCategory, ICatalogField} from 'shared/api/catalog';
 import {IViewField} from '../utils';
 import {LifecycleStages} from 'contacts/pages/account/utils/constants';
@@ -231,8 +231,6 @@ describe('AccountsDataSet', () => {
 		lastViews = undefined;
 		mountCount = 0;
 	});
-
-	afterEach(cleanup);
 
 	it('should render the FrontendDataSet with id "accounts-list-dataset"', async () => {
 		await renderAccountsDataSet(

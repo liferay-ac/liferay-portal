@@ -1,7 +1,7 @@
 import CampaignDisplay from '../CampaignDisplay';
 import React from 'react';
 import {CAMPAIGN_PROPERTY} from 'segment/segment-editor/dynamic/utils/properties';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {Criterion} from 'segment/segment-editor/dynamic/utils/types';
 import {fromJS, List, Map} from 'immutable';
 import {getDefaultValue} from 'segment/segment-editor/dynamic/criteria-sidebar/CriteriaSidebarCollapse';
@@ -40,8 +40,6 @@ const Display: React.FC<{ids: string[]}> = ({ids}) => (
 );
 
 describe('CampaignDisplay', () => {
-	afterEach(cleanup);
-
 	it('should show the operator and the current names of the campaigns', () => {
 		render(<Display ids={['c1', 'c2']} />);
 

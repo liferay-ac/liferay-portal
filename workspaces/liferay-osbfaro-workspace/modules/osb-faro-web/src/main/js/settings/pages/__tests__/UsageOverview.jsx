@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, getByTestId, render} from '@testing-library/react';
+import {getByTestId, render} from '@testing-library/react';
 import {fromJS} from 'immutable';
 import {Project} from 'shared/util/records';
 import {Provider} from 'react-redux';
@@ -461,8 +461,6 @@ describe('UsageOverview', () => {
 });
 
 describe('Subscription Details', () => {
-	afterEach(cleanup);
-
 	it('renders subscription details for BASIC PLAN', () => {
 		useCurrentUser.mockImplementation(() => ({isAdmin: () => true}));
 

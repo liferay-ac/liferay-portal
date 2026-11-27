@@ -1,6 +1,6 @@
 import CampaignsEmptyState from '../CampaignsEmptyState';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {useDataSources} from 'shared/context/dataSources';
 
 jest.mock('shared/context/dataSources', () => ({useDataSources: jest.fn()}));
@@ -14,8 +14,6 @@ jest.mock('react-router-dom', () => ({
 }));
 
 describe('CampaignsEmptyState', () => {
-	afterEach(cleanup);
-
 	beforeEach(() => {
 		useDataSources.mockReturnValue({empty: false, loading: false});
 	});

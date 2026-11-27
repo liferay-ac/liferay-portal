@@ -1,10 +1,8 @@
 import PopoverBase from '../PopoverBase';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 describe('PopoverBase', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<PopoverBase placement='bottom' visible />);
 
@@ -19,8 +17,6 @@ describe('PopoverBase', () => {
 });
 
 describe('PopoverBase.Header', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<PopoverBase.Header children='Header' />);
 
@@ -29,8 +25,6 @@ describe('PopoverBase.Header', () => {
 });
 
 describe('PopoverBase.Body', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<PopoverBase.Body children='Body' />);
 
@@ -39,8 +33,6 @@ describe('PopoverBase.Body', () => {
 });
 
 describe('PopoverBase.Footer', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<PopoverBase.Footer children='Footer' />);
 

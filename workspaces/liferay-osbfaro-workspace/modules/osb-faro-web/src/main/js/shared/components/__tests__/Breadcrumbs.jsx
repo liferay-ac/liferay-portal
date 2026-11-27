@@ -1,6 +1,6 @@
 import Breadcrumbs from '../Breadcrumbs';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 
 const ITEMS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven'];
@@ -20,8 +20,6 @@ const DefaultComponent = props => (
 );
 
 describe('Breadcrumbs', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {getByText} = render(<DefaultComponent />);
 

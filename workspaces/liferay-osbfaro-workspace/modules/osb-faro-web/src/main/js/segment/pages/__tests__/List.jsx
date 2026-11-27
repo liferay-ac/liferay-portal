@@ -1,16 +1,11 @@
 import * as API from 'shared/api';
 import * as data from 'test/data';
 import List from '../List';
-import mockStore, {mockStoreData, mockStoreDataLDP} from 'test/mock-store';
+import {mockStoreData, mockStoreDataLDP} from 'test/mock-store';
 import React from 'react';
-import {act} from '@testing-library/react';
-import {ChannelContext} from 'shared/context/channel';
-import {cleanup, fireEvent, render, screen, within} from '@testing-library/react';
 import {formatDateToTimeZone, getCustomDateTimeFormat} from 'shared/util/date';
 import {getTimestamp} from 'test/data';
-import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
-import {mockChannelContext} from 'test/mock-channel-context';
-import {Provider} from 'react-redux';
+import {act, fireEvent, render, screen, within} from 'test/render';
 import {Routes} from 'shared/util/router';
 import {SegmentCategories, SegmentTypes} from 'shared/util/constants';
 import {UnassignedSegmentsContext} from 'shared/context/unassignedSegments';
@@ -23,42 +18,26 @@ const MOCK_UNASSIGNED_SEGMENTS_CONTEXT = {
 	unassignedSegmentsDispatch: jest.fn()
 };
 
-const DefaultComponent = ({
-	queryString = '',
-	storeData = mockStoreDataLDP,
-	...otherProps
-}) => (
-	<Provider store={mockStore(storeData)}>
-		<MemoryRouter
-			initialEntries={[
-				`/workspace/23/123/contacts/segments${queryString}`
-			]}
-		>
-			<RouterRoutes>
-				<Route
-					element={
-						<UnassignedSegmentsContext.Provider
-							value={MOCK_UNASSIGNED_SEGMENTS_CONTEXT}
-						>
-							<ChannelContext.Provider value={mockChannelContext()}>
-								<List
-									channelId='123'
-									currentUser={data.getImmutableMock(
-										User,
-										data.mockUser
-									)}
-									groupId='23'
-									{...otherProps}
-								/>
-							</ChannelContext.Provider>
-						</UnassignedSegmentsContext.Provider>
-					}
-					path={`${Routes.CONTACTS_LIST_SEGMENT}/*`}
-				/>
-			</RouterRoutes>
-		</MemoryRouter>
-	</Provider>
+const UnassignedSegmentsProvider = ({children}) => (
+	<UnassignedSegmentsContext.Provider value={MOCK_UNASSIGNED_SEGMENTS_CONTEXT}>
+		{children}
+	</UnassignedSegmentsContext.Provider>
 );
+
+const renderList = ({storeData = mockStoreDataLDP} = {}) =>
+	render(
+		<List
+			channelId='123'
+			currentUser={data.getImmutableMock(User, data.mockUser)}
+			groupId='23'
+		/>,
+		{
+			path: `${Routes.CONTACTS_LIST_SEGMENT}/*`,
+			route: '/workspace/23/123/contacts/segments',
+			storeData,
+			wrapper: UnassignedSegmentsProvider
+		}
+	);
 
 describe('List', () => {
 	beforeEach(() => {
@@ -68,8 +47,6 @@ describe('List', () => {
 	});
 
 	afterEach(() => {
-		cleanup();
-
 		jest.useRealTimers();
 	});
 
@@ -78,7 +55,7 @@ describe('List', () => {
 			Promise.resolve(data.mockSearch(data.mockSegment, 20))
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await act(async () => {
 			jest.runAllTimers();
@@ -99,7 +76,7 @@ describe('List', () => {
 	});
 
 	it('should render', async () => {
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -116,7 +93,7 @@ describe('List', () => {
 			)
 		);
 
-		const {container} = render(<DefaultComponent />);
+		const {container} = renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -133,7 +110,7 @@ describe('List', () => {
 			)
 		);
 
-		const {container} = render(<DefaultComponent />);
+		const {container} = renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -152,7 +129,7 @@ describe('List', () => {
 			)
 		);
 
-		const {container} = render(<DefaultComponent />);
+		const {container} = renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -162,7 +139,7 @@ describe('List', () => {
 	});
 
 	it('shows the segment type dropdown', async () => {
-		render(<DefaultComponent />);
+		renderList();
 
 		await act(async () => {
 			jest.runAllTimers();
@@ -191,7 +168,7 @@ describe('List', () => {
 	});
 
 	it('links straight to an individual batch segment for non-LDP plans', async () => {
-		render(<DefaultComponent storeData={mockStoreData} />);
+		renderList({storeData: mockStoreData});
 
 		await act(async () => {
 			jest.runAllTimers();
@@ -229,7 +206,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -252,7 +229,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -275,7 +252,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -297,7 +274,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -319,7 +296,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -342,7 +319,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -362,7 +339,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -385,7 +362,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -406,7 +383,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -425,7 +402,7 @@ describe('List', () => {
 			)
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 
@@ -439,7 +416,7 @@ describe('List', () => {
 			Promise.resolve(data.mockSearch(data.mockSegment, 1))
 		);
 
-		render(<DefaultComponent />);
+		renderList();
 
 		await waitForLoadingToBeRemoved(document.body);
 

@@ -4,13 +4,7 @@ import client from 'shared/apollo/client';
 import GeolocationInput from '../GeolocationInput';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {
 	mockListGeometry,
@@ -78,8 +72,6 @@ const WrapperComponent = ({children}) => (
 );
 
 describe('GeolocationInput', () => {
-	afterEach(cleanup);
-
 	it('loads the next page of regions with the country filter', async () => {
 		API.session.fetchFieldValues.mockImplementation(
 			mockPaginatedFieldValues()

@@ -1,6 +1,6 @@
 import CampaignsDataSet from '../CampaignsDataSet';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {
 	EMPTY_STATE_IMAGE,
 	EMPTY_STATE_REDUCED_MOTION_IMAGE,
@@ -34,8 +34,6 @@ describe('CampaignsDataSet', () => {
 	beforeEach(() => {
 		lastFDSProps = undefined;
 	});
-
-	afterEach(cleanup);
 
 	it('should render the FrontendDataSet with id "campaigns-list-dataset"', () => {
 		renderDataSet();

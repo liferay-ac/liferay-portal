@@ -1,10 +1,8 @@
 import React from 'react';
 import SearchInput from '../SearchInput';
-import {cleanup, createEvent, fireEvent, render} from '@testing-library/react';
+import {createEvent, fireEvent, render} from '@testing-library/react';
 
 describe('SearchInput', () => {
-	afterEach(cleanup);
-
 	it('should render input', () => {
 		const {container} = render(<SearchInput />);
 		expect(container).toMatchSnapshot();

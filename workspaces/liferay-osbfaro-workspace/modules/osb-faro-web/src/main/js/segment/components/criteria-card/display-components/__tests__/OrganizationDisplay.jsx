@@ -1,7 +1,7 @@
 import * as data from 'test/data';
 import OrganizationDisplay from '../OrganizationDisplay';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {createCustomValueMap} from 'segment/segment-editor/dynamic/utils/custom-inputs';
 import {
 	CustomFunctionOperators,
@@ -65,8 +65,6 @@ const DefaultComponent = props => (
 );
 
 describe('OrganizationDisplay', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		const {container} = render(<DefaultComponent />);
 

@@ -1,12 +1,10 @@
 import CustomBooleanInput from '../CustomBooleanInput';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {fromJS} from 'immutable';
 import {Property} from 'shared/util/records';
 
 describe('CustomBooleanInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<CustomBooleanInput

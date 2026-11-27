@@ -1,13 +1,7 @@
 import * as API from 'shared/api';
 import CampaignDropdown from '../CampaignDropdown';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 
 const searchCampaignNames = API.campaigns.searchCampaignNames as jest.Mock;
@@ -31,8 +25,6 @@ const openPicker = () =>
 	);
 
 describe('CampaignDropdown', () => {
-	afterEach(cleanup);
-
 	beforeEach(() => {
 		searchCampaignNames.mockReset();
 		searchCampaignNames.mockReturnValue(

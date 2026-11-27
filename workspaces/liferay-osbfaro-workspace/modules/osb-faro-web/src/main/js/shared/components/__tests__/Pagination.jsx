@@ -1,13 +1,11 @@
 import Pagination from '../Pagination';
 import React from 'react';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {withStaticRouter} from 'test/mock-router';
 
 const DefaultComponent = withStaticRouter(Pagination);
 
 describe('Pagination', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<DefaultComponent href='' page={1} total={1} />

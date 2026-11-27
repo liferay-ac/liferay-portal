@@ -1,13 +1,11 @@
 import React from 'react';
 import SearchTermBooleanInput from '../SearchTermBooleanInput';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {createCustomValueMap} from '../../utils/custom-inputs';
 import {Property} from 'shared/util/records';
 import {RelationalOperators} from '../../utils/constants';
 
 describe('SearchTermBooleanInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<SearchTermBooleanInput

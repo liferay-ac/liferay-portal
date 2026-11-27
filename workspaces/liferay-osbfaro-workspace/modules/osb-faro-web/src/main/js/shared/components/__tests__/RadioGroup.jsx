@@ -1,10 +1,8 @@
 import RadioGroup from '../RadioGroup';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 
 describe('RadioGroup.Option', () => {
-	afterEach(cleanup);
-
 	it('should render Option', () => {
 		const {container} = render(<RadioGroup.Option />);
 		expect(container).toMatchSnapshot();

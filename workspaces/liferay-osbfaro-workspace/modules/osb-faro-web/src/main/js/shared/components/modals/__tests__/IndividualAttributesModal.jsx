@@ -1,14 +1,12 @@
 import IndividualAttributesModal from '../IndividualAttributesModal';
 import React from 'react';
-import {cleanup, screen} from '@testing-library/react';
+import {screen} from '@testing-library/react';
 import {mockIndividualAttributes} from 'test/data';
 import {renderModal} from 'test/render-modal';
 
 const {dataSources, fieldName} = mockIndividualAttributes();
 
 describe('IndividualAttributesModal', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		await renderModal(observer => (
 			<IndividualAttributesModal

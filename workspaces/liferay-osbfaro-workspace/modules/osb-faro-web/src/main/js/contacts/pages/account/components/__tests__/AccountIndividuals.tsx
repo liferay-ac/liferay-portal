@@ -1,6 +1,6 @@
 import AccountIndividuals from '../AccountIndividuals';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 
 jest.mock('@liferay/frontend-data-set-web', () => ({
 	...jest.requireActual('@liferay/frontend-data-set-web'),
@@ -46,8 +46,6 @@ describe('AccountIndividuals', () => {
 
 		window.history.replaceState({}, '', '/');
 	});
-
-	afterEach(cleanup);
 
 	it('should render the card title', () => {
 		render(<AccountIndividuals />);

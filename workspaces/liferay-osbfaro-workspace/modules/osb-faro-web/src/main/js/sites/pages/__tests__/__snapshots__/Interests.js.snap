@@ -18,6 +18,11 @@ exports[`Sites Dashboard Interests render 1`] = `
             class="card-header align-items-center d-flex justify-content-between"
           >
             <div
+              class="card-title"
+            >
+              Interest Topics on Channel 1
+            </div>
+            <div
               class="dropdown dropdown-range-key-root"
             >
               <button

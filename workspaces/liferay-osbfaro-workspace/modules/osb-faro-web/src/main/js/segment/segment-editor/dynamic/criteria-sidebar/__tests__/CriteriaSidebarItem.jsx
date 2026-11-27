@@ -1,6 +1,6 @@
 import React from 'react';
 import {beginDrag, CriteriaSidebarItem} from '../CriteriaSidebarItem';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {KeyboardMovementContext} from '../../context/keyboardMovement';
 import {every} from 'lodash';
 import {PropertyTypes} from '../../utils/constants';
@@ -9,8 +9,6 @@ import {validateSegmentInputs} from '../../utils/utils';
 const connectDnd = jest.fn(el => el);
 
 describe('CriteriaSidebarItem', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
 			<CriteriaSidebarItem

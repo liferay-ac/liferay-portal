@@ -1,8 +1,6 @@
 import ActiveIndividualsCard from '../ActiveIndividualsCard';
-import client from 'shared/apollo/client';
 import React from 'react';
-import {ApolloProvider} from '@apollo/client';
-import {cleanup, render} from '@testing-library/react';
+import {render} from 'test/render';
 
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
@@ -15,13 +13,9 @@ jest.mock('react-router-dom', () => ({
 }));
 
 describe('ActiveIndividualsCard', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(
-			<ApolloProvider client={client}>
-				<ActiveIndividualsCard />
-			</ApolloProvider>
+			<ActiveIndividualsCard />
 		);
 		expect(container).toMatchSnapshot();
 	});

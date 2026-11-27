@@ -2,7 +2,7 @@ import Header from '../Header';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {BrowserRouter} from 'react-router-dom';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import {Routes} from 'shared/util/router';
 import {MemoryRouter} from 'react-router';
@@ -16,8 +16,6 @@ const WrappedComponent = props => (
 );
 
 describe('BasePage.Header', () => {
-	afterEach(cleanup);
-
 	beforeAll(() => {
 		delete window.location;
 

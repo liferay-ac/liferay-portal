@@ -1,7 +1,7 @@
 import ConfigureWorkspace from '../ConfigureWorkspace';
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {fromJS} from 'immutable';
 import {MemoryRouter} from 'react-router-dom';
 import {noop} from 'lodash';
@@ -74,8 +74,6 @@ describe('ConfigureWorkspace', () => {
 			loading: false,
 		});
 	});
-
-	afterEach(cleanup);
 
 	it('renders', async () => {
 		const {container} = render(<WrapperComponent />);

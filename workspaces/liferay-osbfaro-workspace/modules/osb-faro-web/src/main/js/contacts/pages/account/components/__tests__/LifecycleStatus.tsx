@@ -1,12 +1,6 @@
 import LifecycleStatus from '../LifecycleStatus';
 import React from 'react';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	within,
-} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {useRequest} from 'shared/hooks/useRequest';
 
 jest.mock('shared/api', () => ({
@@ -166,8 +160,6 @@ describe('LifecycleStatus', () => {
 			})
 		);
 	});
-
-	afterEach(cleanup);
 
 	describe('rendering', () => {
 		it('should render the card title and description', () => {

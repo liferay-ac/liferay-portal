@@ -1,6 +1,6 @@
 import mockStore from 'test/mock-store';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {DropdownRangeKey} from '../DropdownRangeKey';
 import {InMemoryCache} from '@apollo/client';
 import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
@@ -45,8 +45,6 @@ const WrapperComponent = ({children, retentionPeriodTimeRange}) => (
 );
 
 describe('DropdownRangeKey', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container} = render(
 			<WrapperComponent>

@@ -1,6 +1,6 @@
 import DeleteRecommendationModal from '../DeleteRecommendationModal';
 import React from 'react';
-import {cleanup, fireEvent, screen} from '@testing-library/react';
+import {fireEvent, screen} from '@testing-library/react';
 import {renderModal} from 'test/render-modal';
 import {sub} from 'shared/util/lang';
 
@@ -17,8 +17,6 @@ const renderDeleteRecommendation = (props) =>
 	));
 
 describe('DeleteRecommendationModal', () => {
-	afterEach(cleanup);
-
 	it('renders as a warning with the name in the title', async () => {
 		await renderDeleteRecommendation();
 

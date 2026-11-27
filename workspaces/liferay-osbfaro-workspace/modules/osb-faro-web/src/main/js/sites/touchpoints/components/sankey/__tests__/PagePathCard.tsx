@@ -2,10 +2,7 @@ import BasePage from 'shared/components/base-page';
 import PagePathCard from '../PagePathCard';
 import React from 'react';
 import {CHART_COLORS, MAIN_NODE_COLOR, SECONDARY_NODE_COLOR} from '../utils';
-import {cleanup, fireEvent, getByTestId, render} from '@testing-library/react';
-import {InMemoryCache} from '@apollo/client';
-import {MemoryRouter, Route, Routes as RouterRoutes} from 'react-router-dom';
-import {MockedProvider} from '@apollo/client/testing';
+import {fireEvent, getByTestId, render} from 'test/render';
 import {mockPagePathReq} from 'test/graphql-data';
 import {RangeKeyTimeRanges} from 'shared/util/constants';
 import {RangeSelectors} from 'shared/types';
@@ -109,7 +106,7 @@ const EMPTY_STATE_DATA = {
 	},
 };
 
-const WrapperComponent = ({
+const renderCard = ({
 	accountId,
 	data,
 	rangeSelectors = {
@@ -125,45 +122,29 @@ const WrapperComponent = ({
 	rangeSelectors?: RangeSelectors;
 	reqOptions?: Record<string, unknown>;
 	segmentId?: string;
-}) => (
-	<MemoryRouter
-		initialEntries={[
-			'/workspace/4567/123/sites/pages/overview/https%3A%2F%2Fliferay.com%2Fhome/Liferay%20DXP%20-%20Home?rangeKey=30',
-		]}
-	>
-		<RouterRoutes>
-			<Route
-				element={
-					<BasePage.Context.Provider
-						value={{accountId, filters: {}, router: {}, segmentId}}
-					>
-						<MockedProvider
-							cache={
-								new InMemoryCache({freezeResults: false} as any)
-							}
-							mocks={[
-								mockPagePathReq(data, {
-									accountId,
-									segmentId,
-									...reqOptions,
-								} as any),
-							]}
-						>
-							<PagePathCard rangeSelectors={rangeSelectors} />
-						</MockedProvider>
-					</BasePage.Context.Provider>
-				}
-				path="/workspace/:groupId/:channelId/sites/pages/overview/:touchpoint/:title/*"
-			/>
-		</RouterRoutes>
-	</MemoryRouter>
-);
+}) =>
+	render(<PagePathCard rangeSelectors={rangeSelectors} />, {
+		apolloMocks: [
+			mockPagePathReq(data, {
+				accountId,
+				segmentId,
+				...reqOptions,
+			} as any),
+		],
+		path: '/workspace/:groupId/:channelId/sites/pages/overview/:touchpoint/:title/*',
+		route: '/workspace/4567/123/sites/pages/overview/https%3A%2F%2Fliferay.com%2Fhome/Liferay%20DXP%20-%20Home?rangeKey=30',
+		wrapper: ({children}) => (
+			<BasePage.Context.Provider
+				value={{accountId, filters: {}, router: {}, segmentId}}
+			>
+				{children}
+			</BasePage.Context.Provider>
+		),
+	});
 
 describe('PagePathCard', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
-		const {container} = render(<WrapperComponent data={DATA} />);
+		const {container} = renderCard({data: DATA});
 
 		await waitForLoadingToBeRemoved(container);
 
@@ -171,9 +152,7 @@ describe('PagePathCard', () => {
 	});
 
 	it('should filter by the selected account', async () => {
-		const {container} = render(
-			<WrapperComponent accountId="100" data={DATA} />
-		);
+		const {container} = renderCard({accountId: '100', data: DATA});
 
 		await waitForLoadingToBeRemoved(container);
 
@@ -181,9 +160,7 @@ describe('PagePathCard', () => {
 	});
 
 	it('should filter by the selected segment', async () => {
-		const {container} = render(
-			<WrapperComponent data={DATA} segmentId="segment-100" />
-		);
+		const {container} = renderCard({data: DATA, segmentId: 'segment-100'});
 
 		await waitForLoadingToBeRemoved(container);
 
@@ -191,9 +168,7 @@ describe('PagePathCard', () => {
 	});
 
 	it('should render empty state', async () => {
-		const {container, getByText} = render(
-			<WrapperComponent data={EMPTY_STATE_DATA} />
-		);
+		const {container, getByText} = renderCard({data: EMPTY_STATE_DATA});
 
 		await waitForLoadingToBeRemoved(container);
 
@@ -211,7 +186,7 @@ describe('PagePathCard', () => {
 	});
 
 	it('should render node and path with correct colors', async () => {
-		const {container} = render(<WrapperComponent data={DATA} />);
+		const {container} = renderCard({data: DATA});
 
 		await waitForLoadingToBeRemoved(container);
 
@@ -266,7 +241,7 @@ describe('PagePathCard', () => {
 	});
 
 	it('should render popover when a URL is hovered', async () => {
-		const {container, getByText} = render(<WrapperComponent data={DATA} />);
+		const {container, getByText} = renderCard({data: DATA});
 
 		await waitForLoadingToBeRemoved(container);
 
@@ -294,7 +269,7 @@ describe('PagePathCard', () => {
 	});
 
 	it('should check if tooltip are rendered', async () => {
-		const {container} = render(<WrapperComponent data={DATA} />);
+		const {container} = renderCard({data: DATA});
 
 		await waitForLoadingToBeRemoved(container);
 
@@ -318,17 +293,15 @@ describe('PagePathCard', () => {
 	});
 
 	it('should create the link with the rangeKey from dropdown', async () => {
-		const {container} = render(
-			<WrapperComponent
-				data={DATA}
-				rangeSelectors={{
-					rangeEnd: '',
-					rangeKey: RangeKeyTimeRanges.Last24Hours,
-					rangeStart: '',
-				}}
-				reqOptions={{rangeKey: Number(RangeKeyTimeRanges.Last24Hours)}}
-			/>
-		);
+		const {container} = renderCard({
+			data: DATA,
+			rangeSelectors: {
+				rangeEnd: '',
+				rangeKey: RangeKeyTimeRanges.Last24Hours,
+				rangeStart: '',
+			},
+			reqOptions: {rangeKey: Number(RangeKeyTimeRanges.Last24Hours)},
+		});
 
 		await waitForLoadingToBeRemoved(container);
 
@@ -341,17 +314,15 @@ describe('PagePathCard', () => {
 	});
 
 	it('should create the link with the rangeKey from dropdown even in a empty state', async () => {
-		const {container} = render(
-			<WrapperComponent
-				data={EMPTY_STATE_DATA}
-				rangeSelectors={{
-					rangeEnd: '',
-					rangeKey: RangeKeyTimeRanges.Last24Hours,
-					rangeStart: '',
-				}}
-				reqOptions={{rangeKey: Number(RangeKeyTimeRanges.Last24Hours)}}
-			/>
-		);
+		const {container} = renderCard({
+			data: EMPTY_STATE_DATA,
+			rangeSelectors: {
+				rangeEnd: '',
+				rangeKey: RangeKeyTimeRanges.Last24Hours,
+				rangeStart: '',
+			},
+			reqOptions: {rangeKey: Number(RangeKeyTimeRanges.Last24Hours)},
+		});
 
 		await waitForLoadingToBeRemoved(container);
 

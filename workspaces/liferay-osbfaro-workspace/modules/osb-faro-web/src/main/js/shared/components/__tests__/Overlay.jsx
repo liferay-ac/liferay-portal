@@ -1,11 +1,9 @@
 import Overlay from '../Overlay';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import {PropTypes} from 'prop-types';
 
 describe('Overlay', () => {
-	afterEach(cleanup);
-
 	it('should render the trigger', () => {
 		render(
 			<Overlay

@@ -1,13 +1,7 @@
 import * as API from 'shared/api';
 import React from 'react';
 import SegmentDropdown from '../SegmentDropdown';
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {mockListGeometry, scrollListToBottom} from 'test/infinite-scroll';
 
@@ -34,7 +28,6 @@ const openPicker = () => {
 };
 
 describe('SegmentDropdown', () => {
-	afterEach(cleanup);
 
 	// The api mock is shared across the suite, so a test that opens the picker
 	// would otherwise leave calls behind for the next one to trip over.

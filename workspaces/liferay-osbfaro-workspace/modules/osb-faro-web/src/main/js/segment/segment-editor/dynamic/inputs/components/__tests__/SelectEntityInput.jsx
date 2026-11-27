@@ -2,7 +2,7 @@ import * as data from 'test/data';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import SelectEntityInput from '../SelectEntityInput';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {
 	EntityType,
 	ReferencedObjectsProvider
@@ -40,8 +40,6 @@ const DefaultComponent = props => (
 );
 
 describe('SelectEntityInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<DefaultComponent valid={false} />);
 

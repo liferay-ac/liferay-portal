@@ -1,7 +1,7 @@
 import React from 'react';
 import UnavailableCampaignsAlert from '../UnavailableCampaignsAlert';
 import {CAMPAIGN_PROPERTY} from '../utils/properties';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {fromJS, List, Map} from 'immutable';
 import {getDefaultValue} from '../criteria-sidebar/CriteriaSidebarCollapse';
 import {ReferencedObjectsContext} from '../context/referencedObjects';
@@ -35,8 +35,6 @@ const Alert = ({campaignId}) => (
 );
 
 describe('UnavailableCampaignsAlert', () => {
-	afterEach(cleanup);
-
 	it('should warn about a criterion whose campaign no longer exists', () => {
 		render(<Alert campaignId='deleted' />);
 

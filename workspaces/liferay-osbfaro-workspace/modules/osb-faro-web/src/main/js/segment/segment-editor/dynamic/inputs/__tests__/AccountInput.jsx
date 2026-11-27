@@ -1,7 +1,7 @@
 import * as API from 'shared/api';
 import AccountInput from '../AccountInput';
 import React from 'react';
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {
 	focusAutocompleteInput,
 	mockListGeometry,
@@ -16,8 +16,6 @@ import {PropertyTypes, RelationalOperators} from '../../utils/constants';
 const {EQ} = RelationalOperators;
 
 describe('AccountInput', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container, getAllByText, getByText} = render(
 			<AccountInput

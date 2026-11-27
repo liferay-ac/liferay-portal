@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-	cleanup,
-	render,
-	renderHook,
-	screen,
-	waitFor,
-} from '@testing-library/react';
+import {render, renderHook, screen, waitFor} from '@testing-library/react';
 import {columns, FrontendDataSet, useSnapshots} from '../FrontendDataSet';
 import {EConfigInURLBehavior} from '@liferay/frontend-data-set-web';
 import {Routes} from 'shared/util/router';
@@ -33,8 +27,6 @@ const mockFetch = (items: unknown[]) => {
 };
 
 afterEach(() => {
-	cleanup();
-
 	lastProps = undefined;
 });
 

@@ -4,7 +4,7 @@ import EventAnalysisEdit from '../Edit';
 import mockStore from 'test/mock-store';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {DISPLAY_NAME} from 'shared/util/pagination';
 import {DndProvider} from 'react-dnd';
 import {EventTypes} from 'event-analysis/utils/types';
@@ -95,8 +95,6 @@ const WrappedComponent = () => (
 );
 
 describe.skip('Event Analysis Edit', () => {
-	afterEach(cleanup);
-
 	it('should render', async () => {
 		const {container, getByText} = render(<WrappedComponent />);
 

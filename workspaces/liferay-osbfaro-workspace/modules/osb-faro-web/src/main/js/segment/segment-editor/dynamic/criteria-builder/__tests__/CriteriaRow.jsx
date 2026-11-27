@@ -4,7 +4,7 @@ import mockStore from 'test/mock-store';
 import React from 'react';
 import {ApolloProvider} from '@apollo/client';
 import {CAMPAIGN_PROPERTY} from '../../utils/properties';
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import {DndProvider} from 'react-dnd';
 import {fromJS, List, Map} from 'immutable';
 import {getDefaultValue} from '../../criteria-sidebar/CriteriaSidebarCollapse';
@@ -56,8 +56,6 @@ const CampaignRow = ({campaignId, onDelete = jest.fn()}) => (
 );
 
 describe('CriteriaRow', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {getAllByText, getByText} = render(
 			<WrapperComponent>

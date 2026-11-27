@@ -2,7 +2,7 @@ import * as API from 'shared/api';
 import AssignSegments from '../AssignSegments';
 import React from 'react';
 import {ChannelContext} from 'shared/context/channel';
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {fireEvent, render, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import {mockChannelContext} from 'test/mock-channel-context';
 import {mockSegment} from 'test/data';
@@ -36,7 +36,6 @@ const DefaultComponent = props => (
 
 describe('AssignSegments', () => {
 	afterEach(() => {
-		cleanup();
 		jest.clearAllMocks();
 	});
 

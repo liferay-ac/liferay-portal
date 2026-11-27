@@ -1,12 +1,10 @@
 import React from 'react';
 import Tabs from '../Tabs';
-import {cleanup, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {DistributionTab} from 'shared/util/records';
 import {List} from 'immutable';
 
 describe('DistributionCard Tabs', () => {
-	afterEach(cleanup);
-
 	it('renders', () => {
 		const {container} = render(
 			<Tabs

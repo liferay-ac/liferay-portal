@@ -1,10 +1,8 @@
 import DefinitionItem from '../DefinitionItem';
 import React from 'react';
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 
 describe('DefinitionItem', () => {
-	afterEach(cleanup);
-
 	it('should render', () => {
 		const {container} = render(<DefinitionItem />);
 

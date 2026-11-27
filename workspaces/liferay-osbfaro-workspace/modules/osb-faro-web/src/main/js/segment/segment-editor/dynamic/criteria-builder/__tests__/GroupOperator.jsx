@@ -1,6 +1,6 @@
 import GroupOperator from '../GroupOperator';
 import React from 'react';
-import {cleanup, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {Conjunctions} from '../../utils/constants';
 import {selectPickerOption} from 'test/helpers';
 
@@ -14,8 +14,6 @@ const renderOperator = ({conjunctionName = Conjunctions.And, onChange} = {}) =>
 	);
 
 describe('GroupOperator', () => {
-	afterEach(cleanup);
-
 	it('should render the AND conjunction as "All" followed by the sentence', () => {
 		const {container} = renderOperator();
 
