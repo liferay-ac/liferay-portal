@@ -1,4 +1,7 @@
+import type {Channel} from 'shared/components/channels-menu';
+import User from 'shared/util/records/User';
 import {camelCase} from 'lodash';
+import {fromJS} from 'immutable';
 
 export interface INavigationItem {
 	active?: boolean;
@@ -10,14 +13,22 @@ export interface INavigationItem {
 	navigationItems?: INavigationItem[];
 }
 
+export interface IDismissedAlerts {
+	maintenanceDate?: string | null;
+	unassignedSegments?: boolean;
+}
+
 export interface IBackendConfig {
 	channelId?: string;
+	channels?: Channel[] | null;
+	currentUser?: {[key: string]: unknown} | null;
+	dismissedAlerts?: IDismissedAlerts | null;
 	friendlyURL?: string;
 	groupId?: string;
+	ldpEnabled?: boolean;
 	navigationItems?: INavigationItem[] | null;
 	pageURLs?: {[friendlyURL: string]: string};
 	params?: {[name: string]: string | undefined} | null;
-	sidebarNavigationItems?: INavigationItem[] | null;
 	signOutURL?: string;
 }
 
@@ -25,22 +36,31 @@ export type Config = {
 	readonly [key: `${string}URL`]: string;
 } & {
 	readonly channelId: string;
+	readonly channels: Channel[] | null;
+	readonly currentUser: User;
+	readonly dismissedAlerts: {
+		readonly maintenanceDate: string;
+		readonly unassignedSegments: boolean;
+	};
 	readonly friendlyURL: string;
 	readonly groupId: string;
+	readonly ldpEnabled: boolean;
 	readonly navigationItems: INavigationItem[] | null;
 	readonly params: Readonly<{[name: string]: string}>;
-	readonly sidebarNavigationItems: INavigationItem[] | null;
 	readonly signOutURL: string;
 };
 
 export function buildConfig({
 	channelId = '',
+	channels,
+	currentUser,
+	dismissedAlerts,
 	friendlyURL = '',
 	groupId = '',
+	ldpEnabled = false,
 	navigationItems,
 	pageURLs = {},
 	params,
-	sidebarNavigationItems,
 	signOutURL = '',
 }: IBackendConfig): Config {
 	const pageParams: {[name: string]: string} = {};
@@ -60,11 +80,17 @@ export function buildConfig({
 	return Object.freeze({
 		...urls,
 		channelId,
+		channels: channels ?? null,
+		currentUser: new User(fromJS(currentUser ?? {})),
+		dismissedAlerts: Object.freeze({
+			maintenanceDate: dismissedAlerts?.maintenanceDate ?? '',
+			unassignedSegments: dismissedAlerts?.unassignedSegments ?? false,
+		}),
 		friendlyURL,
 		groupId,
+		ldpEnabled,
 		navigationItems: navigationItems ?? null,
 		params: Object.freeze(pageParams),
-		sidebarNavigationItems: sidebarNavigationItems ?? null,
 		signOutURL,
 	}) as Config;
 }

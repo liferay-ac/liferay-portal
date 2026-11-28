@@ -45,17 +45,16 @@ const SEGMENTS_LANGUAGE_MAP = {
 const SegmentProfile = ({renderContent}) => {
 	const {selectedChannel} = useContext(ChannelContext);
 
+	const config = usePageConfig();
+
 	const {
 		channelId,
 		editSegmentURL,
 		friendlyURL,
 		groupId,
-		params,
-		segmentsURL
-	} = usePageConfig();
-
-	const {id} = params;
-
+		params: {id},
+		segmentsURL,
+	} = config;
 
 	const {deleteSegments, deleteSegmentsModal} = useDeleteSegments(groupId);
 	const notificationsModal = useModal();
@@ -123,7 +122,7 @@ const SegmentProfile = ({renderContent}) => {
 		deleteSegments({
 			ids: [id],
 			name: segmentDetails.name,
-			onSuccess: () => window.location.assign(segmentsURL)
+			onSuccess: () => Liferay.Util.navigate(segmentsURL)
 		});
 	};
 
@@ -144,7 +143,7 @@ const SegmentProfile = ({renderContent}) => {
 						channelId,
 						groupId,
 						label: selectedChannel && selectedChannel.name
-					}),
+					}, config),
 					breadcrumbs.getSegments(segmentsURL),
 					breadcrumbs.getEntityName({label: segmentDetails.name})
 				]}

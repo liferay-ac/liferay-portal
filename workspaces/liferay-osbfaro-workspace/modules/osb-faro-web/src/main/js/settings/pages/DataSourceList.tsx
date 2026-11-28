@@ -31,16 +31,12 @@ import {
 } from 'settings/components/3rd-party-connector/registry';
 import {getConnectorStatusDisplay} from 'settings/components/3rd-party-connector/getConnectorStatusDisplay';
 import {getDataSourceDisplayObject} from 'shared/util/data-sources';
-import {isLDPPlan} from 'shared/util/subscriptions';
-import {Link, useParams} from 'react-router-dom';
-import {useHistoryAdapter} from 'shared/hooks/useHistoryAdapter';
-import {Routes, toRoute} from 'shared/util/router';
 import {sub} from 'shared/util/lang';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
 import {useRequest} from 'shared/hooks/useRequest';
-import {useSubscriptionName} from 'shared/hooks/useSubscriptionName';
 import {useTimeZone} from 'shared/hooks/useTimeZone';
+import {usePageConfig} from 'shared/context/pageConfig';
+import {setUriQueryValues} from 'shared/util/url';
 
 interface StandaloneDataSourceDescriptor {
 	label: string;
@@ -85,9 +81,9 @@ export const DataSourceName: React.FC<IDataSourceNameProps> = ({
 			) ? (
 				<span className="text-truncate">{data.name}</span>
 			) : (
-				<Link className="text-truncate" to={hrefFormatter(data)}>
+				<a className="text-truncate" href={hrefFormatter(data)}>
 					{data.name}
-				</Link>
+				</a>
 			)}
 		</div>
 	</td>
@@ -119,7 +115,7 @@ const getAlertMessage = (
 	dataSource: {[key: string]: any},
 	currentUser: {isAdmin: () => boolean},
 	count: number,
-	groupId: string
+	dataSourceURL: string
 ) => {
 	const admin = currentUser.isAdmin();
 
@@ -134,15 +130,12 @@ const getAlertMessage = (
 			),
 			[
 				<b key="NAME">{name}</b>,
-				<Link
+				<a
+					href={setUriQueryValues({id}, dataSourceURL)}
 					key="REAUTHORIZE"
-					to={toRoute(Routes.SETTINGS_DATA_SOURCE, {
-						groupId,
-						id,
-					})}
 				>
 					{Liferay.Language.get('reauthorize').toLowerCase()}
-				</Link>,
+				</a>,
 			],
 			false
 		);
@@ -220,9 +213,14 @@ export const AddDataSourceNav: React.FC<IAddDataSourceNavProps> = ({items}) => {
 interface IDataSourceListProps extends React.HTMLAttributes<HTMLElement> {}
 
 const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
-	const currentUser = useCurrentUser();
-	const history = useHistoryAdapter();
-	const {groupId = ''} = useParams<{groupId: string}>();
+	const {
+		currentUser,
+		dataSourceOnboardingURL,
+		dataSourceURL,
+		groupId,
+		ldpEnabled,
+	} = usePageConfig();
+
 	const [alerts, setAlerts] = useState<
 		{
 			iconSymbol: string;
@@ -231,7 +229,6 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 			type: AlertTypes;
 		}[]
 	>([]);
-	const subscriptionName = useSubscriptionName({groupId});
 	const {timeZoneId} = useTimeZone();
 
 	const {delta, orderIOMap, page, query} = useQueryPagination({
@@ -261,7 +258,7 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 						invalidDataSources?.items[0],
 						currentUser,
 						invalidDataSources?.total,
-						groupId
+						dataSourceURL
 					),
 					title: Liferay.Language.get('warning'),
 					type: AlertTypes.Warning,
@@ -287,33 +284,25 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 		)
 	);
 
-	const ldpAllowed = isLDPPlan(subscriptionName);
-
 	const connectorItems = listAvailableConnectors(
 		existingConnectorTypes,
-		subscriptionName
+		ldpEnabled
 	).map((config) => ({
 		label: config.displayName,
 		onClick: () => {
-			history.push(
-				toRoute(Routes.SETTINGS_DATA_SOURCE_ONBOARDING, {
-					groupId,
-					id: config.type,
-				})
+			Liferay.Util.navigate(
+				setUriQueryValues({id: config.type}, dataSourceOnboardingURL)
 			);
 		},
 	}));
 
 	const dataSourceItems = STANDALONE_DATA_SOURCES.filter(
-		({requiresLDP}) => !requiresLDP || ldpAllowed
+		({requiresLDP}) => !requiresLDP || ldpEnabled
 	).map(({label, type}) => ({
 		label,
 		onClick: () => {
-			history.push(
-				toRoute(Routes.SETTINGS_DATA_SOURCE_ONBOARDING, {
-					groupId,
-					id: type,
-				})
+			Liferay.Util.navigate(
+				setUriQueryValues({id: type}, dataSourceOnboardingURL)
 			);
 		},
 	}));
@@ -379,7 +368,7 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 			className={className}
 			key="dataSourceListpage"
 			pageDescription={
-				ldpAllowed
+				ldpEnabled
 					? Liferay.Language.get(
 							'manage-and-connect-data-sources-to-bring-in-data-from-various-sources-into-liferay-data-platform'
 						)
@@ -400,10 +389,12 @@ const DataSourceList: React.FC<IDataSourceListProps> = ({className}) => {
 							cellRenderer: DataSourceName,
 							cellRendererProps: {
 								hrefFormatter: (dataSource: {id: string}) =>
-									toRoute(Routes.SETTINGS_DATA_SOURCE, {
-										groupId,
-										id: dataSource.id,
-									}),
+									setUriQueryValues(
+										{
+											id: dataSource.id,
+										},
+										dataSourceURL
+									),
 							},
 							label: Liferay.Language.get('data-source-name'),
 						},

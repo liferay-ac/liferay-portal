@@ -6,17 +6,14 @@ import {connect} from 'react-redux';
 import {formatDate, getCustomDateFormat, TIME_FORMAT} from 'shared/util/date';
 import {Project} from 'shared/util/records';
 import {ProjectStates} from 'shared/util/constants';
-import {setMaintenanceSeen} from 'shared/actions/maintenance-seen';
 import {sub} from 'shared/util/lang';
-import {useParams} from 'react-router-dom';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 interface IMaintenanceAlertProps {
 	alertDismissed: boolean;
 	className: string;
-	currentUserId: string;
 	groupId: string;
 	project: Project;
-	setMaintenanceSeen: (params: any) => void;
 	stripe: boolean;
 }
 
@@ -26,7 +23,7 @@ export class MaintenanceAlert extends React.Component<IMaintenanceAlertProps> {
 	};
 
 	state = {
-		showMessage: false,
+		dismissed: false,
 	};
 
 	constructor(props: IMaintenanceAlertProps) {
@@ -36,17 +33,16 @@ export class MaintenanceAlert extends React.Component<IMaintenanceAlertProps> {
 
 	handleDismissClick() {
 		const {
-			currentUserId,
 			groupId,
 			project: {stateStartDate},
-			setMaintenanceSeen,
 		} = this.props;
 
-		setMaintenanceSeen({
-			currentUserId,
-			groupId,
-			stateStartDate,
-		});
+		this.setState({dismissed: true});
+
+		Liferay.Util.Session.set(
+			`osb-faro-web_dismissedAlerts_maintenanceDate_${groupId}`,
+			String(stateStartDate)
+		);
 	}
 
 	render() {
@@ -57,7 +53,10 @@ export class MaintenanceAlert extends React.Component<IMaintenanceAlertProps> {
 			stripe,
 		} = this.props;
 
-		const showAlert = state === ProjectStates.Scheduled && !alertDismissed;
+		const showAlert =
+			state === ProjectStates.Scheduled &&
+			!alertDismissed &&
+			!this.state.dismissed;
 
 		return (
 			<div className={getCN('maintenance-alert-root', className)}>
@@ -88,32 +87,29 @@ export class MaintenanceAlert extends React.Component<IMaintenanceAlertProps> {
 	}
 }
 
-export const mapState = (store: any, {groupId}: any) => {
-	const currentUserId = store.getIn(['currentUser', 'data']);
-
+export const mapState = (store: any, {dismissedAlerts, groupId}: any) => {
 	const project = store.getIn(['projects', groupId, 'data'], new Project());
 
-	const prevStateStartDate = store.getIn([
-		'maintenanceSeen',
-		`${groupId}-${currentUserId}`,
-	]);
-
 	return {
-		alertDismissed: prevStateStartDate === project.stateStartDate,
-		currentUserId,
+		alertDismissed:
+			dismissedAlerts?.maintenanceDate === String(project.stateStartDate),
 		groupId,
-		project: store.getIn(['projects', groupId, 'data'], new Project()),
+		project,
 	};
 };
 
-const ConnectedMaintenanceAlert = connect(mapState, {setMaintenanceSeen})(
-	MaintenanceAlert
-);
+const ConnectedMaintenanceAlert = connect(mapState)(MaintenanceAlert);
 
 const MaintenanceAlertWithParams = (props: any) => {
-	const {groupId} = useParams<{groupId: string}>();
+	const {dismissedAlerts, groupId} = usePageConfig();
 
-	return <ConnectedMaintenanceAlert {...props} groupId={groupId} />;
+	return (
+		<ConnectedMaintenanceAlert
+			{...props}
+			dismissedAlerts={dismissedAlerts}
+			groupId={groupId}
+		/>
+	);
 };
 
 export default MaintenanceAlertWithParams;

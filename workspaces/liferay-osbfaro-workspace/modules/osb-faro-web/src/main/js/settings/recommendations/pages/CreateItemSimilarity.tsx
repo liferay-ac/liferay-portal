@@ -4,8 +4,7 @@ import RecommendationStepCard from '../components/recommendation-step-card';
 import {getRecommendations} from 'shared/util/breadcrumbs';
 import {JobTypes} from 'shared/util/constants';
 import {Router} from 'shared/types';
-import {Routes, toRoute} from 'shared/util/router';
-import {withAdminPermission} from 'shared/hoc';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 interface ICreateItemSimilarityProps {
 	router: Router;
@@ -14,12 +13,14 @@ interface ICreateItemSimilarityProps {
 const CreateItemSimilarity: React.FC<ICreateItemSimilarityProps> = ({
 	router,
 }) => {
-	const {groupId = ''} = router.params;
+	const config = usePageConfig();
+
+	const {recommendationsURL} = config;
 
 	return (
 		<BasePage
 			breadcrumbItems={[
-				getRecommendations({groupId}),
+				getRecommendations(config),
 				{
 					active: true,
 					label: Liferay.Language.get('new-model'),
@@ -33,9 +34,7 @@ const CreateItemSimilarity: React.FC<ICreateItemSimilarityProps> = ({
 			<div className="row">
 				<div className="col-xl-8">
 					<RecommendationStepCard
-						cancelHref={toRoute(Routes.SETTINGS_RECOMMENDATIONS, {
-							groupId,
-						})}
+						cancelHref={recommendationsURL}
 						jobType={JobTypes.ItemSimilarity}
 						router={router}
 					/>
@@ -45,4 +44,4 @@ const CreateItemSimilarity: React.FC<ICreateItemSimilarityProps> = ({
 	);
 };
 
-export default withAdminPermission(CreateItemSimilarity);
+export default CreateItemSimilarity;

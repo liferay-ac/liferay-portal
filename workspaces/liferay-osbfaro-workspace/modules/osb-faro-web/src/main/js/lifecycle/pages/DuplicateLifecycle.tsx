@@ -10,18 +10,20 @@ import {
 	getDuplicateLifecycleSearchName,
 } from 'lifecycle/utils/lifecyclePayload';
 import {LifecycleAccountDataEmptyState} from 'lifecycle/components/LifecycleEmptyStates';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useLifecycleAccountData} from 'lifecycle/hooks/useLifecycleAccountData';
-import {useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
 import {AccountDataStatus} from 'lifecycle/utils/types';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 const LIFECYCLE_NAME_LOOKUP_PAGE_SIZE = 100;
 
 const DuplicateLifecycle = () => {
-	const {channelId, groupId, sourceLifecycleId} = useParams();
-
-	const currentUser = useCurrentUser();
+	const {
+		channelId,
+		currentUser,
+		groupId,
+		params: {sourceLifecycleId},
+	} = usePageConfig();
 
 	const {refetch: refetchAccountData, status: accountDataStatus} =
 		useLifecycleAccountData();
@@ -64,7 +66,6 @@ const DuplicateLifecycle = () => {
 			<LifecyclesPage>
 				<LifecycleAccountDataEmptyState
 					authorized={currentUser.isAdmin()}
-					groupId={groupId!}
 					onReload={refetchAccountData}
 					status={accountDataStatus}
 				/>

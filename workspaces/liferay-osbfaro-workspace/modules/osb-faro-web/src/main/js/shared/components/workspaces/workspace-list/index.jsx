@@ -4,13 +4,13 @@ import WorkspaceListItem from './ListItem';
 import {DataSourceStates} from 'shared/util/constants';
 import {
 	getPlanLabel,
-	isLDPPlan,
 	SubscriptionNames
 } from 'shared/util/subscriptions';
 import {noop} from 'lodash';
 import {Project} from 'shared/util/records';
 import {PropTypes} from 'prop-types';
-import {Routes, toRoute} from 'shared/util/router';
+import {setUriQueryValues} from 'shared/util/url';
+import withPageConfig from 'shared/hoc/WithPageConfig';
 
 const isSubscriptionLimitReached = subscription => {
 	if (
@@ -35,7 +35,7 @@ const isSubscriptionLimitReached = subscription => {
 	);
 };
 
-export default class WorkspaceList extends React.Component {
+class WorkspaceList extends React.Component {
 	static defaultProps = {
 		checkDisabled: noop,
 		displayAccountHeaders: false,
@@ -56,20 +56,15 @@ export default class WorkspaceList extends React.Component {
 		isJoinableProjects: PropTypes.bool
 	};
 
-	getRoute({corpProjectUuid, friendlyURL, groupId, state}) {
-		if (friendlyURL) {
-			return toRoute(Routes.WORKSPACE_WITH_ID, {
-				groupId: friendlyURL.replace('/', '')
-			});
-		} else if (!!groupId && state !== DataSourceStates.Unconfigured) {
-			return toRoute(Routes.WORKSPACE_WITH_ID, {
-				groupId
-			});
+	getRoute({corpProjectUuid, friendlyURL, groupId, state, url}) {
+		if (
+			friendlyURL ||
+			(!!groupId && state !== DataSourceStates.Unconfigured)
+		) {
+			return url;
 		}
 
-		return toRoute(Routes.WORKSPACE_ADD_WITH_CORP_PROJECT_UUID, {
-			corpProjectUuid
-		});
+		return setUriQueryValues({corpProjectUuid}, this.props.pageConfig.addWorkspaceURL);
 	}
 
 	render() {
@@ -90,6 +85,7 @@ export default class WorkspaceList extends React.Component {
 							corpProjectName,
 							faroSubscription,
 							groupId,
+							ldpEnabled,
 							name,
 							requested,
 							state
@@ -112,9 +108,7 @@ export default class WorkspaceList extends React.Component {
 								href={this.getRoute(project)}
 								isJoinableProjects={isJoinableProjects}
 								key={name}
-								ldpEnabled={isLDPPlan(
-									faroSubscription?.get('name')
-								)}
+								ldpEnabled={ldpEnabled}
 								name={name}
 								planInfo={
 									displayPlanInfo
@@ -133,3 +127,5 @@ export default class WorkspaceList extends React.Component {
 		);
 	}
 }
+
+export default withPageConfig(WorkspaceList);

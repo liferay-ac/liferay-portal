@@ -1,6 +1,5 @@
 import {setUriQueryValues} from 'shared/util/url';
-import {useHistoryAdapter} from 'shared/hooks/useHistoryAdapter';
-import {useQueryParams} from 'shared/hooks/useQueryParams';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 type Segment = {
 	id: string;
@@ -20,14 +19,15 @@ interface ISegmentFilter {
  */
 
 export const useSegmentFilter = (): ISegmentFilter => {
-	const {segmentId, segmentName} = useQueryParams();
-	const history = useHistoryAdapter();
+	const {
+		params: {segmentId, segmentName},
+	} = usePageConfig();
 
 	return {
 		segmentId,
 		segmentName,
 		setSegment: (segment) =>
-			history.push(
+			Liferay.Util.navigate(
 				setUriQueryValues({
 					segmentId: segment?.id ?? null,
 					segmentName: segment?.name ?? null,

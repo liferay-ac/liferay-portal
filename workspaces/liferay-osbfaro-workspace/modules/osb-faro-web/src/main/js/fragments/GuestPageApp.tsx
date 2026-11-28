@@ -9,7 +9,9 @@ export interface IGuestPageAppProps<
 		[name: string]: string | undefined;
 	},
 > {
+	currentUser: {[key: string]: unknown};
 	friendlyURL: string;
+	ldpEnabled?: boolean;
 	pageURLs: {[friendlyURL: string]: string};
 	params?: Params | null;
 	signOutURL: string;
@@ -17,9 +19,24 @@ export interface IGuestPageAppProps<
 
 const GuestPageApp: React.FC<
 	IGuestPageAppProps & {children: React.ReactNode}
-> = ({children, friendlyURL, pageURLs, params, signOutURL}) => {
+> = ({
+	children,
+	currentUser,
+	friendlyURL,
+	ldpEnabled,
+	pageURLs,
+	params,
+	signOutURL,
+}) => {
 	const [config] = useState(() =>
-		buildConfig({friendlyURL, pageURLs, params, signOutURL})
+		buildConfig({
+			currentUser,
+			friendlyURL,
+			ldpEnabled,
+			pageURLs,
+			params,
+			signOutURL,
+		})
 	);
 
 	return (

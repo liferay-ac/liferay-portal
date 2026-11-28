@@ -12,26 +12,22 @@ import {
 } from 'shared/util/pagination';
 import {EXPERIMENT_LIST_QUERY} from '../queries/ExperimentQuery';
 import {get} from 'lodash';
-import {Routes, toRoute} from 'shared/util/router';
 import {useChannelContext} from 'shared/context/channel';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDataSources} from 'shared/context/dataSources';
-import {useParams} from 'react-router-dom';
 import {useQuery} from '@apollo/client';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
 import {useTimeZone} from 'shared/hooks/useTimeZone';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 const ExperimentsListPage = () => {
-	const {channelId = '', groupId = ''} = useParams<{
-		channelId: string;
-		groupId: string;
-	}>();
+	const config = usePageConfig();
+
+	const {channelId = '', currentUser, dataSourcesURL, groupId = ''} = config;
 	const {delta, orderIOMap, page, query} = useQueryPagination({
 		initialOrderIOMap: createOrderIOMap(MODIFIED_DATE),
 	});
 	const dataSourceStates = useDataSources();
 	const {selectedChannel} = useChannelContext();
-	const currentUser = useCurrentUser();
 	const {timeZoneId} = useTimeZone();
 
 	const {
@@ -57,11 +53,14 @@ const ExperimentsListPage = () => {
 		<BasePage documentTitle={Liferay.Language.get('tests')}>
 			<BasePage.Header
 				breadcrumbs={[
-					breadcrumbs.getHome({
-						channelId,
-						groupId,
-						label: selectedChannel && selectedChannel.name,
-					}),
+					breadcrumbs.getHome(
+						{
+							channelId,
+							groupId,
+							label: selectedChannel && selectedChannel.name,
+						},
+						config
+					),
 				]}
 				groupId={groupId}
 			>
@@ -99,12 +98,7 @@ const ExperimentsListPage = () => {
 										button
 										className="button-root"
 										displayType="primary"
-										href={toRoute(
-											Routes.SETTINGS_DATA_SOURCE_LIST,
-											{
-												groupId,
-											}
-										)}
+										href={dataSourcesURL}
 									>
 										{Liferay.Language.get(
 											'connect-data-source'

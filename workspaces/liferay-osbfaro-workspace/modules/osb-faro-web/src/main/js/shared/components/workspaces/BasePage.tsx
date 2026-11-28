@@ -7,8 +7,9 @@ import React, {createContext} from 'react';
 import UserDropdown from 'shared/components/user-dropdown';
 import withCurrentUser from 'shared/hoc/WithCurrentUser';
 import {Align} from '@clayui/drop-down';
-import {Routes} from 'shared/util/router';
+import {Config} from 'shared/util/config';
 import {User} from 'shared/util/records';
+import withPageConfig from 'shared/hoc/WithPageConfig';
 
 export const BasePageContext = createContext<{currentUser: User}>({
 	currentUser: new User(),
@@ -23,6 +24,7 @@ interface IWorkspacesBasePageProps {
 	details?: React.ReactNode;
 	ldpEnabled?: boolean;
 	loadingLDPEnabled?: boolean;
+	pageConfig: Config;
 	title: string;
 }
 
@@ -53,7 +55,7 @@ export class WorkspacesBasePage extends React.Component<IWorkspacesBasePageProps
 						{
 							externalLink: true,
 							label: Liferay.Language.get('sign-out'),
-							url: Routes.LOGOUT,
+							url: this.props.pageConfig.signOutURL,
 						},
 					],
 					subheaderLabel: emailAddress,
@@ -187,4 +189,4 @@ export class WorkspacesBasePage extends React.Component<IWorkspacesBasePageProps
 	}
 }
 
-export default withCurrentUser(WorkspacesBasePage);
+export default withCurrentUser(withPageConfig(WorkspacesBasePage));

@@ -39,10 +39,8 @@ import {LIMIT_REACHED_ALERT_ID} from './constants';
 import {OrderedMap} from 'immutable';
 import {RootState} from 'shared/store';
 import {setUriQueryValues} from 'shared/util/url';
-import {Routes, toRoute} from 'shared/util/router';
 import {Sizes} from 'shared/util/constants';
 import {sub} from 'shared/util/lang';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useModal} from '@clayui/modal';
 import {useMutation, useQuery} from '@apollo/client';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
@@ -50,6 +48,7 @@ import {
 	useSelectionContext,
 	withSelectionProvider,
 } from 'shared/context/selection';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 const EVENT_LIMIT_REACHED =
 	/Processing request will exceed custom event definition limit/;
@@ -71,17 +70,16 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 
 interface IBlockListCardProps extends PropsFromRedux {
 	groupId: string;
-	history: {push: (url: string) => void};
 	timeZoneId: string;
 }
 
 const BlockListCard: React.FC<IBlockListCardProps> = ({
 	addAlert,
-	groupId,
-	history,
 	removeAlert,
 	timeZoneId,
 }) => {
+	const {currentUser, eventDefinitionsURL} = usePageConfig();
+
 	const {selectedItems, selectionDispatch} = useSelectionContext();
 
 	const {delta, orderIOMap, page, query} = useQueryPagination({
@@ -147,8 +145,6 @@ const BlockListCard: React.FC<IBlockListCardProps> = ({
 			}
 		},
 	});
-
-	const currentUser = useCurrentUser();
 
 	const hideModal = useModal();
 
@@ -220,18 +216,18 @@ const BlockListCard: React.FC<IBlockListCardProps> = ({
 
 					const {field, sortOrder} = orderParams;
 
-					history.push(
+					Liferay.Util.navigate(
 						setUriQueryValues(
 							{
 								field,
 								page: updatedPage,
 								sortOrder,
 							},
-							toRoute(
-								Routes.SETTINGS_DEFINITIONS_EVENTS_BLOCK_LIST,
+							setUriQueryValues(
 								{
-									groupId,
-								}
+									tab: 'block-list',
+								},
+								eventDefinitionsURL
 							)
 						)
 					);

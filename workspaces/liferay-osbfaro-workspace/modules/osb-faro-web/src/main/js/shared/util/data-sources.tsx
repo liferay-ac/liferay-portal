@@ -1,5 +1,4 @@
 import * as API from 'shared/api';
-import {Alert} from 'shared/types';
 import {
 	CredentialTypes,
 	DataSourceStates,
@@ -8,8 +7,6 @@ import {
 	EntityTypes,
 } from 'shared/util/constants';
 import {DataSource} from 'shared/util/records';
-import {Map as ImmutableMap, List} from 'immutable';
-import {Routes, toRoute} from 'shared/util/router';
 import {sub} from 'shared/util/lang';
 import {toPromise} from 'shared/components/form';
 
@@ -28,30 +25,6 @@ export const SERVICE_ERROR_MESSAGE_MAP: Record<number, string> = {
 		'there-was-an-error-with-the-servers-connection.-please-try-again-when-data-sources-status-is-active'
 	),
 };
-
-/**
- * Return config to use in the alert for a service error.
- * @param {Number} code - The http response error code.
- * @returns {Object} The props to use for the alert.
- */
-export function getServiceAlertConfig(code: number) {
-	const message = ((code: number) => {
-		switch (code) {
-			case 401:
-			case 403:
-				return SERVICE_ERROR_MESSAGE_MAP[403];
-			case 404:
-			default:
-				return SERVICE_ERROR_MESSAGE_MAP[404];
-		}
-	})(code);
-
-	return {
-		alertType: Alert.Types.Warning,
-		message,
-		timeout: WARNING_TIMEOUT,
-	};
-}
 
 /**
  * Object map for displaying a DataSource status/state
@@ -129,30 +102,6 @@ export const STATUS_DISPLAY = {
 		),
 	},
 };
-
-/**
- * @param {Object} props
- * @param {DataSource} props.dataSource - A DataSource record.
- * @param {string} props.groupId
- * @returns {string} - Returns a route to the data source authorization page if not valid.
- */
-export function dataSourceRedirectFn({
-	dataSource,
-	groupId,
-}: {
-	dataSource: DataSource;
-	groupId: string;
-}) {
-	if (isDataSourceValid(dataSource.state)) {
-		return null;
-	}
-	else {
-		return toRoute(Routes.SETTINGS_DATA_SOURCE, {
-			groupId,
-			id: dataSource.id,
-		});
-	}
-}
 
 /**
  * Check if the dataSource state is valid.
@@ -268,23 +217,6 @@ export function getDataSourceDisplayObject(dataSource: DataSource) {
 		default:
 			return STATUS_DISPLAY.default;
 	}
-}
-
-/**
- * Get an array of ids from a DataSource configuration Map.
- * @param {Map} configIMap - An ImmutableMap of List.<Map>.
- * @param {string} key - The Map key that contains the List of objects.
- * @returns {array} - The List of objects converted to an array of numerical ids.
- */
-export function getIdsFromConfiguration(
-	configIMap: ImmutableMap<string, unknown>,
-	key: string
-): number[] {
-	const list = configIMap.get(key, List()) as List<
-		ImmutableMap<string, unknown>
-	>;
-
-	return list.map((itemIMap) => Number(itemIMap?.get('id'))).toArray();
 }
 
 /**

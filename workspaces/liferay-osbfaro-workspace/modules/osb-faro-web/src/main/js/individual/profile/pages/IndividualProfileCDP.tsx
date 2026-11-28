@@ -11,9 +11,8 @@ import React from 'react';
 import URLConstants from 'shared/util/url-constants';
 import {Individual} from 'shared/util/records';
 import {isNil} from 'lodash';
-import {Routes, toRoute} from 'shared/util/router';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useRequest} from 'shared/hooks/useRequest';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 enum IndividualProfileCDPCards {
 	AccountMembership = 'ACCOUNT_MEMBERSHIP',
@@ -29,7 +28,6 @@ interface IIndividualProfileCDPProps {
 interface IProfileCDPEmptyStateProps {
 	authorized: boolean;
 	dataSourceData?: any;
-	groupId: string;
 	pageDisplay?: boolean;
 	type?: IndividualProfileCDPCards;
 }
@@ -37,10 +35,11 @@ interface IProfileCDPEmptyStateProps {
 const ProfileCDPEmptyState: React.FC<IProfileCDPEmptyStateProps> = ({
 	authorized,
 	dataSourceData,
-	groupId,
 	pageDisplay = true,
 	type = IndividualProfileCDPCards.IndividualsAttributes,
 }) => {
+	const {dataSourcesURL} = usePageConfig();
+
 	if (isNil(dataSourceData?.total) || dataSourceData?.total === 0) {
 		const isAccount = type === IndividualProfileCDPCards.AccountMembership;
 
@@ -109,10 +108,7 @@ const ProfileCDPEmptyState: React.FC<IProfileCDPEmptyStateProps> = ({
 								button
 								className="button-root mt-1"
 								displayType="primary"
-								href={toRoute(
-									Routes.SETTINGS_DATA_SOURCE_LIST,
-									{groupId}
-								)}
+								href={dataSourcesURL}
 							>
 								{Liferay.Language.get('connect-data-source')}
 							</ClayLink>
@@ -131,6 +127,8 @@ const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
 	groupId,
 	individual,
 }) => {
+	const {currentUser} = usePageConfig();
+
 	const individualId = individual.get('id');
 
 	const {data: dataSourceData, loading: dataSourceLoading} = useRequest({
@@ -140,8 +138,6 @@ const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
 			groupId,
 		},
 	});
-
-	const currentUser = useCurrentUser();
 
 	const authorized = currentUser.isAdmin();
 
@@ -161,22 +157,18 @@ const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
 				<ProfileCDPEmptyState
 					authorized={authorized}
 					dataSourceData={dataSourceData}
-					groupId={groupId}
 					pageDisplay={false}
 				/>
 			</IndividualAttributesCDP>
 
 			<AccountMembership
 				accountData={individual.getIn(['accounts', 0])}
-				channelId={channelId}
-				groupId={groupId}
 				loading={dataSourceLoading}
 				showEmptyState={showEmptyState}
 			>
 				<ProfileCDPEmptyState
 					authorized={authorized}
 					dataSourceData={dataSourceData}
-					groupId={groupId}
 					pageDisplay={false}
 				/>
 			</AccountMembership>
@@ -192,7 +184,6 @@ const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
 				<ProfileCDPEmptyState
 					authorized={authorized}
 					dataSourceData={dataSourceData}
-					groupId={groupId}
 					pageDisplay={false}
 				/>
 			</EngagementSummary>
@@ -205,7 +196,6 @@ const IndividualProfileCDP: React.FC<IIndividualProfileCDPProps> = ({
 				<ProfileCDPEmptyState
 					authorized={authorized}
 					dataSourceData={dataSourceData}
-					groupId={groupId}
 					pageDisplay={false}
 				/>
 			</IndividualDetailsCDP>

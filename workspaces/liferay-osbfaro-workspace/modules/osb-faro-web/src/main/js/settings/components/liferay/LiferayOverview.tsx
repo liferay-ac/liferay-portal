@@ -27,10 +27,9 @@ import {getDataSourceDisplayObject} from 'shared/util/data-sources';
 import {ReviewSyncedDataFragment} from './ReviewSyncedDataFragment';
 import {sub} from 'shared/util/lang';
 import {Text} from '@clayui/core';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDisconnectDataSource} from '../data-source/utils';
-import {useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 const TIMEOUT_INTERVAL = 5000;
 
@@ -48,10 +47,16 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 	addAlert,
 	dataSource: initialDataSource,
 }) => {
+	const config = usePageConfig();
+
 	const [dataSource, setDataSource] = useState(initialDataSource);
 	const [, setLoading] = useState(false);
-	const {groupId = '', id = ''} = useParams<{groupId: string; id: string}>();
-	const currentUser = useCurrentUser();
+	const {
+		currentUser,
+		groupId = '',
+		params: {id = ''},
+	} = config;
+
 	const [token, setToken] = useState('');
 
 	const {display, label} = getDataSourceDisplayObject(dataSource);
@@ -167,11 +172,14 @@ const LiferayOverview: React.FC<ILiferayeOverviewProps> = ({
 	return (
 		<BasePage
 			breadcrumbItems={[
-				breadcrumbs.getDataSources({groupId}),
-				breadcrumbs.getDataSourceName({
-					active: true,
-					label: dataSource.name || '',
-				}),
+				breadcrumbs.getDataSources(config),
+				breadcrumbs.getDataSourceName(
+					{
+						active: true,
+						label: dataSource.name || '',
+					},
+					config
+				),
 			]}
 			documentTitle={Liferay.Language.get('configure-data-source')}
 		>

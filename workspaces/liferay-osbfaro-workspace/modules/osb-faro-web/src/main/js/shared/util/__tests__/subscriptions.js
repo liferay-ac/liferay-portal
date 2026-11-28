@@ -3,10 +3,7 @@ import {
 	formatPlanData,
 	getPlanAddOns,
 	getPlanLabel,
-	getPropIcon,
 	getPropLabel,
-	INDIVIDUALS,
-	isLDPPlan,
 	isUnlimitedLimit,
 	PAGEVIEWS,
 	SubscriptionNames,
@@ -113,14 +110,6 @@ describe('subscriptions', () => {
 		});
 	});
 
-	describe('getPropIcon', () => {
-		it('should return the prop icon symbol', () => {
-			const symbol = getPropIcon(INDIVIDUALS);
-
-			expect(symbol).toEqual('ac_individual');
-		});
-	});
-
 	describe('getPropLabel', () => {
 		it('should return the correct prop label', () => {
 			const label = getPropLabel(PAGEVIEWS);
@@ -172,31 +161,6 @@ describe('subscriptions', () => {
 			const plan = formatPlanData(null);
 
 			expect(plan).toMatchSnapshot();
-		});
-	});
-
-	describe('isLDPPlan', () => {
-		it.each([
-			SubscriptionNames.LiferayDataPlatform,
-			SubscriptionNames.LiferayDataPlatformEnterprise,
-			SubscriptionNames.LiferayDataPlatformPrivateBeta,
-		])('returns true for %s', (name) => {
-			expect(isLDPPlan(name)).toBe(true);
-		});
-
-		it.each([
-			SubscriptionNames.LiferayAnalyticsCloudBasic,
-			SubscriptionNames.LiferayAnalyticsCloudBusiness,
-			SubscriptionNames.LiferayAnalyticsCloudEnterprise,
-			SubscriptionNames.LiferaySaasEnterprisePlan,
-			SubscriptionNames.LxcBusinessPlan,
-		])('returns false for non-LDP plan %s', (name) => {
-			expect(isLDPPlan(name)).toBe(false);
-		});
-
-		it('returns false when the subscription is missing (null/undefined)', () => {
-			expect(isLDPPlan(null)).toBe(false);
-			expect(isLDPPlan(undefined)).toBe(false);
 		});
 	});
 

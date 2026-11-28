@@ -30,7 +30,6 @@ import {get} from 'lodash';
 import {OrderedMap} from 'immutable';
 import {Sizes} from 'shared/util/constants';
 import {sub} from 'shared/util/lang';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useModal} from '@clayui/modal';
 import {useMutation, useQuery} from '@apollo/client';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
@@ -38,16 +37,17 @@ import {
 	useSelectionContext,
 	withSelectionProvider,
 } from 'shared/context/selection';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 const connector = connect(null, {addAlert});
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
 
-interface IEventListProps extends PropsFromRedux {
-	groupId: string;
-}
+interface IEventListProps extends PropsFromRedux {}
 
-const EventList: React.FC<IEventListProps> = ({addAlert, groupId}) => {
+const EventList: React.FC<IEventListProps> = ({addAlert}) => {
+	const config = usePageConfig();
+
 	const {selectedItems, selectionDispatch} = useSelectionContext();
 
 	const {delta, orderIOMap, page, query} = useQueryPagination({
@@ -110,7 +110,7 @@ const EventList: React.FC<IEventListProps> = ({addAlert, groupId}) => {
 		},
 	});
 
-	const currentUser = useCurrentUser();
+	const {currentUser} = config;
 
 	const hideModal = useModal();
 
@@ -197,7 +197,7 @@ const EventList: React.FC<IEventListProps> = ({addAlert, groupId}) => {
 		<>
 			<CrossPageSelect
 				columns={[
-					eventListColumns.getName({groupId}),
+					eventListColumns.getName(config),
 					eventListColumns.displayName,
 					eventListColumns.description,
 					eventListColumns.hidden,

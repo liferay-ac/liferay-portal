@@ -1,22 +1,15 @@
 import ChannelProvider from 'shared/context/channel';
 import client from 'shared/apollo/client';
-import React, {useEffect, useState} from 'react';
-import RouterLink from 'shared/components/RouterLink';
+import React, {useState} from 'react';
 import store from 'shared/store';
 import UnassignedSegmentsProvider from 'shared/context/unassignedSegments';
-import {
-	ApolloProvider,
-	ApolloProvider as ApolloProviderHooks,
-} from '@apollo/client';
+import {ApolloProvider} from '@apollo/client';
 
 import {ClayIconSpriteContext} from '@clayui/icon';
 import {CLAY_ICONS_SPRITEMAP} from 'shared/components/Icon';
-import {ClayLinkContext} from '@clayui/link';
 import {ClayTooltipProvider} from '@clayui/tooltip';
 import {OnboardingContext} from 'shared/context/onboarding';
 import {Provider} from 'react-redux';
-import {saveState} from 'shared/store/local-storage';
-import {throttle} from 'lodash';
 
 const ONBOARDING_TRIGGERED_KEY = 'onboardingTriggered';
 
@@ -37,46 +30,36 @@ const AppProviders: React.FC<IAppProvidersProps> = ({children}) => {
 		}
 	});
 
-	useEffect(() => {
-		store.subscribe(throttle(() => saveState(store.getState()), 1000));
-	}, []);
-
 	return (
 		<ApolloProvider client={client}>
-			<ApolloProviderHooks client={client}>
-				<Provider store={store}>
-					<ClayIconSpriteContext.Provider
-						value={CLAY_ICONS_SPRITEMAP}
-					>
-						<ClayLinkContext.Provider value={RouterLink}>
-							<UnassignedSegmentsProvider>
-								<OnboardingContext.Provider
-									value={{
-										onboardingTriggered,
-										setOnboardingTriggered: () => {
-											try {
-												window.sessionStorage.setItem(
-													ONBOARDING_TRIGGERED_KEY,
-													'true'
-												);
-											}
-											catch (error) {}
+			<Provider store={store}>
+				<ClayIconSpriteContext.Provider value={CLAY_ICONS_SPRITEMAP}>
+					<UnassignedSegmentsProvider>
+						<OnboardingContext.Provider
+							value={{
+								onboardingTriggered,
+								setOnboardingTriggered: () => {
+									try {
+										window.sessionStorage.setItem(
+											ONBOARDING_TRIGGERED_KEY,
+											'true'
+										);
+									}
+									catch (error) {}
 
-											setOnboardingTriggered(true);
-										},
-									}}
-								>
-									<ChannelProvider>
-										<ClayTooltipProvider>
-											<div>{children}</div>
-										</ClayTooltipProvider>
-									</ChannelProvider>
-								</OnboardingContext.Provider>
-							</UnassignedSegmentsProvider>
-						</ClayLinkContext.Provider>
-					</ClayIconSpriteContext.Provider>
-				</Provider>
-			</ApolloProviderHooks>
+									setOnboardingTriggered(true);
+								},
+							}}
+						>
+							<ChannelProvider>
+								<ClayTooltipProvider>
+									<div>{children}</div>
+								</ClayTooltipProvider>
+							</ChannelProvider>
+						</OnboardingContext.Provider>
+					</UnassignedSegmentsProvider>
+				</ClayIconSpriteContext.Provider>
+			</Provider>
 		</ApolloProvider>
 	);
 };

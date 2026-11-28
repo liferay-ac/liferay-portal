@@ -14,24 +14,10 @@ function resolveModule(name = '') {
 
 const include = [resolveModule()];
 
-const POLYFILLS = [
-	'core-js/fn/array/fill',
-	'core-js/fn/string/code-point-at',
-	'core-js/fn/typed',
-	'custom-event-polyfill',
-	'unorm',
-	'whatwg-fetch',
-];
-
 function getComponentEntry(name) {
-	const appName = `${name.charAt(0).toUpperCase()}${name.slice(1)}App`;
-
 	return {
 		filename: '../__liferay__/[name].js',
-		import: [
-			...POLYFILLS,
-			resolveModule(`fragments/${name}/${appName}.tsx`),
-		],
+		import: resolveModule(`fragments/${name}/index.ts`),
 		library: {
 			type: 'module',
 		},
@@ -47,7 +33,7 @@ const config = {
 		'external-scripts': resolveModule('external-scripts.js'),
 		individuals: getComponentEntry('individuals'),
 		lifecycles: getComponentEntry('lifecycles'),
-		main: [...POLYFILLS, resolveModule('main.jsx')],
+		main: path.resolve(__dirname, 'src', 'main', 'css', 'main.scss'),
 		segments: getComponentEntry('segments'),
 		settings: getComponentEntry('settings'),
 		sites: getComponentEntry('sites'),

@@ -32,7 +32,6 @@ import {
 import {ALERT_CONFIG_MAP, AlertTypes} from 'shared/components/Alert';
 import {createOrderIOMap} from 'shared/util/pagination';
 import {setUriQueryValue, setUriQueryValues} from 'shared/util/url';
-import {Routes, toRoute} from 'shared/util/router';
 import {DateCell} from 'shared/components/table/cell-components';
 import {
 	formatDateToTimeZone,
@@ -45,32 +44,29 @@ import {
 	paginationDefaults,
 } from 'shared/util/pagination';
 import {isNil} from 'lodash';
-import {Link} from 'react-router-dom';
 import {OrderedMap} from 'immutable';
 import {OrderParams} from 'shared/util/records';
 import {
-	SegmentCategories,
-	SegmentStates,
-	SegmentTypes,
-	Sizes,
 	DATE_MODIFIED,
 	INDIVIDUAL_COUNT,
 	LAST_MEMBERSHIP_UPDATE_DATE,
 	SEGMENT_CATEGORY,
 	SEGMENT_STATE,
 	SEGMENT_TYPE,
-	SEGMENTS,
+	SegmentCategories,
+	SegmentStates,
+	SegmentTypes,
+	Sizes,
 	USER_NAME,
 } from 'shared/util/constants';
 import {sub} from 'shared/util/lang';
 import {toThousands} from 'shared/util/numbers';
 import {useModal} from '@clayui/modal';
 import {useChannelContext} from 'shared/context/channel';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDeleteSegments} from 'segment/hooks/useDeleteSegments';
-import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useQueryPagination} from 'shared/hooks/useQueryPagination';
 import {useRequest} from 'shared/hooks/useRequest';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 function fetchDisabledSegments(
 	channelId: string,
@@ -89,7 +85,6 @@ function fetchDisabledSegments(
 interface IListProps {
 	channelId: string;
 	groupId: string;
-	history: any;
 }
 
 const SEGMENT_CATEGORIES_LABEL_MAP = {
@@ -197,9 +192,10 @@ const ORDER_BY_OPTIONS = [
 	},
 ];
 
-export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
-	const currentUser = useCurrentUser();
-	const LDPEnabled = useLDPEnabled({groupId});
+export const List: React.FC<IListProps> = ({channelId, groupId}) => {
+	const config = usePageConfig();
+
+	const {currentUser, editSegmentURL, ldpEnabled, segmentURL} = config;
 	const {selectedChannel} = useChannelContext();
 	const {deleteSegments, deleteSegmentsModal} = useDeleteSegments(groupId);
 	const notificationsModal = useModal();
@@ -288,16 +284,16 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 					'some-of-your-segments-are-disabled-because-a-data-source-has-been-removed-x'
 				),
 				[
-					<Link
-						key="DISABLED_SEGMENTS"
-						to={setUriQueryValue(
+					<a
+						href={setUriQueryValue(
 							window.location.href,
 							SEGMENT_STATE,
 							SegmentStates.Disabled
 						)}
+						key="DISABLED_SEGMENTS"
 					>
 						{Liferay.Language.get('view-disabled-segments')}
-					</Link>,
+					</a>,
 				],
 				false
 			),
@@ -351,7 +347,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 				_tableRef?.current?.reload();
 
 				if (items.length === 1 && page !== 1) {
-					history.push(
+					Liferay.Util.navigate(
 						setUriQueryValue(
 							window.location.href,
 							'page',
@@ -375,22 +371,12 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 	}) => {
 		const commonActions = [
 			{
-				href: toRoute(Routes.CONTACTS_SEGMENT, {
-					channelId,
-					groupId,
-					id,
-					type: SEGMENTS,
-				}),
+				href: setUriQueryValues({id}, segmentURL),
 				iconSymbol: 'view',
 				label: Liferay.Language.get('view'),
 			},
 			{
-				href: toRoute(Routes.CONTACTS_SEGMENT_EDIT, {
-					channelId,
-					groupId,
-					id,
-					type: SEGMENTS,
-				}),
+				href: setUriQueryValues({id}, editSegmentURL),
 				iconSymbol: 'pencil',
 				label: Liferay.Language.get('edit'),
 			},
@@ -431,7 +417,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 				<Nav>
 					<Nav.Item>
 						<div className="d-flex align-items-center">
-							{!LDPEnabled && (
+							{!ldpEnabled && (
 								<ClayLink
 									aria-disabled={error || loading}
 									button
@@ -443,10 +429,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 									displayType="primary"
 									href={setUriQueryValues(
 										{type: SegmentTypes.Batch},
-										toRoute(
-											Routes.CONTACTS_SEGMENT_CREATE,
-											{channelId, groupId}
-										)
+										editSegmentURL
 									)}
 									small
 								>
@@ -454,7 +437,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 								</ClayLink>
 							)}
 
-							{LDPEnabled && (
+							{ldpEnabled && (
 								<ClayDropDown
 									alignmentPosition={Align.BottomRight}
 									trigger={
@@ -489,10 +472,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 														SegmentCategories.Account,
 													type: SegmentTypes.Batch,
 												},
-												toRoute(
-													Routes.CONTACTS_SEGMENT_CREATE,
-													{channelId, groupId}
-												)
+												editSegmentURL
 											)}
 										>
 											{Liferay.Language.get(
@@ -510,10 +490,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 											data-testid="batch-segment-dropdown-item"
 											href={setUriQueryValues(
 												{type: SegmentTypes.Batch},
-												toRoute(
-													Routes.CONTACTS_SEGMENT_CREATE,
-													{channelId, groupId}
-												)
+												editSegmentURL
 											)}
 										>
 											{Liferay.Language.get(
@@ -525,10 +502,7 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 											data-testid="real-time-segment-dropdown-item"
 											href={setUriQueryValues(
 												{type: SegmentTypes.RealTime},
-												toRoute(
-													Routes.CONTACTS_SEGMENT_CREATE,
-													{channelId, groupId}
-												)
+												editSegmentURL
 											)}
 										>
 											{Liferay.Language.get(
@@ -575,11 +549,14 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 		>
 			<BasePage.Header
 				breadcrumbs={[
-					breadcrumbs.getHome({
-						channelId,
-						groupId,
-						label: selectedChannel && selectedChannel.name,
-					}),
+					breadcrumbs.getHome(
+						{
+							channelId,
+							groupId,
+							label: selectedChannel && selectedChannel.name,
+						},
+						config
+					),
 				]}
 				groupId={groupId}
 			>
@@ -607,12 +584,12 @@ export const List: React.FC<IListProps> = ({channelId, groupId, history}) => {
 									cellRenderer: LinkCell,
 									cellRendererProps: {
 										hrefFormatter: (data: {id: string}) =>
-											toRoute(Routes.CONTACTS_SEGMENT, {
-												channelId,
-												groupId,
-												id: data.id,
-												type: SEGMENTS,
-											}),
+											setUriQueryValues(
+												{
+													id: data.id,
+												},
+												segmentURL
+											),
 									},
 									className: 'table-cell-expand',
 									label: Liferay.Language.get('segment-name'),

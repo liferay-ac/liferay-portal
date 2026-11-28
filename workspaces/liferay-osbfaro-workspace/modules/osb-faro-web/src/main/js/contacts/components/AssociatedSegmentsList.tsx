@@ -8,7 +8,7 @@ import {OrderedMap} from 'immutable';
 import {OrderParams} from 'shared/util/records';
 import {segmentsListColumns} from 'shared/util/table-columns';
 import {toLocale} from 'shared/util/numbers';
-import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 interface IAssociatedSegmentsListProps {
 	channelId: string;
@@ -39,7 +39,9 @@ const AssociatedSegmentsList: React.FC<IAssociatedSegmentsListProps> = ({
 	timeZoneId,
 	total,
 }) => {
-	const LDPEnabled = useLDPEnabled({groupId});
+	const config = usePageConfig();
+
+	const {ldpEnabled} = config;
 
 	return (
 		<Card
@@ -82,8 +84,8 @@ const AssociatedSegmentsList: React.FC<IAssociatedSegmentsListProps> = ({
 
 			<SearchableEntityTable
 				columns={[
-					segmentsListColumns.getName({channelId, groupId}),
-					segmentsListColumns.getSegmentType(LDPEnabled),
+					segmentsListColumns.getName(config),
+					segmentsListColumns.getSegmentType(ldpEnabled),
 					segmentsListColumns.individualAddedDate,
 					segmentsListColumns.getDateCreated(timeZoneId),
 				].filter(Boolean)}

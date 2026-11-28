@@ -3,19 +3,19 @@ import React from 'react';
 import SuppressedUserList from '../hocs/SuppressedUserList';
 import {getDataPrivacy} from 'shared/util/breadcrumbs';
 import {Router} from 'shared/types';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useTimeZone} from 'shared/hooks/useTimeZone';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 export const SuppressedUsers = ({router}: {router: Router}) => {
-	const currentUser = useCurrentUser();
-	const {timeZoneId} = useTimeZone();
+	const config = usePageConfig();
 
-	const groupId = router.params.groupId ?? '';
+	const {currentUser} = config;
+	const {timeZoneId} = useTimeZone();
 
 	return (
 		<BasePage
 			breadcrumbItems={[
-				getDataPrivacy({groupId}),
+				getDataPrivacy(config),
 				{
 					active: true,
 					label: Liferay.Language.get('suppressed-user-list'),

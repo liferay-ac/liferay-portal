@@ -2,11 +2,8 @@ import * as API from 'shared/api';
 import * as data from 'test/data';
 import {DataSource} from 'shared/util/records';
 import {
-	dataSourceRedirectFn,
 	getChannelsAutoSelectFilter,
 	getDataSourceDisplayObject,
-	getIdsFromConfiguration,
-	getServiceAlertConfig,
 	isDataSourceValid,
 	STATUS_DISPLAY,
 	validAnalyticsConfig,
@@ -18,9 +15,7 @@ import {
 	DataSourceStatuses,
 	DataSourceTypes,
 } from 'shared/util/constants';
-import {fromJS} from 'immutable';
-import {noop, range} from 'lodash';
-import {Routes, toRoute} from 'shared/util/router';
+import {noop} from 'lodash';
 
 function getMockLiferayDataSource(id, config) {
 	return data.getImmutableMock(
@@ -32,38 +27,6 @@ function getMockLiferayDataSource(id, config) {
 }
 
 describe('data-sources', () => {
-	describe('dataSourceRedirectFn', () => {
-		it('should return the SETTINGS_DATA_SOURCE route if the data source state is NOT VALID', () => {
-			const groupId = '23';
-			const id = '123';
-
-			const result = dataSourceRedirectFn({
-				dataSource: getMockLiferayDataSource(id, {
-					state: DataSourceStates.UrlInvalid,
-				}),
-				groupId,
-			});
-
-			expect(result).toBe(
-				toRoute(Routes.SETTINGS_DATA_SOURCE, {groupId, id})
-			);
-		});
-
-		it('should return null if the data source state is VALID', () => {
-			const groupId = '23';
-			const id = '123';
-
-			const result = dataSourceRedirectFn({
-				dataSource: getMockLiferayDataSource(id, {
-					state: DataSourceStates.Ready,
-				}),
-				groupId,
-			});
-
-			expect(result).toBe(null);
-		});
-	});
-
 	describe('isDataSourceValid', () => {
 		it.each`
 			state                                     | isValid
@@ -202,22 +165,6 @@ describe('data-sources', () => {
 		});
 	});
 
-	describe('getIdsFromConfiguration', () => {
-		it('should return an array of numerical ids from a Map.<List.<Map>>', () => {
-			const expectedArray = range(5);
-
-			const testKey = 'testKey';
-
-			const mockMap = fromJS({
-				[testKey]: expectedArray.map((i) => ({id: i})),
-			});
-
-			expect(getIdsFromConfiguration(mockMap, testKey)).toEqual(
-				expectedArray
-			);
-		});
-	});
-
 	describe('getChannelsAutoSelectFilter', () => {
 		it('should preselect the channels syncing a site for a Demandbase data source', () => {
 			const filter = getChannelsAutoSelectFilter({
@@ -239,30 +186,6 @@ describe('data-sources', () => {
 		it('should not preselect any channel when there is no data source', () => {
 			expect(getChannelsAutoSelectFilter(null)).toBeUndefined();
 			expect(getChannelsAutoSelectFilter()).toBeUndefined();
-		});
-	});
-
-	describe('getServiceAlertConfig', () => {
-		it('should return a service permission related alert props', () => {
-			const result = getServiceAlertConfig(403);
-
-			expect(result).toMatchObject({
-				alertType: 'WARNING',
-				timeout: 7000,
-			});
-			expect(typeof result.message).toBe('string');
-			expect(result.message.length).toBeGreaterThan(0);
-		});
-
-		it('should return a service unresponsive related alert props', () => {
-			const result = getServiceAlertConfig(404);
-
-			expect(result).toMatchObject({
-				alertType: 'WARNING',
-				timeout: 7000,
-			});
-			expect(typeof result.message).toBe('string');
-			expect(result.message.length).toBeGreaterThan(0);
 		});
 	});
 

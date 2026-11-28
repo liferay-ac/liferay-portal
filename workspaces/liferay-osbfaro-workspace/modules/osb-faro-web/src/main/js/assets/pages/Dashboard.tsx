@@ -11,14 +11,13 @@ import React, {lazy, Suspense, useState} from 'react';
 import SegmentDropdown from 'shared/components/SegmentDropdown';
 import {getAssetDescriptorBySlug} from 'assets/descriptors';
 import {getSafeDecodedURIComponent} from 'shared/util/util';
-import {pickBy} from 'lodash';
+import {isString, pickBy} from 'lodash';
 import {Router} from 'shared/types';
-import {Routes} from 'shared/util/router';
 import {sub} from 'shared/util/lang';
 import {useAccountFilter} from 'shared/hooks/useAccountFilter';
 import {useChannelContext} from 'shared/context/channel';
 import {useDataSources} from 'shared/context/dataSources';
-import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
+import {usePageConfig} from 'shared/context/pageConfig';
 import {useRangeQueryValues} from 'shared/hooks/useRangeQueryValues';
 import {useSegmentFilter} from 'shared/hooks/useSegmentFilter';
 
@@ -42,49 +41,33 @@ export const KNOWN_INDIVIDUALS_TAB_ID = 'known-individuals';
 
 export const OVERVIEW_TAB_ID = 'page';
 
-const AssetDashboard: React.FC<{
-	className: string;
+interface IAssetDashboardProps {
+	className?: string;
 	router: Router;
-}> = ({className, router}) => {
+	tabId: string;
+}
+
+const AssetDashboard: React.FC<IAssetDashboardProps> = ({
+	className,
+	router,
+	tabId,
+}) => {
+	const config = usePageConfig();
+
+	const {ldpEnabled} = config;
+
 	const {
 		params: {
 			assetId,
 			assetType: slug = '',
 			channelId = '',
 			groupId = '',
-			tabId,
 			title = '',
-			touchpoint,
 			type = '',
 		},
 	} = router;
 
 	const descriptor = getAssetDescriptorBySlug(slug);
-
-	const LDPEnabled = useLDPEnabled({groupId});
-
-	const NAV_ITEMS = [
-		{
-			exact: true,
-			label: Liferay.Language.get('overview'),
-			route: Routes.ASSETS_DASHBOARD_OVERVIEW,
-		},
-		...(LDPEnabled
-			? [
-					{
-						exact: true,
-						label: Liferay.Language.get('visitors'),
-						route: Routes.ASSETS_DASHBOARD_ACCOUNTS,
-					},
-				]
-			: [
-					{
-						exact: true,
-						label: Liferay.Language.get('known-individuals'),
-						route: Routes.ASSETS_DASHBOARD_KNOWN_INDIVIDUALS,
-					},
-				]),
-	];
 
 	const [filters] = useState({});
 
@@ -112,13 +95,16 @@ const AssetDashboard: React.FC<{
 
 	// Shared by the tab links and the breadcrumb back to the list.
 
-	const routeQueries = pickBy({
-		...rangeSelectors,
-		accountId,
-		accountName,
-		segmentId,
-		segmentName,
-	});
+	const routeQueries = pickBy(
+		{
+			...rangeSelectors,
+			accountId,
+			accountName,
+			segmentId,
+			segmentName,
+		},
+		isString
+	);
 
 	return (
 		<BasePage
@@ -127,16 +113,15 @@ const AssetDashboard: React.FC<{
 		>
 			<BasePage.Header
 				breadcrumbs={[
-					breadcrumbs.getHome({
-						channelId,
-						groupId,
-						label: selectedChannel?.name,
-					}),
-					breadcrumbs.getAssets({
-						channelId,
-						groupId,
-						query: routeQueries,
-					}),
+					breadcrumbs.getHome(
+						{
+							channelId,
+							groupId,
+							label: selectedChannel?.name,
+						},
+						config
+					),
+					breadcrumbs.getAssets({query: routeQueries}, config),
 					breadcrumbs.getEntityName({label: decodedTitle}),
 				]}
 				groupId={groupId}
@@ -149,25 +134,13 @@ const AssetDashboard: React.FC<{
 					/>
 				)}
 
-				<BasePage.Header.NavBar
-					items={NAV_ITEMS}
-					routeParams={{
-						assetId,
-						assetType: slug,
-						channelId,
-						groupId,
-						title,
-						touchpoint,
-						type,
-					}}
-					routeQueries={routeQueries}
-				/>
+				<BasePage.Header.NavBar />
 			</BasePage.Header>
 
 			{tabId !== ACCOUNTS_TAB_ID &&
 				tabId !== KNOWN_INDIVIDUALS_TAB_ID && (
 					<BasePage.SubHeader>
-						{LDPEnabled && (
+						{ldpEnabled && (
 							<AccountDropdown
 								assetType={graphQLType}
 								className="mr-3"
@@ -178,7 +151,7 @@ const AssetDashboard: React.FC<{
 							/>
 						)}
 
-						{LDPEnabled && (
+						{ldpEnabled && (
 							<SegmentDropdown
 								initialSegmentId={segmentId}
 								initialSegmentName={segmentName}

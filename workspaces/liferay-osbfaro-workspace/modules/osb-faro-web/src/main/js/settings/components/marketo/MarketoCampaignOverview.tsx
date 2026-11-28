@@ -26,11 +26,10 @@ import {fetchConnectorEntityCount} from 'shared/api/connector';
 import {getDataSourceDisplayObject} from 'shared/util/data-sources';
 import {sub} from 'shared/util/lang';
 import {Text} from '@clayui/core';
-import {useCurrentUser} from 'shared/hooks/useCurrentUser';
 import {useDisconnectDataSource} from '../data-source/utils';
-import {useParams} from 'react-router-dom';
 import {useRequest} from 'shared/hooks/useRequest';
 import {withSelectionProvider} from 'shared/context/selection';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 const connector = connect(null, {
 	addAlert,
@@ -46,14 +45,16 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 	addAlert,
 	dataSource: initialDataSource,
 }) => {
+	const config = usePageConfig();
+
 	const [loading, setLoading] = useState(false);
 	const [dataSource, setDataSource] = useState(initialDataSource);
 
-	const {groupId = '', id = ''} = useParams<{
-		groupId: string;
-		id: string;
-	}>();
-	const currentUser = useCurrentUser();
+	const {
+		currentUser,
+		groupId = '',
+		params: {id = ''},
+	} = config;
 
 	type ConnectionAlert = {
 		displayType: DisplayType;
@@ -137,11 +138,14 @@ const MarketoCampaignOverview: React.FC<IMarketoCampaignOverviewProps> = ({
 	return (
 		<BasePage
 			breadcrumbItems={[
-				breadcrumbs.getDataSources({groupId}),
-				breadcrumbs.getDataSourceName({
-					active: true,
-					label: dataSource.name ?? '',
-				}),
+				breadcrumbs.getDataSources(config),
+				breadcrumbs.getDataSourceName(
+					{
+						active: true,
+						label: dataSource.name ?? '',
+					},
+					config
+				),
 			]}
 			documentTitle={Liferay.Language.get('configure-data-source')}
 		>

@@ -1,7 +1,6 @@
 import {pickBy} from 'lodash';
 import {setUriQueryValues} from 'shared/util/url';
-import {useHistoryAdapter} from 'shared/hooks/useHistoryAdapter';
-import {useQueryParams} from 'shared/hooks/useQueryParams';
+import {usePageConfig} from 'shared/context/pageConfig';
 
 type Account = {
 	id: string;
@@ -22,15 +21,16 @@ interface IAccountFilter {
  */
 
 export const useAccountFilter = (): IAccountFilter => {
-	const {accountId, accountName} = useQueryParams();
-	const history = useHistoryAdapter();
+	const {
+		params: {accountId, accountName},
+	} = usePageConfig();
 
 	return {
 		accountId,
 		accountName,
 		accountQueryValues: pickBy({accountId, accountName}),
 		setAccount: (account) =>
-			history.push(
+			Liferay.Util.navigate(
 				setUriQueryValues({
 					accountId: account?.id ?? null,
 					accountName: account?.name ?? null,
